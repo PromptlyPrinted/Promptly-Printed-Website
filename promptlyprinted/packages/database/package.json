@@ -4,23 +4,20 @@
   "main": "./index.ts",
   "types": "./index.ts",
   "scripts": {
-    "build": "prisma generate --no-hints"
+    "analyze": "prisma generate --no-hints",
+    "build": "prisma generate --no-hints",
+    "clean": "git clean -xdf .cache .turbo dist node_modules",
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^0.10.3",
-    "@prisma/adapter-neon": "^5.22.0",
-    "@prisma/client": "5.22.0",
+    "@prisma/client": "6.0.1",
     "@repo/env": "workspace:*",
-    "server-only": "^0.0.1",
-    "undici": "^6.21.0",
-    "ws": "^8.18.0"
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
-    "@types/node": "22.9.0",
-    "@types/ws": "^8.5.13",
-    "bufferutil": "^4.0.8",
-    "prisma": "5.22.0",
-    "typescript": "^5.6.3"
+    "@types/node": "22.10.1",
+    "prisma": "6.0.1",
+    "typescript": "^5.7.2"
   }
 }

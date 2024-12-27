@@ -1,17 +1,20 @@
 import 'server-only';
+import { auth } from '@repo/auth/server';
 import { env } from '@repo/env';
-import { auth } from '@clerk/nextjs/server';
 import { Svix } from 'svix';
 
-const svix = new Svix(env.SVIX_TOKEN);
+export const send = async (eventType: string, payload: object) => {
+  if (!env.SVIX_TOKEN) {
+    throw new Error('SVIX_TOKEN is not set');
+  }
 
-export const send = async (eventType: string, payload: any) => {
+  const svix = new Svix(env.SVIX_TOKEN);
   const { orgId } = await auth();
-  
+
   if (!orgId) {
     return;
   }
-  
+
   return svix.message.create(orgId, {
     eventType,
     payload: {
@@ -21,11 +24,16 @@ export const send = async (eventType: string, payload: any) => {
     application: {
       name: orgId,
       uid: orgId,
-    }
+    },
   });
-}
+};
 
 export const getAppPortal = async () => {
+  if (!env.SVIX_TOKEN) {
+    throw new Error('SVIX_TOKEN is not set');
+  }
+
+  const svix = new Svix(env.SVIX_TOKEN);
   const { orgId } = await auth();
 
   if (!orgId) {
@@ -36,6 +44,6 @@ export const getAppPortal = async () => {
     application: {
       name: orgId,
       uid: orgId,
-    }
+    },
   });
-}
+};

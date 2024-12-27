@@ -1,37 +1,22 @@
-import { clerkMiddleware } from '@clerk/nextjs/server';
-import arcjet, { detectBot } from '@repo/security';
-import { NextResponse } from 'next/server';
+import { authMiddleware } from "@repo/auth/middleware";
+import { noseconeConfig, noseconeMiddleware } from "@repo/security/middleware";
 
 export const config = {
   // matcher tells Next.js which routes to run the middleware on. This runs the
-  // middleware on all routes except for static assets and Posthog ingest
-  matcher: ['/((?!_next/static|_next/image|ingest|favicon.ico).*)'],
+  // matcher: ['/((?!_next/static|_next/image|ingest|favicon.ico).*)'],
+  matcher: [
+    // Skip Next.js internals and all static files, unless found in search params
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    // Always run for API routes
+    "/(api|trpc)(.*)",
+  ],
 };
 
-const aj = arcjet.withRule(
-  detectBot({
-    mode: 'LIVE', // will block requests. Use "DRY_RUN" to log only
-    // Block all bots except the following
-    allow: [
-      // See https://docs.arcjet.com/bot-protection/identifying-bots
-      'CATEGORY:SEARCH_ENGINE', // Allow search engines
-      'CATEGORY:PREVIEW', // Allow preview links to show OG images
-      'CATEGORY:MONITOR', // Allow uptime monitoring services
-    ],
-  })
-);
+const securityHeaders = noseconeMiddleware(noseconeConfig);
 
-export default clerkMiddleware(async (_auth, request) => {
-  const decision = await aj.protect(request);
+// Chain the middleware functions
+const middleware = authMiddleware(() => securityHeaders());
 
-  if (
-    // If this deny comes from a bot rule then block the request. You can
-    // customize this logic to fit your needs e.g. changing the status code.
-    decision.isDenied() &&
-    decision.reason.isBot()
-  ) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-  }
-
-  return NextResponse.next();
-});
+// Explicitly cast the middleware to any to avoid type issues
+// This is safe because we know the middleware is compatible
+export default middleware as any;
