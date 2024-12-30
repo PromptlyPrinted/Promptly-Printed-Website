@@ -13,6 +13,8 @@ import { mkdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import chalk from 'chalk';
 import { program } from 'commander';
+import { PrismaClient } from '@prisma/client';
+import { users } from '@clerk/nextjs';
 const { log } = console;
 
 const url = 'https://github.com/haydenbleasel/next-forge';
@@ -34,23 +36,71 @@ const internalContentFiles = [
 ];
 const allInternalContent = [...internalContentDirs, ...internalContentFiles];
 
+const database = new PrismaClient();
+
+async function syncClerkUsers() {
+  try {
+    console.log('Starting Clerk users sync...');
+    
+    // Get all users from Clerk
+    const clerkUsers = await users.getUserList();
+    
+    console.log(`Found ${clerkUsers.data.length} users in Clerk`);
+
+    // Create or update each user in the database
+    for (const user of clerkUsers.data) {
+      await database.user.upsert({
+        where: { clerkId: user.id },
+        create: {
+          clerkId: user.id,
+          email: user.emailAddresses[0]?.emailAddress ?? '',
+          firstName: user.firstName ?? null,
+          lastName: user.lastName ?? null,
+        },
+        update: {
+          email: user.emailAddresses[0]?.emailAddress ?? '',
+          firstName: user.firstName ?? null,
+          lastName: user.lastName ?? null,
+        },
+      });
+    }
+
+    console.log('Successfully synced all users');
+  } catch (error) {
+    console.error('Error syncing users:', error);
+    process.exit(1);
+  }
+}
+
+// Export the sync function
+export const initializeDatabase = async () => {
+  console.log('Initializing database...');
+  
+  // Sync Clerk users
+  await syncClerkUsers();
+  
+  console.log('Database initialization complete');
+};
+
 program
-  .command('init <name>')
-  .description('Initialize a new next-forge project')
-  .option(
-    '--package-manager <manager>',
-    'Package manager to use (npm, yarn, bun, pnpm)',
-    'pnpm'
-  )
-  .action((projectName, options) => {
+  .name('init')
+  .description('Initialize the project')
+  .option('-f, --force', 'Force initialization even if files exist')
+  .option('--sync-users', 'Sync Clerk users to database')
+  .action(async (options) => {
+    if (options.syncUsers) {
+      await initializeDatabase();
+      process.exit(0);
+    }
+
     try {
       const cwd = process.cwd();
-      const projectDir = join(cwd, projectName);
+      const projectDir = join(cwd, options.name);
       const { packageManager } = options;
 
       log(chalk.green('Creating new next-forge project...'));
       execSync(
-        `${packageManager} create next-app@latest ${projectName} --example "${url}" --disable-git`,
+        `${packageManager} create next-app@latest ${options.name} --example "${url}" --disable-git`,
         execSyncOpts
       );
       process.chdir(projectDir);
@@ -214,4 +264,4 @@ program
     }
   });
 
-program.parse(process.argv);
+program.parse();

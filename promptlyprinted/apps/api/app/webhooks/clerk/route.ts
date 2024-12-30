@@ -6,13 +6,25 @@ import type {
   UserJSON,
   WebhookEvent,
 } from '@repo/auth/server';
+import { database } from '@repo/database';
 import { env } from '@repo/env';
 import { log } from '@repo/observability/log';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { Webhook } from 'svix';
 
-const handleUserCreated = (data: UserJSON) => {
+const handleUserCreated = async (data: UserJSON) => {
+  // Create user in database
+  await database.user.create({
+    data: {
+      clerkId: data.id,
+      email: data.email_addresses[0]?.email_address ?? '',
+      firstName: data.first_name ?? null,
+      lastName: data.last_name ?? null,
+    },
+  });
+
+  // Track analytics
   analytics.identify({
     distinctId: data.id,
     properties: {
@@ -33,7 +45,17 @@ const handleUserCreated = (data: UserJSON) => {
   return new Response('User created', { status: 201 });
 };
 
-const handleUserUpdated = (data: UserJSON) => {
+const handleUserUpdated = async (data: UserJSON) => {
+  // Update user in database
+  await database.user.update({
+    where: { clerkId: data.id },
+    data: {
+      email: data.email_addresses[0]?.email_address ?? '',
+      firstName: data.first_name ?? null,
+      lastName: data.last_name ?? null,
+    },
+  });
+
   analytics.identify({
     distinctId: data.id,
     properties: {
@@ -54,8 +76,13 @@ const handleUserUpdated = (data: UserJSON) => {
   return new Response('User updated', { status: 201 });
 };
 
-const handleUserDeleted = (data: DeletedObjectJSON) => {
+const handleUserDeleted = async (data: DeletedObjectJSON) => {
   if (data.id) {
+    // Delete user from database
+    await database.user.delete({
+      where: { clerkId: data.id },
+    });
+
     analytics.identify({
       distinctId: data.id,
       properties: {
@@ -195,15 +222,15 @@ export const POST = async (request: Request): Promise<Response> => {
 
   switch (eventType) {
     case 'user.created': {
-      response = handleUserCreated(event.data);
+      response = await handleUserCreated(event.data);
       break;
     }
     case 'user.updated': {
-      response = handleUserUpdated(event.data);
+      response = await handleUserUpdated(event.data);
       break;
     }
     case 'user.deleted': {
-      response = handleUserDeleted(event.data);
+      response = await handleUserDeleted(event.data);
       break;
     }
     case 'organization.created': {

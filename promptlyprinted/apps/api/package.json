@@ -17,13 +17,15 @@
     "@repo/database": "workspace:*",
     "@repo/design-system": "workspace:*",
     "@repo/env": "workspace:*",
+    "@repo/next-config": "workspace:*",
     "@repo/observability": "workspace:*",
     "@repo/payments": "workspace:*",
     "@sentry/nextjs": "^8.43.0",
-    "@repo/next-config": "workspace:*",
+    "import-in-the-middle": "^1.11.3",
     "next": "15.1.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
+    "require-in-the-middle": "^7.4.0",
     "svix": "^1.43.0"
   },
   "devDependencies": {
