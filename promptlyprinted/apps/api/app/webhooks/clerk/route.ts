@@ -258,3 +258,9 @@ export const POST = async (request: Request): Promise<Response> => {
 
   return response;
 };
+
+export const GET = async () => {
+  return new Response('Clerk webhook endpoint is working! This endpoint is designed to receive POST requests from Clerk.', {
+    status: 200,
+  });
+};
