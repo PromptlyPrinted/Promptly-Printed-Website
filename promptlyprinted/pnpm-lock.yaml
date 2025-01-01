@@ -8,12 +8,18 @@ importers:
 
   .:
     dependencies:
+      '@clerk/nextjs':
+        specifier: ^6.9.6
+        version: 6.9.6(next@15.1.0)(react-dom@19.0.0)(react@19.0.0)
       chalk:
         specifier: ^5.3.0
         version: 5.4.1
       commander:
         specifier: ^12.1.0
         version: 12.1.0
+      date-fns:
+        specifier: ^4.1.0
+        version: 4.1.0
     devDependencies:
       '@auto-it/all-contributors':
         specifier: ^11.3.0
@@ -151,6 +157,12 @@ importers:
       '@sentry/nextjs':
         specifier: ^8.43.0
         version: 8.47.0(@opentelemetry/core@1.30.0)(@opentelemetry/instrumentation@0.56.0)(@opentelemetry/sdk-trace-base@1.30.0)(next@15.1.0)(react@19.0.0)(webpack@5.97.1)
+      '@types/date-fns':
+        specifier: ^2.6.3
+        version: 2.6.3
+      date-fns:
+        specifier: ^4.1.0
+        version: 4.1.0
       fuse.js:
         specifier: ^7.0.0
         version: 7.0.0
@@ -8576,6 +8588,13 @@ packages:
 
   /@types/d3-timer@3.0.2:
     resolution: {integrity: sha512-Ps3T8E8dZDam6fUyNiMkekK3XUsaUEik+idO9/YjPtfj2qruF8tFBXS7XhtE4iIXBLxhmLjP3SXpLhVf21I9Lw==}
+    dev: false
+
+  /@types/date-fns@2.6.3:
+    resolution: {integrity: sha512-Ke1lw2Ni1t/wMUoLtKFmSNCLozcTBd6vmMqFP4hRzXn6qzkNt97bPAX0x5Y/c15DP43kKvwW1ycStD5+43jVQA==}
+    deprecated: This is a stub types definition. date-fns provides its own type definitions, so you do not need this installed.
+    dependencies:
+      date-fns: 4.1.0
     dev: false
 
   /@types/debug@4.1.12:
