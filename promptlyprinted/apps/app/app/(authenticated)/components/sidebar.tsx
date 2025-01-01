@@ -48,6 +48,7 @@ import {
   FolderIcon,
   ShareIcon,
   Trash2Icon,
+  BookOpenIcon, // Adding Blog icon
 } from "lucide-react"; // Swap icons to your liking
 import type { ReactNode } from "react";
 
@@ -69,6 +70,25 @@ const data = {
       icon: LayoutDashboardIcon,
       isActive: true,
       items: [],
+    },
+    {
+      title: "Blog",
+      url: "/admin/blog",
+      icon: BookOpenIcon,
+      items: [
+        {
+          title: "All Posts",
+          url: "/admin/blog/posts",
+        },
+        {
+          title: "Categories",
+          url: "/admin/blog/categories",
+        },
+        {
+          title: "Tags",
+          url: "/admin/blog/tags",
+        },
+      ],
     },
     {
       title: "Users",
