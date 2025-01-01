@@ -1,8 +1,8 @@
 import { auth } from "@repo/auth/server";
 import { database } from "@repo/database";
-import { calculateMetrics } from "../../../lib/metrics";
-import { generatePDFReport } from "../../../lib/generate-report";
 import { NextResponse } from "next/server";
+import { generateExcelReport } from "../../../lib/generate-report";
+import { calculateMetrics } from "../../../lib/metrics";
 
 export async function POST() {
   try {
@@ -21,28 +21,36 @@ export async function POST() {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    // Fetch data for report
+    // Fetch data
     const [allOrders, allUsers] = await Promise.all([
       database.order.findMany({
         orderBy: { createdAt: "desc" },
       }),
       database.user.findMany({
         orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          createdAt: true,
+        },
       }),
     ]);
 
     // Calculate metrics
     const metrics = calculateMetrics(allOrders, allUsers);
 
-    // Generate PDF
-    const pdfDataUri = generatePDFReport(metrics);
+    // Generate Excel report
+    const excelBuffer = generateExcelReport(metrics);
 
-    // Return PDF
-    return new NextResponse(pdfDataUri, {
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": 'attachment; filename="analytics-report.pdf"',
-      },
+    // Set response headers for Excel download
+    const headers = new Headers();
+    headers.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    headers.set('Content-Disposition', 'attachment; filename=promptly-printed-report.xlsx');
+
+    return new NextResponse(excelBuffer, {
+      headers,
     });
   } catch (error) {
     console.error("Error generating report:", error);

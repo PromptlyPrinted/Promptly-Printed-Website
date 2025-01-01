@@ -94,7 +94,6 @@ const App = async () => {
       <Header pages={['Admin Dashboard']} page="Overview">
         {env.LIVEBLOCKS_SECRET && (
           <CollaborationProvider orgId={orgId}>
-            <AvatarStack />
             <Cursors />
           </CollaborationProvider>
         )}
