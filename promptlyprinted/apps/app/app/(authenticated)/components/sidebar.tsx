@@ -72,21 +72,13 @@ const data = {
       items: [],
     },
     {
-      title: "Blog",
-      url: "/admin/blog",
+      title: "CMS",
+      url: "/admin/cms",
       icon: BookOpenIcon,
       items: [
         {
-          title: "All Posts",
-          url: "/admin/blog/posts",
-        },
-        {
-          title: "Categories",
-          url: "/admin/blog/categories",
-        },
-        {
-          title: "Tags",
-          url: "/admin/blog/tags",
+          title: "Pages",
+          url: "/admin/cms/pages",
         },
       ],
     },
