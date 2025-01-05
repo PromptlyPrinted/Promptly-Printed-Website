@@ -166,6 +166,9 @@ importers:
       '@types/date-fns':
         specifier: ^2.6.3
         version: 2.6.3
+      basehub:
+        specifier: ^7.5.32
+        version: 7.5.32(@babel/runtime@7.26.0)(@types/react@19.0.1)(react-dom@19.0.0)(react@19.0.0)(typescript@5.7.2)
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
