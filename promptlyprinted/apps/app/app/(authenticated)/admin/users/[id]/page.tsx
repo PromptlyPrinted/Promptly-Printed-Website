@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@repo/design-system/components/ui/card';
 import { Button } from '@repo/design-system/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@repo/design-system/components/ui/select';
@@ -36,33 +36,48 @@ async function updateUserRole(id: string, role: string) {
     },
     body: JSON.stringify({ role }),
   });
-  
+
   if (!response.ok) {
     throw new Error('Failed to update user role');
   }
   return response.json();
 }
 
-export default function UserDetailPage({ params }: { params: { id: string } }) {
+export default function UserDetailPage() {
+  // Grab router, user, and param ID:
   const router = useRouter();
   const { user: currentUser, isLoaded } = useUser();
+  const params = useParams();
+  const id = typeof params.id === 'string' ? params.id : Array.isArray(params.id) ? params.id[0] : undefined;
   const { toast } = useToast();
+
+  // Use the ID from useParams() in your SWR call
   const { data: user, isLoading, error, mutate } = useSWR<User>(
-    isLoaded ? `/api/admin/users/${params.id}` : null,
-    () => getUser(params.id)
+    isLoaded && id ? `/api/admin/users/${id}` : null,
+    () => id ? getUser(id) : Promise.reject('No ID provided')
   );
+
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // Redirect if not admin
+  // Redirect if not admin (adjust logic to your app’s needs)
   if (isLoaded && !currentUser) {
     router.push('/sign-in');
     return null;
   }
 
   const handleRoleChange = async (newRole: string) => {
+    if (!id) {
+      toast({
+        title: 'Error',
+        description: 'User ID is missing',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     try {
       setIsUpdating(true);
-      await updateUserRole(params.id, newRole);
+      await updateUserRole(id, newRole);
       await mutate();
       toast({
         title: 'Success',
@@ -138,4 +153,4 @@ export default function UserDetailPage({ params }: { params: { id: string } }) {
       </Card>
     </div>
   );
-} 
+}
