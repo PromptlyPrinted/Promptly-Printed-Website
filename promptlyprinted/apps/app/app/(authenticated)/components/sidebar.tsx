@@ -8,13 +8,6 @@ import {
   CollapsibleTrigger,
 } from "@repo/design-system/components/ui/collapsible";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@repo/design-system/components/ui/dropdown-menu";
-import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
@@ -30,31 +23,45 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  SidebarTrigger,
   useSidebar,
 } from "@repo/design-system/components/ui/sidebar";
 import { cn } from "@repo/design-system/lib/utils";
 import {
-  AnchorIcon,
-  ShoppingCartIcon,
+  MoreHorizontalIcon,
+  LayoutDashboardIcon,
+  BookOpenIcon,
+  UsersIcon,
   PackageIcon,
+  BoxIcon,
+  ShoppingCartIcon,
   CreditCardIcon,
   ListChecksIcon,
-  LogOutIcon, // Just an example icon for logs
-  UsersIcon,
-  LayoutDashboardIcon,
-  BoxIcon,
+  LogOutIcon,
+  AnchorIcon,
   ZapIcon,
-  MoreHorizontalIcon,
-  FolderIcon,
-  ShareIcon,
-  Trash2Icon,
-  BookOpenIcon, // Adding Blog icon
-} from "lucide-react"; // Swap icons to your liking
-import type { ReactNode } from "react";
+} from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { create } from 'zustand';
+import { useState } from 'react';
+import type { ReactNode } from 'react';
+
+type Role = 'ALL' | 'ADMIN' | 'CUSTOMER';
+
+interface UserFilterStore {
+  roleFilter: Role;
+  setRoleFilter: (role: Role) => void;
+}
 
 type GlobalSidebarProperties = {
   readonly children: ReactNode;
 };
+
+export const useUserFilterStore = create<UserFilterStore>()((set) => ({
+  roleFilter: 'ALL',
+  setRoleFilter: (role: Role) => set(() => ({ roleFilter: role })),
+}));
 
 const data = {
   user: {
@@ -93,7 +100,11 @@ const data = {
         },
         {
           title: "Admins",
-          url: "/admin/users?role=ADMIN",
+          url: "/admin/users",
+        },
+        {
+          title: "Customers",
+          url: "/admin/users",
         },
       ],
     },
@@ -154,46 +165,61 @@ const data = {
 
 export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
   const sidebar = useSidebar();
+  const pathname = usePathname();
+  const { roleFilter, setRoleFilter } = useUserFilterStore();
+  const [openItems, setOpenItems] = useState<Record<string, boolean>>({});
+
+  const isActive = (url: string, role?: Role) => {
+    if (role) {
+      return pathname === url && roleFilter === role;
+    }
+    return pathname === url && (!role || roleFilter === 'ALL');
+  };
+
+  const handleUserFilterClick = (role: Role) => {
+    setRoleFilter(role);
+  };
+
+  const toggleItem = (title: string) => {
+    setOpenItems(prev => ({
+      ...prev,
+      [title]: !prev[title]
+    }));
+  };
 
   return (
     <>
-      <Sidebar variant="inset">
+      <Sidebar variant="inset" collapsible="icon">
         <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
-              <div
-                className={cn(
-                  "h-[36px] overflow-hidden transition-all [&>div]:w-full",
-                  sidebar.open ? "" : "-mx-1"
-                )}
-              >
-                <OrganizationSwitcher
-                  hidePersonal
-                  afterSelectOrganizationUrl="/"
-                />
+              <div className={cn("h-[36px] overflow-hidden transition-all [&>div]:w-full", sidebar.open ? "" : "-mx-1")}>
+                <OrganizationSwitcher hidePersonal afterSelectOrganizationUrl="/" />
               </div>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarHeader>
 
         <SidebarContent>
-          {/* MAIN NAV */}
           <SidebarGroup>
             <SidebarGroupLabel>Admin</SidebarGroupLabel>
             <SidebarMenu>
               {data.navMain.map((item) => (
                 <Collapsible
                   key={item.title}
-                  asChild
-                  // If you want to open/close automatically if it's the current route
-                  defaultOpen={item.isActive}
+                  open={openItems[item.title] || isActive(item.url) || item.items?.some(subItem => isActive(subItem.url))}
+                  onOpenChange={() => toggleItem(item.title)}
                 >
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild tooltip={item.title}>
-                      <a href={item.url}>
+                    <SidebarMenuButton 
+                      asChild 
+                      tooltip={item.title}
+                      className={cn(isActive(item.url) && "bg-accent")}
+                    >
+                      <Link href={item.url}>
                         <item.icon />
                         <span>{item.title}</span>
-                      </a>
+                      </Link>
                     </SidebarMenuButton>
                     {item.items?.length ? (
                       <>
@@ -207,10 +233,26 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
                           <SidebarMenuSub>
                             {item.items.map((subItem) => (
                               <SidebarMenuSubItem key={subItem.title}>
-                                <SidebarMenuSubButton asChild>
-                                  <a href={subItem.url}>
+                                <SidebarMenuSubButton 
+                                  asChild
+                                  className={cn(
+                                    item.title === "Users" 
+                                      ? isActive(subItem.url, subItem.title === "All Users" ? "ALL" : subItem.title === "Admins" ? "ADMIN" : "CUSTOMER") 
+                                      : isActive(subItem.url),
+                                    "bg-accent"
+                                  )}
+                                  onClick={() => {
+                                    if (item.title === "Users") {
+                                      handleUserFilterClick(
+                                        subItem.title === "All Users" ? "ALL" : 
+                                        subItem.title === "Admins" ? "ADMIN" : "CUSTOMER"
+                                      );
+                                    }
+                                  }}
+                                >
+                                  <Link href={subItem.url}>
                                     <span>{subItem.title}</span>
-                                  </a>
+                                  </Link>
                                 </SidebarMenuSubButton>
                               </SidebarMenuSubItem>
                             ))}
@@ -224,17 +266,20 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
             </SidebarMenu>
           </SidebarGroup>
 
-          {/* SECONDARY NAV (Webhooks, Settings, etc.) */}
+          {/* SECONDARY NAV */}
           <SidebarGroup className="mt-auto">
             <SidebarGroupContent>
               <SidebarMenu>
                 {data.navSecondary.map((item) => (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <a href={item.url}>
+                    <SidebarMenuButton 
+                      asChild
+                      className={cn(isActive(item.url) && "bg-accent")}
+                    >
+                      <Link href={item.url}>
                         <item.icon />
                         <span>{item.title}</span>
-                      </a>
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}

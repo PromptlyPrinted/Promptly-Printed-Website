@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@repo/design-system/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@repo/design-system/components/ui/select';
@@ -9,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { useUser } from '@clerk/nextjs';
 import useSWR from 'swr';
+import { useUserFilterStore } from '../../components/sidebar';
 
 type User = {
   id: string;
@@ -30,7 +30,7 @@ async function getUsers() {
 export default function UsersPage() {
   const router = useRouter();
   const { user: currentUser, isLoaded } = useUser();
-  const [roleFilter, setRoleFilter] = useState<string>('ALL');
+  const { roleFilter, setRoleFilter } = useUserFilterStore();
   const { data: users, isLoading, error } = useSWR<User[]>(
     isLoaded ? '/api/admin/users' : null,
     getUsers
@@ -89,7 +89,7 @@ export default function UsersPage() {
               <SelectContent>
                 <SelectItem value="ALL">All Users</SelectItem>
                 <SelectItem value="ADMIN">Admins Only</SelectItem>
-                <SelectItem value="CUSTOMER">Customers</SelectItem>
+                <SelectItem value="CUSTOMER">Customers Only</SelectItem>
               </SelectContent>
             </Select>
           </div>
