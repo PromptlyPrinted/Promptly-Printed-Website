@@ -1,9 +1,19 @@
 import { Clerk } from '@clerk/nextjs/server';
 import { PrismaClient } from '@prisma/client';
-import { env } from '@repo/env';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 const database = new PrismaClient();
-const clerk = Clerk({ secretKey: env.CLERK_SECRET_KEY });
+const clerk = Clerk({ secretKey: process.env.CLERK_SECRET_KEY });
+
+// List of admin email addresses
+const ADMIN_EMAILS = [
+  'nathan@promptlyprinted.com',
+  'kingfame@hotmail.co.uk',
+  'flackomge@gmail.com',
+  'checastro@hotmail.co.uk'
+];
 
 async function syncClerkUsers() {
   try {
@@ -16,20 +26,27 @@ async function syncClerkUsers() {
 
     // Create or update each user in the database
     for (const user of clerkUsers) {
+      const email = user.emailAddresses[0]?.emailAddress ?? '';
+      const isAdmin = ADMIN_EMAILS.includes(email);
+
       await database.user.upsert({
         where: { clerkId: user.id },
         create: {
           clerkId: user.id,
-          email: user.emailAddresses[0]?.emailAddress ?? '',
+          email: email,
           firstName: user.firstName ?? null,
           lastName: user.lastName ?? null,
+          role: isAdmin ? 'ADMIN' : 'CUSTOMER',
         },
         update: {
-          email: user.emailAddresses[0]?.emailAddress ?? '',
+          email: email,
           firstName: user.firstName ?? null,
           lastName: user.lastName ?? null,
+          role: isAdmin ? 'ADMIN' : 'CUSTOMER',
         },
       });
+
+      console.log(`Updated user ${email} with role: ${isAdmin ? 'ADMIN' : 'CUSTOMER'}`);
     }
 
     console.log('Successfully synced all users');

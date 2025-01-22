@@ -1,6 +1,8 @@
 {
   "name": "@repo/database",
   "version": "0.0.0",
+  "private": true,
+  "type": "module",
   "main": "./index.ts",
   "types": "./index.ts",
   "scripts": {
@@ -8,18 +10,29 @@
     "build": "prisma generate --no-hints",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false",
-    "sync-clerk": "tsx scripts/sync-clerk.ts"
+    "sync-clerk": "tsx scripts/sync-clerk.ts",
+    "update-products": "NODE_NO_WARNINGS=1 tsx scripts/updateProducts.ts",
+    "db:push": "prisma db push --skip-generate",
+    "db:migrate": "prisma migrate dev",
+    "update-prices": "tsx scripts/cronUpdateProducts.ts",
+    "start-cron": "tsx scripts/cronJob.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^4.29.0",
     "@prisma/client": "6.0.1",
     "@repo/env": "workspace:*",
+    "dotenv": "^16.3.1",
+    "node-cron": "^3.0.3",
+    "node-fetch": "^3.3.2",
     "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
     "@types/node": "22.10.1",
+    "@types/node-cron": "^3.0.11",
+    "@types/node-fetch": "^2.6.12",
     "prisma": "6.0.1",
+    "ts-node": "^10.9.2",
     "tsx": "^4.7.0",
     "typescript": "^5.7.2"
   }

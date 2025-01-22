@@ -45,6 +45,9 @@ importers:
       '@turbo/gen':
         specifier: ^2.3.3
         version: 2.3.3(@types/node@22.10.1)(typescript@5.7.2)
+      tsx:
+        specifier: ^4.7.0
+        version: 4.19.2
       turbo:
         specifier: ^2.3.3
         version: 2.3.3
@@ -127,6 +130,9 @@ importers:
       '@clerk/nextjs':
         specifier: 6.9.6
         version: 6.9.6(next@15.1.0)(react-dom@19.0.0)(react@19.0.0)
+      '@hookform/resolvers':
+        specifier: ^3.9.1
+        version: 3.9.1(react-hook-form@7.54.2)
       '@prisma/client':
         specifier: 6.0.1
         version: 6.0.1(prisma@6.0.1)
@@ -232,9 +238,15 @@ importers:
       react-dom:
         specifier: 19.0.0
         version: 19.0.0(react@19.0.0)
+      react-hook-form:
+        specifier: ^7.54.0
+        version: 7.54.2(react@19.0.0)
       require-in-the-middle:
         specifier: ^7.4.0
         version: 7.4.0
+      sonner:
+        specifier: ^1.7.1
+        version: 1.7.1(react-dom@19.0.0)(react@19.0.0)
       swr:
         specifier: ^2.3.0
         version: 2.3.0(react@19.0.0)
@@ -244,6 +256,9 @@ importers:
       xlsx:
         specifier: ^0.18.5
         version: 0.18.5
+      zod:
+        specifier: ^3.24.1
+        version: 3.24.1
     devDependencies:
       '@repo/testing':
         specifier: workspace:*
@@ -691,6 +706,15 @@ importers:
       '@repo/env':
         specifier: workspace:*
         version: link:../env
+      dotenv:
+        specifier: ^16.3.1
+        version: 16.4.7
+      node-cron:
+        specifier: ^3.0.3
+        version: 3.0.3
+      node-fetch:
+        specifier: ^3.3.2
+        version: 3.3.2
       server-only:
         specifier: ^0.0.1
         version: 0.0.1
@@ -701,9 +725,18 @@ importers:
       '@types/node':
         specifier: 22.10.1
         version: 22.10.1
+      '@types/node-cron':
+        specifier: ^3.0.11
+        version: 3.0.11
+      '@types/node-fetch':
+        specifier: ^2.6.12
+        version: 2.6.12
       prisma:
         specifier: 6.0.1
         version: 6.0.1
+      ts-node:
+        specifier: ^10.9.2
+        version: 10.9.2(@types/node@22.10.1)(typescript@5.7.2)
       tsx:
         specifier: ^4.7.0
         version: 4.19.2
@@ -3069,7 +3102,7 @@ packages:
       '@clerk/shared': 2.20.4(react-dom@19.0.0)(react@19.0.0)
       '@clerk/types': 4.40.0
       crypto-js: 4.2.0
-      next: 15.1.0(@babel/core@7.26.0)(@opentelemetry/api@1.9.0)(react-dom@19.0.0)(react@19.0.0)
+      next: 15.1.0(react-dom@19.0.0)(react@19.0.0)
       react: 19.0.0
       react-dom: 19.0.0(react@19.0.0)
       server-only: 0.0.1
@@ -5101,7 +5134,7 @@ packages:
       '@octokit/request-error': 2.1.0
       '@octokit/types': 6.41.0
       is-plain-object: 5.0.0
-      node-fetch: 2.6.7
+      node-fetch: 2.7.0
       universal-user-agent: 6.0.1
     transitivePeerDependencies:
       - encoding
@@ -8808,6 +8841,17 @@ packages:
       '@types/node': 22.10.1
     dev: false
 
+  /@types/node-cron@3.0.11:
+    resolution: {integrity: sha512-0ikrnug3/IyneSHqCBeslAhlK2aBfYek1fGo4bP4QnZPmiqSGRK+Oy7ZMisLWkesffJvQ1cqAcBnJC+8+nxIAg==}
+    dev: true
+
+  /@types/node-fetch@2.6.12:
+    resolution: {integrity: sha512-8nneRWKCg3rMtF69nLQJnOYUcbafYeFSjqkw3jCRLsqkWFlHaoQrr5mXmofFGOx3DKn7UfmBMyov8ySvLRVldA==}
+    dependencies:
+      '@types/node': 22.10.1
+      form-data: 4.0.1
+    dev: true
+
   /@types/node-fetch@2.6.2:
     resolution: {integrity: sha512-DHqhlq5jeESLy19TYhLakJ07kNumXWjcDdxXsLUMJZ6ue8VZJj4kLPQVE/2mdHh3xZziNF1xppu5lwmS53HR+A==}
     dependencies:
@@ -9063,7 +9107,7 @@ packages:
       '@babel/plugin-transform-react-jsx-source': 7.25.9(@babel/core@7.26.0)
       '@types/babel__core': 7.20.5
       react-refresh: 0.14.2
-      vite: 6.0.6(@types/node@22.10.1)
+      vite: 6.0.6(@types/node@22.10.1)(tsx@4.19.2)
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -11014,6 +11058,11 @@ packages:
     engines: {node: '>=12'}
     dev: false
 
+  /data-uri-to-buffer@4.0.1:
+    resolution: {integrity: sha512-0R9ikRb668HB7QDxT1vkpuUBtqc53YyAwMwGeUFKRojY/NWKvdZ+9UYtRfGmhqNbRkTSVpMbmyhXipFFv2cb/A==}
+    engines: {node: '>= 12'}
+    dev: false
+
   /data-uri-to-buffer@6.0.2:
     resolution: {integrity: sha512-7hvf7/GW8e86rW0ptuwS3OcBGDjIi6SZva7hCyWC0yYry2cOPmLIjXAUHI6DK2HsnwJd9ifmt57i8eV2n4YNpw==}
     engines: {node: '>= 14'}
@@ -12162,6 +12211,14 @@ packages:
       picomatch: 4.0.2
     dev: false
 
+  /fetch-blob@3.2.0:
+    resolution: {integrity: sha512-7yAQpD2UMJzLi1Dqv7qFYnPbaPx7ZfFK6PiIxQ4PfkGPyNyl2Ugx+a/umUonmKqjhM4DnfbMvdX6otXq83soQQ==}
+    engines: {node: ^12.20 || >= 14.13}
+    dependencies:
+      node-domexception: 1.0.0
+      web-streams-polyfill: 3.3.3
+    dev: false
+
   /fflate@0.4.8:
     resolution: {integrity: sha512-FJqqoDBR00Mdj9ppamLa/Y7vxm+PRmNWA67N846RvsoYVMKB4q3y/de5PA7gUmRMYK/8CMz2GDZQmCRN1wBcWA==}
     dev: false
@@ -12346,6 +12403,13 @@ packages:
   /format@0.2.2:
     resolution: {integrity: sha512-wzsgA6WOq+09wrU1tsJ09udeR/YZRaeArL9e1wPbFg3GG2yDnC2ldKpxs4xunpFF9DgqCqOIra3bc1HWrJ37Ww==}
     engines: {node: '>=0.4.x'}
+    dev: false
+
+  /formdata-polyfill@4.0.10:
+    resolution: {integrity: sha512-buewHzMvYL29jdeQTVILecSaZKnt/RJWjoZCF5OW60Z67/GmSLBkOFM7qh1PI3zFNtJbaZL5eQu1vLfazOwj4g==}
+    engines: {node: '>=12.20.0'}
+    dependencies:
+      fetch-blob: 3.2.0
     dev: false
 
   /forwarded-parse@2.1.2:
@@ -15158,6 +15222,18 @@ packages:
     resolution: {integrity: sha512-+eawOlIgy680F0kBzPUNFhMZGtJ1YmqM6l4+Crf4IkImjYrO/mqPwRMh352g23uIaQKFItcQ64I7KMaJxHgAVA==}
     dev: false
 
+  /node-cron@3.0.3:
+    resolution: {integrity: sha512-dOal67//nohNgYWb+nWmg5dkFdIwDm8EpeGYMekPMrngV3637lqnX0lbUcCtgibHTz6SEz7DAIjKvKDFYCnO1A==}
+    engines: {node: '>=6.0.0'}
+    dependencies:
+      uuid: 8.3.2
+    dev: false
+
+  /node-domexception@1.0.0:
+    resolution: {integrity: sha512-/jKZoMpw0F8GRwl4/eLROPA3cfcXtLApP0QzLmUT/HuPCZWyB7IY9ZrMeKw2O/nFIqPQB3PVM9aYm0F312AXDQ==}
+    engines: {node: '>=10.5.0'}
+    dev: false
+
   /node-fetch-native@1.0.1:
     resolution: {integrity: sha512-VzW+TAk2wE4X9maiKMlT+GsPU4OMmR1U9CrHSmd3DFLn2IcZ9VJ6M6BBugGfYUnPCLSYxXdZy17M0BEJyhUTwg==}
     dev: false
@@ -15184,6 +15260,15 @@ packages:
         optional: true
     dependencies:
       whatwg-url: 5.0.0
+
+  /node-fetch@3.3.2:
+    resolution: {integrity: sha512-dRB78srN/l6gqWulah9SrxeYnxeddIG30+GOqK/9OlLVyLg3HPnr6SqOWTWOXKRwC2eGYCkZ59NNuSgvSrpgOA==}
+    engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
+    dependencies:
+      data-uri-to-buffer: 4.0.1
+      fetch-blob: 3.2.0
+      formdata-polyfill: 4.0.10
+    dev: false
 
   /node-plop@0.26.3:
     resolution: {integrity: sha512-Cov028YhBZ5aB7MdMWJEmwyBig43aGL5WT4vdoB28Oitau1zZAcHUn8Sgfk9HM33TqhtLJ9PlM/O0Mv+QpV/4Q==}
@@ -19288,7 +19373,7 @@ packages:
       fsevents: 2.3.3
     dev: true
 
-  /vite@6.0.6(@types/node@22.10.1):
+  /vite@6.0.6(@types/node@22.10.1)(tsx@4.19.2):
     resolution: {integrity: sha512-NSjmUuckPmDU18bHz7QZ+bTYhRR0iA72cs2QAxCqDpafJ0S6qetco0LB3WW2OxlMHS0JmAv+yZ/R3uPmMyGTjQ==}
     engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
     hasBin: true
@@ -19332,6 +19417,7 @@ packages:
       esbuild: 0.24.2
       postcss: 8.4.49
       rollup: 4.29.1
+      tsx: 4.19.2
     optionalDependencies:
       fsevents: 2.3.3
     dev: true
@@ -19433,6 +19519,11 @@ packages:
     resolution: {integrity: sha512-XHPEwS0q6TaxcvG85+8EYkbiCux2XtWG2mkc47Ng2A77BQu9+DqIOJldST4HgPkuea7dvKSj5VgX3P1d4rW8Tg==}
     dependencies:
       defaults: 1.0.4
+
+  /web-streams-polyfill@3.3.3:
+    resolution: {integrity: sha512-d2JWLCivmZYTSIoge9MsgFCZrt571BikcWGYkjC1khllbTeDlGqZ2D8vD8E/lJa8WGWbb7Plm8/XJYV7IJHZZw==}
+    engines: {node: '>= 8'}
+    dev: false
 
   /web-vitals@4.2.4:
     resolution: {integrity: sha512-r4DIlprAGwJ7YM11VZp4R884m0Vmgr6EAKe3P+kO0PPj3Unqyvv59rczf6UiGcb9Z8QxZVcqKNwv/g0WNdWwsw==}
