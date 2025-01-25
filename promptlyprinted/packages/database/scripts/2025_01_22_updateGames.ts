@@ -30,26 +30,13 @@ const SUPPORTED_COUNTRIES = [
 ];
 
 const gameGroups = {
-  "Playing Cards": [
-    { sku: "CARDS-POKER-STD", price: "19.99" },    // Standard Poker Deck
-    { sku: "CARDS-TAROT-78", price: "39.99" },     // 78-Card Tarot Deck
-    { sku: "CARDS-GAME-UNO", price: "24.99" },     // Custom UNO-style Cards
-  ],
-  "Board Games": [
-    { sku: "GAME-CHESS-STD", price: "79.99" },     // Custom Chess Set
-    { sku: "GAME-PUZZLE-1000", price: "44.99" },   // 1000pc Custom Puzzle
-    { sku: "GAME-PUZZLE-500", price: "34.99" },    // 500pc Custom Puzzle
-  ],
-  "Gaming Accessories": [
-    { sku: "GAME-PAD-XL", price: "34.99" },        // XL Gaming Mouse Pad
-    { sku: "GAME-PAD-XXL", price: "44.99" },       // XXL Gaming Desk Mat
-    { sku: "GAME-SLEEVE-15", price: "29.99" },     // 15" Laptop Sleeve
-    { sku: "GAME-GRIP-PHONE", price: "24.99" },    // Phone Gaming Grip
-  ],
-  "Collectibles": [
-    { sku: "GAME-FIG-SMALL", price: "49.99" },     // Small Gaming Figure
-    { sku: "GAME-FIG-LARGE", price: "89.99" },     // Large Gaming Figure
-    { sku: "GAME-DIORAMA-M", price: "129.99" },    // Medium Gaming Diorama
+  "Games": [
+    { sku: "PLAY-CARD", price: "18.45", name: "Playing Cards", description: "Custom designed playing cards for any occasion." },
+    { sku: "JIGSAW-PUZZLE-30", price: "34.99", name: "30 Piece Puzzle", description: "Perfect puzzle for young children." },
+    { sku: "JIGSAW-PUZZLE-110", price: "37.99", name: "110 Piece Puzzle", description: "Great puzzle for beginners." },
+    { sku: "JIGSAW-PUZZLE-252", price: "40.99", name: "252 Piece Puzzle", description: "Intermediate level puzzle challenge." },
+    { sku: "JIGSAW-PUZZLE-500", price: "43.99", name: "500 Piece Puzzle", description: "Advanced puzzle for enthusiasts." },
+    { sku: "JIGSAW-PUZZLE-1000", price: "49.99", name: "1000 Piece Puzzle", description: "Expert level puzzle for true puzzle lovers." }
   ]
 };
 

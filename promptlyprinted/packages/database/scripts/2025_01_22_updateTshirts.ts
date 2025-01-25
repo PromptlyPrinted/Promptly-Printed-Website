@@ -30,61 +30,23 @@ const SUPPORTED_COUNTRIES = [
 ];
 
 const tshirtGroups = {
-  "Men's T-shirts": {
-    basePrice: 29.99,
-    products: [
-      { 
-        sku: 'MT-CREW-BLK-S', 
-        name: "Men's Black Crew Neck T-Shirt - Small",
-        description: "Classic black crew neck t-shirt for men in size Small. Made with premium cotton for comfort and durability."
-      },
-      { 
-        sku: 'MT-CREW-BLK-M', 
-        name: "Men's Black Crew Neck T-Shirt - Medium",
-        description: "Classic black crew neck t-shirt for men in size Medium. Made with premium cotton for comfort and durability."
-      },
-      { 
-        sku: 'MT-CREW-BLK-L', 
-        name: "Men's Black Crew Neck T-Shirt - Large",
-        description: "Classic black crew neck t-shirt for men in size Large. Made with premium cotton for comfort and durability."
-      },
-      { 
-        sku: 'MT-CREW-BLK-XL', 
-        name: "Men's Black Crew Neck T-Shirt - XL",
-        description: "Classic black crew neck t-shirt for men in size XL. Made with premium cotton for comfort and durability."
-      },
-      { 
-        sku: 'MT-CREW-BLK-2XL', 
-        name: "Men's Black Crew Neck T-Shirt - 2XL",
-        description: "Classic black crew neck t-shirt for men in size 2XL. Made with premium cotton for comfort and durability."
-      },
-      { 
-        sku: 'MT-CREW-WHT-S', 
-        name: "Men's White Crew Neck T-Shirt - Small",
-        description: "Classic white crew neck t-shirt for men in size Small. Made with premium cotton for comfort and durability."
-      },
-      { 
-        sku: 'MT-CREW-WHT-M', 
-        name: "Men's White Crew Neck T-Shirt - Medium",
-        description: "Classic white crew neck t-shirt for men in size Medium. Made with premium cotton for comfort and durability."
-      },
-      { 
-        sku: 'MT-CREW-WHT-L', 
-        name: "Men's White Crew Neck T-Shirt - Large",
-        description: "Classic white crew neck t-shirt for men in size Large. Made with premium cotton for comfort and durability."
-      },
-      { 
-        sku: 'MT-CREW-WHT-XL', 
-        name: "Men's White Crew Neck T-Shirt - XL",
-        description: "Classic white crew neck t-shirt for men in size XL. Made with premium cotton for comfort and durability."
-      },
-      { 
-        sku: 'MT-CREW-WHT-2XL', 
-        name: "Men's White Crew Neck T-Shirt - 2XL",
-        description: "Classic white crew neck t-shirt for men in size 2XL. Made with premium cotton for comfort and durability."
-      }
-    ]
-  }
+  "Men's T-shirts": [
+    { sku: "GLOBAL-TEE-GIL-64000", price: "69.99", name: "Classic T-Shirt", description: "Men's classic fit t-shirt with premium cotton blend." },
+    { sku: "AU3-TEE-U-B-3200", price: "69.99", name: "Baseball Top", description: "Men's baseball style top (Australia only)." },
+    { sku: "AU3-TEE-M-B-3006", price: "69.99", name: "Long Top", description: "Men's long style top (Australia only)." },
+    { sku: "GLOBAL-TEE-BC-3413", price: "71.99", name: "Triblend T-Shirt", description: "Men's premium triblend t-shirt for ultimate comfort." },
+    { sku: "TT-GIL-64200", price: "68.99", name: "Tank Top", description: "Men's classic tank top for casual wear." },
+    { sku: "GLOBAL-TEE-GIL-64V00", price: "69.99", name: "V-Neck T-Shirt", description: "Men's v-neck t-shirt with modern fit." },
+    { sku: "A-ML-GD2400", price: "71.99", name: "Long Sleeve T-Shirt", description: "Men's long sleeve t-shirt for added coverage." }
+  ],
+  "Women's T-shirts": [
+    { sku: "A-WT-GD64000L", price: "65.99", name: "Classic Women's T-Shirt", description: "Women's classic fit t-shirt with soft cotton blend." },
+    { sku: "GLOBAL-TEE-BC-6035", price: "65.99", name: "V-Neck Women's T-Shirt", description: "Women's v-neck t-shirt with flattering fit." }
+  ],
+  "Kids' T-shirts": [
+    { sku: "A-KT-GD64000B", price: "65.99", name: "Kids' T-Shirt", description: "Classic kids' t-shirt with durable construction." },
+    { sku: "SWEAT-AWD-JH030B", price: "67.99", name: "Kids' Sweatshirt", description: "Classic kids' sweatshirt for everyday wear." }
+  ]
 };
 
 async function getExchangeRates(): Promise<Record<string, number>> {
@@ -191,13 +153,13 @@ async function main() {
   for (const [groupName, group] of Object.entries(tshirtGroups)) {
     console.log(`\nProcessing ${groupName}...`);
     
-    for (const product of group.products) {
+    for (const product of group) {
       console.log(`Processing ${groupName} - ${product.sku}`);
       await updateTshirt(
         product.sku,
         product.name,
         product.description,
-        group.basePrice,
+        parseFloat(product.price),
         exchangeRates
       );
     }

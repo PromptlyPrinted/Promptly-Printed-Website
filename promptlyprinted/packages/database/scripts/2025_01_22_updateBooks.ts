@@ -30,29 +30,19 @@ const SUPPORTED_COUNTRIES = [
 ];
 
 const bookGroups = {
-  "Hardcover Books": [
-    { sku: "BOOK-HRD-M", price: "29.99", name: "6x9 Hardcover Book", description: "Professional hardcover book with premium paper and binding, perfect for novels and text-heavy books." },
-    { sku: "BOOK-HRD-L", price: "34.99", name: "7x10 Hardcover Book", description: "Large format hardcover book ideal for textbooks and illustrated content." },
-    { sku: "BOOK-HRD-XL", price: "39.99", name: "8.5x11 Hardcover Book", description: "Extra large hardcover book perfect for photography and art collections." },
-    { sku: "BOOK-HRD-XXL", price: "49.99", name: "12x12 Hardcover Book", description: "Deluxe square format hardcover book, ideal for coffee table books and portfolios." },
+  "Books": [
+    { sku: "BOOK-FE-A5-P-HARD-G", price: "29.99", name: "A5 Portrait Hardcover", description: "Premium hardcover book with glossy finish." },
+    { sku: "BOOK-FE-A4-L-SOFT-S", price: "29.99", name: "A4 Landscape Softcover", description: "12x9\" softcover book with silk finish, 72h production." },
+    { sku: "BOOK-FE-A4-P-SOFT-S", price: "29.99", name: "A4 Portrait Softcover", description: "9x12\" softcover book with silk finish, 72h production." },
+    { sku: "BOOK-FE-8_3-SQ-SOFT-S", price: "24.99", name: "8.3\" Square Softcover", description: "9x9\" softcover book with silk finish, 72h production." },
+    { sku: "BOOK-FE-A5-L-SOFT-S", price: "20.99", name: "A5 Landscape Softcover", description: "9x6\" softcover book with silk finish, 72h production." },
+    { sku: "BOOK-FE-A5-P-SOFT-S", price: "20.99", name: "A5 Portrait Softcover", description: "6x9\" softcover book with silk finish, 72h production." }
   ],
-  "Softcover Books": [
-    { sku: "BOOK-SFT-M", price: "19.99", name: "6x9 Softcover Book", description: "Professional softcover book with quality paper, perfect for novels and manuals." },
-    { sku: "BOOK-SFT-L", price: "24.99", name: "7x10 Softcover Book", description: "Large format softcover book ideal for workbooks and illustrated guides." },
-    { sku: "BOOK-SFT-XL", price: "29.99", name: "8.5x11 Softcover Book", description: "Extra large softcover book perfect for magazines and catalogs." },
-    { sku: "BOOK-SFT-XXL", price: "39.99", name: "12x12 Softcover Book", description: "Square format softcover book, great for art books and portfolios." },
-  ],
-  "Photo Books": [
-    { sku: "PHBK-PRO-20", price: "34.99", name: "8x8 Photo Book", description: "Professional photo book with 20 pages of premium photo paper." },
-    { sku: "PHBK-PRO-30", price: "44.99", name: "10x10 Photo Book", description: "Deluxe photo book with 30 pages of archival quality photo paper." },
-    { sku: "PHBK-PRO-40", price: "54.99", name: "11x14 Photo Book", description: "Premium landscape photo book with 40 pages of professional photo paper." },
-    { sku: "PHBK-PRO-50", price: "49.99", name: "12x12 Photo Book", description: "Square format photo book with 50 pages of gallery-quality photo paper." },
-  ],
-  "Specialty Books": [
-    { sku: "BOOK-COM-STD", price: "24.99", name: "Comic Book Format", description: "Standard comic book format with premium paper and vibrant color printing." },
-    { sku: "BOOK-CHD-STD", price: "29.99", name: "Children's Book Format", description: "Child-friendly format with durable pages and vivid colors." },
-    { sku: "BOOK-ART-PRO", price: "59.99", name: "Art Book Format", description: "Museum-quality art book with color-accurate printing and premium finish." },
-    { sku: "BOOK-LUX-PRO", price: "69.99", name: "Coffee Table Book", description: "Luxury oversized book with premium paper and professional binding." },
+  "Notebooks": [
+    { sku: "NB-GRAPH", price: "19.99", name: "6x9\" Graph Notebook", description: "Graph paper notebook, 48h production." },
+    { sku: "NB-LINED", price: "19.99", name: "6x9\" Lined Notebook", description: "Lined paper notebook, 48h production." },
+    { sku: "NB-GRAPH-A4", price: "25.99", name: "9x12\" Graph Notebook", description: "A4 graph paper notebook, 48h production." },
+    { sku: "NB-LINED-A4", price: "25.99", name: "9x12\" Lined Notebook", description: "A4 lined paper notebook, 48h production." }
   ]
 };
 

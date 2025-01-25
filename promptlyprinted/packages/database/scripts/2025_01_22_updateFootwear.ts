@@ -30,30 +30,14 @@ const SUPPORTED_COUNTRIES = [
 ];
 
 const footwearGroups = {
-  "Men's Socks": [
-    { sku: "SOCK-M-CREW-BLK", price: "14.99" },     // Men's Black Crew Socks
-    { sku: "SOCK-M-ANKLE-BLK", price: "12.99" },    // Men's Black Ankle Socks
-    { sku: "SOCK-M-CREW-WHT", price: "14.99" },     // Men's White Crew Socks
-    { sku: "SOCK-M-ANKLE-WHT", price: "12.99" },    // Men's White Ankle Socks
-    { sku: "SOCK-M-DRESS-BLK", price: "16.99" },    // Men's Black Dress Socks
+  "Socks": [
+    { sku: "GLOBAL-TUBE-SOCKS", price: "19.99", name: "Tube Socks", description: "Comfortable tube socks with custom design." },
+    { sku: "GLOBAL-ANKLE-SOCKS", price: "19.99", name: "Ankle Socks", description: "Stylish ankle socks with custom design." }
   ],
-  "Women's Socks": [
-    { sku: "SOCK-W-CREW-BLK", price: "14.99" },     // Women's Black Crew Socks
-    { sku: "SOCK-W-ANKLE-BLK", price: "12.99" },    // Women's Black Ankle Socks
-    { sku: "SOCK-W-CREW-WHT", price: "14.99" },     // Women's White Crew Socks
-    { sku: "SOCK-W-ANKLE-WHT", price: "12.99" },    // Women's White Ankle Socks
-    { sku: "SOCK-W-NOSHOW-BLK", price: "11.99" },   // Women's Black No-Show Socks
-  ],
-  "Men's Flip-Flops": [
-    { sku: "FLIP-M-S-BLK", price: "24.99" },        // Men's Small Black Flip-Flops
-    { sku: "FLIP-M-M-BLK", price: "24.99" },        // Men's Medium Black Flip-Flops
-    { sku: "FLIP-M-L-BLK", price: "24.99" },        // Men's Large Black Flip-Flops
-    { sku: "FLIP-M-XL-BLK", price: "24.99" },       // Men's XL Black Flip-Flops
-  ],
-  "Women's Flip-Flops": [
-    { sku: "FLIP-W-S-BLK", price: "24.99" },        // Women's Small Black Flip-Flops
-    { sku: "FLIP-W-M-BLK", price: "24.99" },        // Women's Medium Black Flip-Flops
-    { sku: "FLIP-W-L-BLK", price: "24.99" },        // Women's Large Black Flip-Flops
+  "Flip-Flops": [
+    { sku: "M-FLIPFLOP-SML", price: "29.99", name: "Flip-Flops Small", description: "Custom designed flip-flops, small size." },
+    { sku: "M-FLIPFLOP-MED", price: "32.99", name: "Flip-Flops Medium", description: "Custom designed flip-flops, medium size." },
+    { sku: "M-FLIPFLOP-LRG", price: "34.99", name: "Flip-Flops Large", description: "Custom designed flip-flops, large size." }
   ]
 };
 

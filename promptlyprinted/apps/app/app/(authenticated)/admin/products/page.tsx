@@ -40,6 +40,12 @@ export default async function ProductsPage({
   searchParams?: { 
     page?: string;
     country?: string;
+    search?: string;
+    category?: string;
+    type?: string;
+    listed?: string;
+    minPrice?: string;
+    maxPrice?: string;
   };
 }) {
   await checkAdmin();
@@ -53,11 +59,47 @@ export default async function ProductsPage({
     throw new Error(`Unsupported country code: ${countryCode}`);
   }
 
+  // Build where clause based on filters
+  const where: any = {};
+  
+  if (countryCode !== "all") {
+    where.countryCode = countryCode;
+  }
+
+  if (searchParams?.search) {
+    where.OR = [
+      { name: { contains: searchParams.search, mode: 'insensitive' } },
+      { sku: { contains: searchParams.search, mode: 'insensitive' } }
+    ];
+  }
+
+  if (searchParams?.category) {
+    where.category = {
+      name: searchParams.category
+    };
+  }
+
+  if (searchParams?.type) {
+    where.productType = searchParams.type;
+  }
+
+  if (searchParams?.listed) {
+    where.listed = searchParams.listed === 'listed';
+  }
+
+  if (searchParams?.minPrice || searchParams?.maxPrice) {
+    where.customerPrice = {};
+    if (searchParams?.minPrice) {
+      where.customerPrice.gte = parseFloat(searchParams.minPrice);
+    }
+    if (searchParams?.maxPrice) {
+      where.customerPrice.lte = parseFloat(searchParams.maxPrice);
+    }
+  }
+
   const [products, categories, totalProducts] = await Promise.all([
     db.product.findMany({
-      where: countryCode === "all" ? {} : {
-        countryCode: countryCode,
-      },
+      where,
       take: ITEMS_PER_PAGE,
       skip,
       select: {
@@ -98,11 +140,7 @@ export default async function ProductsPage({
         name: "asc",
       },
     }),
-    db.product.count({
-      where: countryCode === "all" ? {} : {
-        countryCode: countryCode,
-      },
-    }),
+    db.product.count({ where }),
   ]);
 
   const totalPages = Math.ceil(totalProducts / ITEMS_PER_PAGE);

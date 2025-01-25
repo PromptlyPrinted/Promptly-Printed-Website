@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@repo/design-system/components/ui/button";
 import { Card } from "@repo/design-system/components/ui/card";
 import { Input } from "@repo/design-system/components/ui/input";
@@ -128,12 +128,62 @@ export function ProductsClient({
   });
 
   const goToPage = (page: number) => {
-    router.push(`/admin/products?page=${page}&country=${selectedCountry}`);
+    const searchParams = new URLSearchParams();
+    searchParams.set('page', page.toString());
+    searchParams.set('country', selectedCountry);
+    if (searchQuery) searchParams.set('search', searchQuery);
+    if (selectedCategory !== 'all') searchParams.set('category', selectedCategory);
+    if (selectedType !== 'all') searchParams.set('type', selectedType);
+    if (showListed !== 'all') searchParams.set('listed', showListed);
+    if (priceRange.min) searchParams.set('minPrice', priceRange.min);
+    if (priceRange.max) searchParams.set('maxPrice', priceRange.max);
+    
+    router.push(`/admin/products?${searchParams.toString()}`);
   };
 
   const changeCountry = (country: string) => {
-    router.push(`/admin/products?page=1&country=${country}`);
+    const searchParams = new URLSearchParams();
+    searchParams.set('page', '1');
+    searchParams.set('country', country);
+    if (searchQuery) searchParams.set('search', searchQuery);
+    if (selectedCategory !== 'all') searchParams.set('category', selectedCategory);
+    if (selectedType !== 'all') searchParams.set('type', selectedType);
+    if (showListed !== 'all') searchParams.set('listed', showListed);
+    if (priceRange.min) searchParams.set('minPrice', priceRange.min);
+    if (priceRange.max) searchParams.set('maxPrice', priceRange.max);
+    
+    router.push(`/admin/products?${searchParams.toString()}`);
   };
+
+  const applyFilters = () => {
+    const searchParams = new URLSearchParams();
+    searchParams.set('page', '1');
+    searchParams.set('country', selectedCountry);
+    if (searchQuery) searchParams.set('search', searchQuery);
+    if (selectedCategory !== 'all') searchParams.set('category', selectedCategory);
+    if (selectedType !== 'all') searchParams.set('type', selectedType);
+    if (showListed !== 'all') searchParams.set('listed', showListed);
+    if (priceRange.min) searchParams.set('minPrice', priceRange.min);
+    if (priceRange.max) searchParams.set('maxPrice', priceRange.max);
+    
+    router.push(`/admin/products?${searchParams.toString()}`);
+  };
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery) {
+        applyFilters();
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Apply filters when they change
+  useEffect(() => {
+    applyFilters();
+  }, [selectedCategory, selectedType, showListed, priceRange.min, priceRange.max]);
 
   return (
     <div className="space-y-4">

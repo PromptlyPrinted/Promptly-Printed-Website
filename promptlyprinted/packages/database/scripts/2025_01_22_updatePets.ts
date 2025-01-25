@@ -29,37 +29,17 @@ const SUPPORTED_COUNTRIES = [
 ];
 
 const petGroups = {
-  "Dog Apparel": [
-    { sku: "PET-DOG-SHIRT-S", price: "19.99", name: "Dog T-Shirt Small", description: "Comfortable cotton t-shirt for small dogs, perfect for everyday wear." },
-    { sku: "PET-DOG-SHIRT-M", price: "24.99", name: "Dog T-Shirt Medium", description: "Comfortable cotton t-shirt for medium dogs, perfect for everyday wear." },
-    { sku: "PET-DOG-SHIRT-L", price: "29.99", name: "Dog T-Shirt Large", description: "Comfortable cotton t-shirt for large dogs, perfect for everyday wear." },
-    { sku: "PET-DOG-HOOD-S", price: "29.99", name: "Dog Hoodie Small", description: "Cozy hoodie for small dogs, great for cool weather." },
-    { sku: "PET-DOG-HOOD-M", price: "34.99", name: "Dog Hoodie Medium", description: "Cozy hoodie for medium dogs, great for cool weather." },
-    { sku: "PET-DOG-HOOD-L", price: "39.99", name: "Dog Hoodie Large", description: "Cozy hoodie for large dogs, great for cool weather." }
-  ],
-  "Cat Apparel": [
-    { sku: "PET-CAT-SHIRT-S", price: "17.99", name: "Cat T-Shirt Small", description: "Soft cotton t-shirt for small cats, comfortable and stylish." },
-    { sku: "PET-CAT-SHIRT-M", price: "19.99", name: "Cat T-Shirt Medium", description: "Soft cotton t-shirt for medium cats, comfortable and stylish." },
-    { sku: "PET-CAT-SHIRT-L", price: "21.99", name: "Cat T-Shirt Large", description: "Soft cotton t-shirt for large cats, comfortable and stylish." },
-    { sku: "PET-CAT-HOOD-S", price: "24.99", name: "Cat Hoodie Small", description: "Warm hoodie for small cats, perfect for indoor wear." },
-    { sku: "PET-CAT-HOOD-M", price: "27.99", name: "Cat Hoodie Medium", description: "Warm hoodie for medium cats, perfect for indoor wear." },
-    { sku: "PET-CAT-HOOD-L", price: "29.99", name: "Cat Hoodie Large", description: "Warm hoodie for large cats, perfect for indoor wear." }
+  "Pet Beds": [
+    { sku: "H-PET-SMALL-PB", price: "49.99", name: "Pet Bed Small", description: "Cozy bed for small pets with custom printed design." },
+    { sku: "H-PET-MEDIUM-PB", price: "69.99", name: "Pet Bed Medium", description: "Comfortable bed for medium pets with custom printed design." },
+    { sku: "H-PET-LARGE-PB", price: "79.99", name: "Pet Bed Large", description: "Spacious bed for large pets with custom printed design." }
   ],
   "Pet Accessories": [
-    { sku: "PET-BAND-SM", price: "9.99", name: "Pet Bandana Small", description: "Stylish bandana for small pets, adjustable fit." },
-    { sku: "PET-BAND-MD", price: "11.99", name: "Pet Bandana Medium", description: "Stylish bandana for medium pets, adjustable fit." },
-    { sku: "PET-BAND-LG", price: "13.99", name: "Pet Bandana Large", description: "Stylish bandana for large pets, adjustable fit." },
-    { sku: "PET-BOW-UNI", price: "7.99", name: "Pet Bow Tie", description: "Elegant bow tie for pets, one size fits most." },
-    { sku: "PET-CAP-ADJ", price: "14.99", name: "Pet Baseball Cap", description: "Adjustable baseball cap for pets with ear holes." },
-    { sku: "PET-SCARF-UNI", price: "16.99", name: "Pet Scarf", description: "Fashionable scarf for pets, suitable for all seasons." }
-  ],
-  "Pet Beds": [
-    { sku: "PET-BED-SM", price: "29.99", name: "Pet Bed Small", description: "Cozy bed for small pets with custom printed design." },
-    { sku: "PET-BED-MD", price: "39.99", name: "Pet Bed Medium", description: "Comfortable bed for medium pets with custom printed design." },
-    { sku: "PET-BED-LG", price: "49.99", name: "Pet Bed Large", description: "Spacious bed for large pets with custom printed design." },
-    { sku: "PET-MAT-SM", price: "19.99", name: "Pet Mat Small", description: "Portable mat for small pets with custom design." },
-    { sku: "PET-MAT-MD", price: "24.99", name: "Pet Mat Medium", description: "Portable mat for medium pets with custom design." },
-    { sku: "PET-MAT-LG", price: "29.99", name: "Pet Mat Large", description: "Portable mat for large pets with custom design." }
+    { sku: "PET-BANDANA-SML", price: "22.99", name: "Pet Bandana Small", description: "Stylish bandana for small pets, adjustable fit." },
+    { sku: "PET-BANDANA-MED", price: "23.99", name: "Pet Bandana Medium", description: "Stylish bandana for medium pets, adjustable fit." },
+    { sku: "PET-BANDANA-LRG", price: "24.99", name: "Pet Bandana Large", description: "Stylish bandana for large pets, adjustable fit." },
+    { sku: "PET-MET-BONE", price: "13.99", name: "Pet Tag - Bone", description: "Custom pet ID tag in bone shape." },
+    { sku: "PET-MET-ROUND", price: "13.99", name: "Pet Tag - Round", description: "Custom pet ID tag in round shape." }
   ]
 };
 

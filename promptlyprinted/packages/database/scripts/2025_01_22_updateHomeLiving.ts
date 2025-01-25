@@ -31,26 +31,23 @@ const SUPPORTED_COUNTRIES = [
 
 const homeLivingGroups = {
   "Drinkware": [
-    { sku: "MUG-CERAM-11", price: "24.99" },      // 11oz Ceramic Mug
-    { sku: "MUG-CERAM-15", price: "26.99" },      // 15oz Ceramic Mug
-    { sku: "MUG-ENAMEL-10", price: "29.99" },     // 10oz Enamel Mug
-    { sku: "BOTTLE-WATER-20", price: "34.99" },    // 20oz Water Bottle
-    { sku: "TUMBLER-20", price: "32.99" },        // 20oz Tumbler
+    { sku: "GLOBAL-MUG-W", price: "19.99", name: "Global Mug White", description: "Classic ceramic mug for your favorite beverages." },
+    { sku: "H-MUG-METAL-16OZ-B", price: "55.99", name: "Metal Mug 16oz Black", description: "Premium metal mug, perfect for hot and cold drinks." },
+    { sku: "650ML-WATER-BOTTLE-BLACK", price: "49.99", name: "Water Bottle 650ml Black", description: "Sleek water bottle for your daily hydration needs." }
   ],
   "Kitchen": [
-    { sku: "APRON-FULL-STD", price: "34.99" },    // Full Apron
-    { sku: "CUTTING-BOARD-M", price: "39.99" },    // Medium Cutting Board
-    { sku: "CUTTING-BOARD-L", price: "49.99" },    // Large Cutting Board
-    { sku: "PLACEMAT-SET-4", price: "44.99" },    // Set of 4 Placemats
-    { sku: "COASTER-SET-4", price: "29.99" },     // Set of 4 Coasters
+    { sku: "H-APR-AA-BTIE", price: "29.99", name: "Adult Apron", description: "Stylish and practical adult apron for cooking." },
+    { sku: "H-APR-CA-BTIE", price: "25.99", name: "Child Apron", description: "Fun and protective apron for young chefs." },
+    { sku: "H-CUTTINGBOARD-GLASS", price: "29.99", name: "Glass Cutting Board", description: "Durable glass cutting board with custom design." },
+    { sku: "H-CUTTINGBOARD-GLASS-CIRC", price: "25.99", name: "Circular Glass Cutting Board", description: "Round glass cutting board with custom design." }
   ],
   "Decor": [
-    { sku: "CANVAS-16X20", price: "69.99" },      // 16x20 Canvas Print
-    { sku: "CANVAS-24X36", price: "99.99" },      // 24x36 Canvas Print
-    { sku: "POSTER-18X24", price: "29.99" },      // 18x24 Poster
-    { sku: "FRAME-8X10", price: "39.99" },        // 8x10 Framed Print
-    { sku: "PILLOW-18X18", price: "44.99" },      // 18x18 Throw Pillow
-    { sku: "BLANKET-50X60", price: "64.99" },     // 50x60 Throw Blanket
+    { sku: "PLANT-POT", price: "25.99", name: "Plant Pot", description: "Decorative pot for your indoor plants." },
+    { sku: "MET-TIN-ROU", price: "26.99", name: "Round Metal Tin", description: "Stylish round metal tin for storage or decoration." },
+    { sku: "MET-TIN-REC", price: "25.99", name: "Rectangular Metal Tin", description: "Versatile rectangular metal tin for storage or decoration." },
+    { sku: "GLOBAL-MINI-11X14", price: "25.99", name: "Mini Frame 11x14", description: "Elegant mini frame for your favorite photos." },
+    { sku: "H-COAST-2PK", price: "19.99", name: "Coaster 2-Pack", description: "Set of 2 custom designed coasters." },
+    { sku: "GLOBAL-POST-MOH-6X4", price: "3.00", name: "Postcard 6x4", description: "High-quality custom printed postcard." }
   ]
 };
 

@@ -31,29 +31,11 @@ const SUPPORTED_COUNTRIES = [
 
 const tattooGroups = {
   "Small Tattoos": [
-    { sku: "TAT-SM-ROUND-2", price: "9.99", name: "2-inch Round Temporary Tattoo", description: "Small round temporary tattoo, perfect for simple designs and symbols." },
-    { sku: "TAT-SM-SQUARE-2", price: "9.99", name: "2-inch Square Temporary Tattoo", description: "Small square temporary tattoo, ideal for geometric designs." },
-    { sku: "TAT-SM-RECT-2X3", price: "11.99", name: "2x3-inch Rectangular Temporary Tattoo", description: "Small rectangular temporary tattoo, great for text and longer designs." },
-    { sku: "TAT-SM-CUSTOM-2", price: "12.99", name: "2-inch Custom Shape Temporary Tattoo", description: "Small custom-shaped temporary tattoo for unique designs." }
+    { sku: "GLOBAL-TATT-S", price: "9.99", name: "2x3-inch Temporary Tattoo", description: "Small round temporary tattoo, perfect for simple designs and symbols." },
   ],
   "Medium Tattoos": [
-    { sku: "TAT-MD-ROUND-3", price: "14.99", name: "3-inch Round Temporary Tattoo", description: "Medium round temporary tattoo for detailed circular designs." },
-    { sku: "TAT-MD-SQUARE-3", price: "14.99", name: "3-inch Square Temporary Tattoo", description: "Medium square temporary tattoo for larger geometric patterns." },
-    { sku: "TAT-MD-RECT-3X4", price: "16.99", name: "3x4-inch Rectangular Temporary Tattoo", description: "Medium rectangular temporary tattoo for detailed artwork." },
-    { sku: "TAT-MD-CUSTOM-3", price: "17.99", name: "3-inch Custom Shape Temporary Tattoo", description: "Medium custom-shaped temporary tattoo for complex designs." }
-  ],
-  "Large Tattoos": [
-    { sku: "TAT-LG-ROUND-4", price: "19.99", name: "4-inch Round Temporary Tattoo", description: "Large round temporary tattoo for statement pieces." },
-    { sku: "TAT-LG-SQUARE-4", price: "19.99", name: "4-inch Square Temporary Tattoo", description: "Large square temporary tattoo for bold designs." },
-    { sku: "TAT-LG-RECT-4X6", price: "24.99", name: "4x6-inch Rectangular Temporary Tattoo", description: "Large rectangular temporary tattoo for full artwork pieces." },
-    { sku: "TAT-LG-CUSTOM-4", price: "26.99", name: "4-inch Custom Shape Temporary Tattoo", description: "Large custom-shaped temporary tattoo for intricate designs." }
-  ],
-  "Tattoo Sets": [
-    { sku: "TAT-SET-MINI-6", price: "29.99", name: "Mini Tattoo Set (6 pieces)", description: "Set of 6 mini temporary tattoos in various designs." },
-    { sku: "TAT-SET-SM-4", price: "34.99", name: "Small Tattoo Set (4 pieces)", description: "Set of 4 small temporary tattoos with coordinated designs." },
-    { sku: "TAT-SET-MD-3", price: "39.99", name: "Medium Tattoo Set (3 pieces)", description: "Set of 3 medium temporary tattoos that work together." },
-    { sku: "TAT-SET-MIX-5", price: "44.99", name: "Mixed Size Tattoo Set (5 pieces)", description: "Set of 5 temporary tattoos in various sizes and designs." }
-  ]
+    { sku: "GLOBAL-TATT-M", price: "16.99", name: "3x4-inch Temporary Tattoo", description: "Medium temporary tattoo for detailed artwork." },
+   ]
 };
 
 interface ProdigiProduct {

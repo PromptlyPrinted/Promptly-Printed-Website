@@ -31,25 +31,38 @@ const SUPPORTED_COUNTRIES = [
 
 const accessoryGroups = {
   "Bags": [
-    { sku: "BAG-TOTE-3001", price: "39.99" },     // Canvas tote bag
-    { sku: "BAG-DUFF-3002", price: "59.99" },     // Duffle bag
-    { sku: "BAG-BACK-3003", price: "49.99" },     // Backpack
+    { sku: "H-BAG-LTOTE", price: "29.99", name: "Large Tote Bag", description: "Spacious tote bag with custom design." }
   ],
-  "Pendants & Keyrings": [
-    { sku: "ACC-PEND-2001", price: "24.99" },     // Metal pendant
-    { sku: "ACC-KEY-2002", price: "19.99" },      // Metal keyring
+  "Gaming Accessories": [
+    { sku: "GLOBAL-GAMINGMAT", price: "49.99", name: "Gaming Mouse Pad", description: "Large format gaming mouse pad for precision control." },
+    { sku: "GLOBAL-MOUSEMAT", price: "19.99", name: "Mouse Pad", description: "Standard size mouse pad with custom design." }
   ],
-  "Apple Watch Straps": [
-    { sku: "WATCH-STRAP-38", price: "34.99" },    // 38/40mm strap
-    { sku: "WATCH-STRAP-42", price: "34.99" },    // 42/44mm strap
+  "Laptop Accessories": [
+    { sku: "LAPTOP-SLEEVE-12IN", price: "49.99", name: "12\" Laptop Sleeve", description: "Protective sleeve for 12-inch laptops (US Only)." },
+    { sku: "LAPTOP-SLEEVE-13IN", price: "51.99", name: "13\" Laptop Sleeve", description: "Protective sleeve for 13-inch laptops (US Only)." },
+    { sku: "LAPTOP-SLEEVE-15IN", price: "53.99", name: "15\" Laptop Sleeve", description: "Protective sleeve for 15-inch laptops (US Only)." }
   ],
-  "Notebooks": [
-    { sku: "NB-HARD-5001", price: "29.99" },      // Hardcover notebook
-    { sku: "NB-SOFT-5002", price: "24.99" },      // Softcover notebook
+  "Jewelry & Keychains": [
+    { sku: "PEND-ROUND", price: "13.99", name: "Round Pendant", description: "Custom round pendant with your design." },
+    { sku: "PEND-SQUARE", price: "13.99", name: "Square Pendant", description: "Custom square pendant with your design." },
+    { sku: "PLA-KEYRING", price: "14.99", name: "Plastic Keyring", description: "Durable plastic keyring with custom design." },
+    { sku: "M-KEY-5X3_5", price: "13.99", name: "Metal Keyring", description: "Premium metal keyring with custom design." }
+  ],
+  "Apple Watch Bands": [
+    { sku: "GLOBAL-TECH-AP-WS-FL-RG-38MM", price: "59.99", name: "38mm Rose Gold Band", description: "Apple Watch band 38mm in rose gold finish." },
+    { sku: "GLOBAL-TECH-AP-WS-FL-42MM", price: "61.99", name: "42mm Standard Band", description: "Apple Watch band 42mm in standard finish." },
+    { sku: "GLOBAL-TECH-AP-WS-FL-38MM", price: "59.99", name: "38mm Standard Band", description: "Apple Watch band 38mm in standard finish." },
+    { sku: "GLOBAL-TECH-AP-WS-FL-G-42MM", price: "61.99", name: "42mm Gold Band", description: "Apple Watch band 42mm in gold finish." },
+    { sku: "GLOBAL-TECH-AP-WS-FL-RG-42MM", price: "61.99", name: "42mm Rose Gold Band", description: "Apple Watch band 42mm in rose gold finish." },
+    { sku: "GLOBAL-TECH-AP-WS-FL-G-38MM", price: "59.99", name: "38mm Gold Band", description: "Apple Watch band 38mm in gold finish." },
+    { sku: "GLOBAL-TECH-AP-WS-FL-S-38MM", price: "59.99", name: "38mm Silver Band", description: "Apple Watch band 38mm in silver finish." },
+    { sku: "GLOBAL-TECH-AP-WS-FL-S-42MM", price: "61.99", name: "42mm Silver Band", description: "Apple Watch band 42mm in silver finish." }
   ],
   "Stickers": [
-    { sku: "STICKER-DIE-4001", price: "9.99" },   // Die-cut sticker
-    { sku: "STICKER-KISS-4002", price: "8.99" },  // Kiss-cut sticker
+    { sku: "GLOBAL-STI-3X4-G", price: "6.99", name: "3x4\" Glossy Sticker", description: "3x4 inch sticker with glossy finish." },
+    { sku: "GLOBAL-STI-3X4-M", price: "6.99", name: "3x4\" Matte Sticker", description: "3x4 inch sticker with matte finish." },
+    { sku: "GLOBAL-STI-5_5X5_5-G", price: "9.99", name: "6x6\" Glossy Sticker", description: "6x6 inch sticker with glossy finish." },
+    { sku: "GLOBAL-STI-5_5X5_5-M", price: "9.99", name: "6x6\" Matte Sticker", description: "6x6 inch sticker with matte finish." }
   ]
 };
 
@@ -120,121 +133,114 @@ async function convertPrice(priceUSD: number, targetCurrency: string, rates: Rec
   return Math.round(converted * 100) / 100;
 }
 
-async function getProdigiProduct(sku: string): Promise<ProdigiProduct | null> {
-  try {
-    await delay(1000); // Rate limiting
-
-    const response = await fetch(`https://api.prodigi.com/v4.0/products/${sku}`, {
-      headers: {
-        'X-API-Key': process.env.PRODIGI_API_KEY!,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (response.status === 429) {
-      console.warn(`Rate limit hit for SKU ${sku}, waiting 30s...`);
-      await delay(30000);
-      return getProdigiProduct(sku);
-    }
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-
-    const data = await response.json() as ProdigiResponse;
-    return data.product || null;
-  } catch (error) {
-    console.error(`Error fetching product ${sku}:`, error);
-    return null;
-  }
-}
-
 async function updateAccessory(
   groupName: string,
-  { sku, price }: { sku: string; price: string },
+  { sku, price, name, description }: { sku: string; price: string; name: string; description: string },
   exchangeRates: Record<string, number>
 ) {
   try {
     console.log(`Processing ${groupName} - ${sku}`);
 
-    const product = await getProdigiProduct(sku);
-    if (!product) {
-      console.error(`Could not fetch product data for ${sku}`);
-      return;
-    }
-
     const priceUSD = parseFloat(price);
 
-    // For each supported country that the product ships to
+    // For each supported country
     for (const country of SUPPORTED_COUNTRIES) {
       const { code: countryCode, currency } = country;
 
-      // Check if product ships to this country
-      const shipsToCountry = product.variants.some(v => 
-        v.shipsTo.includes(countryCode)
-      );
-
-      if (!shipsToCountry) {
-        console.log(`${sku} does not ship to ${countryCode}, skipping...`);
+      // Skip non-US countries for US-only products
+      if (sku.startsWith('LAPTOP-SLEEVE-') && countryCode !== 'US') {
+        console.log(`Skipping ${sku} for ${countryCode} - US only product`);
         continue;
       }
 
       // Convert price to local currency
       const localPrice = await convertPrice(priceUSD, currency, exchangeRates);
 
-      // Determine product type based on group name
+      // Determine product type based on group name and SKU
       let productType = 'ACCESSORY';
-      if (groupName === 'Bags') productType = 'BAG';
-      else if (groupName === 'Pendants & Keyrings') productType = 'JEWELRY';
-      else if (groupName === 'Apple Watch Straps') productType = 'WATCH_STRAP';
-      else if (groupName === 'Notebooks') productType = 'NOTEBOOK';
-      else if (groupName === 'Stickers') productType = 'STICKER';
+      if (sku.includes('GAMINGMAT') || sku.includes('MOUSEMAT')) {
+        productType = 'MOUSE_PAD';
+      } else if (sku.includes('LAPTOP-SLEEVE')) {
+        productType = 'LAPTOP_SLEEVE';
+      } else if (sku.includes('PEND')) {
+        productType = 'PENDANT';
+      } else if (sku.includes('KEY')) {
+        productType = 'KEYRING';
+      } else if (sku.includes('AP-WS')) {
+        productType = 'WATCH_BAND';
+      } else if (sku.includes('STI')) {
+        productType = 'STICKER';
+      }
 
-      // Create product data
-      const productData = {
-        name: product.description,
-        description: product.description,
-        sku: `${sku}-${countryCode}`,
-        price: priceUSD,
-        customerPrice: localPrice,
-        currency,
-        shippingCost: 0, // Will be updated when shipping quotes are implemented
-        taxAmount: 0,
-        totalCost: priceUSD,
-        stock: 10000,
-        productType,
-        width: product.productDimensions.width,
-        height: product.productDimensions.height,
-        units: product.productDimensions.units,
-        brand: product.attributes.brand?.[0] || '',
-        edge: product.attributes.edge?.[0] || '',
-        color: product.attributes.color || [],
-        gender: 'Unisex',
-        size: product.attributes.size || [],
-        style: product.attributes.style?.[0] || '',
-        countryCode,
-        listed: true,
-        prodigiDescription: product.description,
-        prodigiAttributes: product.attributes,
-        prodigiVariants: product.variants,
-      };
-
-      // Upsert the product
-      await prisma.product.upsert({
-        where: { sku: productData.sku },
-        update: productData,
-        create: {
-          ...productData,
-          category: {
-            connectOrCreate: {
-              where: { name: groupName },
-              create: { name: groupName },
-            },
+      try {
+        await prisma.product.upsert({
+          where: {
+            sku: `${sku}-${countryCode}`
           },
-        },
-      });
+          update: {
+            name,
+            description,
+            price: localPrice,
+            currency,
+            shippingCost: 0,
+            taxAmount: 0,
+            totalCost: localPrice,
+            customerPrice: localPrice,
+            productType,
+            listed: true,
+            width: 0,
+            height: 0,
+            units: "IN",
+            brand: "Custom Brand",
+            edge: "Standard",
+            color: ["Black"],
+            gender: "Unisex",
+            size: ["Standard"],
+            style: "Standard",
+            countryCode,
+            category: {
+              connectOrCreate: {
+                where: { name: groupName },
+                create: { name: groupName }
+              }
+            },
+            updatedAt: new Date()
+          },
+          create: {
+            sku: `${sku}-${countryCode}`,
+            name,
+            description,
+            price: localPrice,
+            currency,
+            shippingCost: 0,
+            taxAmount: 0,
+            totalCost: localPrice,
+            customerPrice: localPrice,
+            productType,
+            listed: true,
+            width: 0,
+            height: 0,
+            units: "IN",
+            brand: "Custom Brand",
+            edge: "Standard",
+            color: ["Black"],
+            gender: "Unisex",
+            size: ["Standard"],
+            style: "Standard",
+            countryCode,
+            category: {
+              connectOrCreate: {
+                where: { name: groupName },
+                create: { name: groupName }
+              }
+            }
+          }
+        });
 
-      console.log(`Updated ${productData.sku} for ${countryCode} (${currency} ${localPrice})`);
+        console.log(`Updated ${sku} for ${countryCode} (${currency} ${localPrice})`);
+      } catch (error) {
+        console.error(`Error updating ${sku} for ${countryCode}:`, error);
+      }
     }
   } catch (error) {
     console.error(`Error processing ${sku}:`, error);
