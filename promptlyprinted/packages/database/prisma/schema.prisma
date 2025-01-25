@@ -483,3 +483,19 @@ model ProdigiCallbackEvent {
 
   createdAt       DateTime @default(now())
 }
+
+// -----------------------
+// SHIPPING PRICE
+// -----------------------
+model ShippingPrice {
+  id                  Int            @id @default(autoincrement())
+  method              ShippingMethod
+  basePrice          Float
+  additionalItemPrice Float
+  currency           String
+
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  @@unique([method, currency])
+}

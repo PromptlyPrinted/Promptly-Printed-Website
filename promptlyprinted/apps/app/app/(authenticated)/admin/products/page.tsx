@@ -8,7 +8,31 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 const ITEMS_PER_PAGE = 50;
-const DEFAULT_COUNTRY = "GB"; // or whatever your default country should be
+const DEFAULT_COUNTRY = "GB";
+
+// Supported countries with their currencies
+const SUPPORTED_COUNTRIES = [
+  { code: 'US', currency: 'USD' },
+  { code: 'GB', currency: 'GBP' },
+  { code: 'DE', currency: 'EUR' },
+  { code: 'AU', currency: 'AUD' },
+  { code: 'FR', currency: 'EUR' },
+  { code: 'CH', currency: 'CHF' },
+  { code: 'SE', currency: 'SEK' },
+  { code: 'AE', currency: 'AED' },
+  { code: 'ES', currency: 'EUR' },
+  { code: 'IT', currency: 'EUR' },
+  { code: 'NL', currency: 'EUR' },
+  { code: 'DK', currency: 'DKK' },
+  { code: 'NO', currency: 'NOK' },
+  { code: 'NZ', currency: 'NZD' },
+  { code: 'IE', currency: 'EUR' },
+  { code: 'KR', currency: 'KRW' },
+  { code: 'JP', currency: 'JPY' },
+  { code: 'BE', currency: 'EUR' },
+  { code: 'SG', currency: 'SGD' },
+  { code: 'CN', currency: 'CNY' },
+];
 
 export default async function ProductsPage({
   searchParams,
@@ -24,9 +48,14 @@ export default async function ProductsPage({
   const countryCode = searchParams?.country || DEFAULT_COUNTRY;
   const skip = (currentPage - 1) * ITEMS_PER_PAGE;
 
+  // Ensure the country code is in the supported list or "all"
+  if (countryCode !== "all" && !SUPPORTED_COUNTRIES.find(c => c.code === countryCode)) {
+    throw new Error(`Unsupported country code: ${countryCode}`);
+  }
+
   const [products, categories, totalProducts] = await Promise.all([
     db.product.findMany({
-      where: {
+      where: countryCode === "all" ? {} : {
         countryCode: countryCode,
       },
       take: ITEMS_PER_PAGE,
@@ -70,19 +99,13 @@ export default async function ProductsPage({
       },
     }),
     db.product.count({
-      where: {
+      where: countryCode === "all" ? {} : {
         countryCode: countryCode,
       },
     }),
   ]);
 
-  // Get unique country codes for the country selector
-  const countries = await db.product.findMany({
-    distinct: ['countryCode'],
-    select: {
-      countryCode: true,
-    },
-  });
+  const totalPages = Math.ceil(totalProducts / ITEMS_PER_PAGE);
   
   return (
     <div className="flex h-full flex-1 flex-col space-y-8 p-8">
@@ -99,8 +122,8 @@ export default async function ProductsPage({
           initialProducts={products} 
           categories={categories}
           currentPage={currentPage}
-          totalPages={Math.ceil(totalProducts / ITEMS_PER_PAGE)}
-          countries={countries.map(c => c.countryCode).filter(Boolean)}
+          totalPages={totalPages}
+          countries={SUPPORTED_COUNTRIES.map(c => c.code)}
           selectedCountry={countryCode}
         />
       </Suspense>

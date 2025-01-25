@@ -25,18 +25,19 @@ import { useRouter } from "next/navigation";
 import { Product, Category } from "@prisma/client";
 
 const PRODUCT_TYPES = [
-  "APPAREL",
-  "CUSHION",
-  "WATCH_STRAP",
-  "STICKER",
-  "TATTOO",
-  "GALLERY_BOARD",
-  "ACRYLIC_PRISM",
-  "GLOW_IN_THE_DARK_PRINT",
-  "PHOTO_PAPER",
-  "HAHNEMUHLE_ETCHING",
-  "NOTEBOOK",
-  // add more if needed
+  'T-SHIRT',
+  'HOODIE',
+  'PET_APPAREL',
+  'PET_ACCESSORY',
+  'PET_BED',
+  'TEMPORARY_TATTOO',
+  'HARDCOVER_BOOK',
+  'SOFTCOVER_BOOK',
+  'PHOTO_BOOK',
+  'COMIC_BOOK',
+  'CHILDREN_BOOK',
+  'ART_BOOK',
+  'COFFEE_TABLE_BOOK'
 ];
 
 type ViewMode = "table" | "grid";
@@ -99,29 +100,30 @@ export function ProductsClient({
       product.sku.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesCategory =
-      selectedCategory === "all" ||
-      product.categoryId === parseInt(selectedCategory);
+      selectedCategory === "all" || product.category?.name === selectedCategory;
 
     const matchesType =
-      selectedType === "all" ||
-      (product.productType &&
-        product.productType.toUpperCase() === selectedType.toUpperCase());
-
-    const matchesPrice =
-      (!priceRange.min || product.customerPrice >= parseFloat(priceRange.min)) &&
-      (!priceRange.max || product.customerPrice <= parseFloat(priceRange.max));
+      selectedType === "all" || product.productType === selectedType;
 
     const matchesListed =
       showListed === "all" ||
       (showListed === "listed" && product.listed) ||
       (showListed === "unlisted" && !product.listed);
 
+    const matchesPriceRange =
+      (priceRange.min === "" || product.customerPrice >= Number(priceRange.min)) &&
+      (priceRange.max === "" || product.customerPrice <= Number(priceRange.max));
+
+    const matchesCountry =
+      selectedCountry === "all" || product.countryCode === selectedCountry;
+
     return (
       matchesSearch &&
       matchesCategory &&
       matchesType &&
-      matchesPrice &&
-      matchesListed
+      matchesListed &&
+      matchesPriceRange &&
+      matchesCountry
     );
   });
 
@@ -147,6 +149,7 @@ export function ProductsClient({
               <SelectValue placeholder="Select Country" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">All Countries</SelectItem>
               {countries.map((country) => (
                 <SelectItem key={country} value={country}>
                   {country}
@@ -171,7 +174,7 @@ export function ProductsClient({
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
               {categories.map((cat) => (
-                <SelectItem key={cat.id} value={cat.id.toString()}>
+                <SelectItem key={cat.id} value={cat.name}>
                   {cat.name}
                 </SelectItem>
               ))}
