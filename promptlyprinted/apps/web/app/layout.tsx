@@ -19,7 +19,9 @@ const RootLayout = ({ children }: RootLayoutProperties) => (
   >
     <body>
       <DesignSystemProvider>
-        <Header />
+        <div className="relative">
+          <Header />
+        </div>
         {children}
         <Footer />
       </DesignSystemProvider>

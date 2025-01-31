@@ -1,209 +1,327 @@
-'use client';
+"use client";
 
-import { ModeToggle } from '@repo/design-system/components/mode-toggle';
-import { Button } from '@repo/design-system/components/ui/button';
+import { useState } from "react";
+import { useAuth } from "@repo/auth/client";
+import { Button } from "@repo/design-system/components/ui/button";
 import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-} from '@repo/design-system/components/ui/navigation-menu';
-import { env } from '@repo/env';
-import { Menu, MoveRight, X } from 'lucide-react';
-import Link from 'next/link';
-import { useState } from 'react';
-import { useAuth } from '@repo/auth/client';
+  Menu,
+  X,
+  User,
+  Search,
+  ShoppingCart,
+  ChevronDown,
+  Menu as MenuIcon,
+  HelpCircle,
+} from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
+import PromptlyLogo from "./PromptlyLogo.svg";
+import { ProductsDropdown } from "./ProductsDropdown";
 
-import Image from 'next/image';
-import Logo from './logo.svg';
+// Main navigation items (aside from "Products")
+const navigationItems = [
+  { name: "Home", href: "/" },
+  {
+    name: "Resources",
+    icon: MenuIcon,
+    subItems: [
+      { name: "Blog", href: "/blog", icon: MenuIcon },
+      { name: "Size & Fit", href: "/size-fit", icon: MenuIcon },
+      { name: "FAQs", href: "/faqs", icon: MenuIcon },
+      { name: "Affiliate Program", href: "/affiliate", icon: MenuIcon },
+    ],
+  },
+  {
+    name: "About",
+    icon: MenuIcon,
+    subItems: [
+      { name: "About Us / Company", href: "/about", icon: MenuIcon },
+    ],
+  },
+  {
+    name: "Design Your Apparel",
+    href: "/design",
+    isButton: true,
+  },
+];
+
+// Profile dropdown items
+const profileItems = [
+  { name: "Profile", href: "/profile" },
+  { name: "My Images", href: "/my-images" },
+  { name: "My Designs", href: "/my-designs" },
+  { name: "Orders", href: "/orders" },
+];
+
+// You can tweak this color to match your brand's accent color
+const brandAccentColor = "bg-teal-500 hover:bg-teal-600 text-white";
 
 export const Header = () => {
-  const { isSignedIn, signOut } = useAuth();
-  const navigationItems = [
-    {
-      title: 'Home',
-      href: '/',
-      description: '',
-    },
-    {
-      title: 'Product',
-      description: 'Managing a small business today is already tough.',
-      items: [
-        {
-          title: 'Pricing',
-          href: '/pricing',
-        },
-        {
-          title: 'Pricing',
-          href: '/pricing',
-        },
-        {
-          title: 'Pricing',
-          href: '/pricing',
-        },
-        {
-          title: 'Pricing',
-          href: '/pricing',
-        },
-      ],
-    },
-    {
-      title: 'Blog',
-      href: '/blog',
-      description: '',
-    },
-  ];
+  const { isSignedIn, signOut } = useAuth()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [dropdownOpenIndex, setDropdownOpenIndex] = useState<number | null>(
+    null
+  );
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
 
-  if (env.NEXT_PUBLIC_DOCS_URL) {
-    navigationItems.push({
-      title: 'Docs',
-      href: env.NEXT_PUBLIC_DOCS_URL,
-      description: '',
-    });
-  }
+  const toggleMobileMenu = () => {
+    setMobileMenuOpen(!mobileMenuOpen);
+  };
 
-  const [isOpen, setOpen] = useState(false);
+  const handleDropdownToggle = (index: number) => {
+    setDropdownOpenIndex(dropdownOpenIndex === index ? null : index);
+  };
+
   return (
-    <header className="sticky top-0 left-0 z-40 w-full border-b bg-background">
-      <div className="container relative mx-auto flex min-h-20 flex-row items-center gap-4 lg:grid lg:grid-cols-3">
-        <div className="hidden flex-row items-center justify-start gap-4 lg:flex">
-          <NavigationMenu className="flex items-start justify-start">
-            <NavigationMenuList className="flex flex-row justify-start gap-4">
-              {navigationItems.map((item) => (
-                <NavigationMenuItem key={item.title}>
-                  {item.href ? (
+    <>
+      <header className="w-full border-b border-gray-100 bg-white">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+          {/* Left: Logo */}
+          <div className="flex items-center space-x-3">
+            <Link href="/">
+              <Image
+                src={PromptlyLogo}
+                alt="Promptly Logo"
+                className="h-28 w-28"
+              />
+            </Link>
+          </div>
+
+          {/* Desktop Nav */}
+          <nav className="hidden flex-1 items-center justify-center lg:flex lg:space-x-6">
+            <ProductsDropdown />
+
+            {/* Other Nav Items */}
+            {navigationItems.map((navItem, index) => {
+              // If it has subItems, handle as a dropdown
+              if (navItem.subItems) {
+                return (
+                  <div key={navItem.name} className="relative">
+                    <button
+                      onMouseEnter={() => handleDropdownToggle(index)}
+                      onMouseLeave={() => handleDropdownToggle(index)}
+                      onClick={() => handleDropdownToggle(index)}
+                      className="flex items-center space-x-1 font-medium text-gray-700 hover:text-gray-900"
+                    >
+                      <span>{navItem.name}</span>
+                      <ChevronDown size={16} />
+                    </button>
+                    {dropdownOpenIndex === index && (
+                      <div
+                        onMouseEnter={() => setDropdownOpenIndex(index)}
+                        onMouseLeave={() => setDropdownOpenIndex(null)}
+                        className="absolute left-0 top-10 z-50 w-64 rounded-lg bg-white p-4 shadow-lg ring-1 ring-black ring-opacity-5"
+                      >
+                        {navItem.subItems.map((sub) => (
+                          <Link
+                            key={sub.name}
+                            href={sub.href}
+                            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                          >
+                            <MenuIcon className="h-4 w-4 text-gray-400" />
+                            {sub.name}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+              // If it's a button, render Button component
+              if (navItem.isButton) {
+                return (
+                  <Button
+                    key={navItem.name}
+                    asChild
+                    variant="default"
+                    className={brandAccentColor}
+                  >
+                    <Link href={navItem.href}>{navItem.name}</Link>
+                  </Button>
+                );
+              }
+              // Else just a single link
+              return (
+                <Link
+                  key={navItem.name}
+                  href={navItem.href || "#"}
+                  className="font-medium text-gray-700 hover:text-gray-900"
+                >
+                  {navItem.name}
+                </Link>
+              );
+            })}
+          </nav>
+
+          {/* Right Icons/Buttons */}
+          <div className="hidden items-center space-x-4 lg:flex">
+            <button className="text-gray-700 hover:text-gray-900">
+              <Search />
+            </button>
+            
+            {/* Profile Icon with Dropdown */}
+            <div className="relative">
+              <button
+                onMouseEnter={() => setProfileDropdownOpen(true)}
+                onMouseLeave={() => setProfileDropdownOpen(false)}
+                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                className="text-gray-700 hover:text-gray-900"
+              >
+                <User />
+              </button>
+              
+              {profileDropdownOpen && (
+                <div
+                  onMouseEnter={() => setProfileDropdownOpen(true)}
+                  onMouseLeave={() => setProfileDropdownOpen(false)}
+                  className="absolute right-0 top-10 z-50 w-48 rounded-md bg-white p-2 shadow-xl"
+                >
+                  {profileItems.map((item) => (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    >
+                      {item.name}
+                    </Link>
+                  ))}
+                  {isSignedIn ? (
+                    <button
+                      onClick={() => signOut()}
+                      className="w-full text-left block rounded px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    >
+                      Sign Out
+                    </button>
+                  ) : (
+                    <Link
+                      href="/login"
+                      className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    >
+                      Sign In
+                    </Link>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <button className="text-gray-700 hover:text-gray-900">
+              <ShoppingCart />
+            </button>
+          </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            className="flex items-center text-gray-700 hover:text-gray-900 lg:hidden"
+            onClick={toggleMobileMenu}
+          >
+            {mobileMenuOpen ? <X /> : <Menu />}
+          </button>
+        </div>
+      </header>
+
+      {/* Mobile Menu (dropdown) */}
+      {mobileMenuOpen && (
+        <div className="lg:hidden">
+          {/* Products collapsible */}
+          <div className="border-t border-gray-200 px-4 py-2">
+            <button
+              onClick={() => setDropdownOpenIndex(dropdownOpenIndex === 0 ? null : 0)}
+              className="flex w-full items-center justify-between py-2 text-gray-700 hover:text-gray-900"
+            >
+              <span className="font-semibold">Products</span>
+              <ChevronDown
+                className={`transform transition-transform ${
+                  dropdownOpenIndex === 0 ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+            {dropdownOpenIndex === 0 && (
+              <div className="mt-2 space-y-4">
+                {/* Mobile Products Menu */}
+                <div>
+                  <h4 className="font-medium text-gray-800">Apparel</h4>
+                  <ul className="ml-4 mt-2 space-y-2">
+                    <li><Link href="/products/all" className="text-gray-600">All</Link></li>
+                    <li><Link href="/products/mens" className="text-gray-600">Men</Link></li>
+                    <li><Link href="/products/womens" className="text-gray-600">Women</Link></li>
+                    <li><Link href="/products/kids+babies" className="text-gray-600">Kids & Babies</Link></li>
+                  </ul>
+                </div>
+                {/* Add other product categories here */}
+              </div>
+            )}
+          </div>
+
+          {/* Other Nav Items */}
+          {navigationItems.map((navItem, index) => {
+            if (!navItem.isButton) {
+              return (
+                <div
+                  key={navItem.name}
+                  className="border-t border-gray-200 px-4 py-2"
+                >
+                  {navItem.subItems ? (
                     <>
-                      <NavigationMenuLink asChild>
-                        <Button variant="ghost" asChild>
-                          <Link href={item.href}>{item.title}</Link>
-                        </Button>
-                      </NavigationMenuLink>
+                      <button
+                        onClick={() => handleDropdownToggle(index + 1)}
+                        className="flex w-full items-center justify-between py-2 text-gray-700 hover:text-gray-900"
+                      >
+                        <span className="font-semibold">{navItem.name}</span>
+                        <ChevronDown
+                          className={`transform transition-transform ${
+                            dropdownOpenIndex === index + 1 ? "rotate-180" : ""
+                          }`}
+                        />
+                      </button>
+                      {dropdownOpenIndex === index + 1 && (
+                        <div className="mt-2 space-y-2">
+                          {navItem.subItems.map((sub) => (
+                            <Link
+                              key={sub.name}
+                              href={sub.href}
+                              className="block pl-4 py-2 text-gray-600 hover:text-gray-900"
+                            >
+                              {sub.name}
+                            </Link>
+                          ))}
+                        </div>
+                      )}
                     </>
                   ) : (
-                    <>
-                      <NavigationMenuTrigger className="font-medium text-sm">
-                        {item.title}
-                      </NavigationMenuTrigger>
-                      <NavigationMenuContent className="!w-[450px] p-4">
-                        <div className="flex grid-cols-2 flex-col gap-4 lg:grid">
-                          <div className="flex h-full flex-col justify-between">
-                            <div className="flex flex-col">
-                              <p className="text-base">{item.title}</p>
-                              <p className="text-muted-foreground text-sm">
-                                {item.description}
-                              </p>
-                            </div>
-                            <Button size="sm" className="mt-10" asChild>
-                              <Link href="/contact">Book a call today</Link>
-                            </Button>
-                          </div>
-                          <div className="flex h-full flex-col justify-end text-sm">
-                            {item.items?.map((subItem, idx) => (
-                              <NavigationMenuLink
-                                href={subItem.href}
-                                key={idx}
-                                className="flex flex-row items-center justify-between rounded px-4 py-2 hover:bg-muted"
-                              >
-                                <span>{subItem.title}</span>
-                                <MoveRight className="h-4 w-4 text-muted-foreground" />
-                              </NavigationMenuLink>
-                            ))}
-                          </div>
-                        </div>
-                      </NavigationMenuContent>
-                    </>
+                    <Link
+                      href={navItem.href || "#"}
+                      className="block py-2 font-semibold text-gray-700 hover:text-gray-900"
+                    >
+                      {navItem.name}
+                    </Link>
                   )}
-                </NavigationMenuItem>
-              ))}
-            </NavigationMenuList>
-          </NavigationMenu>
-        </div>
-        <div className="flex items-center gap-2 lg:justify-center">
-          <Image
-            src={Logo}
-            alt="Logo"
-            width={24}
-            height={24}
-            className="dark:invert"
-          />
-          <p className="whitespace-nowrap font-semibold">next-forge</p>
-        </div>
-        <div className="flex w-full justify-end gap-4">
-          <Button variant="ghost" className="hidden md:inline" asChild>
-            <Link href="/contact">Contact us</Link>
-          </Button>
-          <div className="hidden border-r md:inline" />
-          <div className="hidden md:inline">
-            <ModeToggle />
-          </div>
-          {isSignedIn ? (
-            <Button 
-              variant="outline" 
-              className="hidden md:inline"
-              onClick={() => signOut()}
-            >
-              Sign out
-            </Button>
-          ) : (
-            <>
-              <Button variant="outline" asChild className="hidden md:inline">
-                <Link href={`${env.NEXT_PUBLIC_APP_URL}/sign-in`}>Sign in</Link>
-              </Button>
-              <Button asChild>
-                <Link href={`${env.NEXT_PUBLIC_APP_URL}/sign-up`}>Get started</Link>
-              </Button>
-            </>
-          )}
-        </div>
-        <div className="flex w-12 shrink items-end justify-end lg:hidden">
-          <Button variant="ghost" onClick={() => setOpen(!isOpen)}>
-            {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
-          {isOpen && (
-            <div className="container absolute top-20 right-0 flex w-full flex-col gap-8 border-t bg-background py-4 shadow-lg">
-              {navigationItems.map((item) => (
-                <div key={item.title}>
-                  <div className="flex flex-col gap-2">
-                    {item.href ? (
-                      <Link
-                        href={item.href}
-                        className="flex items-center justify-between"
-                        target={
-                          item.href.startsWith('http') ? '_blank' : undefined
-                        }
-                        rel={
-                          item.href.startsWith('http')
-                            ? 'noopener noreferrer'
-                            : undefined
-                        }
-                      >
-                        <span className="text-lg">{item.title}</span>
-                        <MoveRight className="h-4 w-4 stroke-1 text-muted-foreground" />
-                      </Link>
-                    ) : (
-                      <p className="text-lg">{item.title}</p>
-                    )}
-                    {item.items?.map((subItem) => (
-                      <Link
-                        key={subItem.title}
-                        href={subItem.href}
-                        className="flex items-center justify-between"
-                      >
-                        <span className="text-muted-foreground">
-                          {subItem.title}
-                        </span>
-                        <MoveRight className="h-4 w-4 stroke-1" />
-                      </Link>
-                    ))}
-                  </div>
                 </div>
-              ))}
-            </div>
-          )}
+              );
+            }
+            return null;
+          })}
+
+          {/* Design Your Apparel Button */}
+          <div className="border-t border-gray-200 p-4">
+            <Button asChild variant="default" className={`${brandAccentColor} w-full`}>
+              <Link href="/design">Design Your Apparel</Link>
+            </Button>
+          </div>
+
+          {/* Mobile menu bottom row icons */}
+          <div className="border-t border-gray-200 px-4 py-3 flex items-center space-x-4">
+            <button className="text-gray-700 hover:text-gray-900">
+              <Search />
+            </button>
+            <button className="text-gray-700 hover:text-gray-900">
+              <User />
+            </button>
+            <button className="text-gray-700 hover:text-gray-900">
+              <ShoppingCart />
+            </button>
+          </div>
         </div>
-      </div>
-    </header>
+      )}
+    </>
   );
-};
+}
