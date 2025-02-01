@@ -91,14 +91,14 @@ export const Header = () => {
   const handleDropdownLeave = () => {
     leaveTimeout.current = window.setTimeout(() => {
       setProductsOpen(false);
-    }, 200); // 200ms delay; adjust as needed.
+    }, 200);
   };
 
   return (
     <>
       <header
         ref={headerRef}
-        className="w-full border-b border-gray-100 bg-white relative z-40"
+        className="w-full border-b border-gray-200 bg-white relative z-40"
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           {/* Left: Logo */}
@@ -120,7 +120,7 @@ export const Header = () => {
                 onMouseEnter={handleDropdownEnter}
                 onMouseLeave={handleDropdownLeave}
                 onClick={() => setProductsOpen((prev) => !prev)}
-                className="flex items-center space-x-1 font-medium text-gray-700 hover:text-gray-900"
+                className="flex items-center space-x-1 font-medium text-gray-700 transition-colors duration-200 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-md"
               >
                 <span>Products</span>
                 <ChevronDown size={16} />
@@ -136,7 +136,7 @@ export const Header = () => {
                       onMouseEnter={() => handleDropdownToggle(index)}
                       onMouseLeave={() => handleDropdownToggle(index)}
                       onClick={() => handleDropdownToggle(index)}
-                      className="flex items-center space-x-1 font-medium text-gray-700 hover:text-gray-900"
+                      className="flex items-center space-x-1 font-medium text-gray-700 transition-colors duration-200 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-md"
                     >
                       <span>{navItem.name}</span>
                       <ChevronDown size={16} />
@@ -151,7 +151,7 @@ export const Header = () => {
                           <Link
                             key={sub.name}
                             href={sub.href}
-                            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
                           >
                             {sub.name}
                           </Link>
@@ -177,7 +177,7 @@ export const Header = () => {
                 <Link
                   key={navItem.name}
                   href={navItem.href || "#"}
-                  className="font-medium text-gray-700 hover:text-gray-900"
+                  className="font-medium text-gray-700 transition-colors duration-200 hover:text-gray-900 hover:bg-gray-100 px-3 py-2 rounded-md"
                 >
                   {navItem.name}
                 </Link>
@@ -187,7 +187,7 @@ export const Header = () => {
 
           {/* Right Icons/Buttons */}
           <div className="hidden items-center space-x-4 lg:flex">
-            <button className="text-gray-700 hover:text-gray-900">
+            <button className="text-gray-700 transition-colors duration-200 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-md">
               <Search />
             </button>
 
@@ -197,7 +197,7 @@ export const Header = () => {
                 onMouseEnter={() => setProfileDropdownOpen(true)}
                 onMouseLeave={() => setProfileDropdownOpen(false)}
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                className="text-gray-700 hover:text-gray-900"
+                className="text-gray-700 transition-colors duration-200 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-md"
               >
                 <User />
               </button>
@@ -205,13 +205,13 @@ export const Header = () => {
                 <div
                   onMouseEnter={() => setProfileDropdownOpen(true)}
                   onMouseLeave={() => setProfileDropdownOpen(false)}
-                  className="absolute right-0 top-10 z-50 w-48 rounded-md bg-white p-2 shadow-xl"
+                  className="absolute right-0 top-10 z-50 w-48 rounded-md bg-white p-2 shadow-xl ring-1 ring-black ring-opacity-5"
                 >
                   {profileItems.map((item) => (
                     <Link
                       key={item.name}
                       href={item.href}
-                      className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      className="block rounded px-3 py-2 text-sm text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
                     >
                       {item.name}
                     </Link>
@@ -219,14 +219,14 @@ export const Header = () => {
                   {isSignedIn ? (
                     <button
                       onClick={() => signOut()}
-                      className="w-full text-left block rounded px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      className="w-full text-left block rounded px-3 py-2 text-sm text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
                     >
                       Sign Out
                     </button>
                   ) : (
                     <Link
                       href="/login"
-                      className="block rounded px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      className="block rounded px-3 py-2 text-sm text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
                     >
                       Sign In
                     </Link>
@@ -234,14 +234,14 @@ export const Header = () => {
                 </div>
               )}
             </div>
-            <button className="text-gray-700 hover:text-gray-900">
+            <button className="text-gray-700 transition-colors duration-200 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-md">
               <ShoppingCart />
             </button>
           </div>
 
           {/* Mobile Menu Button */}
           <button
-            className="flex items-center text-gray-700 hover:text-gray-900 lg:hidden"
+            className="flex items-center text-gray-700 hover:text-gray-900 lg:hidden p-2 rounded-md"
             onClick={toggleMobileMenu}
           >
             {mobileMenuOpen ? <X /> : <Menu />}
