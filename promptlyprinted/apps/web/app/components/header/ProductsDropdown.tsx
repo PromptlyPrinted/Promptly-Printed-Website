@@ -26,7 +26,6 @@ export function ProductsDropdown({
 
   return createPortal(
     <div
-      // Use inline style to position the dropdown exactly at the bottom of the header.
       style={{ top: headerBottom }}
       className="absolute left-0 right-0 z-40 bg-white shadow-sm"
       onMouseEnter={onDropdownEnter}

@@ -56,6 +56,8 @@ export const Header = () => {
   const [productsOpen, setProductsOpen] = useState(false);
   // State to store the header bottom position (in px)
   const [headerBottom, setHeaderBottom] = useState(0);
+  // A ref to store our leave timeout ID
+  const leaveTimeout = useRef<number | null>(null);
 
   // Create a ref for the header container
   const headerRef = useRef<HTMLDivElement>(null);
@@ -76,12 +78,20 @@ export const Header = () => {
     setDropdownOpenIndex(dropdownOpenIndex === index ? null : index);
   };
 
-  // Handlers for the mega menu so that hovering over it keeps it open
+  // When entering either the header trigger or dropdown, clear any timeout and open immediately.
   const handleDropdownEnter = () => {
+    if (leaveTimeout.current) {
+      clearTimeout(leaveTimeout.current);
+      leaveTimeout.current = null;
+    }
     setProductsOpen(true);
   };
+
+  // On mouse leave, start a timeout before closing.
   const handleDropdownLeave = () => {
-    setProductsOpen(false);
+    leaveTimeout.current = window.setTimeout(() => {
+      setProductsOpen(false);
+    }, 200); // 200ms delay; adjust as needed.
   };
 
   return (
@@ -107,8 +117,8 @@ export const Header = () => {
             {/* "Products" button triggers the mega menu */}
             <div className="relative">
               <button
-                onMouseEnter={() => setProductsOpen(true)}
-                onMouseLeave={() => setProductsOpen(false)}
+                onMouseEnter={handleDropdownEnter}
+                onMouseLeave={handleDropdownLeave}
                 onClick={() => setProductsOpen((prev) => !prev)}
                 className="flex items-center space-x-1 font-medium text-gray-700 hover:text-gray-900"
               >
@@ -242,7 +252,7 @@ export const Header = () => {
       {/* (Mobile menu code omitted for brevity) */}
 
       {/* Render the mega menu using a portal when productsOpen is true.
-          We pass the headerBottom value and enter/leave handlers */}
+          Pass the headerBottom value and the enter/leave handlers */}
       {productsOpen && (
         <ProductsDropdown
           headerBottom={headerBottom}
