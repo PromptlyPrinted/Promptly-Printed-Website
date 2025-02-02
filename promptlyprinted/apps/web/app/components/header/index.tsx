@@ -20,6 +20,10 @@ import { ProductsDropdown } from "./ProductsDropdown";
 const navigationItems = [
   { name: "Home", href: "/" },
   {
+    name: "Products",
+    isProducts: true, // Special flag to identify the Products item
+  },
+  {
     name: "Resources",
     // The original subItems are now replaced by the custom ResourcesDropdown
     subItems: [
@@ -61,6 +65,8 @@ export const Header = () => {
   const [headerBottom, setHeaderBottom] = useState(0);
   // A ref to store our leave timeout ID (for Products dropdown)
   const leaveTimeout = useRef<number | null>(null);
+  // Add a new ref for Resources dropdown
+  const resourcesLeaveTimeout = useRef<number | null>(null);
 
   // Create a ref for the header container
   const headerRef = useRef<HTMLDivElement>(null);
@@ -97,6 +103,21 @@ export const Header = () => {
     }, 200);
   };
 
+  // Add handlers for Resources dropdown
+  const handleResourcesEnter = () => {
+    if (resourcesLeaveTimeout.current) {
+      clearTimeout(resourcesLeaveTimeout.current);
+      resourcesLeaveTimeout.current = null;
+    }
+    setResourcesOpen(true);
+  };
+
+  const handleResourcesLeave = () => {
+    resourcesLeaveTimeout.current = window.setTimeout(() => {
+      setResourcesOpen(false);
+    }, 200);
+  };
+
   return (
     <>
       <header
@@ -117,27 +138,30 @@ export const Header = () => {
 
           {/* Desktop Nav */}
           <nav className="hidden flex-1 items-center justify-center lg:flex lg:space-x-6">
-            {/* "Products" button triggers the mega menu */}
-            <div className="relative">
-              <button
-                onMouseEnter={handleDropdownEnter}
-                onMouseLeave={handleDropdownLeave}
-                onClick={() => setProductsOpen((prev) => !prev)}
-                className="flex items-center space-x-1 font-medium text-gray-700 transition-colors duration-200 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-md"
-              >
-                <span>Products</span>
-              </button>
-            </div>
-
             {/* Other navigation items */}
             {navigationItems.map((navItem, index) => {
-              // For the Resources item, use the new Resources dropdown
+              // For Products item
+              if (navItem.isProducts) {
+                return (
+                  <div key={navItem.name} className="relative">
+                    <button
+                      onMouseEnter={handleDropdownEnter}
+                      onMouseLeave={handleDropdownLeave}
+                      onClick={() => setProductsOpen((prev) => !prev)}
+                      className="flex items-center space-x-1 font-medium text-gray-700 transition-colors duration-200 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-md"
+                    >
+                      <span>{navItem.name}</span>
+                    </button>
+                  </div>
+                );
+              }
+              // For the Resources item
               if (navItem.name === "Resources") {
                 return (
                   <div key={navItem.name} className="relative">
                     <button
-                      onMouseEnter={() => setResourcesOpen(true)}
-                      onMouseLeave={() => setResourcesOpen(false)}
+                      onMouseEnter={handleResourcesEnter}
+                      onMouseLeave={handleResourcesLeave}
                       onClick={() => setResourcesOpen((prev) => !prev)}
                       className="flex items-center space-x-1 font-medium text-gray-700 transition-colors duration-200 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-md"
                     >
@@ -281,8 +305,8 @@ export const Header = () => {
       {resourcesOpen && (
         <ResourcesDropdown
           headerBottom={headerBottom}
-          onDropdownEnter={() => setResourcesOpen(true)}
-          onDropdownLeave={() => setResourcesOpen(false)}
+          onDropdownEnter={handleResourcesEnter}
+          onDropdownLeave={handleResourcesLeave}
         />
       )}
     </>
