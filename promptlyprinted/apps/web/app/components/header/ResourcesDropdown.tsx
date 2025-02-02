@@ -5,7 +5,7 @@ import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { FileText, Book, TrendingUp, LifeBuoy } from "lucide-react";
+import { FileText, Book, Store, HelpCircle, Users2, Gift, MessageSquare, FileCheck } from "lucide-react";
 
 type ResourcesDropdownProps = {
   headerBottom: number;
@@ -37,135 +37,78 @@ export function ResourcesDropdown({
       onMouseEnter={onDropdownEnter}
       onMouseLeave={onDropdownLeave}
     >
-      <div className="max-w-7xl mx-auto p-8">
-        {/* Flex container: On desktop the columns are side by side; on mobile they stack */}
-        <div className="flex flex-wrap gap-8">
-          {/* Column 1: Resources */}
-          <div className="w-full md:w-1/4 bg-white border border-gray-200 rounded shadow-sm p-4">
-            <h2 className="flex items-center text-xl font-semibold mb-4 text-gray-800">
-              <FileText size={20} className="mr-2 text-gray-600" />
-              Resources
-            </h2>
-            <ul className="list-none m-0 p-0">
-              <li className="mb-2">
-                <Link
-                  href="/faq"
-                  className="text-gray-800 hover:text-gray-600 hover:underline"
-                >
-                  FAQ &amp; Help Center
-                </Link>
-              </li>
-              <li className="mb-2">
-                <Link
-                  href="/blog"
-                  className="text-gray-800 hover:text-gray-600 hover:underline"
-                >
-                  Blog
-                </Link>
-              </li>
-              <li className="mb-2">
-                <Link
-                  href="/etsy-store"
-                  className="text-gray-800 hover:text-gray-600 hover:underline"
-                >
-                  Etsy Store
-                </Link>
-              </li>
-            </ul>
+      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          {/* Resources */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900">Resources</h2>
+            <div className="space-y-3">
+              <Link href="/faq" className="flex items-center text-gray-600 hover:text-gray-900">
+                <HelpCircle size={18} className="mr-2" />
+                <span>FAQ & Help Center</span>
+              </Link>
+              <Link href="/blog" className="flex items-center text-gray-600 hover:text-gray-900">
+                <FileText size={18} className="mr-2" />
+                <span>Blog</span>
+              </Link>
+              <Link href="/etsy-store" className="flex items-center text-gray-600 hover:text-gray-900">
+                <Store size={18} className="mr-2" />
+                <span>Etsy Store</span>
+              </Link>
+            </div>
           </div>
 
-          {/* Column 2: Learn */}
-          <div className="w-full md:w-1/4 bg-white border border-gray-200 rounded shadow-sm p-4">
-            <h2 className="flex items-center text-xl font-semibold mb-4 text-gray-800">
-              <Book size={20} className="mr-2 text-gray-600" />
-              Learn
-            </h2>
-            <ul className="list-none m-0 p-0">
-              <li className="mb-2">
-                <Link
-                  href="/blog"
-                  className="text-gray-800 hover:text-gray-600 hover:underline"
-                >
-                  Blog
-                </Link>
-              </li>
-              <li className="mb-2">
-                <Link
-                  href="/prompt-library"
-                  className="text-gray-800 hover:text-gray-600 hover:underline"
-                >
-                  Prompt Library
-                </Link>
-              </li>
-            </ul>
+          {/* Learn */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900">Learn</h2>
+            <div className="space-y-3">
+              <Link href="/blog" className="flex items-center text-gray-600 hover:text-gray-900">
+                <FileText size={18} className="mr-2" />
+                <span>Blog</span>
+              </Link>
+              <Link href="/prompt-library" className="flex items-center text-gray-600 hover:text-gray-900">
+                <Book size={18} className="mr-2" />
+                <span>Prompt Library</span>
+              </Link>
+            </div>
           </div>
 
-          {/* Column 3: Grow */}
-          <div className="w-full md:w-1/4 bg-white border border-gray-200 rounded shadow-sm p-4">
-            <h2 className="flex items-center text-xl font-semibold mb-4 text-gray-800">
-              <TrendingUp size={20} className="mr-2 text-gray-600" />
-              Grow
-            </h2>
-            <ul className="list-none m-0 p-0">
-              <li className="mb-2">
-                <Link
-                  href="/affiliate-program"
-                  className="text-gray-800 hover:text-gray-600 hover:underline"
-                >
-                  Affiliate Program
-                </Link>
-              </li>
-              <li className="mb-2">
-                <Link
-                  href="/refer-a-friend"
-                  className="text-gray-800 hover:text-gray-600 hover:underline"
-                >
-                  Refer a Friend Program
-                </Link>
-              </li>
-              <li className="mb-2">
-                <Link
-                  href="/etsy-store"
-                  className="text-gray-800 hover:text-gray-600 hover:underline"
-                >
-                  Etsy Store
-                </Link>
-              </li>
-            </ul>
+          {/* Community (formerly Grow) */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900">Community</h2>
+            <div className="space-y-3">
+              <Link href="/affiliate-program" className="flex items-center text-gray-600 hover:text-gray-900">
+                <Users2 size={18} className="mr-2" />
+                <span>Affiliate Program</span>
+              </Link>
+              <Link href="/refer-friend" className="flex items-center text-gray-600 hover:text-gray-900">
+                <Gift size={18} className="mr-2" />
+                <span>Refer a Friend Program</span>
+              </Link>
+              <Link href="/etsy-store" className="flex items-center text-gray-600 hover:text-gray-900">
+                <Store size={18} className="mr-2" />
+                <span>Etsy Store</span>
+              </Link>
+            </div>
           </div>
 
-          {/* Column 4: Get Support */}
-          <div className="w-full md:w-1/4 bg-white border border-gray-200 rounded shadow-sm p-4">
-            <h2 className="flex items-center text-xl font-semibold mb-4 text-gray-800">
-              <LifeBuoy size={20} className="mr-2 text-gray-600" />
-              Get Support
-            </h2>
-            <ul className="list-none m-0 p-0">
-              <li className="mb-2">
-                <Link
-                  href="/policies"
-                  className="text-gray-800 hover:text-gray-600 hover:underline"
-                >
-                  Policies
-                </Link>
-              </li>
-              <li className="mb-2">
-                <Link
-                  href="/faq"
-                  className="text-gray-800 hover:text-gray-600 hover:underline"
-                >
-                  FAQ &amp; Help Center
-                </Link>
-              </li>
-              <li className="mb-2">
-                <Link
-                  href="/track-order"
-                  className="text-gray-800 hover:text-gray-600 hover:underline"
-                >
-                  Track Order
-                </Link>
-              </li>
-            </ul>
+          {/* Get Support */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900">Get Support</h2>
+            <div className="space-y-3">
+              <Link href="/policies" className="flex items-center text-gray-600 hover:text-gray-900">
+                <FileCheck size={18} className="mr-2" />
+                <span>Policies</span>
+              </Link>
+              <Link href="/faq" className="flex items-center text-gray-600 hover:text-gray-900">
+                <HelpCircle size={18} className="mr-2" />
+                <span>FAQ & Help Center</span>
+              </Link>
+              <Link href="/track-order" className="flex items-center text-gray-600 hover:text-gray-900">
+                <MessageSquare size={18} className="mr-2" />
+                <span>Track Order</span>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
