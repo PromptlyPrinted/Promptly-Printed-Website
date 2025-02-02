@@ -1,5 +1,6 @@
 // header.tsx
 "use client";
+
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@repo/auth/client";
 import { Button } from "@repo/design-system/components/ui/button";
@@ -9,17 +10,18 @@ import {
   User,
   Search,
   ShoppingCart,
-  ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import PromptlyLogo from "./PromptlyLogo.svg";
+import { ResourcesDropdown } from "./ResourcesDropdown";
 import { ProductsDropdown } from "./ProductsDropdown";
 
 const navigationItems = [
   { name: "Home", href: "/" },
   {
     name: "Resources",
+    // The original subItems are now replaced by the custom ResourcesDropdown
     subItems: [
       { name: "Blog", href: "/blog" },
       { name: "Size & Fit", href: "/size-fit" },
@@ -27,10 +29,7 @@ const navigationItems = [
       { name: "Affiliate Program", href: "/affiliate" },
     ],
   },
-  {
-    name: "About",
-    subItems: [{ name: "About Us / Company", href: "/about" }],
-  },
+  { name: "About Us", href: "/about" },
   {
     name: "Design Your Apparel",
     href: "/design",
@@ -52,11 +51,15 @@ export const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dropdownOpenIndex, setDropdownOpenIndex] = useState<number | null>(null);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
-  // State to control whether the mega menu is open
+
+  // State to control whether the Products mega menu is open
   const [productsOpen, setProductsOpen] = useState(false);
+  // New state for the Resources dropdown
+  const [resourcesOpen, setResourcesOpen] = useState(false);
+
   // State to store the header bottom position (in px)
   const [headerBottom, setHeaderBottom] = useState(0);
-  // A ref to store our leave timeout ID
+  // A ref to store our leave timeout ID (for Products dropdown)
   const leaveTimeout = useRef<number | null>(null);
 
   // Create a ref for the header container
@@ -78,7 +81,7 @@ export const Header = () => {
     setDropdownOpenIndex(dropdownOpenIndex === index ? null : index);
   };
 
-  // When entering either the header trigger or dropdown, clear any timeout and open immediately.
+  // When entering either the Products trigger or dropdown, clear any timeout and open immediately.
   const handleDropdownEnter = () => {
     if (leaveTimeout.current) {
       clearTimeout(leaveTimeout.current);
@@ -87,7 +90,7 @@ export const Header = () => {
     setProductsOpen(true);
   };
 
-  // On mouse leave, start a timeout before closing.
+  // On mouse leave, start a timeout before closing the Products dropdown.
   const handleDropdownLeave = () => {
     leaveTimeout.current = window.setTimeout(() => {
       setProductsOpen(false);
@@ -123,12 +126,27 @@ export const Header = () => {
                 className="flex items-center space-x-1 font-medium text-gray-700 transition-colors duration-200 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-md"
               >
                 <span>Products</span>
-                <ChevronDown size={16} />
               </button>
             </div>
 
             {/* Other navigation items */}
             {navigationItems.map((navItem, index) => {
+              // For the Resources item, use the new Resources dropdown
+              if (navItem.name === "Resources") {
+                return (
+                  <div key={navItem.name} className="relative">
+                    <button
+                      onMouseEnter={() => setResourcesOpen(true)}
+                      onMouseLeave={() => setResourcesOpen(false)}
+                      onClick={() => setResourcesOpen((prev) => !prev)}
+                      className="flex items-center space-x-1 font-medium text-gray-700 transition-colors duration-200 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-md"
+                    >
+                      <span>{navItem.name}</span>
+                    </button>
+                  </div>
+                );
+              }
+              // For any other navigation item that has subItems (if any)
               if (navItem.subItems) {
                 return (
                   <div key={navItem.name} className="relative">
@@ -139,7 +157,6 @@ export const Header = () => {
                       className="flex items-center space-x-1 font-medium text-gray-700 transition-colors duration-200 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-md"
                     >
                       <span>{navItem.name}</span>
-                      <ChevronDown size={16} />
                     </button>
                     {dropdownOpenIndex === index && (
                       <div
@@ -251,13 +268,21 @@ export const Header = () => {
 
       {/* (Mobile menu code omitted for brevity) */}
 
-      {/* Render the mega menu using a portal when productsOpen is true.
-          Pass the headerBottom value and the enter/leave handlers */}
+      {/* Render the Products mega menu using a portal */}
       {productsOpen && (
         <ProductsDropdown
           headerBottom={headerBottom}
           onDropdownEnter={handleDropdownEnter}
           onDropdownLeave={handleDropdownLeave}
+        />
+      )}
+
+      {/* Render the Resources dropdown via portal */}
+      {resourcesOpen && (
+        <ResourcesDropdown
+          headerBottom={headerBottom}
+          onDropdownEnter={() => setResourcesOpen(true)}
+          onDropdownLeave={() => setResourcesOpen(false)}
         />
       )}
     </>

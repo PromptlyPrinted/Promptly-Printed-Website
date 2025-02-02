@@ -263,7 +263,7 @@ export function ProductsDropdown({
                   href="/products/notebooks"
                   className="flex items-center gap-2 rounded px-3 py-2 text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
                 >
-                  <Book className="h-5 w-5" />
+                  <Book className="h-10 w-10" />
                   Notebooks
                 </Link>
               </li>
