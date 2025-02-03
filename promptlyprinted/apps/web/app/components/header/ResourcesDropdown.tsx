@@ -148,7 +148,7 @@ export function ResourcesDropdown({
             </h2>
             <div className="flex flex-col space-y-3">
               <Link
-                href="/policies"
+                href="/legal"
                 className="flex items-center text-gray-600 hover:text-gray-900"
               >
                 <FileCheck size={18} className="mr-2" />
