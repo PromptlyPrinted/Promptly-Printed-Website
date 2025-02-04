@@ -27,7 +27,7 @@ const faqCategories: FAQCategory[] = [
     questions: [
       {
         question: 'What types of products can I customize?',
-        answer: 'We offer a wide range of customizable products including t-shirts, hoodies, sweatshirts, kids' clothing, phone cases, and more. Each product can be personalized with your own designs or using our AI-powered design tools.',
+        answer: 'We offer a wide range of customizable products including t-shirts, hoodies, sweatshirts, kids\' clothing, phone cases, and more. Each product can be personalized with your own designs or using our AI-powered design tools.',
       },
       {
         question: 'What is the quality of your products?',
