@@ -16,6 +16,8 @@ import Image from "next/image";
 import PromptlyLogo from "./PromptlyLogo.svg";
 import { ResourcesDropdown } from "./ResourcesDropdown";
 import { ProductsDropdown } from "./ProductsDropdown";
+import { BasketDropdown } from "./BasketDropdown";
+import { ProfileDropdown } from "./ProfileDropdown";
 
 const navigationItems = [
   { name: "Home", href: "/" },
@@ -55,28 +57,64 @@ export const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dropdownOpenIndex, setDropdownOpenIndex] = useState<number | null>(null);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
-
-  // State to control whether the Products mega menu is open
+  const [basketOpen, setBasketOpen] = useState(false);
   const [productsOpen, setProductsOpen] = useState(false);
-  // New state for the Resources dropdown
   const [resourcesOpen, setResourcesOpen] = useState(false);
-
-  // State to store the header bottom position (in px)
   const [headerBottom, setHeaderBottom] = useState(0);
-  // A ref to store our leave timeout ID (for Products dropdown)
-  const leaveTimeout = useRef<number | null>(null);
-  // Add a new ref for Resources dropdown
-  const resourcesLeaveTimeout = useRef<number | null>(null);
+  const [isClient, setIsClient] = useState(false);
 
-  // Create a ref for the header container
+  // Refs for timeouts
+  const profileTimeoutRef = useRef<NodeJS.Timeout>();
+  const basketTimeoutRef = useRef<NodeJS.Timeout>();
   const headerRef = useRef<HTMLDivElement>(null);
+  const leaveTimeout = useRef<NodeJS.Timeout | null>(null);
+  const resourcesLeaveTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
     if (headerRef.current) {
       const rect = headerRef.current.getBoundingClientRect();
-      // Add the current scroll offset in case the page is scrolled
       setHeaderBottom(rect.bottom + window.scrollY);
     }
+  }, []);
+
+  const handleProfileMouseEnter = () => {
+    if (profileTimeoutRef.current) {
+      clearTimeout(profileTimeoutRef.current);
+    }
+    setProfileDropdownOpen(true);
+  };
+
+  const handleProfileMouseLeave = () => {
+    profileTimeoutRef.current = setTimeout(() => {
+      setProfileDropdownOpen(false);
+    }, 150);
+  };
+
+  const handleBasketMouseEnter = () => {
+    if (basketTimeoutRef.current) {
+      clearTimeout(basketTimeoutRef.current);
+    }
+    setBasketOpen(true);
+  };
+
+  const handleBasketMouseLeave = () => {
+    basketTimeoutRef.current = setTimeout(() => {
+      setBasketOpen(false);
+    }, 150);
+  };
+
+  // Clean up timeouts
+  useEffect(() => {
+    return () => {
+      if (profileTimeoutRef.current) clearTimeout(profileTimeoutRef.current);
+      if (basketTimeoutRef.current) clearTimeout(basketTimeoutRef.current);
+      if (leaveTimeout.current) clearTimeout(leaveTimeout.current);
+      if (resourcesLeaveTimeout.current) clearTimeout(resourcesLeaveTimeout.current);
+    };
   }, []);
 
   const toggleMobileMenu = () => {
@@ -232,52 +270,53 @@ export const Header = () => {
               <Search />
             </button>
 
-            {/* Profile Icon with Dropdown */}
-            <div className="relative">
-              <button
-                onMouseEnter={() => setProfileDropdownOpen(true)}
-                onMouseLeave={() => setProfileDropdownOpen(false)}
-                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                className="text-gray-700 transition-colors duration-200 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-md"
+            {/* Profile Icon */}
+            {isClient ? (
+              <div 
+                className="relative"
+                onMouseEnter={handleProfileMouseEnter}
+                onMouseLeave={handleProfileMouseLeave}
               >
-                <User />
-              </button>
-              {profileDropdownOpen && (
-                <div
-                  onMouseEnter={() => setProfileDropdownOpen(true)}
-                  onMouseLeave={() => setProfileDropdownOpen(false)}
-                  className="absolute right-0 top-10 z-50 w-48 rounded-md bg-white p-2 shadow-xl ring-1 ring-black ring-opacity-5"
+                <button
+                  onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                  className="text-gray-700 transition-colors duration-200 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-md"
                 >
-                  {profileItems.map((item) => (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className="block rounded px-3 py-2 text-sm text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
-                    >
-                      {item.name}
-                    </Link>
-                  ))}
-                  {isSignedIn ? (
-                    <button
-                      onClick={() => signOut()}
-                      className="w-full text-left block rounded px-3 py-2 text-sm text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
-                    >
-                      Sign Out
-                    </button>
-                  ) : (
-                    <Link
-                      href="/login"
-                      className="block rounded px-3 py-2 text-sm text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
-                    >
-                      Sign In
-                    </Link>
-                  )}
-                </div>
-              )}
-            </div>
-            <button className="text-gray-700 transition-colors duration-200 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-md">
-              <ShoppingCart />
-            </button>
+                  <User />
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <button
+                  className="text-gray-700 transition-colors duration-200 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-md"
+                >
+                  <User />
+                </button>
+              </div>
+            )}
+
+            {/* Shopping Cart */}
+            {isClient ? (
+              <div 
+                className="relative"
+                onMouseEnter={handleBasketMouseEnter}
+                onMouseLeave={handleBasketMouseLeave}
+              >
+                <button
+                  onClick={() => setBasketOpen(!basketOpen)}
+                  className="text-gray-700 transition-colors duration-200 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-md"
+                >
+                  <ShoppingCart />
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <button
+                  className="text-gray-700 transition-colors duration-200 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-md"
+                >
+                  <ShoppingCart />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -292,22 +331,46 @@ export const Header = () => {
 
       {/* (Mobile menu code omitted for brevity) */}
 
-      {/* Render the Products mega menu using a portal */}
-      {productsOpen && (
-        <ProductsDropdown
-          headerBottom={headerBottom}
-          onDropdownEnter={handleDropdownEnter}
-          onDropdownLeave={handleDropdownLeave}
-        />
-      )}
+      {/* Only render dropdowns on client side */}
+      {isClient && (
+        <>
+          {/* Render the Products mega menu using a portal */}
+          {productsOpen && (
+            <ProductsDropdown
+              headerBottom={headerBottom}
+              onDropdownEnter={handleDropdownEnter}
+              onDropdownLeave={handleDropdownLeave}
+            />
+          )}
 
-      {/* Render the Resources dropdown via portal */}
-      {resourcesOpen && (
-        <ResourcesDropdown
-          headerBottom={headerBottom}
-          onDropdownEnter={handleResourcesEnter}
-          onDropdownLeave={handleResourcesLeave}
-        />
+          {/* Render the Resources dropdown via portal */}
+          {resourcesOpen && (
+            <ResourcesDropdown
+              headerBottom={headerBottom}
+              onDropdownEnter={handleResourcesEnter}
+              onDropdownLeave={handleResourcesLeave}
+            />
+          )}
+
+          {/* Render the Profile dropdown */}
+          <ProfileDropdown
+            headerBottom={headerBottom}
+            onDropdownEnter={handleProfileMouseEnter}
+            onDropdownLeave={handleProfileMouseLeave}
+            isOpen={profileDropdownOpen}
+            isSignedIn={isSignedIn}
+            onSignOut={signOut}
+          />
+
+          {/* Render the Basket dropdown */}
+          <BasketDropdown
+            headerBottom={headerBottom}
+            onDropdownEnter={handleBasketMouseEnter}
+            onDropdownLeave={handleBasketMouseLeave}
+            isOpen={basketOpen}
+            onClose={() => setBasketOpen(false)}
+          />
+        </>
       )}
     </>
   );
