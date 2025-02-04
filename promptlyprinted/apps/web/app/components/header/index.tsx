@@ -296,11 +296,7 @@ export const Header = () => {
 
             {/* Shopping Cart */}
             {isClient ? (
-              <div 
-                className="relative"
-                onMouseEnter={handleBasketMouseEnter}
-                onMouseLeave={handleBasketMouseLeave}
-              >
+              <div className="relative">
                 <button
                   onClick={() => setBasketOpen(!basketOpen)}
                   className="text-gray-700 transition-colors duration-200 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-md"
