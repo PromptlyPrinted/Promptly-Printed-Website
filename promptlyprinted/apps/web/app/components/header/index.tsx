@@ -10,6 +10,7 @@ import {
   User,
   Search,
   ShoppingCart,
+  ChevronDown, // For mobile accordion indicators
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -27,12 +28,11 @@ const navigationItems = [
   },
   {
     name: "Resources",
-    // The original subItems are now replaced by the custom ResourcesDropdown
+    // On desktop, ResourcesDropdown is used.
+    // On mobile we use an accordion with detailed sub-items.
     subItems: [
-      { name: "Blog", href: "/blog" },
-      { name: "Size & Fit", href: "/size-fit" },
-      { name: "FAQs", href: "/faqs" },
-      { name: "Affiliate Program", href: "/affiliate" },
+      // These items will be replaced with a full mobile view below.
+      { name: "Resources", href: "#" },
     ],
   },
   { name: "About Us", href: "/about" },
@@ -43,14 +43,357 @@ const navigationItems = [
   },
 ];
 
-const profileItems = [
-  { name: "Profile", href: "/profile" },
-  { name: "My Images", href: "/my-images" },
-  { name: "My Designs", href: "/my-designs" },
-  { name: "Orders", href: "/orders" },
-];
-
 const brandAccentColor = "bg-teal-500 hover:bg-teal-600 text-white";
+
+/**
+ * Mobile-expanded view for Products
+ */
+const ProductsDropdownMobileExpanded = ({ onLinkClick }: { onLinkClick: () => void }) => {
+  return (
+    <div className="mt-2 space-y-4">
+      {/* Section 1: Intro */}
+      <div className="border-b pb-2">
+        <h3 className="text-lg font-semibold text-gray-800">Use your imagination</h3>
+        <p className="mt-1 text-sm text-gray-600">
+          Discover unique products that spark creativity and imagination.
+        </p>
+        <Link
+          href="/products/all"
+          onClick={onLinkClick}
+          className="mt-1 inline-flex items-center gap-2 text-sm font-medium text-gray-900 transition-colors duration-200 hover:text-gray-700"
+        >
+          Explore Products →
+        </Link>
+      </div>
+
+      {/* Section 2: Apparel */}
+      <div className="border-b pb-2">
+        <h3 className="text-lg font-semibold text-gray-800">Apparel</h3>
+        <ul className="mt-2 space-y-2">
+          <li>
+            <Link
+              href="/products/all"
+              onClick={onLinkClick}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              All
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/products/mens"
+              onClick={onLinkClick}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Men
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/products/womens"
+              onClick={onLinkClick}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Women
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/products/kids+babies"
+              onClick={onLinkClick}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Kids &amp; Babies
+            </Link>
+          </li>
+        </ul>
+      </div>
+
+      {/* Section 3: Accessories */}
+      <div className="border-b pb-2">
+        <h3 className="text-lg font-semibold text-gray-800">Accessories</h3>
+        <ul className="mt-2 space-y-2">
+          <li>
+            <Link
+              href="/products/mats-sleeves"
+              onClick={onLinkClick}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Mats &amp; Sleeves
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/products/socks-flipflops"
+              onClick={onLinkClick}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Socks &amp; Flip-flops
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/products/pendants-keyrings"
+              onClick={onLinkClick}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Pendants &amp; Keyrings
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/products/bags"
+              onClick={onLinkClick}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Bags
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/products/watch-straps"
+              onClick={onLinkClick}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Apple Watch Straps
+            </Link>
+          </li>
+        </ul>
+      </div>
+
+      {/* Section 4: Home & Living */}
+      <div className="border-b pb-2">
+        <h3 className="text-lg font-semibold text-gray-800">Home &amp; Living</h3>
+        <ul className="mt-2 space-y-2">
+          <li>
+            <Link
+              href="/products/cushions"
+              onClick={onLinkClick}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Cushions
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/products/gallery-boards"
+              onClick={onLinkClick}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Gallery Boards
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/products/acrylic-prisms"
+              onClick={onLinkClick}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Acrylic Prisms
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/products/prints-posters"
+              onClick={onLinkClick}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Prints and Posters
+            </Link>
+          </li>
+        </ul>
+      </div>
+
+      {/* Section 5: Others */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-800">Others</h3>
+        <ul className="mt-2 space-y-2">
+          <li>
+            <Link
+              href="/products/games"
+              onClick={onLinkClick}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Games
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/products/books"
+              onClick={onLinkClick}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Books
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/products/notebooks"
+              onClick={onLinkClick}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Notebooks
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/products/stickers"
+              onClick={onLinkClick}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Stickers
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/products/tattoos"
+              onClick={onLinkClick}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Tattoos
+            </Link>
+          </li>
+        </ul>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Mobile-expanded view for Resources
+ */
+const ResourcesDropdownMobileExpanded = ({ onLinkClick }: { onLinkClick: () => void }) => {
+  return (
+    <div className="mt-2 space-y-4">
+      {/* Section 1: Resources */}
+      <div className="border-b pb-2">
+        <h3 className="text-lg font-semibold text-gray-800">Resources</h3>
+        <ul className="mt-2 space-y-2">
+          <li>
+            <Link
+              href="/faq"
+              onClick={onLinkClick}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              FAQ &amp; Help Center
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/blog"
+              onClick={onLinkClick}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Blog
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/etsy-store"
+              onClick={onLinkClick}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Etsy Store
+            </Link>
+          </li>
+        </ul>
+      </div>
+
+      {/* Section 2: Learn */}
+      <div className="border-b pb-2">
+        <h3 className="text-lg font-semibold text-gray-800">Learn</h3>
+        <ul className="mt-2 space-y-2">
+          <li>
+            <Link
+              href="/blog"
+              onClick={onLinkClick}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Blog
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/prompt-library"
+              onClick={onLinkClick}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Prompt Library
+            </Link>
+          </li>
+        </ul>
+      </div>
+
+      {/* Section 3: Community */}
+      <div className="border-b pb-2">
+        <h3 className="text-lg font-semibold text-gray-800">Community</h3>
+        <ul className="mt-2 space-y-2">
+          <li>
+            <Link
+              href="/affiliate-program"
+              onClick={onLinkClick}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Affiliate Program
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/refer-friend"
+              onClick={onLinkClick}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Refer a Friend Program
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/etsy-store"
+              onClick={onLinkClick}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Etsy Store
+            </Link>
+          </li>
+        </ul>
+      </div>
+
+      {/* Section 4: Get Support */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-800">Get Support</h3>
+        <ul className="mt-2 space-y-2">
+          <li>
+            <Link
+              href="/legal"
+              onClick={onLinkClick}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Policies
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/faq"
+              onClick={onLinkClick}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              FAQ &amp; Help Center
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/track-order"
+              onClick={onLinkClick}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Track Order
+            </Link>
+          </li>
+        </ul>
+      </div>
+    </div>
+  );
+};
 
 export const Header = () => {
   const { isSignedIn, signOut } = useAuth();
@@ -63,7 +406,11 @@ export const Header = () => {
   const [headerBottom, setHeaderBottom] = useState(0);
   const [isClient, setIsClient] = useState(false);
 
-  // Refs for timeouts
+  // New state for mobile accordion toggles:
+  const [mobileProductsOpen, setMobileProductsOpen] = useState(false);
+  const [mobileResourcesOpen, setMobileResourcesOpen] = useState(false);
+
+  // Refs for desktop hover timeouts:
   const profileTimeoutRef = useRef<NodeJS.Timeout>();
   const basketTimeoutRef = useRef<NodeJS.Timeout>();
   const headerRef = useRef<HTMLDivElement>(null);
@@ -81,10 +428,9 @@ export const Header = () => {
     }
   }, []);
 
+  // Desktop hover handlers
   const handleProfileMouseEnter = () => {
-    if (profileTimeoutRef.current) {
-      clearTimeout(profileTimeoutRef.current);
-    }
+    if (profileTimeoutRef.current) clearTimeout(profileTimeoutRef.current);
     setProfileDropdownOpen(true);
   };
 
@@ -95,9 +441,7 @@ export const Header = () => {
   };
 
   const handleBasketMouseEnter = () => {
-    if (basketTimeoutRef.current) {
-      clearTimeout(basketTimeoutRef.current);
-    }
+    if (basketTimeoutRef.current) clearTimeout(basketTimeoutRef.current);
     setBasketOpen(true);
   };
 
@@ -107,7 +451,7 @@ export const Header = () => {
     }, 150);
   };
 
-  // Clean up timeouts
+  // Clean up desktop timeouts on unmount
   useEffect(() => {
     return () => {
       if (profileTimeoutRef.current) clearTimeout(profileTimeoutRef.current);
@@ -118,14 +462,19 @@ export const Header = () => {
   }, []);
 
   const toggleMobileMenu = () => {
-    setMobileMenuOpen(!mobileMenuOpen);
+    setMobileMenuOpen((prev) => !prev);
+    // Optionally close mobile accordions when closing the menu.
+    if (mobileMenuOpen) {
+      setMobileProductsOpen(false);
+      setMobileResourcesOpen(false);
+    }
   };
 
   const handleDropdownToggle = (index: number) => {
     setDropdownOpenIndex(dropdownOpenIndex === index ? null : index);
   };
 
-  // When entering either the Products trigger or dropdown, clear any timeout and open immediately.
+  // Desktop: Products dropdown hover handlers
   const handleDropdownEnter = () => {
     if (leaveTimeout.current) {
       clearTimeout(leaveTimeout.current);
@@ -134,14 +483,13 @@ export const Header = () => {
     setProductsOpen(true);
   };
 
-  // On mouse leave, start a timeout before closing the Products dropdown.
   const handleDropdownLeave = () => {
     leaveTimeout.current = window.setTimeout(() => {
       setProductsOpen(false);
     }, 200);
   };
 
-  // Add handlers for Resources dropdown
+  // Desktop: Resources dropdown hover handlers
   const handleResourcesEnter = () => {
     if (resourcesLeaveTimeout.current) {
       clearTimeout(resourcesLeaveTimeout.current);
@@ -158,12 +506,13 @@ export const Header = () => {
 
   return (
     <>
+      {/* HEADER (Desktop & Mobile visible) */}
       <header
         ref={headerRef}
         className="w-full border-b border-gray-200 bg-white relative z-40"
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          {/* Left: Logo */}
+          {/* Logo */}
           <div className="flex items-center space-x-3">
             <Link href="/">
               <Image
@@ -174,11 +523,9 @@ export const Header = () => {
             </Link>
           </div>
 
-          {/* Desktop Nav */}
+          {/* Desktop Navigation */}
           <nav className="hidden flex-1 items-center justify-center lg:flex lg:space-x-6">
-            {/* Other navigation items */}
             {navigationItems.map((navItem, index) => {
-              // For Products item
               if (navItem.isProducts) {
                 return (
                   <div key={navItem.name} className="relative">
@@ -193,7 +540,6 @@ export const Header = () => {
                   </div>
                 );
               }
-              // For the Resources item
               if (navItem.name === "Resources") {
                 return (
                   <div key={navItem.name} className="relative">
@@ -208,7 +554,6 @@ export const Header = () => {
                   </div>
                 );
               }
-              // For any other navigation item that has subItems (if any)
               if (navItem.subItems) {
                 return (
                   <div key={navItem.name} className="relative">
@@ -264,15 +609,13 @@ export const Header = () => {
             })}
           </nav>
 
-          {/* Right Icons/Buttons */}
+          {/* Desktop Icons */}
           <div className="hidden items-center space-x-4 lg:flex">
             <button className="text-gray-700 transition-colors duration-200 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-md">
               <Search />
             </button>
-
-            {/* Profile Icon */}
             {isClient ? (
-              <div 
+              <div
                 className="relative"
                 onMouseEnter={handleProfileMouseEnter}
                 onMouseLeave={handleProfileMouseLeave}
@@ -286,15 +629,11 @@ export const Header = () => {
               </div>
             ) : (
               <div className="relative">
-                <button
-                  className="text-gray-700 transition-colors duration-200 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-md"
-                >
+                <button className="text-gray-700 transition-colors duration-200 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-md">
                   <User />
                 </button>
               </div>
             )}
-
-            {/* Shopping Cart */}
             {isClient ? (
               <div className="relative">
                 <button
@@ -306,9 +645,7 @@ export const Header = () => {
               </div>
             ) : (
               <div className="relative">
-                <button
-                  className="text-gray-700 transition-colors duration-200 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-md"
-                >
+                <button className="text-gray-700 transition-colors duration-200 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-md">
                   <ShoppingCart />
                 </button>
               </div>
@@ -325,12 +662,152 @@ export const Header = () => {
         </div>
       </header>
 
-      {/* (Mobile menu code omitted for brevity) */}
+      {/* MOBILE MENU: Full-screen overlay */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-white lg:hidden">
+          {/* Mobile header with logo and close button */}
+          <div className="px-4 pt-4 flex items-center justify-between">
+            <Link href="/" onClick={toggleMobileMenu}>
+              <Image src={PromptlyLogo} alt="Promptly Logo" className="h-16 w-16" />
+            </Link>
+            <button
+              onClick={toggleMobileMenu}
+              className="text-gray-700 hover:text-gray-900 p-2 rounded-md"
+            >
+              <X />
+            </button>
+          </div>
 
-      {/* Only render dropdowns on client side */}
+          {/* Prominent mobile action icons row */}
+          <div className="mt-4 px-4 flex justify-around items-center">
+            <Link
+              href="/search"
+              onClick={toggleMobileMenu}
+              className="flex flex-col items-center"
+            >
+              <Search className="h-8 w-8 text-gray-700" />
+              <span className="mt-1 text-sm text-gray-700">Search</span>
+            </Link>
+            {isClient ? (
+              <button
+                onClick={() => {
+                  setProfileDropdownOpen(!profileDropdownOpen);
+                  toggleMobileMenu();
+                }}
+                className="flex flex-col items-center"
+              >
+                <User className="h-8 w-8 text-gray-700" />
+                <span className="mt-1 text-sm text-gray-700">Account</span>
+              </button>
+            ) : (
+              <button className="flex flex-col items-center">
+                <User className="h-8 w-8 text-gray-700" />
+                <span className="mt-1 text-sm text-gray-700">Account</span>
+              </button>
+            )}
+            {isClient ? (
+              <button
+                onClick={() => {
+                  setBasketOpen(!basketOpen);
+                  toggleMobileMenu();
+                }}
+                className="flex flex-col items-center"
+              >
+                <ShoppingCart className="h-8 w-8 text-gray-700" />
+                <span className="mt-1 text-sm text-gray-700">Basket</span>
+              </button>
+            ) : (
+              <button className="flex flex-col items-center">
+                <ShoppingCart className="h-8 w-8 text-gray-700" />
+                <span className="mt-1 text-sm text-gray-700">Basket</span>
+              </button>
+            )}
+          </div>
+
+          {/* Mobile navigation list */}
+          <nav className="mt-6 px-4">
+            <ul className="space-y-4">
+              {navigationItems.map((item) => {
+                if (item.isButton) {
+                  return (
+                    <li key={item.name}>
+                      <Button
+                        asChild
+                        variant="default"
+                        className={`w-full ${brandAccentColor}`}
+                      >
+                        <Link href={item.href} onClick={toggleMobileMenu}>
+                          {item.name}
+                        </Link>
+                      </Button>
+                    </li>
+                  );
+                }
+                if (item.isProducts) {
+                  return (
+                    <li key={item.name}>
+                      <button
+                        className="w-full flex items-center justify-between px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 rounded-md"
+                        onClick={() => setMobileProductsOpen((prev) => !prev)}
+                      >
+                        <span>{item.name}</span>
+                        <ChevronDown
+                          className={`transition-transform duration-200 ${
+                            mobileProductsOpen ? "rotate-180" : "rotate-0"
+                          }`}
+                        />
+                      </button>
+                      {mobileProductsOpen && (
+                        <div className="mt-2 pl-4 border-l border-gray-200">
+                          <ProductsDropdownMobileExpanded onLinkClick={toggleMobileMenu} />
+                        </div>
+                      )}
+                    </li>
+                  );
+                }
+                if (item.subItems) {
+                  // We use this for Resources.
+                  return (
+                    <li key={item.name}>
+                      <button
+                        className="w-full flex items-center justify-between px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 rounded-md"
+                        onClick={() => setMobileResourcesOpen((prev) => !prev)}
+                      >
+                        <span>{item.name}</span>
+                        <ChevronDown
+                          className={`transition-transform duration-200 ${
+                            mobileResourcesOpen ? "rotate-180" : "rotate-0"
+                          }`}
+                        />
+                      </button>
+                      {mobileResourcesOpen && (
+                        <div className="mt-2 pl-4 border-l border-gray-200">
+                          <ResourcesDropdownMobileExpanded onLinkClick={toggleMobileMenu} />
+                        </div>
+                      )}
+                    </li>
+                  );
+                }
+                return (
+                  <li key={item.name}>
+                    <Link
+                      href={item.href}
+                      className="block px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-100 rounded-md"
+                      onClick={toggleMobileMenu}
+                    >
+                      {item.name}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+        </div>
+      )}
+
+      {/* Only render desktop dropdowns on the client */}
       {isClient && (
         <>
-          {/* Render the Products mega menu using a portal */}
           {productsOpen && (
             <ProductsDropdown
               headerBottom={headerBottom}
@@ -338,8 +815,6 @@ export const Header = () => {
               onDropdownLeave={handleDropdownLeave}
             />
           )}
-
-          {/* Render the Resources dropdown via portal */}
           {resourcesOpen && (
             <ResourcesDropdown
               headerBottom={headerBottom}
@@ -347,8 +822,6 @@ export const Header = () => {
               onDropdownLeave={handleResourcesLeave}
             />
           )}
-
-          {/* Render the Profile dropdown */}
           <ProfileDropdown
             headerBottom={headerBottom}
             onDropdownEnter={handleProfileMouseEnter}
@@ -357,8 +830,6 @@ export const Header = () => {
             isSignedIn={isSignedIn}
             onSignOut={signOut}
           />
-
-          {/* Render the Basket dropdown */}
           <BasketDropdown
             headerBottom={headerBottom}
             onDropdownEnter={handleBasketMouseEnter}

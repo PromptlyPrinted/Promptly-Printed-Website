@@ -116,10 +116,10 @@ export function ProfileDropdown({
               <p className="text-sm text-gray-500 mb-4">Sign in to manage your account</p>
               <div className="space-y-3">
                 <Button asChild className="w-full bg-black text-white hover:bg-gray-800">
-                  <Link href="/login">Sign In</Link>
+                  <Link href={`${process.env.NEXT_PUBLIC_APP_URL}/sign-in`}>Sign In</Link>
                 </Button>
                 <Button asChild variant="outline" className="w-full">
-                  <Link href="/register">Create Account</Link>
+                  <Link href={`${process.env.NEXT_PUBLIC_APP_URL}/sign-up`}>Create Account</Link>
                 </Button>
               </div>
             </div>
