@@ -396,7 +396,7 @@ const ResourcesDropdownMobileExpanded = ({ onLinkClick }: { onLinkClick: () => v
 };
 
 export const Header = () => {
-  const { isSignedIn, signOut } = useAuth();
+  const { isSignedIn = false, signOut } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dropdownOpenIndex, setDropdownOpenIndex] = useState<number | null>(null);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
@@ -411,8 +411,7 @@ export const Header = () => {
   const [mobileResourcesOpen, setMobileResourcesOpen] = useState(false);
 
   // Refs for desktop hover timeouts:
-  const profileTimeoutRef = useRef<NodeJS.Timeout>();
-  const basketTimeoutRef = useRef<NodeJS.Timeout>();
+  const basketTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const leaveTimeout = useRef<NodeJS.Timeout | null>(null);
   const resourcesLeaveTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -429,17 +428,6 @@ export const Header = () => {
   }, []);
 
   // Desktop hover handlers
-  const handleProfileMouseEnter = () => {
-    if (profileTimeoutRef.current) clearTimeout(profileTimeoutRef.current);
-    setProfileDropdownOpen(true);
-  };
-
-  const handleProfileMouseLeave = () => {
-    profileTimeoutRef.current = setTimeout(() => {
-      setProfileDropdownOpen(false);
-    }, 150);
-  };
-
   const handleBasketMouseEnter = () => {
     if (basketTimeoutRef.current) clearTimeout(basketTimeoutRef.current);
     setBasketOpen(true);
@@ -448,13 +436,12 @@ export const Header = () => {
   const handleBasketMouseLeave = () => {
     basketTimeoutRef.current = setTimeout(() => {
       setBasketOpen(false);
-    }, 150);
+    }, 150) as NodeJS.Timeout;
   };
 
   // Clean up desktop timeouts on unmount
   useEffect(() => {
     return () => {
-      if (profileTimeoutRef.current) clearTimeout(profileTimeoutRef.current);
       if (basketTimeoutRef.current) clearTimeout(basketTimeoutRef.current);
       if (leaveTimeout.current) clearTimeout(leaveTimeout.current);
       if (resourcesLeaveTimeout.current) clearTimeout(resourcesLeaveTimeout.current);
@@ -484,9 +471,9 @@ export const Header = () => {
   };
 
   const handleDropdownLeave = () => {
-    leaveTimeout.current = window.setTimeout(() => {
+    leaveTimeout.current = setTimeout(() => {
       setProductsOpen(false);
-    }, 200);
+    }, 200) as NodeJS.Timeout;
   };
 
   // Desktop: Resources dropdown hover handlers
@@ -499,9 +486,9 @@ export const Header = () => {
   };
 
   const handleResourcesLeave = () => {
-    resourcesLeaveTimeout.current = window.setTimeout(() => {
+    resourcesLeaveTimeout.current = setTimeout(() => {
       setResourcesOpen(false);
-    }, 200);
+    }, 200) as NodeJS.Timeout;
   };
 
   return (
@@ -574,7 +561,7 @@ export const Header = () => {
                         {navItem.subItems.map((sub) => (
                           <Link
                             key={sub.name}
-                            href={sub.href}
+                            href={sub.href ?? "#"}
                             className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
                           >
                             {sub.name}
@@ -593,14 +580,14 @@ export const Header = () => {
                     variant="default"
                     className={brandAccentColor}
                   >
-                    <Link href={navItem.href}>{navItem.name}</Link>
+                    <Link href={navItem.href ?? "/"}>{navItem.name}</Link>
                   </Button>
                 );
               }
               return (
                 <Link
                   key={navItem.name}
-                  href={navItem.href || "#"}
+                  href={navItem.href ?? "/"}
                   className="font-medium text-gray-700 transition-colors duration-200 hover:text-gray-900 hover:bg-gray-100 px-3 py-2 rounded-md"
                 >
                   {navItem.name}
@@ -615,11 +602,7 @@ export const Header = () => {
               <Search />
             </button>
             {isClient ? (
-              <div
-                className="relative"
-                onMouseEnter={handleProfileMouseEnter}
-                onMouseLeave={handleProfileMouseLeave}
-              >
+              <div className="relative">
                 <button
                   onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                   className="text-gray-700 transition-colors duration-200 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-md"
@@ -824,11 +807,10 @@ export const Header = () => {
           )}
           <ProfileDropdown
             headerBottom={headerBottom}
-            onDropdownEnter={handleProfileMouseEnter}
-            onDropdownLeave={handleProfileMouseLeave}
             isOpen={profileDropdownOpen}
             isSignedIn={isSignedIn}
             onSignOut={signOut}
+            onClose={() => setProfileDropdownOpen(false)}
           />
           <BasketDropdown
             headerBottom={headerBottom}
