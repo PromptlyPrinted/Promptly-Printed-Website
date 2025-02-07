@@ -1,5 +1,6 @@
 // ProductsDropdown.tsx
 "use client";
+
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
@@ -25,7 +26,7 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 
-type ProductsDropdownProps = {
+export type ProductsDropdownProps = {
   headerBottom: number;
   onDropdownEnter: () => void;
   onDropdownLeave: () => void;
@@ -39,7 +40,7 @@ export function ProductsDropdown({
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Render the portal only on the client.
+    // Ensure the portal renders only on the client.
     setMounted(true);
   }, []);
 
@@ -47,12 +48,13 @@ export function ProductsDropdown({
 
   return createPortal(
     <motion.div
+      // Use fixed positioning so the dropdown stays with the header.
       style={{ top: headerBottom }}
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.2 }}
-      className="absolute left-0 right-0 z-40 bg-white shadow-lg"
+      className="fixed left-0 right-0 z-40 bg-white shadow-lg"
       onMouseEnter={onDropdownEnter}
       onMouseLeave={onDropdownLeave}
     >

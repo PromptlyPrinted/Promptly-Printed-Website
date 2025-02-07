@@ -1,4 +1,4 @@
-// header.tsx
+// Header.tsx
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -10,7 +10,7 @@ import {
   User,
   Search,
   ShoppingCart,
-  ChevronDown, // For mobile accordion indicators
+  ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -45,15 +45,19 @@ const navigationItems = [
 
 const brandAccentColor = "bg-teal-500 hover:bg-teal-600 text-white";
 
-/**
- * Mobile-expanded view for Products
- */
-const ProductsDropdownMobileExpanded = ({ onLinkClick }: { onLinkClick: () => void }) => {
+// Mobile-expanded view for Products
+const ProductsDropdownMobileExpanded = ({
+  onLinkClick,
+}: {
+  onLinkClick: () => void;
+}) => {
   return (
     <div className="mt-2 space-y-4">
       {/* Section 1: Intro */}
       <div className="border-b pb-2">
-        <h3 className="text-lg font-semibold text-gray-800">Use your imagination</h3>
+        <h3 className="text-lg font-semibold text-gray-800">
+          Use your imagination
+        </h3>
         <p className="mt-1 text-sm text-gray-600">
           Discover unique products that spark creativity and imagination.
         </p>
@@ -65,7 +69,6 @@ const ProductsDropdownMobileExpanded = ({ onLinkClick }: { onLinkClick: () => vo
           Explore Products →
         </Link>
       </div>
-
       {/* Section 2: Apparel */}
       <div className="border-b pb-2">
         <h3 className="text-lg font-semibold text-gray-800">Apparel</h3>
@@ -108,7 +111,6 @@ const ProductsDropdownMobileExpanded = ({ onLinkClick }: { onLinkClick: () => vo
           </li>
         </ul>
       </div>
-
       {/* Section 3: Accessories */}
       <div className="border-b pb-2">
         <h3 className="text-lg font-semibold text-gray-800">Accessories</h3>
@@ -160,7 +162,6 @@ const ProductsDropdownMobileExpanded = ({ onLinkClick }: { onLinkClick: () => vo
           </li>
         </ul>
       </div>
-
       {/* Section 4: Home & Living */}
       <div className="border-b pb-2">
         <h3 className="text-lg font-semibold text-gray-800">Home &amp; Living</h3>
@@ -203,7 +204,6 @@ const ProductsDropdownMobileExpanded = ({ onLinkClick }: { onLinkClick: () => vo
           </li>
         </ul>
       </div>
-
       {/* Section 5: Others */}
       <div>
         <h3 className="text-lg font-semibold text-gray-800">Others</h3>
@@ -259,10 +259,12 @@ const ProductsDropdownMobileExpanded = ({ onLinkClick }: { onLinkClick: () => vo
   );
 };
 
-/**
- * Mobile-expanded view for Resources
- */
-const ResourcesDropdownMobileExpanded = ({ onLinkClick }: { onLinkClick: () => void }) => {
+// Mobile-expanded view for Resources
+const ResourcesDropdownMobileExpanded = ({
+  onLinkClick,
+}: {
+  onLinkClick: () => void;
+}) => {
   return (
     <div className="mt-2 space-y-4">
       {/* Section 1: Resources */}
@@ -298,7 +300,6 @@ const ResourcesDropdownMobileExpanded = ({ onLinkClick }: { onLinkClick: () => v
           </li>
         </ul>
       </div>
-
       {/* Section 2: Learn */}
       <div className="border-b pb-2">
         <h3 className="text-lg font-semibold text-gray-800">Learn</h3>
@@ -323,7 +324,6 @@ const ResourcesDropdownMobileExpanded = ({ onLinkClick }: { onLinkClick: () => v
           </li>
         </ul>
       </div>
-
       {/* Section 3: Community */}
       <div className="border-b pb-2">
         <h3 className="text-lg font-semibold text-gray-800">Community</h3>
@@ -357,7 +357,6 @@ const ResourcesDropdownMobileExpanded = ({ onLinkClick }: { onLinkClick: () => v
           </li>
         </ul>
       </div>
-
       {/* Section 4: Get Support */}
       <div>
         <h3 className="text-lg font-semibold text-gray-800">Get Support</h3>
@@ -406,7 +405,7 @@ export const Header = () => {
   const [headerBottom, setHeaderBottom] = useState(0);
   const [isClient, setIsClient] = useState(false);
 
-  // New state for mobile accordion toggles:
+  // Mobile accordion toggles:
   const [mobileProductsOpen, setMobileProductsOpen] = useState(false);
   const [mobileResourcesOpen, setMobileResourcesOpen] = useState(false);
 
@@ -416,18 +415,31 @@ export const Header = () => {
   const leaveTimeout = useRef<NodeJS.Timeout | null>(null);
   const resourcesLeaveTimeout = useRef<NodeJS.Timeout | null>(null);
 
+  // Set client flag after mount
   useEffect(() => {
     setIsClient(true);
   }, []);
 
+  // Update headerBottom on scroll and resize
   useEffect(() => {
-    if (headerRef.current) {
-      const rect = headerRef.current.getBoundingClientRect();
-      setHeaderBottom(rect.bottom + window.scrollY);
-    }
+    const updateHeaderBottom = () => {
+      if (headerRef.current) {
+        const rect = headerRef.current.getBoundingClientRect();
+        setHeaderBottom(rect.bottom);
+      }
+    };
+
+    updateHeaderBottom();
+    window.addEventListener("scroll", updateHeaderBottom);
+    window.addEventListener("resize", updateHeaderBottom);
+
+    return () => {
+      window.removeEventListener("scroll", updateHeaderBottom);
+      window.removeEventListener("resize", updateHeaderBottom);
+    };
   }, []);
 
-  // Desktop hover handlers
+  // Desktop hover handlers for basket
   const handleBasketMouseEnter = () => {
     if (basketTimeoutRef.current) clearTimeout(basketTimeoutRef.current);
     setBasketOpen(true);
@@ -436,7 +448,7 @@ export const Header = () => {
   const handleBasketMouseLeave = () => {
     basketTimeoutRef.current = setTimeout(() => {
       setBasketOpen(false);
-    }, 150) as NodeJS.Timeout;
+    }, 150);
   };
 
   // Clean up desktop timeouts on unmount
@@ -450,7 +462,6 @@ export const Header = () => {
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen((prev) => !prev);
-    // Optionally close mobile accordions when closing the menu.
     if (mobileMenuOpen) {
       setMobileProductsOpen(false);
       setMobileResourcesOpen(false);
@@ -473,7 +484,7 @@ export const Header = () => {
   const handleDropdownLeave = () => {
     leaveTimeout.current = setTimeout(() => {
       setProductsOpen(false);
-    }, 200) as NodeJS.Timeout;
+    }, 200);
   };
 
   // Desktop: Resources dropdown hover handlers
@@ -488,15 +499,15 @@ export const Header = () => {
   const handleResourcesLeave = () => {
     resourcesLeaveTimeout.current = setTimeout(() => {
       setResourcesOpen(false);
-    }, 200) as NodeJS.Timeout;
+    }, 200);
   };
 
   return (
     <>
-      {/* HEADER (Desktop & Mobile visible) */}
+      {/* HEADER (Desktop & Mobile) */}
       <header
         ref={headerRef}
-        className="w-full border-b border-gray-200 bg-white relative z-40"
+        className="w-full border-b border-gray-200 bg-white relative z-40 sticky top-0"
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           {/* Logo */}
@@ -648,7 +659,6 @@ export const Header = () => {
       {/* MOBILE MENU: Full-screen overlay */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-white lg:hidden">
-          {/* Mobile header with logo and close button */}
           <div className="px-4 pt-4 flex items-center justify-between">
             <Link href="/" onClick={toggleMobileMenu}>
               <Image src={PromptlyLogo} alt="Promptly Logo" className="h-16 w-16" />
@@ -660,8 +670,6 @@ export const Header = () => {
               <X />
             </button>
           </div>
-
-          {/* Prominent mobile action icons row */}
           <div className="mt-4 px-4 flex justify-around items-center">
             <Link
               href="/search"
@@ -706,8 +714,6 @@ export const Header = () => {
               </button>
             )}
           </div>
-
-          {/* Mobile navigation list */}
           <nav className="mt-6 px-4">
             <ul className="space-y-4">
               {navigationItems.map((item) => {
@@ -749,7 +755,6 @@ export const Header = () => {
                   );
                 }
                 if (item.subItems) {
-                  // We use this for Resources.
                   return (
                     <li key={item.name}>
                       <button
@@ -788,7 +793,7 @@ export const Header = () => {
         </div>
       )}
 
-      {/* Only render desktop dropdowns on the client */}
+      {/* Desktop Dropdowns */}
       {isClient && (
         <>
           {productsOpen && (

@@ -67,15 +67,18 @@ export function ProfileDropdown({
         onClick={onClose}
       />
       <motion.div
-        style={{ top: headerBottom }}
+        // Use fixed positioning so the dropdown follows the viewport.
+        // We set the top to headerBottom (computed in the header)
+        // and add a right offset (e.g. 16px) so it aligns with the header's profile icon.
+        style={{ top: headerBottom, right: 16 }}
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -10 }}
         transition={{ duration: 0.2 }}
-        className="absolute right-0 z-50 w-[300px] bg-white shadow-lg border border-gray-200 rounded-lg mr-4 mt-4"
+        className="fixed z-50 w-[300px] bg-white shadow-lg border border-gray-200 rounded-lg"
       >
-        <div className="p-4">
-          {/* Add close button */}
+        <div className="p-4 relative">
+          {/* Close button */}
           <button
             onClick={onClose}
             className="absolute right-4 top-4 p-1 hover:bg-gray-100 rounded-full transition-colors"
@@ -169,4 +172,4 @@ export function ProfileDropdown({
     </>,
     document.body
   );
-} 
+}

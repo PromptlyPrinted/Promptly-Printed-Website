@@ -18,7 +18,7 @@ import {
   Video as VideoIcon,
 } from "lucide-react";
 
-type ResourcesDropdownProps = {
+export type ResourcesDropdownProps = {
   headerBottom: number;
   onDropdownEnter: () => void;
   onDropdownLeave: () => void;
@@ -32,6 +32,7 @@ export function ResourcesDropdown({
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // Ensure the portal renders only on the client.
     setMounted(true);
   }, []);
 
@@ -39,22 +40,18 @@ export function ResourcesDropdown({
 
   return createPortal(
     <motion.div
-      // Extra offset so the dropdown isn’t flush with the header.
-      style={{ top: headerBottom + 8 }}
+      // Use fixed positioning so the dropdown stays relative to the viewport.
+      // Remove the extra +8 offset so it sits flush with the header.
+      style={{ top: headerBottom }}
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.2 }}
-      className="absolute left-0 right-0 z-40 bg-white shadow-lg"
+      className="fixed left-0 right-0 z-40 bg-white shadow-lg"
       onMouseEnter={onDropdownEnter}
       onMouseLeave={onDropdownLeave}
     >
       <div className="max-w-7xl mx-auto">
-        {/*
-          Using a flex container with responsive classes:
-          - On small screens: flex-col with divide-y (horizontal dividers)
-          - On md and larger: flex-row with divide-x (vertical dividers)
-        */}
         <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x">
           {/* RESOURCES */}
           <div className="flex-1 px-8 py-6">
@@ -71,7 +68,6 @@ export function ResourcesDropdown({
                   FAQ &amp; Help Center
                 </span>
               </Link>
-
               <Link
                 href="/blog"
                 className="bg-purple-50 border border-gray-200 rounded-lg p-6 flex flex-col items-center justify-center hover:shadow-md transition-shadow"
@@ -79,7 +75,6 @@ export function ResourcesDropdown({
                 <FileText size={32} className="text-gray-700" />
                 <span className="mt-2 font-medium text-gray-900">Blog</span>
               </Link>
-
               <Link
                 href="/etsy-store"
                 className="bg-blue-50 border border-gray-200 rounded-lg p-6 flex flex-col items-center justify-center hover:shadow-md transition-shadow"
