@@ -19,6 +19,7 @@ import { ResourcesDropdown } from "./ResourcesDropdown";
 import { ProductsDropdown } from "./ProductsDropdown";
 import { BasketDropdown } from "./BasketDropdown";
 import { ProfileDropdown } from "./ProfileDropdown";
+import { SearchOverlay } from "./SearchOverlay";
 
 const navigationItems = [
   { name: "Home", href: "/" },
@@ -402,6 +403,7 @@ export const Header = () => {
   const [basketOpen, setBasketOpen] = useState(false);
   const [productsOpen, setProductsOpen] = useState(false);
   const [resourcesOpen, setResourcesOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [headerBottom, setHeaderBottom] = useState(0);
   const [isClient, setIsClient] = useState(false);
 
@@ -609,7 +611,10 @@ export const Header = () => {
 
           {/* Desktop Icons */}
           <div className="hidden items-center space-x-4 lg:flex">
-            <button className="text-gray-700 transition-colors duration-200 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-md">
+            <button 
+              onClick={() => setSearchOpen(true)}
+              className="text-gray-700 transition-colors duration-200 hover:text-gray-900 hover:bg-gray-100 p-2 rounded-md"
+            >
               <Search />
             </button>
             {isClient ? (
@@ -671,14 +676,16 @@ export const Header = () => {
             </button>
           </div>
           <div className="mt-4 px-4 flex justify-around items-center">
-            <Link
-              href="/search"
-              onClick={toggleMobileMenu}
+            <button
+              onClick={() => {
+                setSearchOpen(true);
+                toggleMobileMenu();
+              }}
               className="flex flex-col items-center"
             >
               <Search className="h-8 w-8 text-gray-700" />
               <span className="mt-1 text-sm text-gray-700">Search</span>
-            </Link>
+            </button>
             {isClient ? (
               <button
                 onClick={() => {
@@ -796,6 +803,10 @@ export const Header = () => {
       {/* Desktop Dropdowns */}
       {isClient && (
         <>
+          <SearchOverlay 
+            isOpen={searchOpen}
+            onClose={() => setSearchOpen(false)}
+          />
           {productsOpen && (
             <ProductsDropdown
               headerBottom={headerBottom}
