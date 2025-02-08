@@ -5,9 +5,60 @@ import { ProductNav } from '@/app/components/products/ProductNav';
 import { ProductList } from '@/app/components/products/ProductList';
 import { ProductGrid } from '@/app/components/products/ProductGrid';
 import { categoryData } from '@/app/components/products/productCategories';
+import type { IconName } from '@/app/components/products/productCategories';
 import { database } from '@repo/database';
 
 const PRODUCTS_PER_PAGE = 12;
+
+// Function to determine icon based on category name
+function getCategoryIcon(categoryName: string): IconName {
+  const name = categoryName.toLowerCase();
+  
+  // Apparel categories
+  if (name.includes('t-shirt') || name.includes('shirt') || 
+      name.includes('hoodie') || name.includes('sweatshirt') || 
+      name.includes('jacket') || name.includes('top') || 
+      name.includes('pants') || name.includes('shorts')) {
+    return 'shirt';
+  }
+  
+  // Accessories & Electronics
+  if (name.includes('bag')) return 'shopping-bag';
+  if (name.includes('watch')) return 'watch';
+  if (name.includes('pendant') || name.includes('key')) return 'key';
+  if (name.includes('laptop') || name.includes('computer') || name.includes('tech')) return 'tablet';
+  if (name.includes('mat') || name.includes('sleeve') || 
+      name.includes('sock') || name.includes('flip-flop')) return 'ruler';
+  
+  // Home & Living
+  if (name.includes('cushion')) return 'square';
+  if (name.includes('board') || name.includes('print') || 
+      name.includes('poster')) return 'file-text';
+  if (name.includes('prism')) return 'triangle';
+  if (name.includes('decor') || name.includes('decoration')) return 'home';
+  
+  // Kitchen & Drinkware
+  if (name.includes('drink') || name.includes('mug') || name.includes('cup') || 
+      name.includes('kitchen') || name.includes('dining')) return 'utensils';
+  
+  // Gaming & Entertainment
+  if (name.includes('game') || name.includes('gaming')) return 'gamepad-2';
+  if (name.includes('notebook')) return 'book';
+  if (name.includes('book')) return 'book-open';
+  
+  // Pet Categories
+  if (name.includes('pet')) return 'dog';
+  
+  // Art & Design
+  if (name.includes('sticker')) return 'sticker';
+  if (name.includes('tattoo')) return 'pen-tool';
+  
+  // Others
+  if (name.includes('baby')) return 'baby';
+  
+  // Default icon for unknown categories
+  return 'shirt';
+}
 
 interface ProductPageProps {
   params: {
@@ -41,6 +92,14 @@ export function generateStaticParams() {
   }));
 }
 
+// Define the type for our category interface
+interface CategoryWithIcon {
+  id: number;
+  title: string;
+  href: string;
+  iconName: IconName;
+}
+
 export default async function ProductPage({
   params,
   searchParams = {},
@@ -62,14 +121,77 @@ export default async function ProductPage({
   // Get the current category data
   const currentCategory = categoryData[selectedCategory as keyof typeof categoryData] || categoryData.all;
 
+  // Fetch all categories from the database
+  const dbCategories = await database.category.findMany({
+    select: { id: true, name: true },
+    orderBy: { name: 'asc' },
+  });
+
+  // Group and map categories
+  const processedCategories = dbCategories.reduce<CategoryWithIcon[]>((acc, cat) => {
+    const name = cat.name.toLowerCase();
+    
+    // Group tattoo categories
+    if (name.includes('tattoo')) {
+      if (acc.some((c: CategoryWithIcon) => c.title === 'Tattoos')) {
+        return acc;
+      }
+      return [...acc, {
+        id: cat.id,
+        title: 'Tattoos',
+        href: `/products/${selectedCategory}`,
+        iconName: 'pen-tool'
+      }];
+    }
+    
+    // Group pet categories
+    if (name.includes('pet')) {
+      if (acc.some((c: CategoryWithIcon) => c.title === 'Pet Accessories')) {
+        return acc;
+      }
+      return [...acc, {
+        id: cat.id,
+        title: 'Pet Accessories',
+        href: `/products/${selectedCategory}`,
+        iconName: 'dog'
+      }];
+    }
+
+    // Group kitchen & drinkware categories
+    if (name.includes('kitchen') || name.includes('drink') || 
+        name.includes('mug') || name.includes('cup') || 
+        name.includes('dining')) {
+      if (acc.some((c: CategoryWithIcon) => c.title === 'Kitchen & Drinkware')) {
+        return acc;
+      }
+      return [...acc, {
+        id: cat.id,
+        title: 'Kitchen & Drinkware',
+        href: `/products/${selectedCategory}`,
+        iconName: 'utensils'
+      }];
+    }
+    
+    // For all other categories, map them normally
+    return [...acc, {
+      id: cat.id,
+      title: cat.name,
+      href: `/products/${selectedCategory}`,
+      iconName: getCategoryIcon(cat.name)
+    }];
+  }, []);
+
+  const mappedCategories = processedCategories;
+
   // If a specific category is selected (other than "all") try to fetch it
   let dbCategory = null;
   if (selectedCategory !== 'all') {
-    // Here we assume selectedCategory is a numeric ID;
-    // adjust accordingly if it might be a string key.
-    dbCategory = await database.category.findFirst({
-      where: { id: Number(selectedCategory) },
-    });
+    const categoryId = parseInt(selectedCategory);
+    if (!isNaN(categoryId)) {
+      dbCategory = await database.category.findFirst({
+        where: { id: categoryId },
+      });
+    }
   }
 
   // Build the filter clause for the query
@@ -114,10 +236,6 @@ export default async function ProductPage({
   });
   const totalPages = Math.ceil(totalProducts / PRODUCTS_PER_PAGE);
 
-  const categories = await database.category.findMany({
-    select: { id: true, name: true },
-  });
-
   return (
     <div className="flex flex-col gap-8">
       <ProductNav />
@@ -129,7 +247,7 @@ export default async function ProductPage({
             <ProductGrid
               title={currentCategory.title}
               description={currentCategory.description}
-              categories={currentCategory.categories}
+              categories={mappedCategories}
             />
           </div>
         </div>
@@ -150,7 +268,7 @@ export default async function ProductPage({
             </div>
             <ProductList
               products={products}
-              categories={categories}
+              categories={dbCategories}
               currentPage={page}
               totalPages={totalPages}
               categoryId={dbCategory?.id}

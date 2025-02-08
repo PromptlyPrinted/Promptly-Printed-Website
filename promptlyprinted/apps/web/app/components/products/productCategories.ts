@@ -9,12 +9,16 @@ import {
   Triangle,
   FileText,
   Gamepad2,
+  BookOpen,
   Book,
   Sticker,
   PenTool,
   User,
   Key,
   Ruler,
+  Tablet,
+  Utensils,
+  Dog,
 } from 'lucide-react';
 
 // Define the icon names as a type for type safety
@@ -28,49 +32,53 @@ export type IconName =
   | 'triangle'
   | 'file-text'
   | 'gamepad-2'
+  | 'book-open'
   | 'book'
   | 'sticker'
   | 'pen-tool'
   | 'user'
   | 'key'
-  | 'ruler';
+  | 'ruler'
+  | 'tablet'
+  | 'utensils'
+  | 'dog';
 
 // Base apparel categories that appear in multiple sections
 const baseApparelCategories = [
-  { title: 'T-Shirts', href: '/products/t-shirts', iconName: 'shirt' as IconName },
-  { title: 'Tank Tops', href: '/products/tank-tops', iconName: 'shirt' as IconName },
-  { title: 'Long Sleeve Shirts', href: '/products/long-sleeve-shirts', iconName: 'shirt' as IconName },
-  { title: 'Hoodies', href: '/products/hoodies', iconName: 'shirt' as IconName },
-  { title: 'Sweatshirts', href: '/products/sweatshirts', iconName: 'shirt' as IconName },
-  { title: 'Sweatpants', href: '/products/sweatpants', iconName: 'shirt' as IconName },
-  { title: 'Shorts', href: '/products/shorts', iconName: 'shirt' as IconName },
-  { title: 'Coats & Jackets', href: '/products/coats-jackets', iconName: 'shirt' as IconName },
+  { id: 445, title: 'T-Shirts', href: '/products/all', iconName: 'shirt' as IconName },
+  { id: 446, title: 'Tank Tops', href: '/products/all', iconName: 'shirt' as IconName },
+  { id: 447, title: 'Long Sleeve Shirts', href: '/products/all', iconName: 'shirt' as IconName },
+  { id: 448, title: 'Hoodies', href: '/products/all', iconName: 'shirt' as IconName },
+  { id: 449, title: 'Sweatshirts', href: '/products/all', iconName: 'shirt' as IconName },
+  { id: 450, title: 'Sweatpants', href: '/products/all', iconName: 'shirt' as IconName },
+  { id: 451, title: 'Shorts', href: '/products/all', iconName: 'shirt' as IconName },
+  { id: 452, title: 'Coats & Jackets', href: '/products/all', iconName: 'shirt' as IconName },
 ];
 
 // Accessories categories
 const accessoryCategories = [
-  { title: 'Bags', href: '/products/bags', iconName: 'shopping-bag' as IconName },
-  { title: 'Watch Straps', href: '/products/watch-straps', iconName: 'watch' as IconName },
-  { title: 'Mats & Sleeves', href: '/products/mats-sleeves', iconName: 'ruler' as IconName },
-  { title: 'Socks & Flip-flops', href: '/products/socks-flipflops', iconName: 'ruler' as IconName },
-  { title: 'Pendants & Keyrings', href: '/products/pendants-keyrings', iconName: 'key' as IconName },
+  { id: 453, title: 'Bags', href: '/products/accessories', iconName: 'shopping-bag' as IconName },
+  { id: 454, title: 'Watch Straps', href: '/products/accessories', iconName: 'watch' as IconName },
+  { id: 455, title: 'Mats & Sleeves', href: '/products/accessories', iconName: 'ruler' as IconName },
+  { id: 456, title: 'Socks & Flip-flops', href: '/products/accessories', iconName: 'ruler' as IconName },
+  { id: 457, title: 'Pendants & Keyrings', href: '/products/accessories', iconName: 'key' as IconName },
 ];
 
 // Home & Living categories
 const homeLivingCategories = [
-  { title: 'Cushions', href: '/products/cushions', iconName: 'square' as IconName },
-  { title: 'Gallery Boards', href: '/products/gallery-boards', iconName: 'file-text' as IconName },
-  { title: 'Acrylic Prisms', href: '/products/acrylic-prisms', iconName: 'triangle' as IconName },
-  { title: 'Prints and Posters', href: '/products/prints-posters', iconName: 'file-text' as IconName },
+  { id: 458, title: 'Cushions', href: '/products/home-living', iconName: 'square' as IconName },
+  { id: 459, title: 'Gallery Boards', href: '/products/home-living', iconName: 'file-text' as IconName },
+  { id: 460, title: 'Acrylic Prisms', href: '/products/home-living', iconName: 'triangle' as IconName },
+  { id: 461, title: 'Prints and Posters', href: '/products/home-living', iconName: 'file-text' as IconName },
 ];
 
 // Other categories
 const otherCategories = [
-  { title: 'Games', href: '/products/games', iconName: 'gamepad-2' as IconName },
-  { title: 'Books', href: '/products/books', iconName: 'book' as IconName },
-  { title: 'Notebooks', href: '/products/notebooks', iconName: 'book' as IconName },
-  { title: 'Stickers', href: '/products/stickers', iconName: 'sticker' as IconName },
-  { title: 'Tattoos', href: '/products/tattoos', iconName: 'pen-tool' as IconName },
+  { id: 462, title: 'Games', href: '/products/others', iconName: 'gamepad-2' as IconName },
+  { id: 463, title: 'Books', href: '/products/others', iconName: 'book-open' as IconName },
+  { id: 464, title: 'Notebooks', href: '/products/others', iconName: 'book' as IconName },
+  { id: 465, title: 'Stickers', href: '/products/others', iconName: 'sticker' as IconName },
+  { id: 466, title: 'Tattoos', href: '/products/others', iconName: 'pen-tool' as IconName },
 ];
 
 interface CategoryData {
@@ -100,20 +108,15 @@ export const categoryData: Record<string, CategoryData> = {
     description: "High-quality men's apparel for every occasion, fully customizable with your unique designs.",
     categories: baseApparelCategories.map(cat => ({
       ...cat,
-      href: `/products/mens${cat.href.replace('/products', '')}`,
+      href: '/products/men',
     })),
   },
   women: {
     title: "All Women's Clothing",
     description: "Stylish women's apparel that you can personalize with your creative designs.",
-    categories: [
-      ...baseApparelCategories,
-      { title: 'Dresses', href: '/products/womens/dresses', iconName: 'shirt' as IconName },
-      { title: 'Swimwear', href: '/products/womens/swimwear', iconName: 'shirt' as IconName },
-      { title: 'Sportswear', href: '/products/womens/sportswear', iconName: 'shirt' as IconName },
-    ].map(cat => ({
+    categories: baseApparelCategories.map(cat => ({
       ...cat,
-      href: cat.href.startsWith('/products/womens') ? cat.href : `/products/womens${cat.href.replace('/products', '')}`,
+      href: '/products/women',
     })),
   },
   'kids-baby': {
@@ -121,7 +124,7 @@ export const categoryData: Record<string, CategoryData> = {
     description: 'Adorable and comfortable clothing for kids and babies, perfect for customization.',
     categories: baseApparelCategories.map(cat => ({
       ...cat,
-      href: `/products/kids${cat.href.replace('/products', '')}`,
+      href: '/products/kids-baby',
       iconName: cat.iconName === 'shirt' ? 'baby' : cat.iconName,
     })),
   },

@@ -63,79 +63,73 @@ export function ProductList({
 }: ProductListProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-
-  // Initialize filter state from URL search params
-  const initialFilters = {
+  
+  // Initialize filters from URL parameters
+  const [filters, setFilters] = useState({
     search: searchParams.get('search') || '',
-    category:
-      searchParams.get('category') || (categoryId ? String(categoryId) : 'all'),
-    minPrice: searchParams.get('minPrice')
-      ? Number(searchParams.get('minPrice'))
-      : 0,
-    maxPrice: searchParams.get('maxPrice')
-      ? Number(searchParams.get('maxPrice'))
-      : 1000,
-    sizes: searchParams.get('sizes') ? searchParams.get('sizes')!.split(',') : [] as string[],
-    colors: searchParams.get('colors') ? searchParams.get('colors')!.split(',') : [] as string[],
-    styles: searchParams.get('styles') ? searchParams.get('styles')!.split(',') : [] as string[],
-    brands: searchParams.get('brands') ? searchParams.get('brands')!.split(',') : [] as string[],
-    productTypes: searchParams.get('productTypes')
-      ? searchParams.get('productTypes')!.split(',')
-      : [] as string[],
-    listed: searchParams.get('listed')
-      ? searchParams.get('listed') === 'true'
-      : true,
+    minPrice: Number(searchParams.get('minPrice')) || 0,
+    maxPrice: Number(searchParams.get('maxPrice')) || 1000,
+    sizes: (searchParams.get('sizes')?.split(',') || []).filter(Boolean),
+    colors: (searchParams.get('colors')?.split(',') || []).filter(Boolean),
+    styles: (searchParams.get('styles')?.split(',') || []).filter(Boolean),
+    brands: (searchParams.get('brands')?.split(',') || []).filter(Boolean),
+    productTypes: (searchParams.get('productTypes')?.split(',') || []).filter(Boolean),
     country: searchParams.get('country') || 'US',
     fulfillmentCountry: searchParams.get('fulfillmentCountry') || 'all',
-  };
+    category: categoryId?.toString() || 'all',
+  });
 
-  const [filters, setFilters] = useState(initialFilters);
-
-  // When any filter changes, update the URL so that the server re-fetches
-  // the filtered data.
   const updateURLFilters = (updatedFilters: typeof filters, resetPage = true) => {
-    const params = new URLSearchParams();
+    const params = new URLSearchParams(searchParams.toString());
+    
+    // Update search params
     Object.entries(updatedFilters).forEach(([key, value]) => {
       if (Array.isArray(value)) {
         if (value.length > 0) {
           params.set(key, value.join(','));
+        } else {
+          params.delete(key);
         }
+      } else if (value !== '' && value !== 'all' && value !== 0) {
+        params.set(key, value.toString());
       } else {
-        params.set(key, String(value));
+        params.delete(key);
       }
     });
-    // Reset to page 1 when filters change
+
+    // Reset page when filters change if specified
     if (resetPage) {
-      params.set('page', '1');
-    } else {
-      params.set('page', String(currentPage));
+      params.delete('page');
     }
-    router.push(`?${params.toString()}`);
+
+    // Update URL without refreshing the page
+    router.push(`?${params.toString()}`, { scroll: false });
   };
 
   const handleInputChange = (filterKey: keyof typeof filters, value: any) => {
-    const newFilters = { ...filters, [filterKey]: value };
-    setFilters(newFilters);
-    updateURLFilters(newFilters);
+    const updatedFilters = { ...filters, [filterKey]: value };
+    setFilters(updatedFilters);
+    updateURLFilters(updatedFilters);
   };
 
   const handleCheckboxChange = (
     value: string,
     filterKey: 'sizes' | 'colors' | 'styles' | 'brands' | 'productTypes'
   ) => {
-    const currentValues = filters[filterKey] as string[];
-    const newValues = currentValues.includes(value)
-      ? currentValues.filter(v => v !== value)
+    const currentValues = filters[filterKey];
+    const updatedValues = currentValues.includes(value)
+      ? currentValues.filter((v) => v !== value)
       : [...currentValues, value];
-    const newFilters = { ...filters, [filterKey]: newValues };
-    setFilters(newFilters);
-    updateURLFilters(newFilters);
+    
+    const updatedFilters = { ...filters, [filterKey]: updatedValues };
+    setFilters(updatedFilters);
+    updateURLFilters(updatedFilters);
   };
 
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set('page', newPage.toString());
-    router.push(`?${params.toString()}`);
+    router.push(`?${params.toString()}`, { scroll: false });
   };
 
   // Extract filter options from the product list
@@ -172,251 +166,119 @@ export function ProductList({
   const selectedCurrency = SUPPORTED_COUNTRIES.find(c => c.code === filters.country)?.currency || 'USD';
 
   return (
-    <div className="flex gap-6">
-      {/* Filters sidebar */}
-      <div className="w-64 shrink-0">
-        <ScrollArea className="h-[calc(100vh-6rem)] pr-4">
-          <div className="space-y-6">
-            {/* Country Selection */}
-            <div className="space-y-2">
-              <Label>Deliver To</Label>
-              <Select
-                value={filters.country}
-                onValueChange={(value) => handleInputChange('country', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select country">
-                    {SUPPORTED_COUNTRIES.find(c => c.code === filters.country)?.code || 'US'}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {SUPPORTED_COUNTRIES.map(country => (
-                    <SelectItem key={country.code} value={country.code}>
-                      {country.code} ({country.currency})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+    <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-8">
+      {/* Filters Panel */}
+      <div className="space-y-6">
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Search</h3>
+          <Input
+            placeholder="Search products..."
+            value={filters.search}
+            onChange={(e) => handleInputChange('search', e.target.value)}
+          />
+        </div>
 
-            {/* Fulfillment Country */}
-            <div className="space-y-2">
-              <Label>Fulfilled From</Label>
-              <Select
-                value={filters.fulfillmentCountry}
-                onValueChange={(value) => handleInputChange('fulfillmentCountry', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select fulfillment country">
-                    {filters.fulfillmentCountry === 'all' 
-                      ? 'All Countries' 
-                      : filters.fulfillmentCountry}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Countries</SelectItem>
-                  {allFulfillmentCountries.map(country => (
-                    <SelectItem key={country} value={country}>
-                      {country}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Search */}
-            <div className="space-y-2">
-              <Label>Search</Label>
-              <Input
-                type="text"
-                value={filters.search}
-                onChange={(e) => handleInputChange('search', e.target.value)}
-                placeholder="Search products..."
-              />
-            </div>
-
-            {/* Category */}
-            <div className="space-y-2">
-              <Label>Category</Label>
-              <Select
-                value={filters.category}
-                onValueChange={(value) => handleInputChange('category', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category">
-                    {filters.category === 'all'
-                      ? 'All Categories'
-                      : categories.find(c => String(c.id) === filters.category)?.name ||
-                        'Select category'}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {categories.map(category => (
-                    <SelectItem key={category.id} value={String(category.id)}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Price Range */}
-            <div className="space-y-2">
-              <Label>Price Range ({selectedCurrency})</Label>
-              <div className="pt-2">
-                <Slider
-                  min={0}
-                  max={1000}
-                  step={10}
-                  value={[filters.minPrice, filters.maxPrice]}
-                  onValueChange={([min, max]) => {
-                    handleInputChange('minPrice', min);
-                    handleInputChange('maxPrice', max);
-                  }}
-                />
-                <div className="mt-2 flex items-center justify-between text-sm">
-                  <span>{selectedCurrency} {filters.minPrice}</span>
-                  <span>{selectedCurrency} {filters.maxPrice}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Sizes */}
-            <div className="space-y-2">
-              <Label>Sizes</Label>
-              <div className="space-y-2">
-                {allSizes.map(size => (
-                  <div key={size} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`size-${size}`}
-                      checked={filters.sizes.includes(size)}
-                      onCheckedChange={() => handleCheckboxChange(size, 'sizes')}
-                    />
-                    <label htmlFor={`size-${size}`} className="text-sm font-medium">
-                      {size}
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Colors */}
-            <div className="space-y-2">
-              <Label>Colors</Label>
-              <div className="space-y-2">
-                {allColors.map(color => (
-                  <div key={color} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`color-${color}`}
-                      checked={filters.colors.includes(color)}
-                      onCheckedChange={() => handleCheckboxChange(color, 'colors')}
-                    />
-                    <label htmlFor={`color-${color}`} className="text-sm font-medium">
-                      {color}
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Listed Status */}
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="listed"
-                  checked={filters.listed}
-                  onCheckedChange={(checked) => handleInputChange('listed', checked)}
-                />
-                <label htmlFor="listed" className="text-sm font-medium">
-                  Listed Only
-                </label>
-              </div>
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Price Range</h3>
+          <div className="space-y-4">
+            <Slider
+              min={0}
+              max={1000}
+              step={10}
+              value={[filters.minPrice, filters.maxPrice]}
+              onValueChange={([min, max]) => {
+                handleInputChange('minPrice', min);
+                handleInputChange('maxPrice', max);
+              }}
+            />
+            <div className="flex justify-between">
+              <span>${filters.minPrice}</span>
+              <span>${filters.maxPrice}</span>
             </div>
           </div>
-        </ScrollArea>
+        </div>
+
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Country</h3>
+          <Select
+            value={filters.country}
+            onValueChange={(value) => handleInputChange('country', value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select country" />
+            </SelectTrigger>
+            <SelectContent>
+              {SUPPORTED_COUNTRIES.map((country) => (
+                <SelectItem key={country.code} value={country.code}>
+                  {country.code} ({country.currency})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Category</h3>
+          <Select
+            value={filters.category}
+            onValueChange={(value) => handleInputChange('category', value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories.map((category) => (
+                <SelectItem key={category.id} value={category.id.toString()}>
+                  {category.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      {/* Product grid */}
-      <div className="flex-1">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {products.map(product => (
-            <Card
-              key={product.id}
-              className="overflow-hidden hover:shadow-lg transition-shadow duration-300 transform hover:scale-105"
-            >
-              <div className="relative aspect-square">
-                <Image
-                  src={product.images[0]?.url || '/placeholder.png'}
-                  alt={product.name}
-                  fill
-                  className="object-cover"
-                />
+      {/* Products Grid */}
+      <div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {products.map((product) => (
+            <Card key={product.id} className="overflow-hidden">
+              <div className="aspect-square relative">
+                {product.images[0] && (
+                  <Image
+                    src={product.images[0].url}
+                    alt={product.name}
+                    fill
+                    className="object-cover"
+                  />
+                )}
               </div>
               <div className="p-4">
-                <h3 className="font-semibold text-lg">{product.name}</h3>
-                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                  {product.description}
-                </p>
-                <div className="mt-2 flex items-center justify-between">
-                  <span className="font-medium text-xl">
-                    {selectedCurrency} {product.customerPrice.toFixed(2)}
-                  </span>
-                  {product.category && (
-                    <span className="text-sm text-muted-foreground">
-                      {product.category.name}
-                    </span>
-                  )}
-                </div>
-                {product.fulfillmentCountryCode && (
-                  <div className="mt-2 text-sm text-muted-foreground">
-                    Fulfilled from: {product.fulfillmentCountryCode}
-                  </div>
-                )}
+                <h3 className="font-semibold">{product.name}</h3>
+                <p className="text-sm text-muted-foreground">{product.description}</p>
+                <p className="mt-2 font-bold">${product.customerPrice.toFixed(2)}</p>
               </div>
             </Card>
           ))}
         </div>
 
-        {products.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-lg text-muted-foreground">
-              No products found matching your criteria.
-            </p>
-          </div>
-        )}
-
         {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="mt-8 flex justify-center gap-2">
-            <Button
-              variant="outline"
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-            >
-              Previous
-            </Button>
-            <div className="flex items-center gap-2">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                <Button
-                  key={page}
-                  variant={page === currentPage ? 'default' : 'outline'}
-                  onClick={() => handlePageChange(page)}
-                >
-                  {page}
-                </Button>
-              ))}
-            </div>
-            <Button
-              variant="outline"
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-            >
-              Next
-            </Button>
-          </div>
-        )}
+        <div className="mt-8 flex justify-center gap-2">
+          <Button
+            variant="outline"
+            disabled={currentPage <= 1}
+            onClick={() => handlePageChange(currentPage - 1)}
+          >
+            Previous
+          </Button>
+          <Button
+            variant="outline"
+            disabled={currentPage >= totalPages}
+            onClick={() => handlePageChange(currentPage + 1)}
+          >
+            Next
+          </Button>
+        </div>
       </div>
     </div>
   );

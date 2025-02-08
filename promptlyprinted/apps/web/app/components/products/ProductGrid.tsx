@@ -10,6 +10,7 @@ interface ProductCategory {
   title: string;
   href: string;
   iconName: IconName;
+  id?: number;
 }
 
 interface ProductGridProps {
@@ -41,10 +42,11 @@ export function ProductGrid({
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {visibleCategories.map((category) => (
             <ProductCategoryCard
-              key={category.href}
+              key={category.id}
               title={category.title}
               href={category.href}
               iconName={category.iconName}
+              categoryId={category.id}
             />
           ))}
         </div>
@@ -58,11 +60,11 @@ export function ProductGrid({
             >
               {showAll ? (
                 <>
-                  Show less <ChevronUp className="w-4 h-4" />
+                  Show Less <ChevronUp className="w-4 h-4" />
                 </>
               ) : (
                 <>
-                  Show all categories <ChevronDown className="w-4 h-4" />
+                  Show More <ChevronDown className="w-4 h-4" />
                 </>
               )}
             </Button>
