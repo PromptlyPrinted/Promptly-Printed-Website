@@ -18,6 +18,7 @@ import { ScrollArea } from '@repo/design-system/components/ui/scroll-area';
 import { Card } from '@repo/design-system/components/ui/card';
 import Image from 'next/image';
 import type { Product, Category } from '@repo/database';
+import { ProductCard } from './ProductCard';
 
 // Supported countries with their currencies
 const SUPPORTED_COUNTRIES = [
@@ -242,43 +243,39 @@ export function ProductList({
       <div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {products.map((product) => (
-            <Card key={product.id} className="overflow-hidden">
-              <div className="aspect-square relative">
-                {product.images[0] && (
-                  <Image
-                    src={product.images[0].url}
-                    alt={product.name}
-                    fill
-                    className="object-cover"
-                  />
-                )}
-              </div>
-              <div className="p-4">
-                <h3 className="font-semibold">{product.name}</h3>
-                <p className="text-sm text-muted-foreground">{product.description}</p>
-                <p className="mt-2 font-bold">${product.customerPrice.toFixed(2)}</p>
-              </div>
-            </Card>
+            <ProductCard
+              key={product.id}
+              id={product.id}
+              name={product.name}
+              price={product.customerPrice}
+              imageUrl={product.images[0]?.url || '/placeholder.jpg'}
+              description={product.description}
+            />
           ))}
         </div>
 
         {/* Pagination */}
-        <div className="mt-8 flex justify-center gap-2">
-          <Button
-            variant="outline"
-            disabled={currentPage <= 1}
-            onClick={() => handlePageChange(currentPage - 1)}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            disabled={currentPage >= totalPages}
-            onClick={() => handlePageChange(currentPage + 1)}
-          >
-            Next
-          </Button>
-        </div>
+        {totalPages > 1 && (
+          <div className="flex justify-center gap-2 mt-8">
+            <Button
+              variant="outline"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            <span className="flex items-center">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
