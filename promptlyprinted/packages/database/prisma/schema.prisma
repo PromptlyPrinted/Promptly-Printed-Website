@@ -37,19 +37,19 @@ enum ShippingMethod {
 // USER
 // -----------------------
 model User {
-  id        String      @id @default(cuid())
-  clerkId   String?     @unique
-  email     String      @unique
+  id        String  @id @default(cuid())
+  clerkId   String? @unique
+  email     String  @unique
   firstName String?
   lastName  String?
-  role      Role        @default(CUSTOMER)
+  role      Role    @default(CUSTOMER)
 
-  orders    Order[]     @relation("UserOrders")
+  orders    Order[]   @relation("UserOrders")
   addresses Address[]
-  wishlist  Product[]   @relation("UserWishlist")
+  wishlist  Product[] @relation("UserWishlist")
 
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   Analytics Analytics[]
 }
@@ -69,45 +69,45 @@ model Page {
 // PRODUCT
 // -----------------------
 model Product {
-  id            Int      @id @default(autoincrement())
+  id            Int    @id @default(autoincrement())
   name          String
-  sku           String    @unique
+  sku           String @unique
   description   String
   price         Float
   shippingCost  Float
   taxAmount     Float
   totalCost     Float
   customerPrice Float
-  stock         Int       @default(0)
+  stock         Int    @default(0)
   currency      String
 
-  category      Category? @relation(fields: [categoryId], references: [id])
-  categoryId    Int?
+  category   Category? @relation(fields: [categoryId], references: [id])
+  categoryId Int?
 
-  images        Image[]
-  orderItems    OrderItem[]
-  wishedBy      User[]    @relation("UserWishlist")
-  quotes        Quote[]   // Add relation to quotes
+  images     Image[]
+  orderItems OrderItem[]
+  wishedBy   User[]      @relation("UserWishlist")
+  quotes     Quote[] // Add relation to quotes
 
-  productType   String
-  listed        Boolean   @default(false)
+  productType String
+  listed      Boolean @default(false)
 
   // Existing "dimensions" fields
-  width         Float
-  height        Float
-  units         String
-  brand         String
-  edge          String
-  color         String[]
-  gender        String
-  size          String[]
-  style         String
-  countryCode   String
+  width                  Float
+  height                 Float
+  units                  String
+  brand                  String
+  edge                   String
+  color                  String[]
+  gender                 String
+  size                   String[]
+  style                  String
+  countryCode            String
   fulfillmentCountryCode String?
   fulfillmentLabCode     String?
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Extra fields if storing extended product details from Prodigi
   prodigiDescription String?
@@ -115,12 +115,12 @@ model Product {
   prodigiPrintAreas  Json?
   prodigiVariants    Json?
 
+  @@unique([sku, countryCode])
   @@index([countryCode])
   @@index([categoryId])
   @@index([productType])
   @@index([listed])
   @@index([createdAt])
-  @@unique([sku, countryCode])
 }
 
 // -----------------------
@@ -139,68 +139,68 @@ model Category {
 // ORDER
 // -----------------------
 model Order {
-  id             Int            @id @default(autoincrement())
-  prodigiOrderId String?        @unique  // e.g. "ord_840796"
+  id             Int     @id @default(autoincrement())
+  prodigiOrderId String? @unique // e.g. "ord_840796"
 
-  user           User           @relation("UserOrders", fields: [userId], references: [id])
-  userId         String
+  user   User   @relation("UserOrders", fields: [userId], references: [id])
+  userId String
 
-  status         OrderStatus    @default(PENDING)
-  totalPrice     Float
+  status     OrderStatus @default(PENDING)
+  totalPrice Float
 
-  orderItems     OrderItem[]
-  payment        Payment?       @relation(fields: [paymentId], references: [id])
-  paymentId      Int?
+  orderItems OrderItem[]
+  payment    Payment?    @relation(fields: [paymentId], references: [id])
+  paymentId  Int?
 
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Linked recipient
-  recipient      Recipient?
+  recipient Recipient?
 
   // Prodigi-specific fields
-  prodigiCreatedAt    DateTime?
-  prodigiLastUpdated  DateTime?
-  callbackUrl         String?
-  merchantReference   String?
-  idempotencyKey      String?
-  shippingMethod      ShippingMethod?
-  prodigiStage        String?    // e.g. "InProgress", "Complete", "Cancelled"
-  prodigiStatusJson   Json?      // store "issues", "details", etc.
-  shipments           Shipment[]
-  charges             Charge[]
-  packingSlip         String?
-  metadata            Json?
+  prodigiCreatedAt   DateTime?
+  prodigiLastUpdated DateTime?
+  callbackUrl        String?
+  merchantReference  String?
+  idempotencyKey     String?
+  shippingMethod     ShippingMethod?
+  prodigiStage       String? // e.g. "InProgress", "Complete", "Cancelled"
+  prodigiStatusJson  Json? // store "issues", "details", etc.
+  shipments          Shipment[]
+  charges            Charge[]
+  packingSlip        String?
+  metadata           Json?
 
   // 1) OPTIONAL: store the last known "outcome" and "traceParent"
-  outcome     String?  // e.g. "Created", "validationFailed"
-  traceParent String?  // e.g. "00-65e25206c6b1e34db..."
+  outcome     String? // e.g. "Created", "validationFailed"
+  traceParent String? // e.g. "00-65e25206c6b1e34db..."
 }
 
 // -----------------------
 // ORDER ITEM
 // -----------------------
 model OrderItem {
-  id        Int      @id @default(autoincrement())
-  order     Order    @relation(fields: [orderId], references: [id])
+  id        Int     @id @default(autoincrement())
+  order     Order   @relation(fields: [orderId], references: [id])
   orderId   Int
-  product   Product  @relation(fields: [productId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
   productId Int
 
-  copies    Int
-  price     Float
+  copies Int
+  price  Float
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Additional Prodigi fields
-  prodigiItemId        String?
-  prodigiItemStatus    String? // "NotYetDownloaded", ...
-  merchantReference    String?
-  sizing               String? // fillPrintArea, ...
-  attributes           Json?
-  assets               Json?
-  recipientCostAmount  Float?
+  prodigiItemId         String?
+  prodigiItemStatus     String? // "NotYetDownloaded", ...
+  merchantReference     String?
+  sizing                String? // fillPrintArea, ...
+  attributes            Json?
+  assets                Json?
+  recipientCostAmount   Float?
   recipientCostCurrency String?
 }
 
@@ -216,15 +216,15 @@ model Payment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  Order     Order[]
+  Order Order[]
 }
 
 // -----------------------
 // IMAGE
 // -----------------------
 model Image {
-  id        Int      @id @default(autoincrement())
-  url       String
+  id  Int    @id @default(autoincrement())
+  url String
 
   product   Product? @relation(fields: [productId], references: [id])
   productId Int?
@@ -289,10 +289,10 @@ model WebhookLog {
 // RECIPIENT
 // -----------------------
 model Recipient {
-  id           Int      @id @default(autoincrement())
-  name         String
-  email        String?
-  phoneNumber  String?
+  id          Int     @id @default(autoincrement())
+  name        String
+  email       String?
+  phoneNumber String?
 
   addressLine1 String
   addressLine2 String?
@@ -301,8 +301,8 @@ model Recipient {
   postalCode   String
   countryCode  String
 
-  order        Order?   @relation(fields: [orderId], references: [id])
-  orderId      Int?     @unique
+  order   Order? @relation(fields: [orderId], references: [id])
+  orderId Int?   @unique
 }
 
 // -----------------------
@@ -314,38 +314,38 @@ model Charge {
   chargeType           String? // "Item", "Shipping", "Refund", ...
   prodigiInvoiceNumber String?
 
-  totalCost  Cost?    @relation(fields: [costId], references: [id])
-  costId     Int?
+  totalCost Cost? @relation(fields: [costId], references: [id])
+  costId    Int?
 
-  items      ChargeItem[]
-  order      Order @relation(fields: [orderId], references: [id])
-  orderId    Int
+  items   ChargeItem[]
+  order   Order        @relation(fields: [orderId], references: [id])
+  orderId Int
 }
 
 model ChargeItem {
-  id           Int   @id @default(autoincrement())
-  prodigiItemId  String?
-  shipmentId     String?
+  id            Int     @id @default(autoincrement())
+  prodigiItemId String?
+  shipmentId    String?
 
-  cost           Cost?   @relation(fields: [costId], references: [id])
-  costId         Int?
+  cost   Cost? @relation(fields: [costId], references: [id])
+  costId Int?
 
-  charge    Charge @relation(fields: [chargeId], references: [id])
-  chargeId  Int
+  charge   Charge @relation(fields: [chargeId], references: [id])
+  chargeId Int
 }
 
 // -----------------------
 // COST
 // -----------------------
 model Cost {
-  id       Int    @id @default(autoincrement())
+  id       Int     @id @default(autoincrement())
   amount   String?
   currency String?
 
   // Add relation fields
-  quoteItemsCosts     QuoteCostSummary[] @relation("QuoteItemsCost")
-  quoteShippingCosts  QuoteCostSummary[] @relation("QuoteShippingCost")
-  chargeItems         ChargeItem[]
+  quoteItemsCosts    QuoteCostSummary[] @relation("QuoteItemsCost")
+  quoteShippingCosts QuoteCostSummary[] @relation("QuoteShippingCost")
+  chargeItems        ChargeItem[]
   charges            Charge[]
   quoteShipments     QuoteShipment[]
   quoteItems         QuoteItem[]
@@ -355,39 +355,39 @@ model Cost {
 // SHIPMENTS
 // -----------------------
 model Shipment {
-  id                 Int      @id @default(autoincrement())
-  prodigiShipmentId  String?
-  status             String?
-  carrier            String?
-  carrierService     String?
-  trackingUrl        String?
-  trackingNumber     String?
-  dispatchDate       DateTime?
+  id                Int       @id @default(autoincrement())
+  prodigiShipmentId String?
+  status            String?
+  carrier           String?
+  carrierService    String?
+  trackingUrl       String?
+  trackingNumber    String?
+  dispatchDate      DateTime?
 
-  fulfillmentLocation FulfillmentLocation? @relation(fields: [fulfillmentLocationId], references: [id])
+  fulfillmentLocation   FulfillmentLocation? @relation(fields: [fulfillmentLocationId], references: [id])
   fulfillmentLocationId Int?
 
   order   Order @relation(fields: [orderId], references: [id])
   orderId Int
 
-  items   ShipmentItem[]
+  items ShipmentItem[]
 }
 
 model ShipmentItem {
-  id        Int       @id @default(autoincrement())
-  itemId    String?
+  id     Int     @id @default(autoincrement())
+  itemId String?
 
-  shipment  Shipment  @relation(fields: [shipmentId], references: [id])
+  shipment   Shipment @relation(fields: [shipmentId], references: [id])
   shipmentId Int
 }
 
 // Where items are fulfilled from
 model FulfillmentLocation {
-  id          Int      @id @default(autoincrement())
+  id          Int     @id @default(autoincrement())
   countryCode String?
   labCode     String?
 
-  shipments   Shipment[]
+  shipments      Shipment[]
   quoteShipments QuoteShipment[]
 }
 
@@ -395,67 +395,67 @@ model FulfillmentLocation {
 // QUOTES
 // -----------------------
 model Quote {
-  id                   Int            @id @default(autoincrement())
-  shipmentMethod       ShippingMethod?
+  id                     Int             @id @default(autoincrement())
+  shipmentMethod         ShippingMethod?
   destinationCountryCode String
-  currencyCode        String         @default("USD")
+  currencyCode           String          @default("USD")
 
-  costSummary         QuoteCostSummary? @relation(fields: [costSummaryId], references: [id])
-  costSummaryId       Int?
+  costSummary   QuoteCostSummary? @relation(fields: [costSummaryId], references: [id])
+  costSummaryId Int?
 
-  shipments           QuoteShipment[]
-  items               QuoteItem[]
+  shipments QuoteShipment[]
+  items     QuoteItem[]
 
-  product             Product?        @relation(fields: [productId], references: [id])
-  productId           Int?
+  product   Product? @relation(fields: [productId], references: [id])
+  productId Int?
 
-  outcome             String?        // e.g. "Created"
-  issues              Json?
+  outcome String? // e.g. "Created"
+  issues  Json?
 
-  createdAt           DateTime       @default(now())
-  updatedAt           DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model QuoteCostSummary {
-  id       Int   @id @default(autoincrement())
-  items    Cost? @relation("QuoteItemsCost", fields: [itemsCostId], references: [id])
-  itemsCostId    Int?
+  id          Int   @id @default(autoincrement())
+  items       Cost? @relation("QuoteItemsCost", fields: [itemsCostId], references: [id])
+  itemsCostId Int?
 
-  shipping Cost? @relation("QuoteShippingCost", fields: [shippingCostId], references: [id])
+  shipping       Cost? @relation("QuoteShippingCost", fields: [shippingCostId], references: [id])
   shippingCostId Int?
 
   quotes Quote[]
 }
 
 model QuoteShipment {
-  id                   Int      @id @default(autoincrement())
-  carrierName          String?
-  carrierService       String?
+  id             Int     @id @default(autoincrement())
+  carrierName    String?
+  carrierService String?
 
-  cost                 Cost?    @relation(fields: [costId], references: [id])
-  costId               Int?
+  cost   Cost? @relation(fields: [costId], references: [id])
+  costId Int?
 
-  fulfillmentLocation  FulfillmentLocation? @relation(fields: [fulfillmentLocationId], references: [id])
+  fulfillmentLocation   FulfillmentLocation? @relation(fields: [fulfillmentLocationId], references: [id])
   fulfillmentLocationId Int?
 
   // The item IDs in this shipment (["qit_abc123", ...])
   itemIds Json?
 
-  quote  Quote @relation(fields: [quoteId], references: [id])
+  quote   Quote @relation(fields: [quoteId], references: [id])
   quoteId Int
 }
 
 model QuoteItem {
-  id        Int    @id @default(autoincrement())
-  quote     Quote  @relation(fields: [quoteId], references: [id])
-  quoteId   Int
+  id      Int   @id @default(autoincrement())
+  quote   Quote @relation(fields: [quoteId], references: [id])
+  quoteId Int
 
-  itemId    String?
-  sku       String
-  copies    Int
+  itemId String?
+  sku    String
+  copies Int
 
-  unitCost  Cost?   @relation(fields: [costId], references: [id])
-  costId    Int?
+  unitCost Cost? @relation(fields: [costId], references: [id])
+  costId   Int?
 
   attributes Json?
   assets     Json?
@@ -466,23 +466,23 @@ model QuoteItem {
 // for ALL responses from Prodigi
 // -----------------------
 model ProdigiCallbackEvent {
-  id              String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // If storing general responses:
-  outcome         String?      // e.g. "Created", "Ok"
-  traceParent     String?      // e.g. "00-65e25206c6b1e34db..."
+  outcome     String? // e.g. "Created", "Ok"
+  traceParent String? // e.g. "00-65e25206c6b1e34db..."
 
   // If it's specifically a CloudEvent callback:
-  eventId         String?  
-  specVersion     String?  
-  eventType       String?  
-  source          String?  
-  subject         String?  
-  dataContentType String?  
-  occurredAt      DateTime?    
-  data            Json?        // entire payload
+  eventId         String?
+  specVersion     String?
+  eventType       String?
+  source          String?
+  subject         String?
+  dataContentType String?
+  occurredAt      DateTime?
+  data            Json? // entire payload
 
-  createdAt       DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
 // -----------------------
@@ -491,12 +491,12 @@ model ProdigiCallbackEvent {
 model ShippingPrice {
   id                  Int            @id @default(autoincrement())
   method              ShippingMethod
-  basePrice          Float
+  basePrice           Float
   additionalItemPrice Float
-  currency           String
+  currency            String
 
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([method, currency])
 }

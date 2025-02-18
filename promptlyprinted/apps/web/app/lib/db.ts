@@ -1,29 +1,75 @@
-import { PrismaClient } from '@repo/database';
+import { database } from '@repo/database';
 import { Product } from '@/types/product'
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
-
-export const prisma = globalForPrisma.prisma ?? new PrismaClient();
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+export const prisma = database;
 
 export async function getProductById(id: string): Promise<Product | null> {
-  // TODO: Implement actual database query
-  // This is a mock implementation
-  return {
-    id,
-    name: 'Sample Product',
-    description: 'This is a sample product description',
-    price: 29.99,
-    imageUrl: '/placeholder.jpg',
-    images: ['/placeholder.jpg', '/placeholder-2.jpg'],
-    rating: 4,
-    reviewCount: 12,
-    category: {
-      id: '1',
-      name: 'T-Shirts'
+  const product = await prisma.product.findUnique({
+    where: {
+      id: parseInt(id)
+    },
+    include: {
+      category: {
+        select: {
+          id: true,
+          name: true,
+          description: true
+        }
+      },
+      images: {
+        select: {
+          url: true
+        }
+      },
+      quotes: {
+        orderBy: {
+          createdAt: 'desc'
+        },
+        take: 1,
+        include: {
+          costSummary: {
+            include: {
+              shipping: true
+            }
+          }
+        }
+      }
     }
-  }
+  });
+
+  if (!product) return null;
+
+  return {
+    id: product.id.toString(),
+    name: product.name,
+    description: product.description,
+    price: product.customerPrice,
+    shippingCost: product.shippingCost,
+    imageUrl: product.images[0]?.url || '/placeholder.jpg',
+    images: product.images.map((img: { url: string }) => img.url),
+    category: product.category ? {
+      id: product.category.id.toString(),
+      name: product.category.name,
+      description: product.category.description
+    } : undefined,
+    specifications: {
+      dimensions: {
+        width: product.width,
+        height: product.height,
+        units: product.units
+      },
+      brand: product.brand,
+      style: product.style,
+      color: product.color,
+      size: product.size
+    },
+    shipping: {
+      methods: product.quotes[0]?.costSummary?.shipping?.map((s: { method: string; cost: number; currency: string; estimatedDays: number }) => ({
+        method: s.method,
+        cost: s.cost,
+        currency: s.currency,
+        estimatedDays: s.estimatedDays
+      })) || []
+    }
+  };
 } 
