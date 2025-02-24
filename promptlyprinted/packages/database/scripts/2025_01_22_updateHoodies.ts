@@ -31,7 +31,7 @@ const SUPPORTED_COUNTRIES = [
 
 const hoodieGroups = {
   "Men's Hoodies": [
-    { sku: "A-MH-JH050", price: "79.99" },  // Zip up
+    //{ sku: "A-MH-JH050", price: "79.99" },  // Zip up
     { sku: "A-MH-JH001", price: "79.99" },  // Pullover
   ],
   "Women's Hoodies": [
