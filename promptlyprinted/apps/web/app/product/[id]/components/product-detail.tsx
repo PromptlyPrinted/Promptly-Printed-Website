@@ -19,14 +19,11 @@ import { Product } from '@/types/product'
 import { Card } from '@repo/design-system/components/ui/card'
 import { Separator } from '@repo/design-system/components/ui/separator'
 import { StarIcon } from '@heroicons/react/24/solid'
+import { toast } from '@repo/design-system/components/ui/use-toast'
 
 const AI_MODELS = [
-  { id: 'flux-midjourney-anime', name: 'Anime Style' },
-  { id: 'fluxdreamscape', name: 'Dreamscape' },
-  { id: 'animation2k-flux', name: 'Animation' },
-  { id: 'yarn_art_Flux_loRA', name: 'Yarn Art' },
-  { id: 'flux-disney', name: 'Disney Style' },
-  { id: 'flux-art', name: 'Art Style' },
+  { id: 'black-forest-labs/FLUX.1-schnell-standard', name: 'Standard', model: 'black-forest-labs/FLUX.1-schnell' },
+  { id: 'black-forest-labs/FLUX.1-schnell-high-quality', name: 'High Quality', model: 'black-forest-labs/FLUX.1-schnell' }
 ]
 
 interface ProductDetailProps {
@@ -37,7 +34,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const [selectedSize, setSelectedSize] = useState('')
   const [selectedColor, setSelectedColor] = useState('')
   const [promptText, setPromptText] = useState('')
-  const [selectedModel, setSelectedModel] = useState(AI_MODELS[0].id)
+  const [selectedModel, setSelectedModel] = useState(AI_MODELS[0].model)
   const [generationMode, setGenerationMode] = useState('text')
   const [loraScale, setLoraScale] = useState(0.7)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -46,14 +43,51 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const [rating, setRating] = useState(5)
 
   const handleImageGeneration = async () => {
+    if (!promptText.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a prompt for the image generation",
+        variant: "destructive"
+      })
+      return
+    }
+
     setIsGenerating(true)
     try {
-      // TODO: Implement Together AI API call
-      // This is where we'll make the API call to generate images
-      await new Promise(resolve => setTimeout(resolve, 2000)) // Simulated delay
-      setGeneratedImage('/placeholder-generated.jpg')
+      const response = await fetch('/api/generate-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          prompt: promptText,
+          model: selectedModel
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.details || data.error || 'Failed to generate image')
+      }
+
+      if (data.data?.[0]?.url) {
+        setGeneratedImage(data.data[0].url)
+        toast({
+          title: "Success",
+          description: "Image generated successfully!",
+          variant: "default"
+        })
+      } else {
+        throw new Error('No image generated')
+      }
     } catch (error) {
       console.error('Error generating image:', error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to generate image',
+        variant: "destructive"
+      })
     } finally {
       setIsGenerating(false)
     }
@@ -70,10 +104,12 @@ export function ProductDetail({ product }: ProductDetailProps) {
       <div className="space-y-6">
         <div className="aspect-square relative overflow-hidden rounded-lg bg-gray-100">
           <Image
-            src={generatedImage || product.imageUrl}
+            src={generatedImage || product.imageUrl || '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/blanks/png/white.png'}
             alt={product.name}
-            fill
-            className="object-cover"
+            width={800}
+            height={800}
+            priority
+            className="w-full h-full object-cover"
           />
         </div>
         
@@ -81,12 +117,13 @@ export function ProductDetail({ product }: ProductDetailProps) {
         {product.images && product.images.length > 1 && (
           <div className="grid grid-cols-4 gap-4">
             {product.images.map((image, idx) => (
-              <div key={idx} className="aspect-square relative overflow-hidden rounded-md">
+              <div key={`product-image-${idx}`} className="aspect-square relative overflow-hidden rounded-md">
                 <Image
                   src={image}
                   alt={`${product.name} ${idx + 1}`}
-                  fill
-                  className="object-cover cursor-pointer hover:opacity-75"
+                  width={200}
+                  height={200}
+                  className="w-full h-full object-cover cursor-pointer hover:opacity-75"
                 />
               </div>
             ))}
@@ -129,8 +166,8 @@ export function ProductDetail({ product }: ProductDetailProps) {
                     <SelectValue placeholder="Select size" />
                   </SelectTrigger>
                   <SelectContent>
-                    {product.specifications.size.map((size) => (
-                      <SelectItem key={size} value={size}>
+                    {product.specifications.size.map((size, idx) => (
+                      <SelectItem key={`size-${idx}-${size}`} value={size}>
                         {size}
                       </SelectItem>
                     ))}
@@ -147,8 +184,8 @@ export function ProductDetail({ product }: ProductDetailProps) {
                     <SelectValue placeholder="Select color" />
                   </SelectTrigger>
                   <SelectContent>
-                    {product.specifications.color.map((color) => (
-                      <SelectItem key={color} value={color.toLowerCase()}>
+                    {product.specifications.color.map((color, idx) => (
+                      <SelectItem key={`color-${idx}-${color}`} value={color.toLowerCase()}>
                         {color}
                       </SelectItem>
                     ))}
@@ -218,7 +255,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
                 </SelectTrigger>
                 <SelectContent>
                   {AI_MODELS.map((model) => (
-                    <SelectItem key={model.id} value={model.id}>
+                    <SelectItem key={model.id} value={model.model}>
                       {model.name}
                     </SelectItem>
                   ))}
@@ -293,7 +330,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
                 {product.shipping?.methods && product.shipping.methods.length > 0 ? (
                   <div className="space-y-4">
                     {product.shipping.methods.map((method, index) => (
-                      <div key={index} className="p-4 rounded-lg bg-gray-50">
+                      <div key={`shipping-${index}-${method.method}`} className="p-4 rounded-lg bg-gray-50">
                         <div className="flex justify-between items-center">
                           <div>
                             <h4 className="font-medium">{method.method}</h4>
@@ -329,7 +366,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
                       <div className="flex items-center gap-1 mt-1">
                         {[1, 2, 3, 4, 5].map((star) => (
                           <StarIcon
-                            key={star}
+                            key={`rating-star-${star}`}
                             className={`h-6 w-6 cursor-pointer ${
                               star <= rating ? 'text-yellow-400' : 'text-gray-200'
                             }`}

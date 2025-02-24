@@ -104,19 +104,23 @@ export default async function ProductPage({
   params,
   searchParams = {},
 }: ProductPageProps) {
-  const page = Number(searchParams.page) || 1;
-  const search = searchParams.search || '';
-  const selectedCategory = searchParams.category || params.category || 'all';
-  const minPrice = searchParams.minPrice ? Number(searchParams.minPrice) : 0;
-  const maxPrice = searchParams.maxPrice ? Number(searchParams.maxPrice) : 1000;
-  const sizes = searchParams.sizes ? searchParams.sizes.split(',') : [];
-  const colors = searchParams.colors ? searchParams.colors.split(',') : [];
-  const styles = searchParams.styles ? searchParams.styles.split(',') : [];
-  const brands = searchParams.brands ? searchParams.brands.split(',') : [];
-  const productTypes = searchParams.productTypes ? searchParams.productTypes.split(',') : [];
-  const listed = searchParams.listed ? searchParams.listed === 'true' : true;
-  const country = searchParams.country || 'US';
-  const fulfillmentCountry = searchParams.fulfillmentCountry || 'all';
+  // Await the params and searchParams
+  const { category } = await Promise.resolve(params);
+  const searchParamsResolved = await Promise.resolve(searchParams);
+
+  const page = Number(searchParamsResolved.page) || 1;
+  const search = searchParamsResolved.search || '';
+  const selectedCategory = searchParamsResolved.category || category || 'all';
+  const minPrice = searchParamsResolved.minPrice ? Number(searchParamsResolved.minPrice) : 0;
+  const maxPrice = searchParamsResolved.maxPrice ? Number(searchParamsResolved.maxPrice) : 1000;
+  const sizes = searchParamsResolved.sizes ? searchParamsResolved.sizes.split(',') : [];
+  const colors = searchParamsResolved.colors ? searchParamsResolved.colors.split(',') : [];
+  const styles = searchParamsResolved.styles ? searchParamsResolved.styles.split(',') : [];
+  const brands = searchParamsResolved.brands ? searchParamsResolved.brands.split(',') : [];
+  const productTypes = searchParamsResolved.productTypes ? searchParamsResolved.productTypes.split(',') : [];
+  const listed = searchParamsResolved.listed ? searchParamsResolved.listed === 'true' : true;
+  const country = searchParamsResolved.country || 'US';
+  const fulfillmentCountry = searchParamsResolved.fulfillmentCountry || 'all';
 
   // Get the current category data
   const currentCategory = categoryData[selectedCategory as keyof typeof categoryData] || categoryData.all;

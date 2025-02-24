@@ -3,7 +3,14 @@ import { env } from "@repo/env";
 import { config, withAnalyzer, withSentry } from "@repo/next-config";
 import type { NextConfig } from "next";
 
-let nextConfig: NextConfig = { ...config };
+let nextConfig: NextConfig = { 
+  ...config,
+  images: {
+    ...config.images,
+    domains: ['localhost'],
+    unoptimized: process.env.NODE_ENV === 'development'
+  }
+};
 
 nextConfig.images?.remotePatterns?.push({
   protocol: "https",

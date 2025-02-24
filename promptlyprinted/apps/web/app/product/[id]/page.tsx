@@ -9,7 +9,8 @@ type Props = {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const product = await getProductById(params.id)
+  const { id } = await Promise.resolve(params)
+  const product = await getProductById(id)
   
   if (!product) {
     return {
@@ -25,11 +26,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: product.description,
       images: [product.imageUrl],
     },
+    metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001'),
   }
 }
 
 export default async function ProductPage({ params }: Props) {
-  const product = await getProductById(params.id)
+  const { id } = await Promise.resolve(params)
+  const product = await getProductById(id)
 
   if (!product) {
     return <div>Product not found</div>
