@@ -72,7 +72,11 @@ export function ProductDetail({ product }: ProductDetailProps) {
       }
 
       if (data.data?.[0]?.url) {
-        setGeneratedImage(data.data[0].url)
+        console.log('Generated image URL:', data.data[0].url);
+        console.log('Full API response:', data);
+        // Create a proxied URL
+        const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(data.data[0].url)}`;
+        setGeneratedImage(proxyUrl)
         toast({
           title: "Success",
           description: "Image generated successfully!",
@@ -103,14 +107,34 @@ export function ProductDetail({ product }: ProductDetailProps) {
       {/* Left Column - Product Images */}
       <div className="space-y-6">
         <div className="aspect-square relative overflow-hidden rounded-lg bg-gray-100">
-          <Image
-            src={generatedImage || product.imageUrl || '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/blanks/png/white.png'}
-            alt={product.name}
-            width={800}
-            height={800}
-            priority
-            className="w-full h-full object-cover"
-          />
+          {generatedImage ? (
+            <Image
+              src={generatedImage}
+              alt={product.name}
+              width={800}
+              height={800}
+              className="w-full h-full object-cover"
+              unoptimized
+              onError={(e) => {
+                console.error('Error loading generated image. URL:', generatedImage);
+                console.error('Error event:', e);
+                toast({
+                  title: "Error",
+                  description: "Failed to load the generated image",
+                  variant: "destructive"
+                });
+              }}
+            />
+          ) : (
+            <Image
+              src={product.imageUrl || '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/blanks/png/white.png'}
+              alt={product.name}
+              width={800}
+              height={800}
+              priority
+              className="w-full h-full object-cover"
+            />
+          )}
         </div>
         
         {/* Product Thumbnails */}
