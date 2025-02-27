@@ -7,24 +7,46 @@ if (!process.env.TOGETHER_API_KEY) {
 
 const together = new Together({ apiKey: process.env.TOGETHER_API_KEY })
 
+interface ModelConfig {
+  model: string
+  type: 'base' | 'lora'
+  weight: number
+}
+
 export async function POST(request: Request) {
   try {
-    const { prompt, model } = await request.json()
+    const { prompt, models, loraScale } = await request.json()
 
-    if (!prompt || !model) {
+    if (!prompt || !models || !models.length) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       )
     }
 
-    console.log('Making request to Together AI with:', { prompt, model })
+    console.log('Making request to Together AI with:', { prompt, models, loraScale })
 
     try {
-      // Force using FLUX model which is known to work well
+      // Get the base model (should be FLUX)
+      const baseModel = (models as ModelConfig[]).find(m => m.type === 'base')
+      if (!baseModel) {
+        throw new Error('No base model selected')
+      }
+
+      // Get LoRA configurations and add them to the prompt
+      const loraPrompts = (models as ModelConfig[])
+        .filter(m => m.type === 'lora')
+        .map(lora => `<lora:${lora.model}:${lora.weight * (loraScale ?? 1)}>`)
+        .join(' ')
+
+      // Combine the original prompt with LoRA triggers
+      const fullPrompt = `${loraPrompts} ${prompt}`.trim()
+
+      console.log('Using prompt with LoRAs:', fullPrompt)
+
       const response = await together.images.create({
-        model: "black-forest-labs/FLUX.1-schnell",
-        prompt,
+        model: baseModel.model,
+        prompt: fullPrompt,
         n: 1,
         steps: 4
       })

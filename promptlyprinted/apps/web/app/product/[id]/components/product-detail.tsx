@@ -20,10 +20,42 @@ import { Card } from '@repo/design-system/components/ui/card'
 import { Separator } from '@repo/design-system/components/ui/separator'
 import { StarIcon } from '@heroicons/react/24/solid'
 import { toast } from '@repo/design-system/components/ui/use-toast'
+import { Checkbox } from '@repo/design-system/components/ui/checkbox'
 
 const AI_MODELS = [
-  { id: 'black-forest-labs/FLUX.1-schnell-standard', name: 'Standard', model: 'black-forest-labs/FLUX.1-schnell' },
-  { id: 'black-forest-labs/FLUX.1-schnell-high-quality', name: 'High Quality', model: 'black-forest-labs/FLUX.1-schnell' }
+  { 
+    id: 'black-forest-labs/FLUX.1-schnell-standard', 
+    name: 'Standard FLUX', 
+    model: 'black-forest-labs/FLUX.1-schnell',
+    type: 'base'
+  },
+  {
+    id: 'black-forest-labs/FLUX.1-dev',
+    name: 'FLUX Developer',
+    model: 'black-forest-labs/FLUX.1-dev',
+    type: 'base'
+  },
+  {
+    id: 'black-forest-labs/realvisxl-v3.0',
+    name: 'RealVisXL Style',
+    model: 'black-forest-labs/realvisxl-v3.0',
+    type: 'lora',
+    weight: 0.7
+  },
+  {
+    id: 'black-forest-labs/illustration-style',
+    name: 'Illustration Style',
+    model: 'black-forest-labs/illustration-style',
+    type: 'lora',
+    weight: 0.6
+  },
+  {
+    id: 'black-forest-labs/product-photography',
+    name: 'Product Photography',
+    model: 'black-forest-labs/product-photography',
+    type: 'lora',
+    weight: 0.8
+  }
 ]
 
 interface ProductDetailProps {
@@ -34,7 +66,8 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const [selectedSize, setSelectedSize] = useState('')
   const [selectedColor, setSelectedColor] = useState('')
   const [promptText, setPromptText] = useState('')
-  const [selectedModel, setSelectedModel] = useState(AI_MODELS[0].model)
+  const [selectedModels, setSelectedModels] = useState<string[]>([AI_MODELS[0].id])
+  const [modelWeights, setModelWeights] = useState<Record<string, number>>({})
   const [generationMode, setGenerationMode] = useState('text')
   const [loraScale, setLoraScale] = useState(0.7)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -54,14 +87,24 @@ export function ProductDetail({ product }: ProductDetailProps) {
 
     setIsGenerating(true)
     try {
+      const selectedModelConfigs = selectedModels.map(id => {
+        const model = AI_MODELS.find(m => m.id === id)!
+        return {
+          model: model.model,
+          type: model.type,
+          weight: modelWeights[id] || model.weight || 1.0
+        }
+      })
+
       const response = await fetch('/api/generate-image', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          prompt: promptText,
-          model: selectedModel
+          prompt: promptText + ", high resolution, 300 dpi, detailed, clear image",
+          models: selectedModelConfigs,
+          loraScale
         })
       })
 
@@ -74,7 +117,6 @@ export function ProductDetail({ product }: ProductDetailProps) {
       if (data.data?.[0]?.url) {
         console.log('Generated image URL:', data.data[0].url);
         console.log('Full API response:', data);
-        // Create a proxied URL
         const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(data.data[0].url)}`;
         setGeneratedImage(proxyUrl)
         toast({
@@ -82,8 +124,6 @@ export function ProductDetail({ product }: ProductDetailProps) {
           description: "Image generated successfully!",
           variant: "default"
         })
-      } else {
-        throw new Error('No image generated')
       }
     } catch (error) {
       console.error('Error generating image:', error)
@@ -107,33 +147,46 @@ export function ProductDetail({ product }: ProductDetailProps) {
       {/* Left Column - Product Images */}
       <div className="space-y-6">
         <div className="aspect-square relative overflow-hidden rounded-lg bg-gray-100">
-          {generatedImage ? (
-            <Image
-              src={generatedImage}
-              alt={product.name}
-              width={800}
-              height={800}
-              className="w-full h-full object-cover"
-              unoptimized
-              onError={(e) => {
-                console.error('Error loading generated image. URL:', generatedImage);
-                console.error('Error event:', e);
-                toast({
-                  title: "Error",
-                  description: "Failed to load the generated image",
-                  variant: "destructive"
-                });
-              }}
-            />
-          ) : (
-            <Image
-              src={product.imageUrl || '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/blanks/png/white.png'}
-              alt={product.name}
-              width={800}
-              height={800}
-              priority
-              className="w-full h-full object-cover"
-            />
+          {/* Base T-shirt image */}
+          <Image
+            src="/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/blanks/png/white.png"
+            alt={product.name}
+            width={800}
+            height={800}
+            priority
+            className="w-full h-full object-cover"
+          />
+          
+          {/* Print area indicator (only visible during development) */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-[35%] h-[45%] border border-dashed border-gray-400 opacity-50 transform translate-y-[10%]"></div>
+            </div>
+          )}
+          
+          {/* Generated design overlay */}
+          {generatedImage && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="relative w-[35%] h-[45%] transform translate-y-[10%]">
+                <Image
+                  src={generatedImage}
+                  alt="Generated design"
+                  width={800}
+                  height={800}
+                  className="w-full h-full object-cover"
+                  unoptimized
+                  onError={(e) => {
+                    console.error('Error loading generated image. URL:', generatedImage);
+                    console.error('Error event:', e);
+                    toast({
+                      title: "Error",
+                      description: "Failed to load the generated image",
+                      variant: "destructive"
+                    });
+                  }}
+                />
+              </div>
+            </div>
           )}
         </div>
         
@@ -272,23 +325,46 @@ export function ProductDetail({ product }: ProductDetailProps) {
 
           <div className="space-y-4 mt-4">
             <div>
-              <Label htmlFor="model">AI Style</Label>
-              <Select value={selectedModel} onValueChange={setSelectedModel}>
-                <SelectTrigger id="model">
-                  <SelectValue placeholder="Select AI style" />
-                </SelectTrigger>
-                <SelectContent>
-                  {AI_MODELS.map((model) => (
-                    <SelectItem key={model.id} value={model.model}>
-                      {model.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>AI Models & LoRAs</Label>
+              <div className="space-y-2">
+                {AI_MODELS.map((model) => (
+                  <div key={model.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`model-${model.id}`}
+                      checked={selectedModels.includes(model.id)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSelectedModels([...selectedModels, model.id])
+                        } else {
+                          setSelectedModels(selectedModels.filter(id => id !== model.id))
+                        }
+                      }}
+                    />
+                    <Label htmlFor={`model-${model.id}`}>{model.name}</Label>
+                    {model.type === 'lora' && selectedModels.includes(model.id) && (
+                      <div className="flex-1 max-w-[200px]">
+                        <Slider
+                          value={[modelWeights[model.id] || model.weight || 1.0]}
+                          onValueChange={([value]) => {
+                            setModelWeights({
+                              ...modelWeights,
+                              [model.id]: value
+                            })
+                          }}
+                          min={0}
+                          max={1}
+                          step={0.1}
+                          className="mt-2"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div>
-              <Label>Style Intensity</Label>
+              <Label>LoRA Scale</Label>
               <Slider
                 value={[loraScale]}
                 onValueChange={([value]) => setLoraScale(value)}
