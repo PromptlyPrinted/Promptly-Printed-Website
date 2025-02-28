@@ -1,4 +1,4 @@
-'use client'
+"use client"
 
 import { useState } from 'react'
 import Image from 'next/image'
@@ -147,27 +147,35 @@ export function ProductDetail({ product }: ProductDetailProps) {
       {/* Left Column - Product Images */}
       <div className="space-y-6">
         <div className="aspect-square relative overflow-hidden rounded-lg bg-gray-100">
-          {/* Base T-shirt image */}
+          {/* 
+            Base T-shirt image
+            Typically ~20" wide x 29" tall for a unisex adult medium. 
+          */}
           <Image
-            src="/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/blanks/png/white.png"
+            src="/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/blanks/png/red.png"
             alt={product.name}
             width={800}
             height={800}
             priority
             className="w-full h-full object-cover"
           />
-          
-          {/* Print area indicator (only visible during development) */}
+
+          {/* 
+            Print area indicator (only visible during development).
+            A typical design area can be ~12" wide x 16" tall, placed 2–3" below the collar.
+            Here, we approximate that by using 35% width x 40% height 
+            and shifting it ~10% down from the top.
+          */}
           {process.env.NODE_ENV === 'development' && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-[35%] h-[45%] border border-dashed border-gray-400 opacity-50 transform translate-y-[10%]"></div>
+              <div className="w-[35%] h-[40%] border border-dashed border-gray-400 opacity-50 transform translate-y-[10%]" />
             </div>
           )}
-          
+
           {/* Generated design overlay */}
           {generatedImage && (
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="relative w-[35%] h-[45%] transform translate-y-[10%]">
+              <div className="relative w-[35%] h-[40%] transform translate-y-[10%]">
                 <Image
                   src={generatedImage}
                   alt="Generated design"
@@ -189,7 +197,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
             </div>
           )}
         </div>
-        
+
         {/* Product Thumbnails */}
         {product.images && product.images.length > 1 && (
           <div className="grid grid-cols-4 gap-4">
@@ -403,6 +411,11 @@ export function ProductDetail({ product }: ProductDetailProps) {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="text-sm text-gray-500">Dimensions</div>
                       <div className="text-sm">
+                        {/* 
+                          If the product object has specific dimensions, show them. 
+                          Otherwise, you could hardcode typical T-shirt sizes:
+                          ~20" wide x 29" tall (adult medium).
+                        */}
                         {product.specifications.dimensions.width} x {product.specifications.dimensions.height} {product.specifications.dimensions.units}
                       </div>
                     </div>
@@ -495,7 +508,9 @@ export function ProductDetail({ product }: ProductDetailProps) {
 
                 <div>
                   <h3 className="font-semibold mb-4">Customer Reviews</h3>
-                  <p className="text-sm text-gray-500">Reviews will appear here once customers start leaving them.</p>
+                  <p className="text-sm text-gray-500">
+                    Reviews will appear here once customers start leaving them.
+                  </p>
                 </div>
               </div>
             </Card>
@@ -504,4 +519,4 @@ export function ProductDetail({ product }: ProductDetailProps) {
       </div>
     </div>
   )
-} 
+}
