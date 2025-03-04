@@ -9,6 +9,10 @@
  * - Vertical position: 30% from the top of the T-shirt
  * - Horizontal position: Centered (50% with translateX(-50%))
  * 
+ * High-Resolution Output:
+ * - Downloaded image size: 4680x5790px at 300 DPI
+ * - Print-ready quality suitable for professional printing
+ * 
  * This positioning is consistent between the UI preview and the downloaded high-resolution image.
  * When making changes to the positioning, ensure both the UI display and the download function
  * are updated to maintain consistency.
@@ -186,11 +190,20 @@ export function ProductDetail({ product }: ProductDetailProps) {
 
     setIsDownloading(true)
     try {
-      // Create a canvas sized for 300 DPI
-      // For example, 8" × 10" => 2400 × 3000
+      // Show a loading toast with resolution info
+      toast({
+        title: "Preparing high-resolution image",
+        description: "Creating 4680x5790px (300 DPI) print-ready image...",
+        variant: "default"
+      })
+      
+      // Create a canvas sized for 300 DPI at 4680x5790px
+      // This provides a high-quality print-ready image
+      // 4680x5790px at 300 DPI = 15.6" x 19.3" print size
+      // Perfect for high-quality t-shirt printing with bleed area
       const canvas = document.createElement('canvas')
-      canvas.width = 2400
-      canvas.height = 3000
+      canvas.width = 4680  // Updated to requested width
+      canvas.height = 5790 // Updated to requested height
 
       const ctx = canvas.getContext('2d')
       if (!ctx) {
@@ -207,13 +220,6 @@ export function ProductDetail({ product }: ProductDetailProps) {
 
       const designImage = document.createElement('img')
       designImage.crossOrigin = 'anonymous'
-
-      // Show a loading toast
-      toast({
-        title: "Preparing download",
-        description: "Loading images...",
-        variant: "default"
-      })
 
       // Wait for both images to load
       await new Promise<void>((resolve, reject) => {
@@ -307,7 +313,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
 
       toast({
         title: "Success",
-        description: "Image downloaded successfully!",
+        description: "High-resolution image (4680x5790px, 300 DPI) downloaded successfully!",
         variant: "default"
       })
     } catch (error) {
