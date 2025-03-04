@@ -242,7 +242,8 @@ export function ProductDetail({ product }: ProductDetailProps) {
         }
         designImage.onerror = () => reject(new Error('Failed to load design image'))
 
-        tshirtImage.src = '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/blanks/png/red.png'
+        // T-Shirt used in dpi mockup
+        tshirtImage.src = '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/blanks/png/navy.png'
         
         // If the generated image is a data URL, use it directly
         // otherwise fetch it, convert to blob -> objectURL
@@ -362,7 +363,8 @@ export function ProductDetail({ product }: ProductDetailProps) {
             (e.g. 800×1000). 
           */}
           <Image
-            src="/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/blanks/png/red.png"
+          // T-Shirt used in UI
+            src="/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/blanks/png/navy.png"
             alt={product.name}
             width={800}       // Example real T-shirt ratio
             height={1000}     // Example real T-shirt ratio
