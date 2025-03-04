@@ -1,6 +1,20 @@
 "use client"
 
-import { useState } from 'react'
+/**
+ * Product Detail Component
+ * 
+ * T-shirt Design Positioning:
+ * - Design width: 35% of T-shirt width
+ * - Design height: 40% of T-shirt height
+ * - Vertical position: 30% from the top of the T-shirt
+ * - Horizontal position: Centered (50% with translateX(-50%))
+ * 
+ * This positioning is consistent between the UI preview and the downloaded high-resolution image.
+ * When making changes to the positioning, ensure both the UI display and the download function
+ * are updated to maintain consistency.
+ */
+
+import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@repo/design-system/components/ui/tabs'
 import { Button } from '@repo/design-system/components/ui/button'
@@ -22,6 +36,9 @@ import { StarIcon } from '@heroicons/react/24/solid'
 import { toast } from '@repo/design-system/components/ui/use-toast'
 import { Checkbox } from '@repo/design-system/components/ui/checkbox'
 
+/**
+ * Example AI models. Adjust as needed.
+ */
 const AI_MODELS = [
   { 
     id: 'black-forest-labs/FLUX.1-schnell-standard', 
@@ -63,6 +80,7 @@ interface ProductDetailProps {
 }
 
 export function ProductDetail({ product }: ProductDetailProps) {
+  // State
   const [selectedSize, setSelectedSize] = useState('')
   const [selectedColor, setSelectedColor] = useState('')
   const [promptText, setPromptText] = useState('')
@@ -74,7 +92,21 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const [generatedImage, setGeneratedImage] = useState('')
   const [reviewText, setReviewText] = useState('')
   const [rating, setRating] = useState(5)
+  const [isDownloading, setIsDownloading] = useState(false)
+  
+  // Refs for T-shirt and design images (if needed)
+  const tshirtImageRef = useRef<HTMLImageElement>(null)
+  const designImageRef = useRef<HTMLImageElement>(null)
 
+  // Preload generated image for faster download
+  useEffect(() => {
+    if (generatedImage) {
+      const img = document.createElement('img')
+      img.src = generatedImage
+    }
+  }, [generatedImage])
+
+  // ---- Generate Image (AI) ----
   const handleImageGeneration = async () => {
     if (!promptText.trim()) {
       toast({
@@ -87,6 +119,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
 
     setIsGenerating(true)
     try {
+      // Prepare model configs
       const selectedModelConfigs = selectedModels.map(id => {
         const model = AI_MODELS.find(m => m.id === id)!
         return {
@@ -96,28 +129,31 @@ export function ProductDetail({ product }: ProductDetailProps) {
         }
       })
 
+      // Enhanced prompt for high-quality T-shirt printing
+      const enhancedPrompt = `${promptText}, high resolution, 300 dpi, detailed, clear image, suitable for t-shirt printing, centered composition, professional quality, sharp details`
+
+      // Call your /api/generate-image route
       const response = await fetch('/api/generate-image', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: promptText + ", high resolution, 300 dpi, detailed, clear image",
+          prompt: enhancedPrompt,
           models: selectedModelConfigs,
           loraScale
         })
       })
 
       const data = await response.json()
-
       if (!response.ok) {
-        throw new Error(data.details || data.error || 'Failed to generate image')
+        // Extract the specific error message if available
+        const errorMessage = data.details || data.error || 'Failed to generate image';
+        console.error('API error details:', data);
+        throw new Error(errorMessage);
       }
 
       if (data.data?.[0]?.url) {
-        console.log('Generated image URL:', data.data[0].url);
-        console.log('Full API response:', data);
-        const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(data.data[0].url)}`;
+        console.log('Generated image URL:', data.data[0].url)
+        const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(data.data[0].url)}`
         setGeneratedImage(proxyUrl)
         toast({
           title: "Success",
@@ -137,72 +173,236 @@ export function ProductDetail({ product }: ProductDetailProps) {
     }
   }
 
+  // ---- Download High-Res PNG (300 DPI) ----
+  const handleDownloadImage = async () => {
+    if (!generatedImage) {
+      toast({
+        title: "Error",
+        description: "Please generate a design first",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setIsDownloading(true)
+    try {
+      // Create a canvas sized for 300 DPI
+      // For example, 8" × 10" => 2400 × 3000
+      const canvas = document.createElement('canvas')
+      canvas.width = 2400
+      canvas.height = 3000
+
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
+        throw new Error('Could not create canvas context')
+      }
+
+      // White background
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+      // Load T-shirt and design images
+      const tshirtImage = document.createElement('img')
+      tshirtImage.crossOrigin = 'anonymous'
+
+      const designImage = document.createElement('img')
+      designImage.crossOrigin = 'anonymous'
+
+      // Show a loading toast
+      toast({
+        title: "Preparing download",
+        description: "Loading images...",
+        variant: "default"
+      })
+
+      // Wait for both images to load
+      await new Promise<void>((resolve, reject) => {
+        let tshirtLoaded = false
+        let designLoaded = false
+
+        const checkBothLoaded = () => {
+          if (tshirtLoaded && designLoaded) resolve()
+        }
+
+        tshirtImage.onload = () => {
+          tshirtLoaded = true
+          checkBothLoaded()
+        }
+        tshirtImage.onerror = () => reject(new Error('Failed to load T-shirt image'))
+
+        designImage.onload = () => {
+          designLoaded = true
+          checkBothLoaded()
+        }
+        designImage.onerror = () => reject(new Error('Failed to load design image'))
+
+        tshirtImage.src = '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/blanks/png/red.png'
+        
+        // If the generated image is a data URL, use it directly
+        // otherwise fetch it, convert to blob -> objectURL
+        if (generatedImage.startsWith('data:')) {
+          designImage.src = generatedImage
+        } else {
+          fetch(generatedImage)
+            .then(res => res.blob())
+            .then(blob => {
+              designImage.src = URL.createObjectURL(blob)
+            })
+            .catch(reject)
+        }
+      })
+
+      // Draw T-shirt image with the same aspect ratio
+      const tshirtAspectRatio = tshirtImage.width / tshirtImage.height
+      const canvasAspectRatio = canvas.width / canvas.height
+
+      let tshirtDrawWidth: number
+      let tshirtDrawHeight: number
+      let tshirtX: number
+      let tshirtY: number
+
+      if (tshirtAspectRatio > canvasAspectRatio) {
+        // T-shirt is relatively wider, so match canvas height
+        tshirtDrawHeight = canvas.height
+        tshirtDrawWidth = tshirtDrawHeight * tshirtAspectRatio
+        tshirtX = (canvas.width - tshirtDrawWidth) / 2
+        tshirtY = 0
+      } else {
+        // T-shirt is relatively taller, so match canvas width
+        tshirtDrawWidth = canvas.width
+        tshirtDrawHeight = tshirtDrawWidth / tshirtAspectRatio
+        tshirtX = 0
+        tshirtY = (canvas.height - tshirtDrawHeight) / 2
+      }
+
+      ctx.drawImage(tshirtImage, tshirtX, tshirtY, tshirtDrawWidth, tshirtDrawHeight)
+
+      // IMPORTANT: These values must match exactly with the UI preview positioning
+      // The UI uses: width: 35%, height: 40%, top: 30%, left: 50%, transform: translateX(-50%)
+      // Calculate the design overlay position to match the UI preview
+      const designWidth = tshirtDrawWidth * 0.35  // 35% of t-shirt width
+      const designHeight = tshirtDrawHeight * 0.40  // 40% of t-shirt height
+      
+      // Center horizontally (matching the translateX(-50%) in CSS)
+      const designX = tshirtX + (tshirtDrawWidth / 2) - (designWidth / 2)
+      
+      // Position at 30% from the top of the t-shirt (matching the UI)
+      const designY = tshirtY + (tshirtDrawHeight * 0.30)
+
+      // Apply anti-aliasing for better quality
+      ctx.imageSmoothingEnabled = true
+      ctx.imageSmoothingQuality = 'high'
+      
+      // Draw the design with high quality
+      ctx.drawImage(designImage, designX, designY, designWidth, designHeight)
+
+      // Convert to data URL and download
+      const dataUrl = canvas.toDataURL('image/png')
+      const link = document.createElement('a')
+      link.href = dataUrl
+      link.download = `${product.name.replace(/\s+/g, '-').toLowerCase()}-custom-design.png`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      toast({
+        title: "Success",
+        description: "Image downloaded successfully!",
+        variant: "default"
+      })
+    } catch (error) {
+      console.error('Error downloading image:', error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to download image',
+        variant: "destructive"
+      })
+
+      // Fallback: just download the generated design
+      try {
+        toast({
+          title: "Trying simple fallback",
+          description: "Downloading just the design image...",
+          variant: "default"
+        })
+
+        const link = document.createElement('a')
+        link.href = generatedImage
+        link.download = `${product.name.replace(/\s+/g, '-').toLowerCase()}-design-only.png`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+      } catch (fallbackError) {
+        console.error('Fallback failed:', fallbackError)
+      }
+    } finally {
+      setIsDownloading(false)
+    }
+  }
+
+  // ---- Example: Submitting a Review ----
   const handleSubmitReview = async () => {
-    // TODO: Implement review submission
+    // Implement review submission logic here
     console.log('Submitting review:', { rating, reviewText })
   }
 
   return (
     <div className="grid grid-cols-1 gap-x-8 gap-y-10 lg:grid-cols-2">
-      {/* Left Column - Product Images */}
+      {/* Left Column - T-shirt Preview */}
       <div className="space-y-6">
-        <div className="aspect-square relative overflow-hidden rounded-lg bg-gray-100">
+        <div className="relative w-full max-w-md mx-auto overflow-hidden rounded-lg bg-gray-100">
           {/* 
-            Base T-shirt image
-            Typically ~20" wide x 29" tall for a unisex adult medium. 
+            No aspect-square: we let the T-shirt define its aspect ratio
+            (e.g. 800×1000). 
           */}
           <Image
             src="/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/blanks/png/red.png"
             alt={product.name}
-            width={800}
-            height={800}
-            priority
-            className="w-full h-full object-cover"
+            width={800}       // Example real T-shirt ratio
+            height={1000}     // Example real T-shirt ratio
+            className="object-contain"
+            ref={tshirtImageRef as any}
           />
 
-          {/* 
-            Print area indicator (only visible during development).
-            A typical design area can be ~12" wide x 16" tall, placed 2–3" below the collar.
-            Here, we approximate that by using 35% width x 40% height 
-            and shifting it ~10% down from the top.
-          */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-[35%] h-[40%] border border-dashed border-gray-400 opacity-50 transform translate-y-[10%]" />
-            </div>
-          )}
-
-          {/* Generated design overlay */}
           {generatedImage && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="relative w-[35%] h-[40%] transform translate-y-[10%]">
-                <Image
-                  src={generatedImage}
-                  alt="Generated design"
-                  width={800}
-                  height={800}
-                  className="w-full h-full object-cover"
-                  unoptimized
-                  onError={(e) => {
-                    console.error('Error loading generated image. URL:', generatedImage);
-                    console.error('Error event:', e);
-                    toast({
-                      title: "Error",
-                      description: "Failed to load the generated image",
-                      variant: "destructive"
-                    });
-                  }}
-                />
-              </div>
+            // Absolutely position the design overlay to match the download function
+            <div
+              className="absolute"
+              style={{
+                width: '35%',
+                height: '40%',
+                top: '30%', // Positioned at 30% from the top
+                left: '50%',
+                transform: 'translateX(-50%)',
+                overflow: 'hidden',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}
+            >
+              <Image
+                src={generatedImage}
+                alt="Generated design"
+                fill
+                className="object-contain"
+                ref={designImageRef as any}
+                style={{ 
+                  imageRendering: 'crisp-edges',
+                  objectFit: 'contain'
+                }}
+              />
             </div>
           )}
         </div>
 
-        {/* Product Thumbnails */}
+        {/* Thumbnails, if multiple images */}
         {product.images && product.images.length > 1 && (
           <div className="grid grid-cols-4 gap-4">
             {product.images.map((image, idx) => (
-              <div key={`product-image-${idx}`} className="aspect-square relative overflow-hidden rounded-md">
+              <div
+                key={`product-image-${idx}`}
+                className="aspect-square relative overflow-hidden rounded-md"
+              >
                 <Image
                   src={image}
                   alt={`${product.name} ${idx + 1}`}
@@ -216,12 +416,11 @@ export function ProductDetail({ product }: ProductDetailProps) {
         )}
       </div>
 
-      {/* Right Column - Product Info */}
+      {/* Right Column - Product Info / AI Generation */}
       <div className="space-y-8">
+        {/* Basic product info */}
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">{product.name}</h1>
-
-          {/* Price and Shipping */}
           <div className="mt-4">
             <p className="text-3xl font-bold text-gray-900">${product.price.toFixed(2)}</p>
             {product.shippingCost > 0 && (
@@ -230,8 +429,6 @@ export function ProductDetail({ product }: ProductDetailProps) {
               </p>
             )}
           </div>
-
-          {/* Description */}
           <div className="mt-6">
             <h3 className="text-sm font-medium text-gray-900">Description</h3>
             <div className="mt-2 text-base text-gray-500 space-y-4">
@@ -240,7 +437,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
           </div>
         </div>
 
-        {/* Product Options */}
+        {/* Product Options (size, color) */}
         {(product.specifications?.size?.length || product.specifications?.color?.length) && (
           <div className="space-y-4">
             {product.specifications.size?.length > 0 && (
@@ -281,12 +478,11 @@ export function ProductDetail({ product }: ProductDetailProps) {
           </div>
         )}
 
-        {/* Add to Cart */}
         <Button className="w-full" size="lg">
           Add to Cart
         </Button>
 
-        {/* AI Generation Interface */}
+        {/* AI Generation UI */}
         <div className="border rounded-lg p-6">
           <h2 className="text-xl font-semibold mb-4">Customize with AI</h2>
           
@@ -333,7 +529,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
 
           <div className="space-y-4 mt-4">
             <div>
-              <Label>AI Models & LoRAs</Label>
+              <Label>AI Models &amp; LoRAs</Label>
               <div className="space-y-2">
                 {AI_MODELS.map((model) => (
                   <div key={model.id} className="flex items-center space-x-2">
@@ -344,7 +540,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
                         if (checked) {
                           setSelectedModels([...selectedModels, model.id])
                         } else {
-                          setSelectedModels(selectedModels.filter(id => id !== model.id))
+                          setSelectedModels(selectedModels.filter(mid => mid !== model.id))
                         }
                       }}
                     />
@@ -390,6 +586,17 @@ export function ProductDetail({ product }: ProductDetailProps) {
             >
               {isGenerating ? 'Generating...' : 'Generate Design'}
             </Button>
+            
+            {generatedImage && (
+              <Button
+                className="w-full mt-2"
+                variant="outline"
+                onClick={handleDownloadImage}
+                disabled={isDownloading || !generatedImage}
+              >
+                {isDownloading ? 'Downloading...' : 'Download as PNG (300 DPI)'}
+              </Button>
+            )}
           </div>
         </div>
 
@@ -401,7 +608,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
             <TabsTrigger value="reviews">Reviews</TabsTrigger>
           </TabsList>
 
-          {/* Specifications Tab */}
+          {/* Specifications */}
           <TabsContent value="specifications" className="mt-4">
             <Card className="p-6">
               <div className="space-y-4">
@@ -411,11 +618,6 @@ export function ProductDetail({ product }: ProductDetailProps) {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="text-sm text-gray-500">Dimensions</div>
                       <div className="text-sm">
-                        {/* 
-                          If the product object has specific dimensions, show them. 
-                          Otherwise, you could hardcode typical T-shirt sizes:
-                          ~20" wide x 29" tall (adult medium).
-                        */}
                         {product.specifications.dimensions.width} x {product.specifications.dimensions.height} {product.specifications.dimensions.units}
                       </div>
                     </div>
@@ -435,7 +637,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
             </Card>
           </TabsContent>
 
-          {/* Shipping Tab */}
+          {/* Shipping */}
           <TabsContent value="shipping" className="mt-4">
             <Card className="p-6">
               <div className="space-y-4">
@@ -443,7 +645,10 @@ export function ProductDetail({ product }: ProductDetailProps) {
                 {product.shipping?.methods && product.shipping.methods.length > 0 ? (
                   <div className="space-y-4">
                     {product.shipping.methods.map((method, index) => (
-                      <div key={`shipping-${index}-${method.method}`} className="p-4 rounded-lg bg-gray-50">
+                      <div
+                        key={`shipping-${index}-${method.method}`}
+                        className="p-4 rounded-lg bg-gray-50"
+                      >
                         <div className="flex justify-between items-center">
                           <div>
                             <h4 className="font-medium">{method.method}</h4>
@@ -467,7 +672,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
             </Card>
           </TabsContent>
 
-          {/* Reviews Tab */}
+          {/* Reviews */}
           <TabsContent value="reviews" className="mt-4">
             <Card className="p-6">
               <div className="space-y-6">
@@ -502,15 +707,6 @@ export function ProductDetail({ product }: ProductDetailProps) {
                       Submit Review
                     </Button>
                   </div>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <h3 className="font-semibold mb-4">Customer Reviews</h3>
-                  <p className="text-sm text-gray-500">
-                    Reviews will appear here once customers start leaving them.
-                  </p>
                 </div>
               </div>
             </Card>

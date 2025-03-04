@@ -44,11 +44,21 @@ export async function POST(request: Request) {
 
       console.log('Using prompt with LoRAs:', fullPrompt)
 
+      // Validate parameters to ensure they're within allowed ranges
+      const steps = 12; // Maximum allowed by the API
+      
+      // Together AI typically supports these sizes: 512x512, 768x768, 1024x1024
+      // Some models may support other sizes, but these are commonly supported
+      const width = 1024;
+      const height = 1024;
+
       const response = await together.images.create({
         model: baseModel.model,
         prompt: fullPrompt,
         n: 1,
-        steps: 4
+        steps,
+        width,
+        height
       })
 
       console.log('Together AI response:', response)
@@ -60,7 +70,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ data: response.data })
     } catch (apiError) {
       console.error('Together AI API error:', apiError)
-      throw new Error(apiError instanceof Error ? apiError.message : 'API error')
+      
+      // Extract the specific error message from the API response if available
+      let errorMessage = 'API error';
+      if (apiError instanceof Error) {
+        errorMessage = apiError.message;
+      }
+      
+      // Check if it's a response error with more details
+      if (typeof apiError === 'object' && apiError !== null) {
+        // @ts-ignore - Handle potential response error format
+        if (apiError.response?.data?.error?.message) {
+          // @ts-ignore
+          errorMessage = apiError.response.data.error.message;
+        }
+      }
+      
+      throw new Error(errorMessage);
     }
   } catch (error) {
     console.error('Error generating image:', error)
