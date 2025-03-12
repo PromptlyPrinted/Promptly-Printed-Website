@@ -198,53 +198,29 @@ export function ProductDetail({ product }: ProductDetailProps) {
       })
       
       // Create a canvas sized for 300 DPI at 4680x5790px
-      // This provides a high-quality print-ready image
-      // 4680x5790px at 300 DPI = 15.6" x 19.3" print size
-      // Perfect for high-quality t-shirt printing with bleed area
       const canvas = document.createElement('canvas')
-      canvas.width = 4680  // Updated to requested width
-      canvas.height = 5790 // Updated to requested height
+      canvas.width = 4680  // Requested width
+      canvas.height = 5790 // Requested height
 
       const ctx = canvas.getContext('2d')
       if (!ctx) {
         throw new Error('Could not create canvas context')
       }
 
-      // White background
-      ctx.fillStyle = '#ffffff'
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      // Transparent background
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-      // Load T-shirt and design images
-      const tshirtImage = document.createElement('img')
-      tshirtImage.crossOrigin = 'anonymous'
-
+      // Load design image
       const designImage = document.createElement('img')
       designImage.crossOrigin = 'anonymous'
 
-      // Wait for both images to load
+      // Wait for design image to load
       await new Promise<void>((resolve, reject) => {
-        let tshirtLoaded = false
-        let designLoaded = false
-
-        const checkBothLoaded = () => {
-          if (tshirtLoaded && designLoaded) resolve()
-        }
-
-        tshirtImage.onload = () => {
-          tshirtLoaded = true
-          checkBothLoaded()
-        }
-        tshirtImage.onerror = () => reject(new Error('Failed to load T-shirt image'))
-
         designImage.onload = () => {
-          designLoaded = true
-          checkBothLoaded()
+          resolve()
         }
         designImage.onerror = () => reject(new Error('Failed to load design image'))
 
-        // T-Shirt used in dpi mockup
-        tshirtImage.src = '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/blanks/png/navy.png'
-        
         // If the generated image is a data URL, use it directly
         // otherwise fetch it, convert to blob -> objectURL
         if (generatedImage.startsWith('data:')) {
@@ -259,55 +235,18 @@ export function ProductDetail({ product }: ProductDetailProps) {
         }
       })
 
-      // Draw T-shirt image with the same aspect ratio
-      const tshirtAspectRatio = tshirtImage.width / tshirtImage.height
-      const canvasAspectRatio = canvas.width / canvas.height
-
-      let tshirtDrawWidth: number
-      let tshirtDrawHeight: number
-      let tshirtX: number
-      let tshirtY: number
-
-      if (tshirtAspectRatio > canvasAspectRatio) {
-        // T-shirt is relatively wider, so match canvas height
-        tshirtDrawHeight = canvas.height
-        tshirtDrawWidth = tshirtDrawHeight * tshirtAspectRatio
-        tshirtX = (canvas.width - tshirtDrawWidth) / 2
-        tshirtY = 0
-      } else {
-        // T-shirt is relatively taller, so match canvas width
-        tshirtDrawWidth = canvas.width
-        tshirtDrawHeight = tshirtDrawWidth / tshirtAspectRatio
-        tshirtX = 0
-        tshirtY = (canvas.height - tshirtDrawHeight) / 2
-      }
-
-      ctx.drawImage(tshirtImage, tshirtX, tshirtY, tshirtDrawWidth, tshirtDrawHeight)
-
-      // IMPORTANT: These values must match exactly with the UI preview positioning
-      // The UI uses: width: 35%, height: 40%, top: 30%, left: 50%, transform: translateX(-50%)
-      // Calculate the design overlay position to match the UI preview
-      const designWidth = tshirtDrawWidth * 0.35  // 35% of t-shirt width
-      const designHeight = tshirtDrawHeight * 0.40  // 40% of t-shirt height
-      
-      // Center horizontally (matching the translateX(-50%) in CSS)
-      const designX = tshirtX + (tshirtDrawWidth / 2) - (designWidth / 2)
-      
-      // Position at 30% from the top of the t-shirt (matching the UI)
-      const designY = tshirtY + (tshirtDrawHeight * 0.30)
-
       // Apply anti-aliasing for better quality
       ctx.imageSmoothingEnabled = true
       ctx.imageSmoothingQuality = 'high'
       
-      // Draw the design with high quality
-      ctx.drawImage(designImage, designX, designY, designWidth, designHeight)
+      // Draw the design at full canvas size with high quality
+      ctx.drawImage(designImage, 0, 0, canvas.width, canvas.height)
 
       // Convert to data URL and download
       const dataUrl = canvas.toDataURL('image/png')
       const link = document.createElement('a')
       link.href = dataUrl
-      link.download = `${product.name.replace(/\s+/g, '-').toLowerCase()}-custom-design.png`
+      link.download = `${product.name.replace(/\s+/g, '-').toLowerCase()}-design-only.png`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -325,11 +264,11 @@ export function ProductDetail({ product }: ProductDetailProps) {
         variant: "destructive"
       })
 
-      // Fallback: just download the generated design
+      // Fallback: just download the generated design as-is
       try {
         toast({
           title: "Trying simple fallback",
-          description: "Downloading just the design image...",
+          description: "Downloading the design image as-is...",
           variant: "default"
         })
 
