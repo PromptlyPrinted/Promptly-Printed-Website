@@ -33,16 +33,22 @@ export async function POST(request: Request) {
         throw new Error('No base model selected')
       }
 
-      // Get LoRA configurations and add them to the prompt
-      const loraPrompts = (models as ModelConfig[])
+      // Extract LoRA models
+      const loraModels = (models as ModelConfig[])
         .filter(m => m.type === 'lora')
-        .map(lora => `<lora:${lora.model}:${lora.weight * (loraScale ?? 1)}>`)
-        .join(' ')
+        
+      // Format LoRAs for the image_loras parameter according to Together AI docs
+      const imageLoras = loraModels.map(lora => ({
+        // We need to include the full path to the model on HuggingFace
+        // but we only have the model ID in our request.
+        // Together AI requires the full path like "https://huggingface.co/model-id"
+        // We assume model name is the full path in this case
+        path: lora.model,
+        scale: lora.weight * (loraScale ?? 1)
+      }))
 
-      // Combine the original prompt with LoRA triggers
-      const fullPrompt = `${loraPrompts} ${prompt}`.trim()
-
-      console.log('Using prompt with LoRAs:', fullPrompt)
+      console.log('Using base model:', baseModel.model)
+      console.log('Using LoRAs:', imageLoras)
 
       // Validate parameters to ensure they're within allowed ranges
       const steps = 12; // Maximum allowed by the API
@@ -54,11 +60,12 @@ export async function POST(request: Request) {
 
       const response = await together.images.create({
         model: baseModel.model,
-        prompt: fullPrompt,
+        prompt: prompt, // Use the original prompt without LoRA tags
         n: 1,
         steps,
         width,
-        height
+        height,
+        image_loras: imageLoras // Add the image_loras parameter with the correct format
       })
 
       console.log('Together AI response:', response)

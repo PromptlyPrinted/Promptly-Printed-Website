@@ -39,45 +39,7 @@ import { Separator } from '@repo/design-system/components/ui/separator'
 import { StarIcon } from '@heroicons/react/24/solid'
 import { toast } from '@repo/design-system/components/ui/use-toast'
 import { Checkbox } from '@repo/design-system/components/ui/checkbox'
-
-/**
- * Example AI models. Adjust as needed.
- */
-const AI_MODELS = [
-  { 
-    id: 'black-forest-labs/FLUX.1-schnell-standard', 
-    name: 'Standard FLUX', 
-    model: 'black-forest-labs/FLUX.1-schnell',
-    type: 'base'
-  },
-  {
-    id: 'black-forest-labs/FLUX.1-dev',
-    name: 'FLUX Developer',
-    model: 'black-forest-labs/FLUX.1-dev',
-    type: 'base'
-  },
-  {
-    id: 'black-forest-labs/realvisxl-v3.0',
-    name: 'RealVisXL Style',
-    model: 'black-forest-labs/realvisxl-v3.0',
-    type: 'lora',
-    weight: 0.7
-  },
-  {
-    id: 'black-forest-labs/illustration-style',
-    name: 'Illustration Style',
-    model: 'black-forest-labs/illustration-style',
-    type: 'lora',
-    weight: 0.6
-  },
-  {
-    id: 'black-forest-labs/product-photography',
-    name: 'Product Photography',
-    model: 'black-forest-labs/product-photography',
-    type: 'lora',
-    weight: 0.8
-  }
-]
+import { LORAS, Lora } from '../../../../data/textModel'
 
 interface ProductDetailProps {
   product: Product
@@ -88,8 +50,8 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const [selectedSize, setSelectedSize] = useState('')
   const [selectedColor, setSelectedColor] = useState('')
   const [promptText, setPromptText] = useState('')
-  const [selectedModels, setSelectedModels] = useState<string[]>([AI_MODELS[0].id])
-  const [modelWeights, setModelWeights] = useState<Record<string, number>>({})
+  const [selectedModels, setSelectedModels] = useState<number[]>([LORAS[0].id])
+  const [modelWeights, setModelWeights] = useState<Record<number, number>>({})
   const [generationMode, setGenerationMode] = useState('text')
   const [loraScale, setLoraScale] = useState(0.7)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -125,13 +87,24 @@ export function ProductDetail({ product }: ProductDetailProps) {
     try {
       // Prepare model configs
       const selectedModelConfigs = selectedModels.map(id => {
-        const model = AI_MODELS.find(m => m.id === id)!
+        const model = LORAS.find((m: Lora) => m.id === id)!
         return {
-          model: model.model,
-          type: model.type,
-          weight: modelWeights[id] || model.weight || 1.0
+          model: model.path,
+          type: 'lora',
+          weight: modelWeights[id] || model.scale || 1.0,
+          steps: model.steps || 28
         }
       })
+
+      // Add the base FLUX model to the configuration
+      const allModelConfigs = [
+        {
+          model: "black-forest-labs/FLUX.1-dev-lora", 
+          type: 'base',
+          weight: 1.0
+        },
+        ...selectedModelConfigs
+      ];
 
       // Enhanced prompt for high-quality T-shirt printing
       const enhancedPrompt = `${promptText}, high resolution, 300 dpi, detailed, clear image, suitable for t-shirt printing, centered composition, professional quality, sharp details`
@@ -142,7 +115,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: enhancedPrompt,
-          models: selectedModelConfigs,
+          models: allModelConfigs, // Use the array with the base model included
           loraScale
         })
       })
@@ -478,7 +451,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
             <div>
               <Label>AI Models &amp; LoRAs</Label>
               <div className="space-y-2">
-                {AI_MODELS.map((model) => (
+                {LORAS.map((model: Lora) => (
                   <div key={model.id} className="flex items-center space-x-2">
                     <Checkbox
                       id={`model-${model.id}`}
@@ -492,10 +465,10 @@ export function ProductDetail({ product }: ProductDetailProps) {
                       }}
                     />
                     <Label htmlFor={`model-${model.id}`}>{model.name}</Label>
-                    {model.type === 'lora' && selectedModels.includes(model.id) && (
+                    {selectedModels.includes(model.id) && (
                       <div className="flex-1 max-w-[200px]">
                         <Slider
-                          value={[modelWeights[model.id] || model.weight || 1.0]}
+                          value={[modelWeights[model.id] || model.scale || 1.0]}
                           onValueChange={([value]) => {
                             setModelWeights({
                               ...modelWeights,
