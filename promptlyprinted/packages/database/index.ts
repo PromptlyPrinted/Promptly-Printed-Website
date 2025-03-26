@@ -1,5 +1,6 @@
 import "server-only";
 import { PrismaClient } from "@prisma/client";
+import { withAccelerate } from "@prisma/extension-accelerate";
 import { env } from "@repo/env";
 
 declare global {
@@ -11,14 +12,12 @@ let database: PrismaClient;
 if (process.env.NODE_ENV === "production") {
   database = new PrismaClient({
     log: ["error"],
-    // Configure Prisma Accelerate with query caching
-    datasourceUrl: process.env.DATABASE_URL,
-  });
+  }).$extends(withAccelerate());
 } else {
   if (!global.cachedPrisma) {
     global.cachedPrisma = new PrismaClient({
       log: ["query", "error", "warn"],
-    });
+    }).$extends(withAccelerate());
   }
   database = global.cachedPrisma;
 }

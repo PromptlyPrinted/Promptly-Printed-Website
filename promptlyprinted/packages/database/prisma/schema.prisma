@@ -7,9 +7,353 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// -----------------------
-// ENUMS
-// -----------------------
+model User {
+  id        String      @id @default(cuid())
+  clerkId   String?     @unique
+  email     String      @unique
+  firstName String?
+  lastName  String?
+  role      Role        @default(CUSTOMER)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  addresses Address[]
+  Analytics Analytics[]
+  orders    Order[]     @relation("UserOrders")
+  wishlist  Product[]   @relation("UserWishlist")
+}
+
+model Page {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id                     Int         @id @default(autoincrement())
+  name                   String
+  sku                    String      @unique
+  description            String
+  price                  Float
+  customerPrice          Float
+  stock                  Int         @default(0)
+  currency               String
+  categoryId             Int?
+  productType            String
+  listed                 Boolean     @default(false)
+  createdAt              DateTime    @default(now())
+  updatedAt              DateTime    @updatedAt
+  brand                  String
+  color                  String[]
+  countryCode            String
+  edge                   String
+  fulfillmentCountryCode String?
+  fulfillmentLabCode     String?
+  gender                 String
+  height                 Float
+  shippingCost           Float
+  size                   String[]
+  style                  String
+  taxAmount              Float
+  totalCost              Float
+  units                  String
+  width                  Float
+  prodigiAttributes      Json?
+  prodigiDescription     String?
+  prodigiPrintAreas      Json?
+  prodigiVariants        Json?
+  images                 Image[]
+  orderItems             OrderItem[]
+  category               Category?   @relation(fields: [categoryId], references: [id])
+  quotes                 Quote[]
+  wishedBy               User[]      @relation("UserWishlist")
+
+  @@unique([sku, countryCode])
+  @@index([countryCode])
+  @@index([categoryId])
+  @@index([productType])
+  @@index([listed])
+  @@index([createdAt])
+}
+
+model Category {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  description String?
+  products    Product[]
+}
+
+model Order {
+  id                 Int             @id @default(autoincrement())
+  prodigiOrderId     String?         @unique
+  userId             String
+  status             OrderStatus     @default(PENDING)
+  totalPrice         Float
+  paymentId          Int?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  callbackUrl        String?
+  idempotencyKey     String?
+  merchantReference  String?
+  metadata           Json?
+  outcome            String?
+  packingSlip        String?
+  prodigiCreatedAt   DateTime?
+  prodigiLastUpdated DateTime?
+  prodigiStage       String?
+  prodigiStatusJson  Json?
+  shippingMethod     ShippingMethod?
+  traceParent        String?
+  charges            Charge[]
+  payment            Payment?        @relation(fields: [paymentId], references: [id])
+  user               User            @relation("UserOrders", fields: [userId], references: [id])
+  orderItems         OrderItem[]
+  recipient          Recipient?
+  shipments          Shipment[]
+}
+
+model OrderItem {
+  id                    Int      @id @default(autoincrement())
+  orderId               Int
+  productId             Int
+  copies                Int
+  price                 Float
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  assets                Json?
+  attributes            Json?
+  merchantReference     String?
+  prodigiItemId         String?
+  prodigiItemStatus     String?
+  recipientCostAmount   Float?
+  recipientCostCurrency String?
+  sizing                String?
+  order                 Order    @relation(fields: [orderId], references: [id])
+  product               Product  @relation(fields: [productId], references: [id])
+}
+
+model Payment {
+  id        Int      @id @default(autoincrement())
+  stripeId  String   @unique
+  status    String
+  amount    Float
+  currency  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Order     Order[]
+}
+
+model Image {
+  id        Int      @id @default(autoincrement())
+  url       String
+  productId Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  product   Product? @relation(fields: [productId], references: [id])
+}
+
+model Analytics {
+  id        Int      @id @default(autoincrement())
+  userId    String?
+  eventName String
+  eventData Json
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+}
+
+model Log {
+  id        Int      @id @default(autoincrement())
+  level     String
+  message   String
+  metadata  Json
+  createdAt DateTime @default(now())
+}
+
+model Address {
+  id         String      @id @default(cuid())
+  userId     String
+  type       AddressType
+  street     String
+  city       String
+  state      String
+  postalCode String
+  country    String
+  isDefault  Boolean     @default(false)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  user       User        @relation(fields: [userId], references: [id])
+}
+
+model WebhookLog {
+  id        String   @id @default(cuid())
+  type      String
+  status    String
+  response  String
+  createdAt DateTime @default(now())
+}
+
+model Recipient {
+  id           Int     @id @default(autoincrement())
+  name         String
+  email        String?
+  phoneNumber  String?
+  addressLine1 String
+  addressLine2 String?
+  city         String
+  state        String?
+  postalCode   String
+  countryCode  String
+  orderId      Int?    @unique
+  order        Order?  @relation(fields: [orderId], references: [id])
+}
+
+model Charge {
+  id                   Int          @id @default(autoincrement())
+  prodigiChargeId      String?
+  chargeType           String?
+  prodigiInvoiceNumber String?
+  costId               Int?
+  orderId              Int
+  totalCost            Cost?        @relation(fields: [costId], references: [id])
+  order                Order        @relation(fields: [orderId], references: [id])
+  items                ChargeItem[]
+}
+
+model ChargeItem {
+  id            Int     @id @default(autoincrement())
+  prodigiItemId String?
+  shipmentId    String?
+  costId        Int?
+  chargeId      Int
+  charge        Charge  @relation(fields: [chargeId], references: [id])
+  cost          Cost?   @relation(fields: [costId], references: [id])
+}
+
+model Cost {
+  id                 Int                @id @default(autoincrement())
+  amount             String?
+  currency           String?
+  charges            Charge[]
+  chargeItems        ChargeItem[]
+  quoteItemsCosts    QuoteCostSummary[] @relation("QuoteItemsCost")
+  quoteShippingCosts QuoteCostSummary[] @relation("QuoteShippingCost")
+  quoteItems         QuoteItem[]
+  quoteShipments     QuoteShipment[]
+}
+
+model Shipment {
+  id                    Int                  @id @default(autoincrement())
+  prodigiShipmentId     String?
+  status                String?
+  carrier               String?
+  carrierService        String?
+  trackingUrl           String?
+  trackingNumber        String?
+  dispatchDate          DateTime?
+  fulfillmentLocationId Int?
+  orderId               Int
+  fulfillmentLocation   FulfillmentLocation? @relation(fields: [fulfillmentLocationId], references: [id])
+  order                 Order                @relation(fields: [orderId], references: [id])
+  items                 ShipmentItem[]
+}
+
+model ShipmentItem {
+  id         Int      @id @default(autoincrement())
+  itemId     String?
+  shipmentId Int
+  shipment   Shipment @relation(fields: [shipmentId], references: [id])
+}
+
+model FulfillmentLocation {
+  id             Int             @id @default(autoincrement())
+  countryCode    String?
+  labCode        String?
+  quoteShipments QuoteShipment[]
+  shipments      Shipment[]
+}
+
+model Quote {
+  id                     Int               @id @default(autoincrement())
+  shipmentMethod         ShippingMethod?
+  costSummaryId          Int?
+  issues                 Json?
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+  currencyCode           String            @default("USD")
+  destinationCountryCode String
+  outcome                String?
+  productId              Int?
+  costSummary            QuoteCostSummary? @relation(fields: [costSummaryId], references: [id])
+  product                Product?          @relation(fields: [productId], references: [id])
+  items                  QuoteItem[]
+  shipments              QuoteShipment[]
+}
+
+model QuoteCostSummary {
+  id             Int     @id @default(autoincrement())
+  itemsCostId    Int?
+  shippingCostId Int?
+  quotes         Quote[]
+  items          Cost?   @relation("QuoteItemsCost", fields: [itemsCostId], references: [id])
+  shipping       Cost?   @relation("QuoteShippingCost", fields: [shippingCostId], references: [id])
+}
+
+model QuoteShipment {
+  id                    Int                  @id @default(autoincrement())
+  carrierName           String?
+  carrierService        String?
+  costId                Int?
+  fulfillmentLocationId Int?
+  itemIds               Json?
+  quoteId               Int
+  cost                  Cost?                @relation(fields: [costId], references: [id])
+  fulfillmentLocation   FulfillmentLocation? @relation(fields: [fulfillmentLocationId], references: [id])
+  quote                 Quote                @relation(fields: [quoteId], references: [id])
+}
+
+model QuoteItem {
+  id         Int     @id @default(autoincrement())
+  quoteId    Int
+  itemId     String?
+  sku        String
+  copies     Int
+  costId     Int?
+  attributes Json?
+  assets     Json?
+  unitCost   Cost?   @relation(fields: [costId], references: [id])
+  quote      Quote   @relation(fields: [quoteId], references: [id])
+}
+
+model ProdigiCallbackEvent {
+  id              String    @id @default(cuid())
+  outcome         String?
+  traceParent     String?
+  eventId         String?
+  specVersion     String?
+  eventType       String?
+  source          String?
+  subject         String?
+  dataContentType String?
+  occurredAt      DateTime?
+  data            Json?
+  createdAt       DateTime  @default(now())
+}
+
+model ShippingPrice {
+  id                  Int            @id @default(autoincrement())
+  method              ShippingMethod
+  basePrice           Float
+  additionalItemPrice Float
+  currency            String
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  @@unique([method, currency])
+}
+
 enum Role {
   CUSTOMER
   ADMIN
@@ -31,472 +375,4 @@ enum ShippingMethod {
   STANDARD
   EXPRESS
   OVERNIGHT
-}
-
-// -----------------------
-// USER
-// -----------------------
-model User {
-  id        String  @id @default(cuid())
-  clerkId   String? @unique
-  email     String  @unique
-  firstName String?
-  lastName  String?
-  role      Role    @default(CUSTOMER)
-
-  orders    Order[]   @relation("UserOrders")
-  addresses Address[]
-  wishlist  Product[] @relation("UserWishlist")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  Analytics Analytics[]
-}
-
-// -----------------------
-// PAGE
-// -----------------------
-model Page {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// -----------------------
-// PRODUCT
-// -----------------------
-model Product {
-  id            Int    @id @default(autoincrement())
-  name          String
-  sku           String @unique
-  description   String
-  price         Float
-  shippingCost  Float
-  taxAmount     Float
-  totalCost     Float
-  customerPrice Float
-  stock         Int    @default(0)
-  currency      String
-
-  category   Category? @relation(fields: [categoryId], references: [id])
-  categoryId Int?
-
-  images     Image[]
-  orderItems OrderItem[]
-  wishedBy   User[]      @relation("UserWishlist")
-  quotes     Quote[] // Add relation to quotes
-
-  productType String
-  listed      Boolean @default(false)
-
-  // Existing "dimensions" fields
-  width                  Float
-  height                 Float
-  units                  String
-  brand                  String
-  edge                   String
-  color                  String[]
-  gender                 String
-  size                   String[]
-  style                  String
-  countryCode            String
-  fulfillmentCountryCode String?
-  fulfillmentLabCode     String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Extra fields if storing extended product details from Prodigi
-  prodigiDescription String?
-  prodigiAttributes  Json?
-  prodigiPrintAreas  Json?
-  prodigiVariants    Json?
-
-  @@unique([sku, countryCode])
-  @@index([countryCode])
-  @@index([categoryId])
-  @@index([productType])
-  @@index([listed])
-  @@index([createdAt])
-}
-
-// -----------------------
-// CATEGORY
-// -----------------------
-model Category {
-  id          Int       @id @default(autoincrement())
-  name        String    @unique
-  description String?
-  products    Product[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-}
-
-// -----------------------
-// ORDER
-// -----------------------
-model Order {
-  id             Int     @id @default(autoincrement())
-  prodigiOrderId String? @unique // e.g. "ord_840796"
-
-  user   User   @relation("UserOrders", fields: [userId], references: [id])
-  userId String
-
-  status     OrderStatus @default(PENDING)
-  totalPrice Float
-
-  orderItems OrderItem[]
-  payment    Payment?    @relation(fields: [paymentId], references: [id])
-  paymentId  Int?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Linked recipient
-  recipient Recipient?
-
-  // Prodigi-specific fields
-  prodigiCreatedAt   DateTime?
-  prodigiLastUpdated DateTime?
-  callbackUrl        String?
-  merchantReference  String?
-  idempotencyKey     String?
-  shippingMethod     ShippingMethod?
-  prodigiStage       String? // e.g. "InProgress", "Complete", "Cancelled"
-  prodigiStatusJson  Json? // store "issues", "details", etc.
-  shipments          Shipment[]
-  charges            Charge[]
-  packingSlip        String?
-  metadata           Json?
-
-  // 1) OPTIONAL: store the last known "outcome" and "traceParent"
-  outcome     String? // e.g. "Created", "validationFailed"
-  traceParent String? // e.g. "00-65e25206c6b1e34db..."
-}
-
-// -----------------------
-// ORDER ITEM
-// -----------------------
-model OrderItem {
-  id        Int     @id @default(autoincrement())
-  order     Order   @relation(fields: [orderId], references: [id])
-  orderId   Int
-  product   Product @relation(fields: [productId], references: [id])
-  productId Int
-
-  copies Int
-  price  Float
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Additional Prodigi fields
-  prodigiItemId         String?
-  prodigiItemStatus     String? // "NotYetDownloaded", ...
-  merchantReference     String?
-  sizing                String? // fillPrintArea, ...
-  attributes            Json?
-  assets                Json?
-  recipientCostAmount   Float?
-  recipientCostCurrency String?
-}
-
-// -----------------------
-// PAYMENT
-// -----------------------
-model Payment {
-  id        Int      @id @default(autoincrement())
-  stripeId  String   @unique
-  status    String
-  amount    Float
-  currency  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  Order Order[]
-}
-
-// -----------------------
-// IMAGE
-// -----------------------
-model Image {
-  id  Int    @id @default(autoincrement())
-  url String
-
-  product   Product? @relation(fields: [productId], references: [id])
-  productId Int?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// -----------------------
-// ANALYTICS
-// -----------------------
-model Analytics {
-  id        Int      @id @default(autoincrement())
-  user      User?    @relation(fields: [userId], references: [id])
-  userId    String?
-  eventName String
-  eventData Json
-  createdAt DateTime @default(now())
-}
-
-// -----------------------
-// LOG
-// -----------------------
-model Log {
-  id        Int      @id @default(autoincrement())
-  level     String
-  message   String
-  metadata  Json
-  createdAt DateTime @default(now())
-}
-
-// -----------------------
-// ADDRESS
-// -----------------------
-model Address {
-  id         String      @id @default(cuid())
-  userId     String
-  user       User        @relation(fields: [userId], references: [id])
-  type       AddressType
-  street     String
-  city       String
-  state      String
-  postalCode String
-  country    String
-  isDefault  Boolean     @default(false)
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-}
-
-// -----------------------
-// WEBHOOK LOG (Optional)
-// -----------------------
-model WebhookLog {
-  id        String   @id @default(cuid())
-  type      String
-  status    String
-  response  String
-  createdAt DateTime @default(now())
-}
-
-// -----------------------
-// RECIPIENT
-// -----------------------
-model Recipient {
-  id          Int     @id @default(autoincrement())
-  name        String
-  email       String?
-  phoneNumber String?
-
-  addressLine1 String
-  addressLine2 String?
-  city         String
-  state        String?
-  postalCode   String
-  countryCode  String
-
-  order   Order? @relation(fields: [orderId], references: [id])
-  orderId Int?   @unique
-}
-
-// -----------------------
-// CHARGES
-// -----------------------
-model Charge {
-  id                   Int     @id @default(autoincrement())
-  prodigiChargeId      String?
-  chargeType           String? // "Item", "Shipping", "Refund", ...
-  prodigiInvoiceNumber String?
-
-  totalCost Cost? @relation(fields: [costId], references: [id])
-  costId    Int?
-
-  items   ChargeItem[]
-  order   Order        @relation(fields: [orderId], references: [id])
-  orderId Int
-}
-
-model ChargeItem {
-  id            Int     @id @default(autoincrement())
-  prodigiItemId String?
-  shipmentId    String?
-
-  cost   Cost? @relation(fields: [costId], references: [id])
-  costId Int?
-
-  charge   Charge @relation(fields: [chargeId], references: [id])
-  chargeId Int
-}
-
-// -----------------------
-// COST
-// -----------------------
-model Cost {
-  id       Int     @id @default(autoincrement())
-  amount   String?
-  currency String?
-
-  // Add relation fields
-  quoteItemsCosts    QuoteCostSummary[] @relation("QuoteItemsCost")
-  quoteShippingCosts QuoteCostSummary[] @relation("QuoteShippingCost")
-  chargeItems        ChargeItem[]
-  charges            Charge[]
-  quoteShipments     QuoteShipment[]
-  quoteItems         QuoteItem[]
-}
-
-// -----------------------
-// SHIPMENTS
-// -----------------------
-model Shipment {
-  id                Int       @id @default(autoincrement())
-  prodigiShipmentId String?
-  status            String?
-  carrier           String?
-  carrierService    String?
-  trackingUrl       String?
-  trackingNumber    String?
-  dispatchDate      DateTime?
-
-  fulfillmentLocation   FulfillmentLocation? @relation(fields: [fulfillmentLocationId], references: [id])
-  fulfillmentLocationId Int?
-
-  order   Order @relation(fields: [orderId], references: [id])
-  orderId Int
-
-  items ShipmentItem[]
-}
-
-model ShipmentItem {
-  id     Int     @id @default(autoincrement())
-  itemId String?
-
-  shipment   Shipment @relation(fields: [shipmentId], references: [id])
-  shipmentId Int
-}
-
-// Where items are fulfilled from
-model FulfillmentLocation {
-  id          Int     @id @default(autoincrement())
-  countryCode String?
-  labCode     String?
-
-  shipments      Shipment[]
-  quoteShipments QuoteShipment[]
-}
-
-// -----------------------
-// QUOTES
-// -----------------------
-model Quote {
-  id                     Int             @id @default(autoincrement())
-  shipmentMethod         ShippingMethod?
-  destinationCountryCode String
-  currencyCode           String          @default("USD")
-
-  costSummary   QuoteCostSummary? @relation(fields: [costSummaryId], references: [id])
-  costSummaryId Int?
-
-  shipments QuoteShipment[]
-  items     QuoteItem[]
-
-  product   Product? @relation(fields: [productId], references: [id])
-  productId Int?
-
-  outcome String? // e.g. "Created"
-  issues  Json?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model QuoteCostSummary {
-  id          Int   @id @default(autoincrement())
-  items       Cost? @relation("QuoteItemsCost", fields: [itemsCostId], references: [id])
-  itemsCostId Int?
-
-  shipping       Cost? @relation("QuoteShippingCost", fields: [shippingCostId], references: [id])
-  shippingCostId Int?
-
-  quotes Quote[]
-}
-
-model QuoteShipment {
-  id             Int     @id @default(autoincrement())
-  carrierName    String?
-  carrierService String?
-
-  cost   Cost? @relation(fields: [costId], references: [id])
-  costId Int?
-
-  fulfillmentLocation   FulfillmentLocation? @relation(fields: [fulfillmentLocationId], references: [id])
-  fulfillmentLocationId Int?
-
-  // The item IDs in this shipment (["qit_abc123", ...])
-  itemIds Json?
-
-  quote   Quote @relation(fields: [quoteId], references: [id])
-  quoteId Int
-}
-
-model QuoteItem {
-  id      Int   @id @default(autoincrement())
-  quote   Quote @relation(fields: [quoteId], references: [id])
-  quoteId Int
-
-  itemId String?
-  sku    String
-  copies Int
-
-  unitCost Cost? @relation(fields: [costId], references: [id])
-  costId   Int?
-
-  attributes Json?
-  assets     Json?
-}
-
-// -----------------------
-// (OPTIONAL) A general logs table 
-// for ALL responses from Prodigi
-// -----------------------
-model ProdigiCallbackEvent {
-  id String @id @default(cuid())
-
-  // If storing general responses:
-  outcome     String? // e.g. "Created", "Ok"
-  traceParent String? // e.g. "00-65e25206c6b1e34db..."
-
-  // If it's specifically a CloudEvent callback:
-  eventId         String?
-  specVersion     String?
-  eventType       String?
-  source          String?
-  subject         String?
-  dataContentType String?
-  occurredAt      DateTime?
-  data            Json? // entire payload
-
-  createdAt DateTime @default(now())
-}
-
-// -----------------------
-// SHIPPING PRICE
-// -----------------------
-model ShippingPrice {
-  id                  Int            @id @default(autoincrement())
-  method              ShippingMethod
-  basePrice           Float
-  additionalItemPrice Float
-  currency            String
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([method, currency])
 }

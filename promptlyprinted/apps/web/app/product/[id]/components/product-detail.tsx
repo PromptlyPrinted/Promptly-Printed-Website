@@ -40,6 +40,9 @@ import { StarIcon } from '@heroicons/react/24/solid'
 import { toast } from '@repo/design-system/components/ui/use-toast'
 import { Checkbox } from '@repo/design-system/components/ui/checkbox'
 import { LORAS, Lora } from '../../../../data/textModel'
+import { SUPPORTED_COUNTRIES, formatPrice, convertPrice, getDefaultCurrency } from '@/utils/currency'
+import { useExchangeRates } from '@/hooks/useExchangeRates'
+import { GlobeAltIcon, TruckIcon, ShieldCheckIcon } from '@heroicons/react/24/outline'
 
 interface ProductDetailProps {
   product: Product
@@ -59,10 +62,14 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const [reviewText, setReviewText] = useState('')
   const [rating, setRating] = useState(5)
   const [isDownloading, setIsDownloading] = useState(false)
+  const [selectedCountry, setSelectedCountry] = useState('US')
+  const [selectedCurrency, setSelectedCurrency] = useState('USD')
   
   // Refs for T-shirt and design images (if needed)
   const tshirtImageRef = useRef<HTMLImageElement>(null)
   const designImageRef = useRef<HTMLImageElement>(null)
+
+  const { rates, loading: ratesLoading, error: ratesError, convertPrice: convertWithRates } = useExchangeRates()
 
   // Preload generated image for faster download
   useEffect(() => {
@@ -71,6 +78,38 @@ export function ProductDetail({ product }: ProductDetailProps) {
       img.src = generatedImage
     }
   }, [generatedImage])
+
+  // Update currency when country changes
+  useEffect(() => {
+    const newCurrency = getDefaultCurrency(selectedCountry)
+    setSelectedCurrency(newCurrency)
+  }, [selectedCountry])
+
+  // Get converted price with real-time exchange rates
+  const getConvertedPrice = (price: number) => {
+    if (ratesLoading) return price;
+    return convertWithRates(price, 'USD', selectedCurrency);
+  }
+
+  // Get shipping information based on country
+  const getShippingInfo = () => {
+    const country = SUPPORTED_COUNTRIES.find(c => c.code === selectedCountry);
+    if (!country) return null;
+
+    const isEU = country.currency === 'EUR';
+    const baseShipping = product.shippingCost || 0;
+    
+    return {
+      standard: {
+        cost: isEU ? baseShipping : baseShipping * 1.2,
+        days: isEU ? '3-5' : '5-7'
+      },
+      express: {
+        cost: isEU ? baseShipping * 1.5 : baseShipping * 2,
+        days: isEU ? '1-2' : '2-3'
+      }
+    };
+  }
 
   // ---- Generate Image (AI) ----
   const handleImageGeneration = async () => {
@@ -338,22 +377,106 @@ export function ProductDetail({ product }: ProductDetailProps) {
 
       {/* Right Column - Product Info / AI Generation */}
       <div className="space-y-8">
-        {/* Basic product info */}
-        <div>
+        {/* Country and Currency Selection */}
+        <div className="flex items-center space-x-4 bg-gray-50 p-4 rounded-lg">
+          <GlobeAltIcon className="h-6 w-6 text-gray-400" />
+          <div className="flex-1 space-y-1">
+            <Label htmlFor="country">Ship to</Label>
+            <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+              <SelectTrigger id="country" className="w-full">
+                <SelectValue placeholder="Select country" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="" disabled>Select your country</SelectItem>
+                {Object.entries(COUNTRIES_BY_CURRENCY).map(([currency, countries]) => (
+                  <div key={currency}>
+                    <div className="px-2 py-1.5 text-sm font-semibold bg-gray-100">
+                      {currency} Zone
+                    </div>
+                    {countries.map((country) => (
+                      <SelectItem key={country.code} value={country.code}>
+                        {country.name}
+                      </SelectItem>
+                    ))}
+                  </div>
+                ))}
+              </SelectContent>
+            </Select>
+            {ratesLoading && (
+              <p className="text-sm text-gray-500">Loading exchange rates...</p>
+            )}
+            {ratesError && (
+              <p className="text-sm text-red-500">Using fallback exchange rates</p>
+            )}
+          </div>
+        </div>
+
+        {/* Price Display with International Support */}
+        <div className="space-y-2">
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">{product.name}</h1>
-          <div className="mt-4">
-            <p className="text-3xl font-bold text-gray-900">${product.price.toFixed(2)}</p>
-            {product.shippingCost > 0 && (
-              <p className="text-sm text-gray-500 mt-1">
-                + ${product.shippingCost.toFixed(2)} shipping
+          <div className="flex items-baseline space-x-2">
+            <p className="text-3xl font-bold text-gray-900">
+              {formatPrice(getConvertedPrice(product.price), selectedCurrency)}
+            </p>
+            {selectedCurrency !== 'USD' && (
+              <p className="text-sm text-gray-500">
+                (${product.price.toFixed(2)} USD)
               </p>
             )}
           </div>
-          <div className="mt-6">
-            <h3 className="text-sm font-medium text-gray-900">Description</h3>
-            <div className="mt-2 text-base text-gray-500 space-y-4">
-              {product.description}
+        </div>
+
+        {/* International Shipping Information */}
+        <div className="bg-gray-50 rounded-lg p-4">
+          <div className="flex items-center space-x-2">
+            <TruckIcon className="h-5 w-5 text-gray-400" />
+            <h3 className="font-medium">Shipping to {SUPPORTED_COUNTRIES.find(c => c.code === selectedCountry)?.name}</h3>
+          </div>
+          {getShippingInfo() && (
+            <div className="mt-3 space-y-2">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="font-medium">Standard Delivery</p>
+                  <p className="text-sm text-gray-500">{getShippingInfo()?.standard.days} business days</p>
+                </div>
+                <p className="font-medium">
+                  {formatPrice(getConvertedPrice(getShippingInfo()?.standard.cost || 0), selectedCurrency)}
+                </p>
+              </div>
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="font-medium">Express Delivery</p>
+                  <p className="text-sm text-gray-500">{getShippingInfo()?.express.days} business days</p>
+                </div>
+                <p className="font-medium">
+                  {formatPrice(getConvertedPrice(getShippingInfo()?.express.cost || 0), selectedCurrency)}
+                </p>
+              </div>
             </div>
+          )}
+        </div>
+
+        {/* International Guarantees */}
+        <div className="border-t pt-4">
+          <div className="flex items-center space-x-2">
+            <ShieldCheckIcon className="h-5 w-5 text-gray-400" />
+            <div>
+              <h3 className="font-medium">International Order Guarantees</h3>
+              <ul className="mt-2 text-sm text-gray-500 space-y-1">
+                <li>• Secure international payments</li>
+                <li>• Duty and tax calculated at checkout</li>
+                <li>• Track your order globally</li>
+                <li>• International return shipping included</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Basic product info */}
+        <div>
+          <h3 className="text-sm font-medium text-gray-900">Description</h3>
+          <div className="mt-2 text-base text-gray-500 space-y-4">
+            {product.description}
           </div>
         </div>
 
@@ -520,42 +643,65 @@ export function ProductDetail({ product }: ProductDetailProps) {
           </div>
         </div>
 
-        {/* Product Details Tabs */}
-        <Tabs defaultValue="specifications" className="mt-8">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="specifications">Specifications</TabsTrigger>
+        {/* Product Details Section */}
+        <div className="border rounded-lg p-6 space-y-6">
+          <h2 className="text-xl font-semibold">Product Details</h2>
+          
+          {/* Materials */}
+          <div>
+            <h3 className="font-medium text-gray-900">Materials</h3>
+            <ul className="mt-2 list-disc list-inside text-gray-600 space-y-1">
+              {product.materials?.map((material, index) => (
+                <li key={`material-${index}`}>{material}</li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Features */}
+          <div>
+            <h3 className="font-medium text-gray-900">Features</h3>
+            <ul className="mt-2 list-disc list-inside text-gray-600 space-y-1">
+              {product.features?.map((feature, index) => (
+                <li key={`feature-${index}`}>{feature}</li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Eco Properties */}
+          <div>
+            <h3 className="font-medium text-gray-900">Sustainability</h3>
+            <ul className="mt-2 list-disc list-inside text-gray-600 space-y-1">
+              {product.ecoProperties?.map((prop, index) => (
+                <li key={`eco-${index}`}>{prop}</li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Care Instructions */}
+          <div>
+            <h3 className="font-medium text-gray-900">Care Instructions</h3>
+            <ul className="mt-2 list-disc list-inside text-gray-600 space-y-1">
+              {product.careInstructions?.map((instruction, index) => (
+                <li key={`care-${index}`}>{instruction}</li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Manufacturing Location */}
+          {product.manufacturingLocation && (
+            <div>
+              <h3 className="font-medium text-gray-900">Manufacturing</h3>
+              <p className="mt-2 text-gray-600">{product.manufacturingLocation}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Product Details Tabs - Updated to remove redundant information */}
+        <Tabs defaultValue="shipping" className="mt-8">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="shipping">Shipping</TabsTrigger>
             <TabsTrigger value="reviews">Reviews</TabsTrigger>
           </TabsList>
-
-          {/* Specifications */}
-          <TabsContent value="specifications" className="mt-4">
-            <Card className="p-6">
-              <div className="space-y-4">
-                <h3 className="font-semibold">Product Specifications</h3>
-                {product.specifications && (
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="text-sm text-gray-500">Dimensions</div>
-                      <div className="text-sm">
-                        {product.specifications.dimensions.width} x {product.specifications.dimensions.height} {product.specifications.dimensions.units}
-                      </div>
-                    </div>
-                    <Separator />
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="text-sm text-gray-500">Brand</div>
-                      <div className="text-sm">{product.specifications.brand}</div>
-                    </div>
-                    <Separator />
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="text-sm text-gray-500">Style</div>
-                      <div className="text-sm">{product.specifications.style}</div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </Card>
-          </TabsContent>
 
           {/* Shipping */}
           <TabsContent value="shipping" className="mt-4">
@@ -578,7 +724,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
                           </div>
                           <div className="text-right">
                             <p className="font-medium">
-                              {method.currency} {method.cost.toFixed(2)}
+                              {formatPrice(getConvertedPrice(method.cost), selectedCurrency)}
                             </p>
                           </div>
                         </div>
@@ -586,7 +732,12 @@ export function ProductDetail({ product }: ProductDetailProps) {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500">Shipping information not available</p>
+                  <div className="text-sm text-gray-500">
+                    {selectedCountry === 'US' 
+                      ? "Shipping information not available"
+                      : `International shipping to ${SUPPORTED_COUNTRIES.find(c => c.code === selectedCountry)?.name} available`
+                    }
+                  </div>
                 )}
               </div>
             </Card>

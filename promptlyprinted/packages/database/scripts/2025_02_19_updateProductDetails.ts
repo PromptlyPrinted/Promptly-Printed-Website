@@ -52,7 +52,7 @@ interface ProductListInfo {
   availability: string;
 }
 
-interface ProductDetails {
+export interface ProductDetails {
   sku: string;
   name: string;
   shortDescription: string;
@@ -64,14 +64,24 @@ interface ProductDetails {
   pdfUrl: string;
   productType: string;
   category: string;
-  imageUrls: ImageUrls;
+  imageUrls: {
+    base: string;
+    front?: string;
+    back?: string;
+    closeup?: string;
+    lifestyle?: string;
+  };
+  colorOptions: Array<{
+    name: string;
+    filename: string;
+  }>;
   brand: {
     name: string;
-    identifier?: string;
+    identifier: string;
   };
   identifiers: {
+    mpn: string;
     gtin?: string;
-    mpn?: string;
   };
   availability: string;
   dimensions: {
@@ -79,19 +89,47 @@ interface ProductDetails {
     height: number;
     units: string;
   };
-  weight?: {
+  weight: {
     value: number;
     units: string;
   };
-  price?: number;
-  variants?: {
-    colors: string[];
-    sizes: string[];
-    styles?: string[];
+  pricing: Array<{
+    currency: string;
+    amount: number;
+    regions: string[];
+  }>;
+  shippingZones: {
+    [key: string]: {
+      countries: string[];
+      standardShipping: {
+        cost: number;
+        currency: string;
+        estimatedDays: string;
+      };
+      expressShipping: {
+        cost: number;
+        currency: string;
+        estimatedDays: string;
+      };
+    };
+  };
+  vatIncluded: boolean;
+  customsDutyInfo: {
+    [key: string]: string;
+  };
+  restrictions: {
+    excludedCountries: string[];
+    maxQuantityPerOrder: number;
   };
 }
 
+interface ColorOption {
+  name: string;
+  filename: string;
+}
+
 interface ImageUrls {
+  base?: string;
   front?: string;
   back?: string;
   closeup?: string;
@@ -127,10 +165,11 @@ const productDetailsMap: Record<string, ProductDetails> = {
     productType: 'T_SHIRT',
     category: "Men's T-shirts",
     imageUrls: {
-      front: '/assets/images/Apparel/Mens/GLOBAL-TEE-GIL-5000/GLOBAL-TEE-GIL-5000_front.jpg',
-      back: '/assets/images/Apparel/Mens/GLOBAL-TEE-GIL-5000/GLOBAL-TEE-GIL-5000_back.jpg',
-      closeup: '/assets/images/Apparel/Mens/GLOBAL-TEE-GIL-5000/GLOBAL-TEE-GIL-5000_closeup.jpg',
-      lifestyle: '/assets/images/Apparel/Mens/GLOBAL-TEE-GIL-5000/GLOBAL-TEE-GIL-5000_lifestyle.jpg'
+      base: '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-5000/Blanks/png',
+      front: '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-5000/front.jpg',
+      back: '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-5000/back.jpg',
+      closeup: '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-5000/closeup.jpg',
+      lifestyle: '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-5000/lifestyle.jpg'
     },
     brand: {
       name: 'Gildan',
@@ -149,6 +188,14 @@ const productDetailsMap: Record<string, ProductDetails> = {
     weight: {
       value: 0.3,
       units: 'kg'
+    },
+    pricing: [],
+    shippingZones: {},
+    vatIncluded: true,
+    customsDutyInfo: {},
+    restrictions: {
+      excludedCountries: [],
+      maxQuantityPerOrder: 0
     }
   },
   'AU3-TEE-U-B-3200': {
@@ -174,6 +221,10 @@ const productDetailsMap: Record<string, ProductDetails> = {
     productType: 'T_SHIRT',
     category: "Men's T-shirts",
     imageUrls: {
+      base: '/assets/images/Apparel/Mens/T-Shirts/AU3-TEE-U-B-3200/Blanks/png',
+      front: '/assets/images/Apparel/Mens/T-Shirts/AU3-TEE-U-B-3200/front.jpg',
+      back: '/assets/images/Apparel/Mens/T-Shirts/AU3-TEE-U-B-3200/back.jpg',
+      closeup: '/assets/images/Apparel/Mens/T-Shirts/AU3-TEE-U-B-3200/closeup.jpg',
       front: '/assets/images/Apparel/Mens/AU3-TEE-U-B-3200/AU3-TEE-U-B-3200_front.jpg',
       back: '/assets/images/Apparel/Mens/AU3-TEE-U-B-3200/AU3-TEE-U-B-3200_back.jpg',
       closeup: '/assets/images/Apparel/Mens/AU3-TEE-U-B-3200/AU3-TEE-U-B-3200_closeup.jpg',
@@ -195,6 +246,14 @@ const productDetailsMap: Record<string, ProductDetails> = {
     weight: {
       value: 0.25,
       units: 'kg'
+    },
+    pricing: [],
+    shippingZones: {},
+    vatIncluded: true,
+    customsDutyInfo: {},
+    restrictions: {
+      excludedCountries: [],
+      maxQuantityPerOrder: 0
     }
   },
   'GLOBAL-TEE-BC-3413': {
@@ -241,6 +300,14 @@ const productDetailsMap: Record<string, ProductDetails> = {
     weight: {
       value: 0.25,
       units: 'kg'
+    },
+    pricing: [],
+    shippingZones: {},
+    vatIncluded: true,
+    customsDutyInfo: {},
+    restrictions: {
+      excludedCountries: [],
+      maxQuantityPerOrder: 0
     }
   },
   'TT-GIL-64200': {
@@ -287,6 +354,14 @@ const productDetailsMap: Record<string, ProductDetails> = {
     weight: {
       value: 0.2,
       units: 'kg'
+    },
+    pricing: [],
+    shippingZones: {},
+    vatIncluded: true,
+    customsDutyInfo: {},
+    restrictions: {
+      excludedCountries: [],
+      maxQuantityPerOrder: 0
     }
   },
   'GLOBAL-TEE-GIL-64V00': {
@@ -333,6 +408,14 @@ const productDetailsMap: Record<string, ProductDetails> = {
     weight: {
       value: 0.25,
       units: 'kg'
+    },
+    pricing: [],
+    shippingZones: {},
+    vatIncluded: true,
+    customsDutyInfo: {},
+    restrictions: {
+      excludedCountries: [],
+      maxQuantityPerOrder: 0
     }
   },
   'A-ML-GD2400': {
@@ -379,6 +462,14 @@ const productDetailsMap: Record<string, ProductDetails> = {
     weight: {
       value: 0.3,
       units: 'kg'
+    },
+    pricing: [],
+    shippingZones: {},
+    vatIncluded: true,
+    customsDutyInfo: {},
+    restrictions: {
+      excludedCountries: [],
+      maxQuantityPerOrder: 0
     }
   },
   // Women's T-shirts
@@ -432,6 +523,14 @@ const productDetailsMap: Record<string, ProductDetails> = {
     weight: {
       value: 0.25,
       units: 'kg'
+    },
+    pricing: [],
+    shippingZones: {},
+    vatIncluded: true,
+    customsDutyInfo: {},
+    restrictions: {
+      excludedCountries: [],
+      maxQuantityPerOrder: 0
     }
   },
   'GLOBAL-TEE-BC-6035': {
@@ -488,6 +587,14 @@ const productDetailsMap: Record<string, ProductDetails> = {
     weight: {
       value: 0.25,
       units: 'kg'
+    },
+    pricing: [],
+    shippingZones: {},
+    vatIncluded: true,
+    customsDutyInfo: {},
+    restrictions: {
+      excludedCountries: [],
+      maxQuantityPerOrder: 0
     }
   },
   // Babies
@@ -545,6 +652,14 @@ const productDetailsMap: Record<string, ProductDetails> = {
     weight: {
       value: 0.15,
       units: 'kg'
+    },
+    pricing: [],
+    shippingZones: {},
+    vatIncluded: true,
+    customsDutyInfo: {},
+    restrictions: {
+      excludedCountries: [],
+      maxQuantityPerOrder: 0
     }
   },
   'GLOBAL-TEE-RS-3322': {
@@ -601,6 +716,14 @@ const productDetailsMap: Record<string, ProductDetails> = {
     weight: {
       value: 0.15,
       units: 'kg'
+    },
+    pricing: [],
+    shippingZones: {},
+    vatIncluded: true,
+    customsDutyInfo: {},
+    restrictions: {
+      excludedCountries: [],
+      maxQuantityPerOrder: 0
     }
   },
   // Kids
@@ -658,6 +781,14 @@ const productDetailsMap: Record<string, ProductDetails> = {
     weight: {
       value: 0.2,
       units: 'kg'
+    },
+    pricing: [],
+    shippingZones: {},
+    vatIncluded: true,
+    customsDutyInfo: {},
+    restrictions: {
+      excludedCountries: [],
+      maxQuantityPerOrder: 0
     }
   },
   'SWEAT-AWD-JH030B': {
@@ -715,6 +846,14 @@ const productDetailsMap: Record<string, ProductDetails> = {
     weight: {
       value: 0.4,
       units: 'kg'
+    },
+    pricing: [],
+    shippingZones: {},
+    vatIncluded: true,
+    customsDutyInfo: {},
+    restrictions: {
+      excludedCountries: [],
+      maxQuantityPerOrder: 0
     }
   }
 };
@@ -798,8 +937,7 @@ type ProductSku = keyof typeof basePrices;
 
 // Base prices in USD
 const basePrices = {
-  'GLOBAL-TEE-GIL-5000': 69.99,
-  'AU3-TEE-U-B-3200': 69.99,
+  'TEE-SS-STTU755': 71.99,
   'GLOBAL-TEE-BC-3413': 71.99,
   'TT-GIL-64200': 68.99,
   'GLOBAL-TEE-GIL-64V00': 69.99,
@@ -1000,7 +1138,14 @@ async function updateProductDetails(details: ProductDetails) {
             careInstructions: details.careInstructions,
             ecoProperties: details.ecoProperties,
             manufacturingLocation: details.manufacturingLocation
-          })
+          }),
+
+          // New international fields
+          pricing: details.pricing,
+          shippingZones: details.shippingZones,
+          vatIncluded: details.vatIncluded,
+          customsDutyInfo: details.customsDutyInfo,
+          restrictions: details.restrictions
         },
         update: {
           // Update only necessary fields
@@ -1012,7 +1157,12 @@ async function updateProductDetails(details: ProductDetails) {
           taxAmount,
           totalCost,
           customerPrice: totalCost,
-          updatedAt: new Date()
+          updatedAt: new Date(),
+          pricing: details.pricing,
+          shippingZones: details.shippingZones,
+          vatIncluded: details.vatIncluded,
+          customsDutyInfo: details.customsDutyInfo,
+          restrictions: details.restrictions
         }
       });
 
