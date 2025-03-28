@@ -43,6 +43,7 @@ import { LORAS, Lora } from '../../../../data/textModel'
 import { SUPPORTED_COUNTRIES, formatPrice, convertPrice, getDefaultCurrency } from '@/utils/currency'
 import { useExchangeRates } from '@/hooks/useExchangeRates'
 import { GlobeAltIcon, TruckIcon, ShieldCheckIcon } from '@heroicons/react/24/outline'
+import { CheckoutButton } from "@/components/CheckoutButton"
 
 interface ProductDetailProps {
   product: Product
@@ -64,6 +65,8 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const [isDownloading, setIsDownloading] = useState(false)
   const [selectedCountry, setSelectedCountry] = useState('US')
   const [selectedCurrency, setSelectedCurrency] = useState('USD')
+  const [isSaving, setIsSaving] = useState(false)
+  const [isAddingToWishlist, setIsAddingToWishlist] = useState(false)
   
   // Refs for T-shirt and design images (if needed)
   const tshirtImageRef = useRef<HTMLImageElement>(null)
@@ -298,10 +301,133 @@ export function ProductDetail({ product }: ProductDetailProps) {
     }
   }
 
+  // Save generated image
+  const handleSaveImage = async () => {
+    if (!generatedImage) {
+      toast({
+        title: "Error",
+        description: "Please generate a design first",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      const response = await fetch('/api/save-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageUrl: generatedImage,
+          designName: `${product.name} Design`,
+          productId: product.id
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to save image')
+      }
+
+      toast({
+        title: "Success",
+        description: "Design saved to My Images!",
+        variant: "default"
+      })
+    } catch (error) {
+      console.error('Error saving image:', error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to save image',
+        variant: "destructive"
+      })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // Add to wishlist
+  const handleAddToWishlist = async () => {
+    if (!generatedImage) {
+      toast({
+        title: "Error",
+        description: "Please generate a design first",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setIsAddingToWishlist(true)
+    try {
+      // First save the image
+      const saveResponse = await fetch('/api/save-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageUrl: generatedImage,
+          designName: `${product.name} Design`,
+          productId: product.id
+        })
+      })
+
+      if (!saveResponse.ok) {
+        throw new Error('Failed to save design')
+      }
+
+      // Then add to wishlist
+      const wishlistResponse = await fetch('/api/wishlist/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: product.id
+        })
+      })
+
+      if (!wishlistResponse.ok) {
+        throw new Error('Failed to add to wishlist')
+      }
+
+      toast({
+        title: "Success",
+        description: "Design saved to My Designs!",
+        variant: "default"
+      })
+    } catch (error) {
+      console.error('Error adding to wishlist:', error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to add to wishlist',
+        variant: "destructive"
+      })
+    } finally {
+      setIsAddingToWishlist(false)
+    }
+  }
+
   // ---- Example: Submitting a Review ----
   const handleSubmitReview = async () => {
     // Implement review submission logic here
     console.log('Submitting review:', { rating, reviewText })
+  }
+
+  const handleDirectCheckout = () => {
+    if (!selectedSize || !selectedColor) {
+      toast({
+        title: "Error",
+        description: "Please select size and color",
+        variant: "destructive"
+      })
+      return
+    }
+
+    const checkoutItem = {
+      productId: product.id,
+      name: product.name,
+      price: product.price,
+      quantity: 1,
+      images: product.images
+    }
+
+    return <CheckoutButton items={[checkoutItem]} />
   }
 
   return (
@@ -377,7 +503,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
 
       {/* Right Column - Product Info / AI Generation */}
       <div className="space-y-8">
-        {/* Country and Currency Selection */}
+        {/* Country and Currency Selection *
         <div className="flex items-center space-x-4 bg-gray-50 p-4 rounded-lg">
           <GlobeAltIcon className="h-6 w-6 text-gray-400" />
           <div className="flex-1 space-y-1">
@@ -409,7 +535,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
               <p className="text-sm text-red-500">Using fallback exchange rates</p>
             )}
           </div>
-        </div>
+        </div> */}
 
         {/* Price Display with International Support */}
         <div className="space-y-2">
@@ -521,9 +647,22 @@ export function ProductDetail({ product }: ProductDetailProps) {
           </div>
         )}
 
-        <Button className="w-full" size="lg">
-          Add to Cart
-        </Button>
+        <div className="space-y-3">
+          <Button className="w-full" size="lg" onClick={() => {/* Add to cart logic */}}>
+            Add to Cart
+          </Button>
+          <CheckoutButton
+            items={[{
+              productId: product.id,
+              name: product.name,
+              price: product.price,
+              quantity: 1,
+              images: product.images
+            }]}
+            variant="outline"
+            className="w-full"
+          />
+        </div>
 
         {/* AI Generation UI */}
         <div className="border rounded-lg p-6">
@@ -631,14 +770,34 @@ export function ProductDetail({ product }: ProductDetailProps) {
             </Button>
             
             {generatedImage && (
-              <Button
-                className="w-full mt-2"
-                variant="outline"
-                onClick={handleDownloadImage}
-                disabled={isDownloading || !generatedImage}
-              >
-                {isDownloading ? 'Downloading...' : 'Download as PNG (300 DPI)'}
-              </Button>
+              <div className="space-y-2">
+                <Button
+                  className="w-full mt-2"
+                  variant="outline"
+                  onClick={handleDownloadImage}
+                  disabled={isDownloading || !generatedImage}
+                >
+                  {isDownloading ? 'Downloading...' : 'Download as PNG (300 DPI)'}
+                </Button>
+                
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  onClick={handleSaveImage}
+                  disabled={isSaving || !generatedImage}
+                >
+                  {isSaving ? 'Saving...' : 'Save to My Images'}
+                </Button>
+
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  onClick={handleAddToWishlist}
+                  disabled={isAddingToWishlist || !generatedImage}
+                >
+                  {isAddingToWishlist ? 'Adding to Designs...' : 'Save to My Designs'}
+                </Button>
+              </div>
             )}
           </div>
         </div>

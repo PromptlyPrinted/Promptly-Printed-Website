@@ -1,3 +1,113 @@
+// Define supported currencies type
+type SupportedCurrency = 'USD' | 'EUR' | 'GBP' | 'AUD' | 'CHF' | 'SEK' | 'AED' | 
+                        'DKK' | 'NOK' | 'NZD' | 'KRW' | 'JPY' | 'SGD' | 'CNY';
+
+// Define exchange rates (these should be updated regularly in production)
+const exchangeRates: Record<SupportedCurrency, number> = {
+  USD: 1,      // Base currency
+  EUR: 0.92,   // Euro
+  GBP: 0.79,   // British Pound
+  AUD: 1.52,   // Australian Dollar
+  CHF: 0.89,   // Swiss Franc
+  SEK: 10.45,  // Swedish Krona
+  AED: 3.67,   // UAE Dirham
+  DKK: 6.86,   // Danish Krone
+  NOK: 10.58,  // Norwegian Krone
+  NZD: 1.65,   // New Zealand Dollar
+  KRW: 1335.50,// South Korean Won
+  JPY: 150.55, // Japanese Yen
+  SGD: 1.34,   // Singapore Dollar
+  CNY: 7.23    // Chinese Yuan
+};
+
+// Helper function to convert USD to other currencies
+function convertFromUSD(amount: number, targetCurrency: SupportedCurrency): number {
+  const rate = exchangeRates[targetCurrency];
+  if (!rate) throw new Error(`Unsupported currency: ${targetCurrency}`);
+  
+  // Round to 2 decimal places, except JPY and KRW which don't use decimals
+  if (targetCurrency === 'JPY' || targetCurrency === 'KRW') {
+    return Math.round(amount * rate);
+  }
+  return Math.round(amount * rate * 100) / 100;
+}
+
+// Helper function to generate pricing array from USD base price
+function generatePricingArray(basePrice: number): Array<{currency: string; amount: number; regions: string[]}> {
+  return [
+    {
+      currency: 'USD',
+      amount: basePrice,
+      regions: ['US']
+    },
+    {
+      currency: 'EUR',
+      amount: convertFromUSD(basePrice, 'EUR'),
+      regions: ['DE', 'FR', 'ES', 'IT', 'NL', 'IE', 'BE', 'AT', 'PT', 'FI', 'GR']
+    },
+    {
+      currency: 'GBP',
+      amount: convertFromUSD(basePrice, 'GBP'),
+      regions: ['GB']
+    },
+    {
+      currency: 'AUD',
+      amount: convertFromUSD(basePrice, 'AUD'),
+      regions: ['AU']
+    },
+    {
+      currency: 'CHF',
+      amount: convertFromUSD(basePrice, 'CHF'),
+      regions: ['CH']
+    },
+    {
+      currency: 'SEK',
+      amount: convertFromUSD(basePrice, 'SEK'),
+      regions: ['SE']
+    },
+    {
+      currency: 'AED',
+      amount: convertFromUSD(basePrice, 'AED'),
+      regions: ['AE']
+    },
+    {
+      currency: 'DKK',
+      amount: convertFromUSD(basePrice, 'DKK'),
+      regions: ['DK']
+    },
+    {
+      currency: 'NOK',
+      amount: convertFromUSD(basePrice, 'NOK'),
+      regions: ['NO']
+    },
+    {
+      currency: 'NZD',
+      amount: convertFromUSD(basePrice, 'NZD'),
+      regions: ['NZ']
+    },
+    {
+      currency: 'KRW',
+      amount: convertFromUSD(basePrice, 'KRW'),
+      regions: ['KR']
+    },
+    {
+      currency: 'JPY',
+      amount: convertFromUSD(basePrice, 'JPY'),
+      regions: ['JP']
+    },
+    {
+      currency: 'SGD',
+      amount: convertFromUSD(basePrice, 'SGD'),
+      regions: ['SG']
+    },
+    {
+      currency: 'CNY',
+      amount: convertFromUSD(basePrice, 'CNY'),
+      regions: ['CN']
+    }
+  ];
+}
+
 interface ShippingZone {
   countries: string[];
   standardShipping: {
@@ -31,7 +141,7 @@ interface ColorOption {
   filename: string;
 }
 
-interface ProductDetails {
+export interface ProductDetails {
   sku: string;
   name: string;
   shortDescription: string;
@@ -41,6 +151,7 @@ interface ProductDetails {
   ecoProperties: string[];
   careInstructions: string[];
   pdfUrl: string;
+  size: string[];
   productType: string;
   category: string;
   imageUrls: {
@@ -180,116 +291,6 @@ const baseCustomsDutyInfo = {
   ROW: 'Import duties may apply, calculated at checkout'
 };
 
-// Define supported currencies type
-type SupportedCurrency = 'USD' | 'EUR' | 'GBP' | 'AUD' | 'CHF' | 'SEK' | 'AED' | 
-                        'DKK' | 'NOK' | 'NZD' | 'KRW' | 'JPY' | 'SGD' | 'CNY';
-
-// Define exchange rates (these should be updated regularly in production)
-const exchangeRates: Record<SupportedCurrency, number> = {
-  USD: 1,      // Base currency
-  EUR: 0.92,   // Euro
-  GBP: 0.79,   // British Pound
-  AUD: 1.52,   // Australian Dollar
-  CHF: 0.89,   // Swiss Franc
-  SEK: 10.45,  // Swedish Krona
-  AED: 3.67,   // UAE Dirham
-  DKK: 6.86,   // Danish Krone
-  NOK: 10.58,  // Norwegian Krone
-  NZD: 1.65,   // New Zealand Dollar
-  KRW: 1335.50,// South Korean Won
-  JPY: 150.55, // Japanese Yen
-  SGD: 1.34,   // Singapore Dollar
-  CNY: 7.23    // Chinese Yuan
-};
-
-// Helper function to convert USD to other currencies
-function convertFromUSD(amount: number, targetCurrency: SupportedCurrency): number {
-  const rate = exchangeRates[targetCurrency];
-  if (!rate) throw new Error(`Unsupported currency: ${targetCurrency}`);
-  
-  // Round to 2 decimal places, except JPY and KRW which don't use decimals
-  if (targetCurrency === 'JPY' || targetCurrency === 'KRW') {
-    return Math.round(amount * rate);
-  }
-  return Math.round(amount * rate * 100) / 100;
-}
-
-// Helper function to generate pricing array from USD base price
-function generatePricingArray(basePrice: number): Array<{currency: string; amount: number; regions: string[]}> {
-  return [
-    {
-      currency: 'USD',
-      amount: basePrice,
-      regions: ['US']
-    },
-    {
-      currency: 'EUR',
-      amount: convertFromUSD(basePrice, 'EUR'),
-      regions: ['DE', 'FR', 'ES', 'IT', 'NL', 'IE', 'BE', 'AT', 'PT', 'FI', 'GR']
-    },
-    {
-      currency: 'GBP',
-      amount: convertFromUSD(basePrice, 'GBP'),
-      regions: ['GB']
-    },
-    {
-      currency: 'AUD',
-      amount: convertFromUSD(basePrice, 'AUD'),
-      regions: ['AU']
-    },
-    {
-      currency: 'CHF',
-      amount: convertFromUSD(basePrice, 'CHF'),
-      regions: ['CH']
-    },
-    {
-      currency: 'SEK',
-      amount: convertFromUSD(basePrice, 'SEK'),
-      regions: ['SE']
-    },
-    {
-      currency: 'AED',
-      amount: convertFromUSD(basePrice, 'AED'),
-      regions: ['AE']
-    },
-    {
-      currency: 'DKK',
-      amount: convertFromUSD(basePrice, 'DKK'),
-      regions: ['DK']
-    },
-    {
-      currency: 'NOK',
-      amount: convertFromUSD(basePrice, 'NOK'),
-      regions: ['NO']
-    },
-    {
-      currency: 'NZD',
-      amount: convertFromUSD(basePrice, 'NZD'),
-      regions: ['NZ']
-    },
-    {
-      currency: 'KRW',
-      amount: convertFromUSD(basePrice, 'KRW'),
-      regions: ['KR']
-    },
-    {
-      currency: 'JPY',
-      amount: convertFromUSD(basePrice, 'JPY'),
-      regions: ['JP']
-    },
-    {
-      currency: 'SGD',
-      amount: convertFromUSD(basePrice, 'SGD'),
-      regions: ['SG']
-    },
-    {
-      currency: 'CNY',
-      amount: convertFromUSD(basePrice, 'CNY'),
-      regions: ['CN']
-    }
-  ];
-}
-
 // Export the tshirt details for use in other files
 export const tshirtDetails: Record<string, ProductDetails> = {
     // Men's T-shirts
@@ -319,6 +320,7 @@ export const tshirtDetails: Record<string, ProductDetails> = {
       'Wash and iron inside out'
     ],
     pdfUrl: 'https://www.prodigi.com/download/product-range/Prodigi%20Stanley%20Stella%20Creator%202.0%20STTU755.pdf',
+    size: ['XXS','XS','S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', '5XL'],
     productType: 'T_SHIRT',
     category: "Men's T-shirts",
     imageUrls: {
@@ -367,7 +369,7 @@ export const tshirtDetails: Record<string, ProductDetails> = {
     customsDutyInfo: baseCustomsDutyInfo,
     restrictions: {
       excludedCountries: [],
-      maxQuantityPerOrder: 10
+      maxQuantityPerOrder: 1000
     }
   },
   'GLOBAL-TEE-BC-3413': {
@@ -390,6 +392,7 @@ export const tshirtDetails: Record<string, ProductDetails> = {
       'Do not dry clean'
     ],
     pdfUrl: 'https://www.prodigi.com/download/product-range/Prodigi%20Bella+Canvas%203413.pdf',
+    size: ['S', 'M', 'L', 'XL','2XL'],
     productType: 'T_SHIRT',
     category: "Men's T-shirts",
     imageUrls: {
@@ -445,6 +448,7 @@ export const tshirtDetails: Record<string, ProductDetails> = {
       'Do not dry clean'
     ],
     pdfUrl: 'https://www.prodigi.com/download/product-range/Prodigi%20Gildan%2064200.pdf',
+    size: ['S', 'M', 'L', 'XL','2XL'],
     productType: 'TANK_TOP',
     category: "Men's T-shirts",
     imageUrls: {
@@ -502,6 +506,7 @@ export const tshirtDetails: Record<string, ProductDetails> = {
       'Do not dry clean'
     ],
     pdfUrl: 'https://www.prodigi.com/download/product-range/Prodigi%20Gildan%2064V00.pdf',
+    size: ['S', 'M', 'L', 'XL','2XL'],
     productType: 'T_SHIRT',
     category: "Men's T-shirts",
     imageUrls: {
@@ -560,6 +565,7 @@ export const tshirtDetails: Record<string, ProductDetails> = {
       'Do not dry clean'
     ],
     pdfUrl: 'https://www.prodigi.com/download/product-range/Prodigi%20Gildan%202400.pdf',
+    size: ['XXS','XS','S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', '5XL'],
     productType: 'LONG_SLEEVE_T_SHIRT',
     category: "Men's T-shirts",
     imageUrls: {
@@ -624,6 +630,7 @@ export const tshirtDetails: Record<string, ProductDetails> = {
       'Do not dry clean'
     ],
     pdfUrl: 'https://www.prodigi.com/download/product-range/Prodigi%20Gildan%2064000L.pdf',
+     size: ['S', 'M', 'L', 'XL','2XL'],
     productType: 'T_SHIRT',
     category: "Women's T-shirts",
     imageUrls: {
@@ -682,6 +689,7 @@ export const tshirtDetails: Record<string, ProductDetails> = {
       'Do not dry clean'
     ],
     pdfUrl: 'https://www.prodigi.com/download/product-range/Prodigi%20Bella+Canvas%206035.pdf',
+     size: ['S', 'M', 'L', 'XL','2XL'],
     productType: 'T_SHIRT',
     category: "Women's T-shirts",
     imageUrls: {
@@ -754,6 +762,7 @@ export const tshirtDetails: Record<string, ProductDetails> = {
       'Do not iron decoration'
     ],
     pdfUrl: 'https://www.prodigi.com/download/product-range/Prodigi%20LAT%20Apparel%204411.pdf',
+     size: ['Newborn', '6M', '12M', '18M'],
     productType: 'BABY_BODYSUIT',
     category: "Baby Clothing",
     imageUrls: {
@@ -820,6 +829,8 @@ export const tshirtDetails: Record<string, ProductDetails> = {
       'Do not iron decoration'
     ],
     pdfUrl: 'https://www.prodigi.com/download/product-range/Prodigi%20LAT%20Apparel%203322.pdf',
+    size: ['3-6M (UK/EU only)', '6-12M','12-18M','12-18M', '18-24M'],
+
     productType: 'BABY_T_SHIRT',
     category: "Baby Clothing",
     imageUrls: {
@@ -890,6 +901,7 @@ export const tshirtDetails: Record<string, ProductDetails> = {
       'Do not dry clean'
     ],
     pdfUrl: 'https://www.prodigi.com/download/product-range/Prodigi%20Gildan%2064000B.pdf',
+    size: ['3-4Y','5-6Y','7-8Y','9-11Y','12-13Y'],
     productType: 'KIDS_T_SHIRT',
     category: "Kids' T-shirts",
     imageUrls: {
@@ -958,7 +970,8 @@ export const tshirtDetails: Record<string, ProductDetails> = {
       'Do not iron decoration',
       'Do not dry clean'
     ],
-    pdfUrl: 'https://www.prodigi.com/download/product-range/Prodigi%20AWDis%20JH030J.pdf',
+    pdfUrl: 'https://www.prodigi.com/download/product-range/Prodigi%20AWDis%20JH030J.pdf', 
+    size: ['3-4Y','5-6Y','7-8Y','9-11Y','12-13Y'],
     productType: 'KIDS_SWEATSHIRT',
     category: "Kids' Sweatshirts",
     imageUrls: {
@@ -1002,82 +1015,5 @@ export const tshirtDetails: Record<string, ProductDetails> = {
       excludedCountries: [],
       maxQuantityPerOrder: 10
     }
-  },
-  'SWEAT-AWD-JH001': {
-    sku: 'SWEAT-AWD-JH001',
-    name: 'Kids Sweatshirt',
-    shortDescription: 'Premium kids sweatshirt with modern fit and superior comfort',
-    features: [
-      'Double fabric hood with self-colored cords',
-      'Kangaroo pouch pocket',
-      'Ribbed cuffs and hem',
-      'Twin needle stitching detailing',
-      'Brushed inner fleece'
-    ],
-    manufacturingLocation: 'Multiple locations worldwide',
-    materials: [
-      '80% ringspun cotton, 20% polyester',
-      'Brushed back fleece',
-      '280 GSM fabric weight'
-    ],
-    ecoProperties: [
-      'CPSIA compliant',
-      'Kid-safe materials',
-      'Sustainable manufacturing',
-      'Oeko-Tex® Standard 100 Certified'
-    ],
-    careInstructions: [
-      'Machine wash at 30°C',
-      'Do not bleach',
-      'Iron on low heat',
-      'Do not iron decoration',
-      'Do not dry clean'
-    ],
-    pdfUrl: 'https://www.prodigi.com/download/product-range/Prodigi%20AWDis%20JH001.pdf',
-    productType: 'KIDS_SWEATSHIRT',
-    category: "Kids' Sweatshirts",
-    imageUrls: {
-      base: '/assets/images/Apparel/Kids+Babies/Kids/T-Shirts/SWEAT-AWD-JH001/Blanks/png'
-    },
-    colorOptions: [
-      { name: 'Arctic White', filename: 'arctic-white.png' },
-      { name: 'Jet Black', filename: 'jet-black.png' },
-      { name: 'Charcoal', filename: 'charcoal.png' },
-      { name: 'Heather Grey', filename: 'heather-grey.png' },
-      { name: 'Oxford Navy', filename: 'oxford-navy.png' },
-      { name: 'Royal Blue', filename: 'royal-blue.png' },
-      { name: 'Sky Blue', filename: 'sky-blue.png' },
-      { name: 'Bottle Green', filename: 'bottle-green.png' },
-      { name: 'Kelly Green', filename: 'kelly-green.png' },
-      { name: 'Red', filename: 'red.png' },
-      { name: 'Sun Yellow', filename: 'sun-yellow.png' }
-    ],
-    brand: {
-      name: 'AWDis',
-      identifier: 'AWD'
-    },
-    identifiers: {
-      mpn: 'JH001'
-    },
-    availability: 'https://schema.org/InStock',
-    dimensions: {
-      width: 16,
-      height: 24,
-      units: 'in'
-    },
-    weight: {
-      value: 0.4,
-      units: 'kg'
-    },
-    pricing: generatePricingArray(29.99),
-    shippingZones: baseShippingZones,
-    vatIncluded: true,
-    customsDutyInfo: baseCustomsDutyInfo,
-    restrictions: {
-      excludedCountries: [],
-      maxQuantityPerOrder: 10
-    }
   }
-};
-
-export type { ProductDetails }; 
+}; 

@@ -1,11 +1,22 @@
 import { Metadata } from 'next'
 import { ProductDetail } from './components/product-detail'
 import { getProductById } from '@/app/lib/db'
+import { database } from '@repo/database'
 
 type Props = {
   params: {
     id: string
   }
+}
+
+export async function generateStaticParams() {
+  const products = await database.product.findMany({
+    select: { id: true },
+  });
+
+  return products.map((product) => ({
+    id: product.id.toString(),
+  }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

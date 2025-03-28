@@ -8,18 +8,19 @@ datasource db {
 }
 
 model User {
-  id        String      @id @default(cuid())
-  clerkId   String?     @unique
-  email     String      @unique
-  firstName String?
-  lastName  String?
-  role      Role        @default(CUSTOMER)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  addresses Address[]
-  Analytics Analytics[]
-  orders    Order[]     @relation("UserOrders")
-  wishlist  Product[]   @relation("UserWishlist")
+  id          String       @id @default(cuid())
+  clerkId     String?      @unique
+  email       String       @unique
+  firstName   String?
+  lastName    String?
+  role        Role         @default(CUSTOMER)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  addresses   Address[]
+  Analytics   Analytics[]
+  orders      Order[]      @relation("UserOrders")
+  savedImages SavedImage[]
+  wishlist    Product[]    @relation("UserWishlist")
 }
 
 model Page {
@@ -31,19 +32,19 @@ model Page {
 }
 
 model Product {
-  id                     Int         @id @default(autoincrement())
+  id                     Int          @id @default(autoincrement())
   name                   String
-  sku                    String      @unique
+  sku                    String       @unique
   description            String
   price                  Float
   customerPrice          Float
-  stock                  Int         @default(0)
+  stock                  Int          @default(0)
   currency               String
   categoryId             Int?
   productType            String
-  listed                 Boolean     @default(false)
-  createdAt              DateTime    @default(now())
-  updatedAt              DateTime    @updatedAt
+  listed                 Boolean      @default(false)
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
   brand                  String
   color                  String[]
   countryCode            String
@@ -65,9 +66,10 @@ model Product {
   prodigiVariants        Json?
   images                 Image[]
   orderItems             OrderItem[]
-  category               Category?   @relation(fields: [categoryId], references: [id])
+  category               Category?    @relation(fields: [categoryId], references: [id])
   quotes                 Quote[]
-  wishedBy               User[]      @relation("UserWishlist")
+  savedImages            SavedImage[]
+  wishedBy               User[]       @relation("UserWishlist")
 
   @@unique([sku, countryCode])
   @@index([countryCode])
@@ -87,14 +89,14 @@ model Category {
 }
 
 model Order {
-  id                 Int             @id @default(autoincrement())
-  prodigiOrderId     String?         @unique
+  id                 Int                    @id @default(autoincrement())
+  prodigiOrderId     String?                @unique
   userId             String
-  status             OrderStatus     @default(PENDING)
+  status             OrderStatus            @default(PENDING)
   totalPrice         Float
   paymentId          Int?
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
   callbackUrl        String?
   idempotencyKey     String?
   merchantReference  String?
@@ -108,21 +110,22 @@ model Order {
   shippingMethod     ShippingMethod?
   traceParent        String?
   charges            Charge[]
-  payment            Payment?        @relation(fields: [paymentId], references: [id])
-  user               User            @relation("UserOrders", fields: [userId], references: [id])
+  payment            Payment?               @relation(fields: [paymentId], references: [id])
+  user               User                   @relation("UserOrders", fields: [userId], references: [id])
   orderItems         OrderItem[]
+  prodigiErrors      OrderProcessingError[]
   recipient          Recipient?
-  shipments          Shipment[]
+  shipments          Shipment[]             @relation("OrderShipments")
 }
 
 model OrderItem {
-  id                    Int      @id @default(autoincrement())
+  id                    Int            @id @default(autoincrement())
   orderId               Int
   productId             Int
-  copies                Int
+  copies                Int            @default(1)
   price                 Float
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
   assets                Json?
   attributes            Json?
   merchantReference     String?
@@ -131,8 +134,10 @@ model OrderItem {
   recipientCostAmount   Float?
   recipientCostCurrency String?
   sizing                String?
-  order                 Order    @relation(fields: [orderId], references: [id])
-  product               Product  @relation(fields: [productId], references: [id])
+  customizationId       Int?
+  customization         Customization? @relation(fields: [customizationId], references: [id])
+  order                 Order          @relation(fields: [orderId], references: [id])
+  product               Product        @relation(fields: [productId], references: [id])
 }
 
 model Payment {
@@ -246,7 +251,7 @@ model Cost {
 
 model Shipment {
   id                    Int                  @id @default(autoincrement())
-  prodigiShipmentId     String?
+  prodigiShipmentId     String?              @unique
   status                String?
   carrier               String?
   carrierService        String?
@@ -255,16 +260,23 @@ model Shipment {
   dispatchDate          DateTime?
   fulfillmentLocationId Int?
   orderId               Int
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
   fulfillmentLocation   FulfillmentLocation? @relation(fields: [fulfillmentLocationId], references: [id])
-  order                 Order                @relation(fields: [orderId], references: [id])
+  order                 Order                @relation("OrderShipments", fields: [orderId], references: [id], map: "Shipment_orderId_fkey")
   items                 ShipmentItem[]
+
+  @@index([orderId])
 }
 
 model ShipmentItem {
   id         Int      @id @default(autoincrement())
   itemId     String?
   shipmentId Int
+  createdAt  DateTime @default(now())
   shipment   Shipment @relation(fields: [shipmentId], references: [id])
+
+  @@index([shipmentId])
 }
 
 model FulfillmentLocation {
@@ -352,6 +364,45 @@ model ShippingPrice {
   updatedAt           DateTime       @updatedAt
 
   @@unique([method, currency])
+}
+
+model SavedImage {
+  id        String   @id @default(cuid())
+  url       String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String
+  productId Int?
+  product   Product? @relation(fields: [productId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([productId])
+}
+
+model Customization {
+  id         Int         @id @default(autoincrement())
+  artworkUrl String
+  mockupUrl  String
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  orderItems OrderItem[]
+}
+
+model OrderProcessingError {
+  id          Int       @id @default(autoincrement())
+  orderId     Int
+  error       String
+  retryCount  Int
+  lastAttempt DateTime?
+  createdAt   DateTime  @default(now())
+  resolvedAt  DateTime?
+  resolvedBy  String?
+  resolution  String?
+  order       Order     @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
 }
 
 enum Role {
