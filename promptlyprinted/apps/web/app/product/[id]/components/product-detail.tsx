@@ -52,7 +52,7 @@ interface ProductDetailProps {
 export function ProductDetail({ product }: ProductDetailProps) {
   // State
   const [selectedSize, setSelectedSize] = useState('')
-  const [selectedColor, setSelectedColor] = useState('')
+  const [selectedColor, setSelectedColor] = useState(product.colorOptions?.[0]?.filename || '')
   const [promptText, setPromptText] = useState('')
   const [selectedModels, setSelectedModels] = useState<number[]>([LORAS[0].id])
   const [modelWeights, setModelWeights] = useState<Record<number, number>>({})
@@ -440,13 +440,22 @@ export function ProductDetail({ product }: ProductDetailProps) {
             (e.g. 800×1000). 
           */}
           <Image
-          // T-Shirt used in UI
-            src="/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/blanks/png/navy.png"
+            //src = 'product.specifications?.color'
+            //'/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/Blanks/png/navy.png'
+            src={`../${product.imageUrl}/${(selectedColor || product.specifications?.color[0]).replace(/ /g, '-')}.png`}
             alt={product.name}
             width={800}       // Example real T-shirt ratio
             height={1000}     // Example real T-shirt ratio
             className="object-contain"
             ref={tshirtImageRef as any}
+            onError={(e) => {
+              //console.log('Base path:', product.imageUrls?.base);
+              console.log('Base path 2:', product.imageUrl);
+              console.log('Selected color filename:', selectedColor);
+              //console.log('Color options:', product.colorOptions);
+               console.log('Color options 2:', product.specifications?.color);
+              //console.log('Full image path:', `${product.imageUrls?.base}/${selectedColor || product.colorOptions?.[0]?.filename || 'white.png'}`);
+            }}
           />
 
           {generatedImage && (
