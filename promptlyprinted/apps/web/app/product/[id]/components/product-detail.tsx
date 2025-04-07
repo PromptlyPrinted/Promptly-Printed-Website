@@ -462,68 +462,48 @@ export function ProductDetail({ product }: ProductDetailProps) {
             )}
           </div>
 
-          {/* Thumbnails */}
-          {product.images && product.images.length > 1 && (
-            <div className="grid grid-cols-4 gap-4">
-              {product.images.map((image, idx) => (
-                <div
-                  key={`product-image-${idx}`}
-                  className="aspect-square relative overflow-hidden rounded-md"
-                >
-                  <Image
-                    src={image}
-                    alt={`${product.name} ${idx + 1}`}
-                    width={200}
-                    height={200}
-                    className="w-full h-full object-cover cursor-pointer hover:opacity-75"
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-
           {/* AI Prompt Input Section */}
           <div className="border rounded-lg p-6 space-y-4 border-teal-200">
             <h2 className="text-xl font-semibold mb-2 text-teal-700">Customize with AI</h2>
-            <Tabs defaultValue="text" onValueChange={(v) => setGenerationMode(v)}>
-              <TabsList className="mb-4">
-                <TabsTrigger value="text" className="data-[state=active]:text-teal-600">Text to Image</TabsTrigger>
-                <TabsTrigger value="image" className="data-[state=active]:text-teal-600">Image to Image</TabsTrigger>
-              </TabsList>
-              <TabsContent value="text">
-                <div className="space-y-4">
-                  <Label htmlFor="prompt" className="text-teal-600">Describe your design</Label>
-                  <Textarea
-                    id="prompt"
-                    placeholder="Enter your design description..."
-                    value={promptText}
-                    onChange={(e) => setPromptText(e.target.value)}
-                  />
+            {generationMode === 'text' ? (
+              <div className="space-y-4">
+                <Label htmlFor="prompt" className="text-teal-600">Describe your design</Label>
+                <Textarea
+                  id="prompt"
+                  placeholder="Enter your design description..."
+                  value={promptText}
+                  onChange={(e) => setPromptText(e.target.value)}
+                />
+                <Button
+                  className="w-full bg-teal-600 hover:bg-teal-700 text-white"
+                  onClick={handleImageGeneration}
+                  disabled={isGenerating || !promptText}
+                >
+                  {isGenerating ? 'Generating...' : 'Generate Design'}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <Label className="text-teal-600">Reference Image</Label>
+                <div className="mt-2 flex items-center justify-center border-2 border-dashed border-teal-200 rounded-lg p-6">
+                  <Button variant="outline">Upload Image</Button>
                 </div>
-              </TabsContent>
-              <TabsContent value="image">
-                <div className="space-y-4">
-                  <Label className="text-teal-600">Reference Image</Label>
-                  <div className="mt-2 flex items-center justify-center border-2 border-dashed border-teal-200 rounded-lg p-6">
-                    <Button variant="outline">Upload Image</Button>
-                  </div>
-                  <Label htmlFor="imagePrompt" className="text-teal-600">Style Description</Label>
-                  <Textarea
-                    id="imagePrompt"
-                    placeholder="Describe how you want to modify the reference image..."
-                    value={promptText}
-                    onChange={(e) => setPromptText(e.target.value)}
-                  />
-                </div>
-              </TabsContent>
-            </Tabs>
-            <Button
-              className="w-full bg-teal-600 hover:bg-teal-700 text-white"
-              onClick={handleImageGeneration}
-              disabled={isGenerating || !promptText}
-            >
-              {isGenerating ? 'Generating...' : 'Generate Design'}
-            </Button>
+                <Label htmlFor="imagePrompt" className="text-teal-600">Style Description</Label>
+                <Textarea
+                  id="imagePrompt"
+                  placeholder="Describe how you want to modify the reference image..."
+                  value={promptText}
+                  onChange={(e) => setPromptText(e.target.value)}
+                />
+                <Button
+                  className="w-full bg-teal-600 hover:bg-teal-700 text-white"
+                  onClick={handleImageGeneration}
+                  disabled={isGenerating || !promptText}
+                >
+                  {isGenerating ? 'Generating...' : 'Generate Design'}
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -625,82 +605,128 @@ export function ProductDetail({ product }: ProductDetailProps) {
           {/* AI Settings Section */}
           <div className="border rounded-lg p-6 space-y-4 border-teal-200">
             <h2 className="text-xl font-semibold text-teal-700">AI Settings</h2>
-            <div>
-              <Label className="text-teal-600 mb-4 block">AI Models &amp; LoRAs</Label>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {LORAS.map((model: Lora) => (
-                  <div 
-                    key={model.id} 
-                    className={`
-                      relative aspect-square rounded-lg overflow-hidden cursor-pointer
-                      transition-all duration-200 group
-                      ${selectedModels.includes(model.id) ? 'ring-2 ring-teal-500' : 'hover:ring-2 hover:ring-teal-200'}
-                    `}
-                    onClick={() => {
-                      if (selectedModels.includes(model.id)) {
-                        setSelectedModels(selectedModels.filter(mid => mid !== model.id))
-                      } else {
-                        setSelectedModels([...selectedModels, model.id])
-                      }
-                    }}
-                  >
-                    {/* Background Image */}
-                    <div className="relative w-full h-full">
-                      <Image
-                        src={`/lora-images/${model.name.toLowerCase().replace(/\s+/g, '-')}.png`}
-                        alt={model.name}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
+            
+            {/* Model Selection Dropdown */}
+            <div className="space-y-2">
+              <Label className="text-teal-600">AI Model Type</Label>
+              <Select 
+                value={generationMode === 'text' ? 'lora' : 'basic'} 
+                onValueChange={(value) => {
+                  if (value === 'lora' || value === 'basic' || value === 'advanced') {
+                    setGenerationMode('text')
+                  } else {
+                    setGenerationMode('image')
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select model type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {generationMode === 'text' ? (
+                    <>
+                      <SelectItem value="lora">LORA's</SelectItem>
+                      <SelectItem value="basic">Basic model (unlimited)</SelectItem>
+                      <SelectItem value="advanced">Advanced model</SelectItem>
+                    </>
+                  ) : (
+                    <>
+                      <SelectItem value="basic">Basic model</SelectItem>
+                      <SelectItem value="advanced">Advanced model</SelectItem>
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
 
-                    {/* Label Overlay */}
-                    <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/50 backdrop-blur-sm">
-                      <p className="text-white text-sm font-medium text-center">
-                        {model.name.split(/(?=[A-Z])/).join(' ')}
-                      </p>
-                    </div>
+            {/* Generation Mode Tabs */}
+            <Tabs defaultValue="text" onValueChange={(v) => setGenerationMode(v)}>
+              <TabsList className="mb-4">
+                <TabsTrigger value="text" className="data-[state=active]:text-teal-600">Text to Image</TabsTrigger>
+                <TabsTrigger value="image" className="data-[state=active]:text-teal-600">Image to Image</TabsTrigger>
+              </TabsList>
+            </Tabs>
 
-                    {/* Checkbox Overlay */}
-                    <div className="absolute top-2 left-2">
-                      <Checkbox
-                        id={`model-${model.id}`}
-                        checked={selectedModels.includes(model.id)}
-                        className="bg-white/90 border-teal-500 data-[state=checked]:bg-teal-500"
-                        onClick={(e) => e.stopPropagation()}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedModels([...selectedModels, model.id])
-                          } else {
-                            setSelectedModels(selectedModels.filter(mid => mid !== model.id))
-                          }
-                        }}
-                      />
-                    </div>
-
-                    {/* Slider for selected models */}
-                    {selectedModels.includes(model.id) && (
-                      <div className="absolute left-0 right-0 bottom-12 px-4 py-2">
-                        <Slider
-                          value={[modelWeights[model.id] || model.scale || 1.0]}
-                          onValueChange={([value]) => {
-                            setModelWeights({
-                              ...modelWeights,
-                              [model.id]: value
-                            })
-                          }}
-                          min={0}
-                          max={1}
-                          step={0.1}
-                          className="accent-teal-500"
-                          onClick={(e) => e.stopPropagation()}
+            {/* LORA Selection (only shown for text-to-image with LORA selected) */}
+            {generationMode === 'text' && (
+              <div>
+                <Label className="text-teal-600 mb-4 block">AI Models &amp; LoRAs</Label>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {LORAS.map((model: Lora) => (
+                    <div 
+                      key={model.id} 
+                      className={`
+                        relative aspect-square rounded-lg overflow-hidden cursor-pointer
+                        transition-all duration-200 group
+                        ${selectedModels.includes(model.id) ? 'ring-2 ring-teal-500' : 'hover:ring-2 hover:ring-teal-200'}
+                      `}
+                      onClick={() => {
+                        if (selectedModels.includes(model.id)) {
+                          setSelectedModels(selectedModels.filter(mid => mid !== model.id))
+                        } else {
+                          setSelectedModels([...selectedModels, model.id])
+                        }
+                      }}
+                    >
+                      {/* Background Image */}
+                      <div className="relative w-full h-full">
+                        <Image
+                          src={`/lora-images/${model.name.toLowerCase().replace(/\s+/g, '-')}.png`}
+                          alt={model.name}
+                          fill
+                          className="object-cover"
                         />
                       </div>
-                    )}
-                  </div>
-                ))}
+
+                      {/* Label Overlay */}
+                      <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/50 backdrop-blur-sm">
+                        <p className="text-white text-sm font-medium text-center">
+                          {model.name.split(/(?=[A-Z])/).join(' ')}
+                        </p>
+                      </div>
+
+                      {/* Checkbox Overlay */}
+                      <div className="absolute top-2 left-2">
+                        <Checkbox
+                          id={`model-${model.id}`}
+                          checked={selectedModels.includes(model.id)}
+                          className="bg-white/90 border-teal-500 data-[state=checked]:bg-teal-500"
+                          onClick={(e) => e.stopPropagation()}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedModels([...selectedModels, model.id])
+                            } else {
+                              setSelectedModels(selectedModels.filter(mid => mid !== model.id))
+                            }
+                          }}
+                        />
+                      </div>
+
+                      {/* Slider for selected models */}
+                      {selectedModels.includes(model.id) && (
+                        <div className="absolute left-0 right-0 bottom-12 px-4 py-2">
+                          <Slider
+                            value={[modelWeights[model.id] || model.scale || 1.0]}
+                            onValueChange={([value]) => {
+                              setModelWeights({
+                                ...modelWeights,
+                                [model.id]: value
+                              })
+                            }}
+                            min={0}
+                            max={1}
+                            step={0.1}
+                            className="accent-teal-500"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+
             <div className="mt-4">
               <Label className="text-teal-600">LoRA Scale</Label>
               <Slider
