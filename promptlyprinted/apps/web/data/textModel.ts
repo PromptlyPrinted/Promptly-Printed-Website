@@ -1,6 +1,6 @@
 import AnimeSketch from "@/public/lora-images/anime-sketch.png";
 import ColoredSketch from "@/public/lora-images/colored-sketch.png";
-import FluxMidJourney from "@/public/lora-images/flux-midjourney.png";
+import FluxMidJourney from "@/public/lora-images/midjourney.png";
 import Icons from "@/public/lora-images/icons.png";
 import LogoDesign from "@/public/lora-images/logo-design.png";
 import OutfitGenerator from "@/public/lora-images/outfit-generator.png";
@@ -8,7 +8,7 @@ import PencilSketch from "@/public/lora-images/pencil-sketch.png";
 import SimpleSketch from "@/public/lora-images/simple-sketch.png";
 import TarotCard from "@/public/lora-images/tarot-card.png";
 import VectorSketch from "@/public/lora-images/vector-sketch.png";
-import { StaticImageData } from "next/image";
+import { StaticImageData } from "next/image"; //apps/web/public/lora-images/flux-midjourney.png
 
 export type Lora = {
   id: number;
@@ -29,147 +29,86 @@ export type Lora = {
 
 export const LORAS: Lora[] = [
   {
-    id: 9,
+    id: 1,
     name: "Icons",
     model: "Flux-Icon-Kit-LoRA",
-    description: "Creates clean, scalable icon sets for UI/UX projects.",
+    description: "Creates clean, scalable icon designs.",
     url: "https://huggingface.co/strangerzonehf/Flux-Icon-Kit-LoRA",
     image: Icons,
     path: "https://huggingface.co/strangerzonehf/Flux-Icon-Kit-LoRA",
-    applyTrigger: (prompt) => `Icon Kit, ${prompt}`,
-    refinement:
-      "Refine the prompt so that it describes an icon that can be used in UI/UX projects. Do not ask for multiple icons.",
+    applyTrigger: (prompt) => `icon style, ${prompt}`,
+    refinement: "Refine the prompt for clean, minimalist icon designs.",
     scale: 1,
-    steps: 33,
-    height: 832,
-    width: 1280,
+    steps: 28,
     suggestions: [
-      { label: "Red torch", prompt: "A flaming red torch" },
-      { label: "Brown briefcase", prompt: "A brown briefcase" },
-      { label: "Snow globe", prompt: "A snow globe" },
+      { label: "App icon", prompt: "a modern app icon" },
+      { label: "UI element", prompt: "a UI interface element" },
+      { label: "Symbol", prompt: "a symbolic representation" },
     ],
   },
   {
-    id: 6,
-    name: "Logos",
+    id: 2,
+    name: "Logo Design",
     model: "FLUX.1-dev-LoRA-Logo-Design",
-    description: "Tailored for professional and minimalist logo creation.",
+    description: "Creates professional logo designs.",
     url: "https://huggingface.co/Shakker-Labs/FLUX.1-dev-LoRA-Logo-Design",
     image: LogoDesign,
     path: "https://huggingface.co/Shakker-Labs/FLUX.1-dev-LoRA-Logo-Design",
-    applyTrigger: (prompt) => `logo, Minimalist, ${prompt}`,
-    refinement:
-      "Refine the prompt so that it describes a professional and minimalist logo. If the prompt describes two items, then just return those two items.",
-    scale: 0.8,
-    steps: 28,
-    suggestions: [
-      { label: "Cat and flame", prompt: "cat and flame" },
-      {
-        label: "Coffee and city",
-        prompt: "a cup of coffee and a city skyline",
-      },
-      { label: "Tree and water", prompt: "A tree and a lake" },
-    ],
-  },
-  {
-    id: 7,
-    name: "Midjourney",
-    model: "Flux-Midjourney-Mix2-LoRA",
-    url: "https://huggingface.co/strangerzonehf/Flux-Midjourney-Mix2-LoRA",
-    description:
-      "Mimics MidJourney's style, blending intricate and artistic designs.",
-    image: FluxMidJourney,
-    path: "https://huggingface.co/strangerzonehf/Flux-Midjourney-Mix2-LoRA",
-    applyTrigger: (prompt) => `MJ v6, ${prompt}`,
-    refinement:
-      "Refine that prompt so it mimics MidJourney's style, blending intricate and artistic designs. Edit for photorealism and close-up shots.",
+    applyTrigger: (prompt) => `logo design, ${prompt}`,
+    refinement: "Refine the prompt for professional logo designs.",
     scale: 1,
     steps: 28,
     suggestions: [
-      {
-        label: "Banana bread",
-        prompt: "banana bread with chocolate chips and pecans",
-      },
-      {
-        label: "Gemstone",
-        prompt: "A gemstone under soft lighting",
-      },
-      {
-        label: "Paint palette",
-        prompt: "An artist's paint palette smeared with vibrant colors",
-      },
+      { label: "Company logo", prompt: "a modern company logo" },
+      { label: "Brand mark", prompt: "a minimal brand mark" },
+      { label: "Wordmark", prompt: "an elegant wordmark" },
     ],
   },
-  {
-    id: 10,
-    name: "Tarot Card",
-    model: "flux-tarot-v1",
-    url: "https://huggingface.co/multimodalart/flux-tarot-v1",
-    description: "Produces artistic, mystical tarot card designs.",
-    image: TarotCard,
-    path: "https://huggingface.co/multimodalart/flux-tarot-v1",
-    applyTrigger: (prompt) =>
-      `${prompt}, in the style of TOK a trtcrd tarot style`,
-    refinement: false,
-    scale: 1,
-    steps: 28,
-    suggestions: [
-      { label: "Wheel of fortune", prompt: "the wheel of fortune" },
-      { label: "Kangaroo", prompt: "a kangaroo" },
-      { label: "Moon", prompt: "the moon" },
-    ],
-  },
-  // {
-  //   id: 8,
-  //   name: "Outfit Generator",
-  //   model: "FLUX.1-dev-LoRA-Outfit-Generator",
-  //   url: "https://huggingface.co/tryonlabs/FLUX.1-dev-LoRA-Outfit-Generator",
-  //   description:
-  //     "Generates creative outfit designs for concept art and fashion.",
-  //   image: OutfitGenerator,
-  //   path: "https://huggingface.co/tryonlabs/FLUX.1-dev-LoRA-Outfit-Generator",
-  //   applyTrigger: (prompt) => prompt,
-  //   refinement:
-  //     "Change the prompt does that it describes a piece of clothing. You need to include each of the following details: color, pattern, fit, style, material, and type.",
-  //   scale: 1,
-  //   steps: 28,
-  //   suggestions: [
-  //     { label: "Leather jacket", prompt: "a leather jacket" },
-  //     { label: "Red dress", prompt: "a red dress" },
-  //     { label: "Scarf", prompt: "a silk scarf" },
-  //   ],
-  // },
-
-  // {
-  //   id: 2,
-  //   name: "Simple Sketch",
-  //   model: "flux-lora-simple-illustration",
-  //   description: "Produces clean and minimalistic sketch-style artwork.",
-  //   url: "https://huggingface.co/dvyio/flux-lora-simple-illustration",
-  //   image: SimpleSketch,
-  //   path: "https://huggingface.co/dvyio/flux-lora-simple-illustration",
-  //   applyTrigger: (prompt) =>
-  //     `${prompt}, illustration in the style of SMPL, thick black lines on a white background`,
-  //   refinement: false,
-  //   scale: 1,
-  //   steps: 28,
-  //   suggestions: [
-  //     { label: "Woman", prompt: "a woman" },
-  //     { label: "Bicycle", prompt: "a bicycle" },
-  //     { label: "San Francisco", prompt: "the San Francisco skyline" },
-  //   ],
-  // },
   {
     id: 3,
+    name: "Midjourney",
+    model: "Flux-Midjourney-Mix2-LoRA",
+    description: "Mimics MidJourney's artistic style.",
+    url: "https://huggingface.co/strangerzonehf/Flux-Midjourney-Mix2-LoRA",
+    image: FluxMidJourney,
+    path: "https://huggingface.co/strangerzonehf/Flux-Midjourney-Mix2-LoRA",
+    applyTrigger: (prompt) => `MJ style, ${prompt}`,
+    refinement: "Refine the prompt for MidJourney-style artistic renderings.",
+    scale: 1,
+    steps: 28,
+    suggestions: [
+      { label: "Landscape", prompt: "a dramatic landscape" },
+      { label: "Portrait", prompt: "an artistic portrait" },
+      { label: "Still life", prompt: "a detailed still life" },
+    ],
+  },
+  {
+    id: 4,
+    name: "Tarot Card",
+    model: "flux-tarot-v1",
+    description: "Creates mystical tarot card designs.",
+    url: "https://huggingface.co/multimodalart/flux-tarot-v1",
+    image: TarotCard,
+    path: "https://huggingface.co/multimodalart/flux-tarot-v1",
+    applyTrigger: (prompt) => `tarot card style, ${prompt}`,
+    refinement: "Refine the prompt for mystical tarot card designs.",
+    scale: 1,
+    steps: 28,
+    suggestions: [
+      { label: "Major Arcana", prompt: "a major arcana card" },
+      { label: "Symbol", prompt: "a mystical symbol" },
+      { label: "Character", prompt: "a tarot character" },
+    ],
+  },
+  {
+    id: 5,
     name: "Vector Sketch",
     model: "vector-illustration",
-    description:
-      "Generates smooth, scalable vector-style sketches ideal for digital designs.",
+    description: "Generates smooth, scalable vector-style sketches.",
     url: "https://huggingface.co/mujibanget/vector-illustration",
     image: VectorSketch,
     path: "https://huggingface.co/mujibanget/vector-illustration",
-    applyTrigger: (prompt) =>
-      `${prompt}, vector illustration with mujibvector style, isolated in a white background`,
+    applyTrigger: (prompt) => `${prompt}, vector illustration with mujibvector style, isolated in a white background`,
     refinement: false,
     scale: 1,
     steps: 28,
@@ -179,9 +118,26 @@ export const LORAS: Lora[] = [
       { label: "Lamp", prompt: "a vintage lamp" },
     ],
   },
-
   {
-    id: 1,
+    id: 6,
+    name: "Pencil Sketch",
+    model: "shou_xin",
+    description: "Creates detailed pencil sketch artwork.",
+    url: "https://huggingface.co/Datou1111/shou_xin",
+    image: PencilSketch,
+    path: "https://huggingface.co/hassanelmghari/shou_xin",
+    applyTrigger: (prompt) => `pencil sketch style, ${prompt}`,
+    refinement: "Refine the prompt for detailed pencil sketch artwork.",
+    scale: 1,
+    steps: 28,
+    suggestions: [
+      { label: "Portrait", prompt: "a detailed portrait" },
+      { label: "Nature", prompt: "a nature scene" },
+      { label: "Architecture", prompt: "architectural details" },
+    ],
+  },
+  {
+    id: 7,
     name: "Colored Sketch",
     model: "Flux-Sketch-Ep-LoRA",
     description: "Creates vibrant, colorful sketch-style illustrations.",
@@ -189,54 +145,31 @@ export const LORAS: Lora[] = [
     image: ColoredSketch,
     path: "https://huggingface.co/strangerzonehf/Flux-Sketch-Ep-LoRA",
     applyTrigger: (prompt) => `ep sketch, ${prompt}`,
-    refinement:
-      "Refine the prompt so that it describes a vibrant, colorful, sketch illustration.",
-    scale: 1,
-    steps: 33,
-    height: 832,
-    width: 1280,
-    suggestions: [
-      { label: "Albert Einstein", prompt: "Albert Einstein" },
-      { label: "New York City", prompt: "New York City" },
-      { label: "Space", prompt: "Space adventure" },
-    ],
-  },
-  {
-    id: 4,
-    name: "Pencil Sketch",
-    model: "shou_xin",
-    description: "Adds a realistic pencil-drawn effect to your designs.",
-    url: "https://huggingface.co/Datou1111/shou_xin",
-    image: PencilSketch,
-    path: "https://huggingface.co/hassanelmghari/shou_xin",
-    applyTrigger: (prompt) => `shou_xin, pencil sketch ${prompt}`,
-    refinement: false,
+    refinement: "Refine the prompt for vibrant, colorful sketch illustrations.",
     scale: 1,
     steps: 28,
     suggestions: [
-      { label: "Cat", prompt: "a cat with blue eyes" },
-      { label: "Steve Jobs", prompt: "steve jobs" },
-      { label: "Books", prompt: "A stack of books" },
+      { label: "Portrait", prompt: "a colorful portrait" },
+      { label: "Landscape", prompt: "a vibrant landscape" },
+      { label: "Object", prompt: "a detailed object study" },
     ],
   },
   {
-    id: 5,
+    id: 8,
     name: "Anime Sketch",
     model: "anime-blockprint-style",
-    description:
-      "Combines anime-inspired designs with textured block print aesthetics.",
+    description: "Creates anime-style character illustrations.",
     url: "https://huggingface.co/glif/anime-blockprint-style",
     image: AnimeSketch,
     path: "https://huggingface.co/glif/anime-blockprint-style",
-    applyTrigger: (prompt) => `${prompt} blockprint style`,
-    refinement:
-      "Refine the prompt so that it combines anime inspired designs with textured block print aesthetics. The refinement should only include a description that would exist in both anime and block print.",
+    applyTrigger: (prompt) => `anime style, ${prompt}`,
+    refinement: "Refine the prompt for anime-style character illustrations.",
     scale: 1,
     steps: 28,
     suggestions: [
-      { label: "Young man", prompt: "a young man with glasses" },
-      { label: "Paper cranes", prompt: "a flock of paper cranes" },
-      { label: "Flower", prompt: "a flower blooming" },
+      { label: "Character", prompt: "a character portrait" },
+      { label: "Scene", prompt: "a slice of life scene" },
+      { label: "Action", prompt: "an action pose" },
     ],
-  },
+  }
 ]; 

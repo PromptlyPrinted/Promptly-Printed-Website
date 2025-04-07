@@ -1,21 +1,18 @@
 "use client"
 
 /**
- * Product Detail Component
+ * Updated Product Detail Component with revised layout:
  * 
- * T-shirt Design Positioning:
- * - Design width: 35% of T-shirt width
- * - Design height: 40% of T-shirt height
- * - Vertical position: 30% from the top of the T-shirt
- * - Horizontal position: Centered (50% with translateX(-50%))
+ * Left Panel:
+ * - T-shirt preview with generated design overlay and thumbnails.
+ * - AI Prompt Input section with tabs for Text to Image / Image to Image and a Generate Design button.
  * 
- * High-Resolution Output:
- * - Downloaded image size: 4680x5790px at 300 DPI
- * - Print-ready quality suitable for professional printing
- * 
- * This positioning is consistent between the UI preview and the downloaded high-resolution image.
- * When making changes to the positioning, ensure both the UI display and the download function
- * are updated to maintain consistency.
+ * Right Panel:
+ * - Product Info: Title, Price, Description.
+ * - Size and Color selectors.
+ * - AI Settings: Model selection, LoRA scale slider.
+ * - Save options: Download, Save to My Images, Save to My Designs.
+ * - Checkout buttons and shipping/review tabs.
  */
 
 import { useState, useRef, useEffect } from 'react'
@@ -44,6 +41,12 @@ import { SUPPORTED_COUNTRIES, formatPrice, convertPrice, getDefaultCurrency } fr
 import { useExchangeRates } from '@/hooks/useExchangeRates'
 import { GlobeAltIcon, TruckIcon, ShieldCheckIcon } from '@heroicons/react/24/outline'
 import { CheckoutButton } from "@/components/CheckoutButton"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@repo/design-system/components/ui/tooltip'
 
 interface ProductDetailProps {
   product: Product
@@ -51,8 +54,8 @@ interface ProductDetailProps {
 
 export function ProductDetail({ product }: ProductDetailProps) {
   // State
-  const [selectedSize, setSelectedSize] = useState('')
-  const [selectedColor, setSelectedColor] = useState(product.colorOptions?.[0]?.filename || '')
+  const [selectedSize, setSelectedSize] = useState<string | undefined>(undefined)
+  const [selectedColor, setSelectedColor] = useState(product.specifications?.color?.[0]?.toLowerCase() || 'white')
   const [promptText, setPromptText] = useState('')
   const [selectedModels, setSelectedModels] = useState<number[]>([LORAS[0].id])
   const [modelWeights, setModelWeights] = useState<Record<number, number>>({})
@@ -68,7 +71,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const [isSaving, setIsSaving] = useState(false)
   const [isAddingToWishlist, setIsAddingToWishlist] = useState(false)
   
-  // Refs for T-shirt and design images (if needed)
+  // Refs for T-shirt and design images
   const tshirtImageRef = useRef<HTMLImageElement>(null)
   const designImageRef = useRef<HTMLImageElement>(null)
 
@@ -90,18 +93,18 @@ export function ProductDetail({ product }: ProductDetailProps) {
 
   // Get converted price with real-time exchange rates
   const getConvertedPrice = (price: number) => {
-    if (ratesLoading) return price;
-    return convertWithRates(price, 'USD', selectedCurrency);
+    if (ratesLoading) return price
+    return convertWithRates(price, 'USD', selectedCurrency)
   }
 
   // Get shipping information based on country
   const getShippingInfo = () => {
-    const country = SUPPORTED_COUNTRIES.find(c => c.code === selectedCountry);
-    if (!country) return null;
+    const country = SUPPORTED_COUNTRIES.find(c => c.code === selectedCountry)
+    if (!country) return null
 
-    const isEU = country.currency === 'EUR';
-    const baseShipping = product.shippingCost || 0;
-    
+    const isEU = country.currency === 'EUR'
+    const baseShipping = product.shippingCost || 0
+
     return {
       standard: {
         cost: isEU ? baseShipping : baseShipping * 1.2,
@@ -111,7 +114,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
         cost: isEU ? baseShipping * 1.5 : baseShipping * 2,
         days: isEU ? '1-2' : '2-3'
       }
-    };
+    }
   }
 
   // ---- Generate Image (AI) ----
@@ -141,12 +144,12 @@ export function ProductDetail({ product }: ProductDetailProps) {
       // Add the base FLUX model to the configuration
       const allModelConfigs = [
         {
-          model: "black-forest-labs/FLUX.1-dev-lora", 
+          model: "black-forest-labs/FLUX.1-dev-lora",
           type: 'base',
           weight: 1.0
         },
         ...selectedModelConfigs
-      ];
+      ]
 
       // Enhanced prompt for high-quality T-shirt printing
       const enhancedPrompt = `${promptText}, high resolution, 300 dpi, detailed, clear image, suitable for t-shirt printing, centered composition, professional quality, sharp details`
@@ -157,21 +160,19 @@ export function ProductDetail({ product }: ProductDetailProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: enhancedPrompt,
-          models: allModelConfigs, // Use the array with the base model included
+          models: allModelConfigs,
           loraScale
         })
       })
 
       const data = await response.json()
       if (!response.ok) {
-        // Extract the specific error message if available
-        const errorMessage = data.details || data.error || 'Failed to generate image';
-        console.error('API error details:', data);
-        throw new Error(errorMessage);
+        const errorMessage = data.details || data.error || 'Failed to generate image'
+        console.error('API error details:', data)
+        throw new Error(errorMessage)
       }
 
       if (data.data?.[0]?.url) {
-        console.log('Generated image URL:', data.data[0].url)
         const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(data.data[0].url)}`
         setGeneratedImage(proxyUrl)
         toast({
@@ -205,39 +206,30 @@ export function ProductDetail({ product }: ProductDetailProps) {
 
     setIsDownloading(true)
     try {
-      // Show a loading toast with resolution info
       toast({
         title: "Preparing high-resolution image",
         description: "Creating 4680x5790px (300 DPI) print-ready image...",
         variant: "default"
       })
-      
-      // Create a canvas sized for 300 DPI at 4680x5790px
+
       const canvas = document.createElement('canvas')
-      canvas.width = 4680  // Requested width
-      canvas.height = 5790 // Requested height
+      canvas.width = 4680
+      canvas.height = 5790
 
       const ctx = canvas.getContext('2d')
       if (!ctx) {
         throw new Error('Could not create canvas context')
       }
 
-      // Transparent background
       ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-      // Load design image
       const designImage = document.createElement('img')
       designImage.crossOrigin = 'anonymous'
 
-      // Wait for design image to load
       await new Promise<void>((resolve, reject) => {
-        designImage.onload = () => {
-          resolve()
-        }
+        designImage.onload = () => resolve()
         designImage.onerror = () => reject(new Error('Failed to load design image'))
 
-        // If the generated image is a data URL, use it directly
-        // otherwise fetch it, convert to blob -> objectURL
         if (generatedImage.startsWith('data:')) {
           designImage.src = generatedImage
         } else {
@@ -250,14 +242,10 @@ export function ProductDetail({ product }: ProductDetailProps) {
         }
       })
 
-      // Apply anti-aliasing for better quality
       ctx.imageSmoothingEnabled = true
       ctx.imageSmoothingQuality = 'high'
-      
-      // Draw the design at full canvas size with high quality
       ctx.drawImage(designImage, 0, 0, canvas.width, canvas.height)
 
-      // Convert to data URL and download
       const dataUrl = canvas.toDataURL('image/png')
       const link = document.createElement('a')
       link.href = dataUrl
@@ -279,7 +267,6 @@ export function ProductDetail({ product }: ProductDetailProps) {
         variant: "destructive"
       })
 
-      // Fallback: just download the generated design as-is
       try {
         toast({
           title: "Trying simple fallback",
@@ -301,7 +288,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
     }
   }
 
-  // Save generated image
+  // ---- Save Generated Image ----
   const handleSaveImage = async () => {
     if (!generatedImage) {
       toast({
@@ -345,7 +332,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
     }
   }
 
-  // Add to wishlist
+  // ---- Add to Wishlist ----
   const handleAddToWishlist = async () => {
     if (!generatedImage) {
       toast({
@@ -358,7 +345,6 @@ export function ProductDetail({ product }: ProductDetailProps) {
 
     setIsAddingToWishlist(true)
     try {
-      // First save the image
       const saveResponse = await fetch('/api/save-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -373,7 +359,6 @@ export function ProductDetail({ product }: ProductDetailProps) {
         throw new Error('Failed to save design')
       }
 
-      // Then add to wishlist
       const wishlistResponse = await fetch('/api/wishlist/add', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -403,9 +388,8 @@ export function ProductDetail({ product }: ProductDetailProps) {
     }
   }
 
-  // ---- Example: Submitting a Review ----
+  // ---- Submit Review ----
   const handleSubmitReview = async () => {
-    // Implement review submission logic here
     console.log('Submitting review:', { rating, reviewText })
   }
 
@@ -420,273 +404,95 @@ export function ProductDetail({ product }: ProductDetailProps) {
     }
 
     const checkoutItem = {
-      productId: product.id,
+      productId: Number(product.id),
       name: product.name,
       price: product.price,
       quantity: 1,
-      images: product.images
+      images: product.images?.map(url => ({ url })) || []
     }
 
     return <CheckoutButton items={[checkoutItem]} />
   }
 
   return (
-    <div className="grid grid-cols-1 gap-x-8 gap-y-10 lg:grid-cols-2">
-      {/* Left Column - T-shirt Preview */}
-      <div className="space-y-6">
-        <div className="relative w-full max-w-md mx-auto overflow-hidden rounded-lg bg-gray-100">
-          {/* 
-            No aspect-square: we let the T-shirt define its aspect ratio
-            (e.g. 800×1000). 
-          */}
-          <Image
-            //src = 'product.specifications?.color'
-            //'/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/Blanks/png/navy.png'
-            src={`../${product.imageUrl}/${(selectedColor || product.specifications?.color[0]).replace(/ /g, '-')}.png`}
-            alt={product.name}
-            width={800}       // Example real T-shirt ratio
-            height={1000}     // Example real T-shirt ratio
-            className="object-contain"
-            ref={tshirtImageRef as any}
-            onError={(e) => {
-              //console.log('Base path:', product.imageUrls?.base);
-              console.log('Base path 2:', product.imageUrl);
-              console.log('Selected color filename:', selectedColor);
-              //console.log('Color options:', product.colorOptions);
-               console.log('Color options 2:', product.specifications?.color);
-              //console.log('Full image path:', `${product.imageUrls?.base}/${selectedColor || product.colorOptions?.[0]?.filename || 'white.png'}`);
-            }}
-          />
-
-          {generatedImage && (
-            // Absolutely position the design overlay to match the download function
-            <div
-              className="absolute"
-              style={{
-                width: '35%',
-                height: '40%',
-                top: '30%', // Positioned at 30% from the top
-                left: '50%',
-                transform: 'translateX(-50%)',
-                overflow: 'hidden',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center'
+    <div className="max-w-[1440px] mx-auto px-4 lg:px-8">
+      <div className="grid grid-cols-1 gap-x-8 gap-y-10 lg:grid-cols-2">
+        {/* LEFT PANEL: T-shirt Preview and AI Prompt Input */}
+        <div className="space-y-6">
+          {/* T-shirt Preview with teal border accent */}
+          <div className="relative w-full max-w-md mx-auto overflow-hidden rounded-lg border-2 border-teal-500 bg-gray-100 aspect-square">
+            <Image
+              src={`../${product.imageUrl}/${(selectedColor || product.specifications?.color?.[0] || 'white').replace(/ /g, '-')}.png`}
+              alt={product.name}
+              fill
+              className="object-contain"
+              ref={tshirtImageRef as any}
+              onError={(e) => {
+                console.log('Base path:', product.imageUrl)
               }}
-            >
-              <Image
-                src={generatedImage}
-                alt="Generated design"
-                fill
-                className="object-contain"
-                ref={designImageRef as any}
-                style={{ 
-                  imageRendering: 'crisp-edges',
-                  objectFit: 'contain'
-                }}
-              />
-            </div>
-          )}
-        </div>
+            />
 
-        {/* Thumbnails, if multiple images */}
-        {product.images && product.images.length > 1 && (
-          <div className="grid grid-cols-4 gap-4">
-            {product.images.map((image, idx) => (
+            {generatedImage && (
               <div
-                key={`product-image-${idx}`}
-                className="aspect-square relative overflow-hidden rounded-md"
+                className="absolute"
+                style={{
+                  width: '35%',
+                  height: '40%',
+                  top: '30%',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center'
+                }}
               >
                 <Image
-                  src={image}
-                  alt={`${product.name} ${idx + 1}`}
-                  width={200}
-                  height={200}
-                  className="w-full h-full object-cover cursor-pointer hover:opacity-75"
+                  src={generatedImage}
+                  alt="Generated design"
+                  fill
+                  className="object-contain"
+                  ref={designImageRef as any}
+                  style={{
+                    imageRendering: 'crisp-edges',
+                    objectFit: 'contain'
+                  }}
                 />
               </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Right Column - Product Info / AI Generation */}
-      <div className="space-y-8">
-        {/* Country and Currency Selection *
-        <div className="flex items-center space-x-4 bg-gray-50 p-4 rounded-lg">
-          <GlobeAltIcon className="h-6 w-6 text-gray-400" />
-          <div className="flex-1 space-y-1">
-            <Label htmlFor="country">Ship to</Label>
-            <Select value={selectedCountry} onValueChange={setSelectedCountry}>
-              <SelectTrigger id="country" className="w-full">
-                <SelectValue placeholder="Select country" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="" disabled>Select your country</SelectItem>
-                {Object.entries(COUNTRIES_BY_CURRENCY).map(([currency, countries]) => (
-                  <div key={currency}>
-                    <div className="px-2 py-1.5 text-sm font-semibold bg-gray-100">
-                      {currency} Zone
-                    </div>
-                    {countries.map((country) => (
-                      <SelectItem key={country.code} value={country.code}>
-                        {country.name}
-                      </SelectItem>
-                    ))}
-                  </div>
-                ))}
-              </SelectContent>
-            </Select>
-            {ratesLoading && (
-              <p className="text-sm text-gray-500">Loading exchange rates...</p>
-            )}
-            {ratesError && (
-              <p className="text-sm text-red-500">Using fallback exchange rates</p>
             )}
           </div>
-        </div> */}
 
-        {/* Price Display with International Support */}
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">{product.name}</h1>
-          <div className="flex items-baseline space-x-2">
-            <p className="text-3xl font-bold text-gray-900">
-              {formatPrice(getConvertedPrice(product.price), selectedCurrency)}
-            </p>
-            {selectedCurrency !== 'USD' && (
-              <p className="text-sm text-gray-500">
-                (${product.price.toFixed(2)} USD)
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* International Shipping Information */}
-        <div className="bg-gray-50 rounded-lg p-4">
-          <div className="flex items-center space-x-2">
-            <TruckIcon className="h-5 w-5 text-gray-400" />
-            <h3 className="font-medium">Shipping to {SUPPORTED_COUNTRIES.find(c => c.code === selectedCountry)?.name}</h3>
-          </div>
-          {getShippingInfo() && (
-            <div className="mt-3 space-y-2">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="font-medium">Standard Delivery</p>
-                  <p className="text-sm text-gray-500">{getShippingInfo()?.standard.days} business days</p>
+          {/* Thumbnails */}
+          {product.images && product.images.length > 1 && (
+            <div className="grid grid-cols-4 gap-4">
+              {product.images.map((image, idx) => (
+                <div
+                  key={`product-image-${idx}`}
+                  className="aspect-square relative overflow-hidden rounded-md"
+                >
+                  <Image
+                    src={image}
+                    alt={`${product.name} ${idx + 1}`}
+                    width={200}
+                    height={200}
+                    className="w-full h-full object-cover cursor-pointer hover:opacity-75"
+                  />
                 </div>
-                <p className="font-medium">
-                  {formatPrice(getConvertedPrice(getShippingInfo()?.standard.cost || 0), selectedCurrency)}
-                </p>
-              </div>
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="font-medium">Express Delivery</p>
-                  <p className="text-sm text-gray-500">{getShippingInfo()?.express.days} business days</p>
-                </div>
-                <p className="font-medium">
-                  {formatPrice(getConvertedPrice(getShippingInfo()?.express.cost || 0), selectedCurrency)}
-                </p>
-              </div>
+              ))}
             </div>
           )}
-        </div>
 
-        {/* International Guarantees */}
-        <div className="border-t pt-4">
-          <div className="flex items-center space-x-2">
-            <ShieldCheckIcon className="h-5 w-5 text-gray-400" />
-            <div>
-              <h3 className="font-medium">International Order Guarantees</h3>
-              <ul className="mt-2 text-sm text-gray-500 space-y-1">
-                <li>• Secure international payments</li>
-                <li>• Duty and tax calculated at checkout</li>
-                <li>• Track your order globally</li>
-                <li>• International return shipping included</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* Basic product info */}
-        <div>
-          <h3 className="text-sm font-medium text-gray-900">Description</h3>
-          <div className="mt-2 text-base text-gray-500 space-y-4">
-            {product.description}
-          </div>
-        </div>
-
-        {/* Product Options (size, color) */}
-        {(product.specifications?.size?.length || product.specifications?.color?.length) && (
-          <div className="space-y-4">
-            {product.specifications.size?.length > 0 && (
-              <div>
-                <Label htmlFor="size">Size</Label>
-                <Select value={selectedSize} onValueChange={setSelectedSize}>
-                  <SelectTrigger id="size">
-                    <SelectValue placeholder="Select size" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {product.specifications.size.map((size, idx) => (
-                      <SelectItem key={`size-${idx}-${size}`} value={size}>
-                        {size}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {product.specifications.color?.length > 0 && (
-              <div>
-                <Label htmlFor="color">Color</Label>
-                <Select value={selectedColor} onValueChange={setSelectedColor}>
-                  <SelectTrigger id="color">
-                    <SelectValue placeholder="Select color" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {product.specifications.color.map((color, idx) => (
-                      <SelectItem key={`color-${idx}-${color}`} value={color.toLowerCase()}>
-                        {color}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="space-y-3">
-          <Button className="w-full" size="lg" onClick={() => {/* Add to cart logic */}}>
-            Add to Cart
-          </Button>
-          <CheckoutButton
-            items={[{
-              productId: product.id,
-              name: product.name,
-              price: product.price,
-              quantity: 1,
-              images: product.images
-            }]}
-            variant="outline"
-            className="w-full"
-          />
-        </div>
-
-        {/* AI Generation UI */}
-        <div className="border rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Customize with AI</h2>
-          
-          <Tabs defaultValue="text" onValueChange={(v) => setGenerationMode(v)}>
-            <TabsList className="mb-4">
-              <TabsTrigger value="text">Text to Image</TabsTrigger>
-              <TabsTrigger value="image">Image to Image</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="text">
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="prompt">Describe your design</Label>
+          {/* AI Prompt Input Section */}
+          <div className="border rounded-lg p-6 space-y-4 border-teal-200">
+            <h2 className="text-xl font-semibold mb-2 text-teal-700">Customize with AI</h2>
+            <Tabs defaultValue="text" onValueChange={(v) => setGenerationMode(v)}>
+              <TabsList className="mb-4">
+                <TabsTrigger value="text" className="data-[state=active]:text-teal-600">Text to Image</TabsTrigger>
+                <TabsTrigger value="image" className="data-[state=active]:text-teal-600">Image to Image</TabsTrigger>
+              </TabsList>
+              <TabsContent value="text">
+                <div className="space-y-4">
+                  <Label htmlFor="prompt" className="text-teal-600">Describe your design</Label>
                   <Textarea
                     id="prompt"
                     placeholder="Enter your design description..."
@@ -694,19 +500,14 @@ export function ProductDetail({ product }: ProductDetailProps) {
                     onChange={(e) => setPromptText(e.target.value)}
                   />
                 </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="image">
-              <div className="space-y-4">
-                <div>
-                  <Label>Reference Image</Label>
-                  <div className="mt-2 flex items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-6">
+              </TabsContent>
+              <TabsContent value="image">
+                <div className="space-y-4">
+                  <Label className="text-teal-600">Reference Image</Label>
+                  <div className="mt-2 flex items-center justify-center border-2 border-dashed border-teal-200 rounded-lg p-6">
                     <Button variant="outline">Upload Image</Button>
                   </div>
-                </div>
-                <div>
-                  <Label htmlFor="imagePrompt">Style Description</Label>
+                  <Label htmlFor="imagePrompt" className="text-teal-600">Style Description</Label>
                   <Textarea
                     id="imagePrompt"
                     placeholder="Describe how you want to modify the reference image..."
@@ -714,30 +515,172 @@ export function ProductDetail({ product }: ProductDetailProps) {
                     onChange={(e) => setPromptText(e.target.value)}
                   />
                 </div>
-              </div>
-            </TabsContent>
-          </Tabs>
+              </TabsContent>
+            </Tabs>
+            <Button
+              className="w-full bg-teal-600 hover:bg-teal-700 text-white"
+              onClick={handleImageGeneration}
+              disabled={isGenerating || !promptText}
+            >
+              {isGenerating ? 'Generating...' : 'Generate Design'}
+            </Button>
+          </div>
+        </div>
 
-          <div className="space-y-4 mt-4">
-            <div>
-              <Label>AI Models &amp; LoRAs</Label>
-              <div className="space-y-2">
-                {LORAS.map((model: Lora) => (
-                  <div key={model.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`model-${model.id}`}
-                      checked={selectedModels.includes(model.id)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedModels([...selectedModels, model.id])
-                        } else {
-                          setSelectedModels(selectedModels.filter(mid => mid !== model.id))
+        {/* RIGHT PANEL: Product Info, Options, AI Settings & Checkout */}
+        <div className="space-y-6 lg:sticky lg:top-6">
+          {/* Product Info */}
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold tracking-tight text-teal-900">{product.name}</h1>
+            <div className="flex items-baseline space-x-2">
+              <p className="text-3xl font-bold text-teal-800">
+                {formatPrice(getConvertedPrice(product.price), selectedCurrency)}
+              </p>
+              {selectedCurrency !== 'USD' && (
+                <p className="text-sm text-gray-500">
+                  (${product.price.toFixed(2)} USD)
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Description */}
+          <div>
+            <h3 className="text-sm font-medium text-teal-700">Description</h3>
+            <div className="mt-2 text-base text-gray-500 space-y-4">
+              {product.description}
+            </div>
+          </div>
+
+          {/* Size and Color Selection */}
+          {(product.specifications?.size?.length || product.specifications?.color?.length) && (
+            <div className="space-y-4">
+              {product.specifications.size?.length > 0 && (
+                <div>
+                  <Label htmlFor="size" className="text-teal-600">Size</Label>
+                  <Select value={selectedSize} onValueChange={setSelectedSize}>
+                    <SelectTrigger id="size">
+                      <SelectValue placeholder="Select size" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {product.specifications.size.map((size, idx) => (
+                        <SelectItem key={`size-${idx}-${size}`} value={size}>
+                          {size}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {product.specifications.color?.length > 0 && (
+                <div>
+                  <Label htmlFor="color" className="text-teal-600">Color</Label>
+                  <div className="flex gap-2 mt-2">
+                    <TooltipProvider>
+                      {product.specifications.color.map((color, idx) => {
+                        const colorValue = color.toLowerCase().replace(/\s+/g, '')
+                        const colorMap: Record<string, string> = {
+                          white: '#FFFFFF',
+                          black: '#000000',
+                          red: '#FF0000',
+                          blue: '#0000FF',
+                          green: '#00FF00',
+                          yellow: '#FFFF00',
+                          purple: '#800080',
+                          pink: '#FFC0CB',
+                          orange: '#FFA500',
+                          gray: '#808080',
+                          grey: '#808080'
                         }
-                      }}
-                    />
-                    <Label htmlFor={`model-${model.id}`}>{model.name}</Label>
+                        const hexColor = colorMap[colorValue] || colorValue
+
+                        return (
+                          <Tooltip key={`color-${idx}-${color}`}>
+                            <TooltipTrigger asChild>
+                              <button
+                                onClick={() => setSelectedColor(colorValue)}
+                                className={`w-8 h-8 rounded-full border-2 transition-all ${
+                                  selectedColor === colorValue
+                                    ? 'border-teal-600 scale-110'
+                                    : 'border-transparent hover:border-teal-200'
+                                }`}
+                                style={{ backgroundColor: hexColor }}
+                                aria-label={`Select ${color} color`}
+                              />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{color}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )
+                      })}
+                    </TooltipProvider>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* AI Settings Section */}
+          <div className="border rounded-lg p-6 space-y-4 border-teal-200">
+            <h2 className="text-xl font-semibold text-teal-700">AI Settings</h2>
+            <div>
+              <Label className="text-teal-600 mb-4 block">AI Models &amp; LoRAs</Label>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {LORAS.map((model: Lora) => (
+                  <div 
+                    key={model.id} 
+                    className={`
+                      relative aspect-square rounded-lg overflow-hidden cursor-pointer
+                      transition-all duration-200 group
+                      ${selectedModels.includes(model.id) ? 'ring-2 ring-teal-500' : 'hover:ring-2 hover:ring-teal-200'}
+                    `}
+                    onClick={() => {
+                      if (selectedModels.includes(model.id)) {
+                        setSelectedModels(selectedModels.filter(mid => mid !== model.id))
+                      } else {
+                        setSelectedModels([...selectedModels, model.id])
+                      }
+                    }}
+                  >
+                    {/* Background Image */}
+                    <div className="relative w-full h-full">
+                      <Image
+                        src={`/lora-images/${model.name.toLowerCase().replace(/\s+/g, '-')}.png`}
+                        alt={model.name}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+
+                    {/* Label Overlay */}
+                    <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/50 backdrop-blur-sm">
+                      <p className="text-white text-sm font-medium text-center">
+                        {model.name.split(/(?=[A-Z])/).join(' ')}
+                      </p>
+                    </div>
+
+                    {/* Checkbox Overlay */}
+                    <div className="absolute top-2 left-2">
+                      <Checkbox
+                        id={`model-${model.id}`}
+                        checked={selectedModels.includes(model.id)}
+                        className="bg-white/90 border-teal-500 data-[state=checked]:bg-teal-500"
+                        onClick={(e) => e.stopPropagation()}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedModels([...selectedModels, model.id])
+                          } else {
+                            setSelectedModels(selectedModels.filter(mid => mid !== model.id))
+                          }
+                        }}
+                      />
+                    </div>
+
+                    {/* Slider for selected models */}
                     {selectedModels.includes(model.id) && (
-                      <div className="flex-1 max-w-[200px]">
+                      <div className="absolute left-0 right-0 bottom-12 px-4 py-2">
                         <Slider
                           value={[modelWeights[model.id] || model.scale || 1.0]}
                           onValueChange={([value]) => {
@@ -749,7 +692,8 @@ export function ProductDetail({ product }: ProductDetailProps) {
                           min={0}
                           max={1}
                           step={0.1}
-                          className="mt-2"
+                          className="accent-teal-500"
+                          onClick={(e) => e.stopPropagation()}
                         />
                       </div>
                     )}
@@ -757,40 +701,30 @@ export function ProductDetail({ product }: ProductDetailProps) {
                 ))}
               </div>
             </div>
-
-            <div>
-              <Label>LoRA Scale</Label>
+            <div className="mt-4">
+              <Label className="text-teal-600">LoRA Scale</Label>
               <Slider
                 value={[loraScale]}
                 onValueChange={([value]) => setLoraScale(value)}
                 min={0}
                 max={1}
                 step={0.1}
-                className="mt-2"
+                className="mt-2 accent-teal-600"
               />
             </div>
-
-            <Button
-              className="w-full"
-              onClick={handleImageGeneration}
-              disabled={isGenerating || !promptText}
-            >
-              {isGenerating ? 'Generating...' : 'Generate Design'}
-            </Button>
-            
             {generatedImage && (
               <div className="space-y-2">
                 <Button
-                  className="w-full mt-2"
+                  className="w-full bg-teal-600 hover:bg-teal-700 text-white"
                   variant="outline"
                   onClick={handleDownloadImage}
                   disabled={isDownloading || !generatedImage}
                 >
                   {isDownloading ? 'Downloading...' : 'Download as PNG (300 DPI)'}
                 </Button>
-                
+
                 <Button
-                  className="w-full"
+                  className="w-full border-teal-600 text-teal-600 hover:bg-teal-50"
                   variant="outline"
                   onClick={handleSaveImage}
                   disabled={isSaving || !generatedImage}
@@ -799,7 +733,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
                 </Button>
 
                 <Button
-                  className="w-full"
+                  className="w-full border-teal-600 text-teal-600 hover:bg-teal-50"
                   variant="outline"
                   onClick={handleAddToWishlist}
                   disabled={isAddingToWishlist || !generatedImage}
@@ -809,148 +743,145 @@ export function ProductDetail({ product }: ProductDetailProps) {
               </div>
             )}
           </div>
-        </div>
 
-        {/* Product Details Section */}
-        <div className="border rounded-lg p-6 space-y-6">
-          <h2 className="text-xl font-semibold">Product Details</h2>
-          
-          {/* Materials */}
-          <div>
-            <h3 className="font-medium text-gray-900">Materials</h3>
-            <ul className="mt-2 list-disc list-inside text-gray-600 space-y-1">
-              {product.materials?.map((material, index) => (
-                <li key={`material-${index}`}>{material}</li>
-              ))}
-            </ul>
+          {/* Checkout Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 mt-4">
+            <Button className="w-full sm:flex-1 bg-teal-600 hover:bg-teal-700 text-white" size="lg" onClick={() => {/* Add to cart logic */}}>
+              Add to Cart
+            </Button>
+            <CheckoutButton
+              items={[{
+                productId: Number(product.id),
+                name: product.name,
+                price: product.price,
+                quantity: 1,
+                images: product.images?.map(url => ({ url })) || []
+              }]}
+              variant="outline"
+              className="w-full sm:flex-1 border-teal-600 text-teal-600 hover:bg-teal-50"
+            />
           </div>
 
-          {/* Features */}
-          <div>
-            <h3 className="font-medium text-gray-900">Features</h3>
-            <ul className="mt-2 list-disc list-inside text-gray-600 space-y-1">
-              {product.features?.map((feature, index) => (
-                <li key={`feature-${index}`}>{feature}</li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Eco Properties */}
-          <div>
-            <h3 className="font-medium text-gray-900">Sustainability</h3>
-            <ul className="mt-2 list-disc list-inside text-gray-600 space-y-1">
-              {product.ecoProperties?.map((prop, index) => (
-                <li key={`eco-${index}`}>{prop}</li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Care Instructions */}
-          <div>
-            <h3 className="font-medium text-gray-900">Care Instructions</h3>
-            <ul className="mt-2 list-disc list-inside text-gray-600 space-y-1">
-              {product.careInstructions?.map((instruction, index) => (
-                <li key={`care-${index}`}>{instruction}</li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Manufacturing Location */}
-          {product.manufacturingLocation && (
-            <div>
-              <h3 className="font-medium text-gray-900">Manufacturing</h3>
-              <p className="mt-2 text-gray-600">{product.manufacturingLocation}</p>
+          {/* Shipping Information */}
+          <div className="bg-teal-50 rounded-lg p-4">
+            <div className="flex items-center space-x-2">
+              <TruckIcon className="h-5 w-5 text-teal-600" />
+              <h3 className="font-medium text-teal-700">
+                Shipping to {SUPPORTED_COUNTRIES.find(c => c.code === selectedCountry)?.name}
+              </h3>
             </div>
-          )}
-        </div>
-
-        {/* Product Details Tabs - Updated to remove redundant information */}
-        <Tabs defaultValue="shipping" className="mt-8">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="shipping">Shipping</TabsTrigger>
-            <TabsTrigger value="reviews">Reviews</TabsTrigger>
-          </TabsList>
-
-          {/* Shipping */}
-          <TabsContent value="shipping" className="mt-4">
-            <Card className="p-6">
-              <div className="space-y-4">
-                <h3 className="font-semibold">Shipping Information</h3>
-                {product.shipping?.methods && product.shipping.methods.length > 0 ? (
-                  <div className="space-y-4">
-                    {product.shipping.methods.map((method, index) => (
-                      <div
-                        key={`shipping-${index}-${method.method}`}
-                        className="p-4 rounded-lg bg-gray-50"
-                      >
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <h4 className="font-medium">{method.method}</h4>
-                            <p className="text-sm text-gray-500">
-                              Estimated delivery: {method.estimatedDays} days
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-medium">
-                              {formatPrice(getConvertedPrice(method.cost), selectedCurrency)}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+            {getShippingInfo() && (
+              <div className="mt-3 space-y-2">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="font-medium text-teal-700">Standard Delivery</p>
+                    <p className="text-sm text-gray-500">
+                      {getShippingInfo()?.standard.days} business days
+                    </p>
                   </div>
-                ) : (
-                  <div className="text-sm text-gray-500">
-                    {selectedCountry === 'US' 
-                      ? "Shipping information not available"
-                      : `International shipping to ${SUPPORTED_COUNTRIES.find(c => c.code === selectedCountry)?.name} available`
-                    }
+                  <p className="font-medium text-teal-700">
+                    {formatPrice(getConvertedPrice(getShippingInfo()?.standard.cost || 0), selectedCurrency)}
+                  </p>
+                </div>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="font-medium text-teal-700">Express Delivery</p>
+                    <p className="text-sm text-gray-500">
+                      {getShippingInfo()?.express.days} business days
+                    </p>
                   </div>
-                )}
-              </div>
-            </Card>
-          </TabsContent>
-
-          {/* Reviews */}
-          <TabsContent value="reviews" className="mt-4">
-            <Card className="p-6">
-              <div className="space-y-6">
-                <div>
-                  <h3 className="font-semibold mb-4">Write a Review</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <Label>Rating</Label>
-                      <div className="flex items-center gap-1 mt-1">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <StarIcon
-                            key={`rating-star-${star}`}
-                            className={`h-6 w-6 cursor-pointer ${
-                              star <= rating ? 'text-yellow-400' : 'text-gray-200'
-                            }`}
-                            onClick={() => setRating(star)}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="review">Your Review</Label>
-                      <Textarea
-                        id="review"
-                        placeholder="Write your review here..."
-                        value={reviewText}
-                        onChange={(e) => setReviewText(e.target.value)}
-                        className="mt-1"
-                      />
-                    </div>
-                    <Button onClick={handleSubmitReview}>
-                      Submit Review
-                    </Button>
-                  </div>
+                  <p className="font-medium text-teal-700">
+                    {formatPrice(getConvertedPrice(getShippingInfo()?.express.cost || 0), selectedCurrency)}
+                  </p>
                 </div>
               </div>
-            </Card>
-          </TabsContent>
-        </Tabs>
+            )}
+          </div>
+
+          {/* Product Details Tabs (Shipping & Reviews) */}
+          <Tabs defaultValue="shipping" className="mt-6">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="shipping" className="data-[state=active]:text-teal-600">Shipping</TabsTrigger>
+              <TabsTrigger value="reviews" className="data-[state=active]:text-teal-600">Reviews</TabsTrigger>
+            </TabsList>
+            <TabsContent value="shipping" className="mt-4">
+              <Card className="p-6 border border-teal-200">
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-teal-700">Shipping Information</h3>
+                  {product.shipping?.methods && product.shipping.methods.length > 0 ? (
+                    <div className="space-y-4">
+                      {product.shipping.methods.map((method, index) => (
+                        <div
+                          key={`shipping-${index}-${method.method}`}
+                          className="p-4 rounded-lg bg-teal-50"
+                        >
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <h4 className="font-medium text-teal-700">{method.method}</h4>
+                              <p className="text-sm text-gray-500">
+                                Estimated delivery: {method.estimatedDays} days
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium text-teal-700">
+                                {formatPrice(getConvertedPrice(method.cost), selectedCurrency)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-500">
+                      {selectedCountry === 'US'
+                        ? "Shipping information not available"
+                        : `International shipping to ${SUPPORTED_COUNTRIES.find(c => c.code === selectedCountry)?.name} available`
+                      }
+                    </div>
+                  )}
+                </div>
+              </Card>
+            </TabsContent>
+            <TabsContent value="reviews" className="mt-4">
+              <Card className="p-6 border border-teal-200">
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="font-semibold mb-4 text-teal-700">Write a Review</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-teal-600">Rating</Label>
+                        <div className="flex items-center gap-1 mt-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <StarIcon
+                              key={`rating-star-${star}`}
+                              className={`h-6 w-6 cursor-pointer ${
+                                star <= rating ? 'text-orange-500' : 'text-gray-200'
+                              }`}
+                              onClick={() => setRating(star)}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="review" className="text-teal-600">Your Review</Label>
+                        <Textarea
+                          id="review"
+                          placeholder="Write your review here..."
+                          value={reviewText}
+                          onChange={(e) => setReviewText(e.target.value)}
+                          className="mt-1"
+                        />
+                      </div>
+                      <Button className="bg-teal-600 hover:bg-teal-700 text-white" onClick={handleSubmitReview}>
+                        Submit Review
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </div>
   )
