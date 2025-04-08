@@ -52,6 +52,39 @@ interface ProductDetailProps {
   product: Product
 }
 
+// Add this function to extract dominant color from an image
+const getDominantColor = async (imageUrl: string): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    img.crossOrigin = 'Anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return resolve('#FFFFFF');
+      
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      
+      // Get the color of the center pixel
+      const centerX = Math.floor(canvas.width / 2);
+      const centerY = Math.floor(canvas.height / 2);
+      const pixelIndex = (centerY * canvas.width + centerX) * 4;
+      
+      const r = data[pixelIndex];
+      const g = data[pixelIndex + 1];
+      const b = data[pixelIndex + 2];
+      
+      resolve(`rgb(${r}, ${g}, ${b})`);
+    };
+    img.onerror = () => resolve('#FFFFFF');
+    img.src = imageUrl;
+  });
+};
+
 export function ProductDetail({ product }: ProductDetailProps) {
   // State
   const [selectedSize, setSelectedSize] = useState<string | undefined>(undefined)
@@ -70,6 +103,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const [selectedCurrency, setSelectedCurrency] = useState('USD')
   const [isSaving, setIsSaving] = useState(false)
   const [isAddingToWishlist, setIsAddingToWishlist] = useState(false)
+  const [colorMap, setColorMap] = useState<Record<string, string>>({})
   
   // Refs for T-shirt and design images
   const tshirtImageRef = useRef<HTMLImageElement>(null)
@@ -90,6 +124,25 @@ export function ProductDetail({ product }: ProductDetailProps) {
     const newCurrency = getDefaultCurrency(selectedCountry)
     setSelectedCurrency(newCurrency)
   }, [selectedCountry])
+
+  // Add useEffect to load color images and extract colors
+  useEffect(() => {
+    const loadColors = async () => {
+      if (!product.specifications?.color) return;
+      
+      const newColorMap: Record<string, string> = {};
+      for (const color of product.specifications.color) {
+        // Convert color name to lowercase and replace spaces with hyphens
+        const colorValue = color.toLowerCase().replace(/\s+/g, '-');
+        const imageUrl = `../${product.imageUrl}/${colorValue}.png`;
+        const dominantColor = await getDominantColor(imageUrl);
+        newColorMap[colorValue] = dominantColor;
+      }
+      setColorMap(newColorMap);
+    };
+    
+    loadColors();
+  }, [product.specifications?.color, product.imageUrl]);
 
   // Get converted price with real-time exchange rates
   const getConvertedPrice = (price: number) => {
@@ -559,21 +612,9 @@ export function ProductDetail({ product }: ProductDetailProps) {
                   <div className="flex gap-2 mt-2">
                     <TooltipProvider>
                       {product.specifications.color.map((color, idx) => {
-                        const colorValue = color.toLowerCase().replace(/\s+/g, '')
-                        const colorMap: Record<string, string> = {
-                          white: '#FFFFFF',
-                          black: '#000000',
-                          red: '#FF0000',
-                          blue: '#0000FF',
-                          green: '#00FF00',
-                          yellow: '#FFFF00',
-                          purple: '#800080',
-                          pink: '#FFC0CB',
-                          orange: '#FFA500',
-                          gray: '#808080',
-                          grey: '#808080'
-                        }
-                        const hexColor = colorMap[colorValue] || colorValue
+                        // Convert color name to lowercase and replace spaces with hyphens
+                        const colorValue = color.toLowerCase().replace(/\s+/g, '-');
+                        const hexColor = colorMap[colorValue] || '#FFFFFF';
 
                         return (
                           <Tooltip key={`color-${idx}-${color}`}>
@@ -593,7 +634,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
                               <p>{color}</p>
                             </TooltipContent>
                           </Tooltip>
-                        )
+                        );
                       })}
                     </TooltipProvider>
                   </div>
