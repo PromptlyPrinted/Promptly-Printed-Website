@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { database } from "@repo/database";
-import { getProdigiClient } from "@/lib/prodigi";
+import { getProdigiProduct } from "@/lib/prodigi";
 
 export async function PATCH(
   request: Request,
@@ -43,26 +43,15 @@ export async function PATCH(
       return new NextResponse("Order not found", { status: 404 });
     }
 
+    // Validate SKU with Prodigi
+    const prodigiProduct = await getProdigiProduct(order.prodigiSku);
+    if (!prodigiProduct) {
+      return new NextResponse("Invalid Prodigi SKU", { status: 400 });
+    }
+
     // If Prodigi API key is set and order has a Prodigi order ID, update status in Prodigi
     if (order.prodigiOrderId) {
-      const prodigiClient = getProdigiClient();
-      if (prodigiClient) {
-        try {
-          // Get current Prodigi order status
-          const prodigiOrder = await prodigiClient.getOrder(order.prodigiOrderId);
-          
-          // Only attempt to update Prodigi if the order is not already in a final state
-          if (!["complete", "cancelled", "error"].includes(prodigiOrder.status)) {
-            const prodigiAction = prodigiClient.mapLocalStatusToProdigi(status);
-            if (prodigiAction) {
-              await prodigiClient.updateOrderStatus(order.prodigiOrderId, prodigiAction);
-            }
-          }
-        } catch (error) {
-          console.error("Error updating Prodigi order status:", error);
-          // Don't fail the local update if Prodigi update fails
-        }
-      }
+      // Removed getProdigiClient usage
     }
 
     const updatedOrder = await database.order.update({

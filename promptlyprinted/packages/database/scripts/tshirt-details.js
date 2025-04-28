@@ -1,5 +1,46 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
+// Define exchange rates first
+const exchangeRates = {
+    USD: 1, // Base currency
+    EUR: 0.92, // Euro
+    GBP: 0.79, // British Pound
+    AUD: 1.52, // Australian Dollar
+    CHF: 0.89, // Swiss Franc
+    SEK: 10.45, // Swedish Krona
+    AED: 3.67, // UAE Dirham
+    DKK: 6.86, // Danish Krone
+    NOK: 10.58, // Norwegian Krone
+    NZD: 1.65, // New Zealand Dollar
+    KRW: 1335.50, // South Korean Won
+    JPY: 150.55, // Japanese Yen
+    SGD: 1.34, // Singapore Dollar
+    CNY: 7.23 // Chinese Yuan
+};
+// Helper function to convert USD to other currencies
+function convertFromUSD(amount, targetCurrency) {
+    const rate = exchangeRates[targetCurrency];
+    if (!rate)
+        throw new Error(`Unsupported currency: ${targetCurrency}`);
+    return Math.round(amount * rate);
+}
+// Helper function to generate pricing array from USD base price
+function generatePricingArray(basePrice) {
+    return [
+        { amount: basePrice, currency: 'USD' },
+        { amount: convertFromUSD(basePrice, 'EUR'), currency: 'EUR' },
+        { amount: convertFromUSD(basePrice, 'GBP'), currency: 'GBP' },
+        { amount: convertFromUSD(basePrice, 'AUD'), currency: 'AUD' },
+        { amount: convertFromUSD(basePrice, 'CHF'), currency: 'CHF' },
+        { amount: convertFromUSD(basePrice, 'SEK'), currency: 'SEK' },
+        { amount: convertFromUSD(basePrice, 'AED'), currency: 'AED' },
+        { amount: convertFromUSD(basePrice, 'DKK'), currency: 'DKK' },
+        { amount: convertFromUSD(basePrice, 'NOK'), currency: 'NOK' },
+        { amount: convertFromUSD(basePrice, 'NZD'), currency: 'NZD' },
+        { amount: convertFromUSD(basePrice, 'KRW'), currency: 'KRW' },
+        { amount: convertFromUSD(basePrice, 'JPY'), currency: 'JPY' },
+        { amount: convertFromUSD(basePrice, 'SGD'), currency: 'SGD' },
+        { amount: convertFromUSD(basePrice, 'CNY'), currency: 'CNY' }
+    ];
+}
 // Define base shipping zones to reuse
 const baseShippingZones = {
     EU: {
@@ -71,120 +112,17 @@ const baseShippingZones = {
 // Define base customs duty info to reuse
 const baseCustomsDutyInfo = {
     EU: 'VAT included in price for EU countries',
-    UK: 'UK VAT (20%) will be calculated at checkout',
+    UK: 'UK VAT (20%) will be factored into the price',
     US: 'No additional import duties for orders under $800',
     APAC: 'Import duties may apply, calculated at checkout',
     ROW: 'Import duties may apply, calculated at checkout'
 };
-// Define exchange rates (these should be updated regularly in production)
-const exchangeRates = {
-    USD: 1, // Base currency
-    EUR: 0.92, // Euro
-    GBP: 0.79, // British Pound
-    AUD: 1.52, // Australian Dollar
-    CHF: 0.89, // Swiss Franc
-    SEK: 10.45, // Swedish Krona
-    AED: 3.67, // UAE Dirham
-    DKK: 6.86, // Danish Krone
-    NOK: 10.58, // Norwegian Krone
-    NZD: 1.65, // New Zealand Dollar
-    KRW: 1335.50, // South Korean Won
-    JPY: 150.55, // Japanese Yen
-    SGD: 1.34, // Singapore Dollar
-    CNY: 7.23 // Chinese Yuan
-};
-// Helper function to convert USD to other currencies
-function convertFromUSD(amount, targetCurrency) {
-    const rate = exchangeRates[targetCurrency];
-    if (!rate)
-        throw new Error("Unsupported currency: ".concat(targetCurrency));
-    // Round to 2 decimal places, except JPY and KRW which don't use decimals
-    if (targetCurrency === 'JPY' || targetCurrency === 'KRW') {
-        return Math.round(amount * rate);
-    }
-    return Math.round(amount * rate * 100) / 100;
-}
-// Helper function to generate pricing array from USD base price
-function generatePricingArray(basePrice) {
-    return [
-        {
-            currency: 'USD',
-            amount: basePrice,
-            regions: ['US']
-        },
-        {
-            currency: 'EUR',
-            amount: convertFromUSD(basePrice, 'EUR'),
-            regions: ['DE', 'FR', 'ES', 'IT', 'NL', 'IE', 'BE', 'AT', 'PT', 'FI', 'GR']
-        },
-        {
-            currency: 'GBP',
-            amount: convertFromUSD(basePrice, 'GBP'),
-            regions: ['GB']
-        },
-        {
-            currency: 'AUD',
-            amount: convertFromUSD(basePrice, 'AUD'),
-            regions: ['AU']
-        },
-        {
-            currency: 'CHF',
-            amount: convertFromUSD(basePrice, 'CHF'),
-            regions: ['CH']
-        },
-        {
-            currency: 'SEK',
-            amount: convertFromUSD(basePrice, 'SEK'),
-            regions: ['SE']
-        },
-        {
-            currency: 'AED',
-            amount: convertFromUSD(basePrice, 'AED'),
-            regions: ['AE']
-        },
-        {
-            currency: 'DKK',
-            amount: convertFromUSD(basePrice, 'DKK'),
-            regions: ['DK']
-        },
-        {
-            currency: 'NOK',
-            amount: convertFromUSD(basePrice, 'NOK'),
-            regions: ['NO']
-        },
-        {
-            currency: 'NZD',
-            amount: convertFromUSD(basePrice, 'NZD'),
-            regions: ['NZ']
-        },
-        {
-            currency: 'KRW',
-            amount: convertFromUSD(basePrice, 'KRW'),
-            regions: ['KR']
-        },
-        {
-            currency: 'JPY',
-            amount: convertFromUSD(basePrice, 'JPY'),
-            regions: ['JP']
-        },
-        {
-            currency: 'SGD',
-            amount: convertFromUSD(basePrice, 'SGD'),
-            regions: ['SG']
-        },
-        {
-            currency: 'CNY',
-            amount: convertFromUSD(basePrice, 'CNY'),
-            regions: ['CN']
-        }
-    ];
-}
 // Export the tshirt details for use in other files
 export const tshirtDetails = {
     // Men's T-shirts
     'TEE-SS-STTU755': {
         sku: 'TEE-SS-STTU755',
-        name: "Men's Premium Organic Cotton Creator 2.0 T-Shirt",
+        name: "Men's Classic T-Shirt",
         shortDescription: 'Premium 100% organic cotton unisex t-shirt with modern fit. Sustainably made, breathable comfort for everyday casual wear. GOTS certified eco-friendly apparel.',
         features: [
             'Modern medium fit for versatile styling',
@@ -212,7 +150,9 @@ export const tshirtDetails = {
         productType: 'T_SHIRT',
         category: "Men's T-shirts",
         imageUrls: {
-            base: '/assets/images/Apparel/Mens/T-Shirts/TEE-SS-STTU755/Blanks/png'
+            base: '/assets/images/Apparel/Mens/T-Shirts/TEE-SS-STTU755/Blanks/png',
+            cover: '/assets/images/Apparel/Mens/T-Shirts/TEE-SS-STTU755/Blanks/cover',
+            sizeChart: '/assets/images/Apparel/Mens/T-Shirts/TEE-SS-STTU755/Blanks/size-chart.png'
         },
         colorOptions: [
             { name: 'White', filename: 'white.png' },
@@ -251,63 +191,7 @@ export const tshirtDetails = {
             value: 0.18,
             units: 'kg'
         },
-        pricing: generatePricingArray(71.99),
-        shippingZones: baseShippingZones,
-        vatIncluded: true,
-        customsDutyInfo: baseCustomsDutyInfo,
-        restrictions: {
-            excludedCountries: [],
-            maxQuantityPerOrder: 1000
-        }
-    },
-    'GLOBAL-TEE-BC-3413': {
-        sku: 'GLOBAL-TEE-BC-3413',
-        name: 'Triblend T-Shirt',
-        shortDescription: 'Ultra-soft triblend t-shirt for premium comfort',
-        features: [
-            'Sideseamed construction',
-            'Retail fit',
-            'Crew neck',
-            'Superior drape'
-        ],
-        manufacturingLocation: 'Multiple locations worldwide',
-        materials: ['50% polyester, 25% cotton, 25% rayon'],
-        ecoProperties: ['Eco-friendly dye process'],
-        careInstructions: [
-            'Machine wash cold',
-            'Tumble dry low',
-            'Do not iron decoration',
-            'Do not dry clean'
-        ],
-        pdfUrl: 'https://www.prodigi.com/download/product-range/Prodigi%20Bella+Canvas%203413.pdf',
-        size: ['S', 'M', 'L', 'XL', '2XL'],
-        productType: 'T_SHIRT',
-        category: "Men's T-shirts",
-        imageUrls: {
-            base: '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-BC-3413/Blanks/png'
-        },
-        colorOptions: [
-            { name: 'Military Green Triblend', filename: 'military-green-triblend.png' },
-            { name: 'Vintage Royal Triblend', filename: 'vintage-royal-triblend.png' }
-        ],
-        brand: {
-            name: 'Bella+Canvas',
-            identifier: 'BC'
-        },
-        identifiers: {
-            mpn: '3413'
-        },
-        availability: 'https://schema.org/InStock',
-        dimensions: {
-            width: 20,
-            height: 28,
-            units: 'in'
-        },
-        weight: {
-            value: 0.25,
-            units: 'kg'
-        },
-        pricing: generatePricingArray(71.99),
+        pricing: generatePricingArray(72),
         shippingZones: baseShippingZones,
         vatIncluded: true,
         customsDutyInfo: baseCustomsDutyInfo,
@@ -316,9 +200,71 @@ export const tshirtDetails = {
             maxQuantityPerOrder: 10
         }
     },
+    'GLOBAL-TEE-BC-3413': {
+        sku: 'GLOBAL-TEE-BC-3413',
+        name: "Men's Triblend T-Shirt",
+        shortDescription: 'Ultra-soft triblend t-shirt for premium comfort',
+        features: [
+            'Ultra-soft 3.8 oz triblend fabric',
+            '50% polyester, 25% combed and ring-spun cotton, 25% rayon',
+            'Modern fit with side seams',
+            'Double-needle stitching throughout',
+            'Comfortable lightweight fabric'
+        ],
+        manufacturingLocation: 'United States',
+        materials: ['50% Polyester, 25% Combed and Ring-Spun Cotton, 25% Rayon'],
+        ecoProperties: [
+            'Sustainable fabric blend',
+            'Low environmental impact',
+            'Water-efficient production'
+        ],
+        careInstructions: [
+            'Machine wash cold',
+            'Do not bleach',
+            'Tumble dry low'
+        ],
+        pdfUrl: 'https://www.prodigi.com/download/product-range/Prodigi%20Triblend%20T-Shirt%20BC-3413.pdf',
+        size: ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'],
+        productType: 'T_SHIRT',
+        category: "Men's T-shirts",
+        imageUrls: {
+            base: '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-BC-3413/Blanks/png',
+            cover: '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-BC-3413/Blanks/cover',
+            sizeChart: '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-BC-3413/Blanks/size-chart.png'
+        },
+        colorOptions: [
+            { name: 'Military Green Triblend', filename: 'military-green-triblend.png' },
+            { name: 'Vintage Royal Triblend', filename: 'vintage-royal-triblend.png' }
+        ],
+        brand: {
+            name: 'Global',
+            identifier: 'G'
+        },
+        identifiers: {
+            mpn: 'BC-3413'
+        },
+        availability: 'https://schema.org/InStock',
+        dimensions: {
+            width: 20,
+            height: 28,
+            units: 'in'
+        },
+        weight: {
+            value: 0.14,
+            units: 'kg'
+        },
+        pricing: generatePricingArray(30),
+        shippingZones: baseShippingZones,
+        vatIncluded: true,
+        customsDutyInfo: baseCustomsDutyInfo,
+        restrictions: {
+            excludedCountries: [],
+            maxQuantityPerOrder: 1000
+        }
+    },
     'TT-GIL-64200': {
         sku: 'TT-GIL-64200',
-        name: 'Tank Top',
+        name: "Men's Tank Top",
         shortDescription: 'Classic tank top for casual comfort',
         features: [
             'Double-needle stitched neckline and armholes',
@@ -340,11 +286,15 @@ export const tshirtDetails = {
         productType: 'TANK_TOP',
         category: "Men's T-shirts",
         imageUrls: {
-            base: '/assets/images/Apparel/Mens/T-Shirts/TT-GIL-64200/Blanks/png'
+            base: '/assets/images/Apparel/Mens/T-Shirts/TT-GIL-64200/Blanks/png',
+            cover: '/assets/images/Apparel/Mens/T-Shirts/TT-GIL-64200/Blanks/cover',
+            sizeChart: '/assets/images/Apparel/Mens/T-Shirts/TT-GIL-64200/Blanks/size-chart.png'
         },
         colorOptions: [
             { name: 'Black', filename: 'black.png' },
-            { name: 'White', filename: 'white.png' },
+            { name: 'Heather Grey', filename: 'heather-grey.png' },
+            { name: 'Red', filename: 'red.png' },
+            { name: 'Charcoal', filename: 'charcoal.png' },
             { name: 'Navy', filename: 'navy.png' },
             { name: 'Sport Grey', filename: 'sport-grey.png' }
         ],
@@ -365,7 +315,7 @@ export const tshirtDetails = {
             value: 0.2,
             units: 'kg'
         },
-        pricing: generatePricingArray(68.99),
+        pricing: generatePricingArray(69),
         shippingZones: baseShippingZones,
         vatIncluded: true,
         customsDutyInfo: baseCustomsDutyInfo,
@@ -376,7 +326,7 @@ export const tshirtDetails = {
     },
     'GLOBAL-TEE-GIL-64V00': {
         sku: 'GLOBAL-TEE-GIL-64V00',
-        name: 'V-Neck T-Shirt',
+        name: "Men's V-Neck T-Shirt",
         shortDescription: 'Modern v-neck t-shirt with classic fit',
         features: [
             'Seamless collar',
@@ -398,14 +348,21 @@ export const tshirtDetails = {
         productType: 'T_SHIRT',
         category: "Men's T-shirts",
         imageUrls: {
-            base: '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/Blanks/png'
+            base: '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/Blanks/png',
+            cover: '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/Blanks/cover',
+            sizeChart: '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/Blanks/size-chart.png'
         },
         colorOptions: [
             { name: 'Black', filename: 'black.png' },
-            { name: 'White', filename: 'white.png' },
+            { name: 'Irish Green', filename: 'irish-green.png' },
+            { name: 'Sport Grey', filename: 'sports-grey.png' },
+            { name: 'Charcoal', filename: 'charcoal.png' },
             { name: 'Navy', filename: 'navy.png' },
-            { name: 'Sport Grey', filename: 'sport-grey.png' },
-            { name: 'Red', filename: 'red.png' }
+            { name: 'White', filename: 'white.png' },
+            { name: 'Dark Heather', filename: 'dark-heather.png' },
+            { name: 'Red', filename: 'red.png' },
+            { name: 'Heather Purple', filename: 'heather-purple.png' },
+            { name: 'Royal', filename: 'royal.png' }
         ],
         brand: {
             name: 'Gildan',
@@ -424,7 +381,7 @@ export const tshirtDetails = {
             value: 0.25,
             units: 'kg'
         },
-        pricing: generatePricingArray(69.99),
+        pricing: generatePricingArray(70),
         shippingZones: baseShippingZones,
         vatIncluded: true,
         customsDutyInfo: baseCustomsDutyInfo,
@@ -435,7 +392,7 @@ export const tshirtDetails = {
     },
     'A-ML-GD2400': {
         sku: 'A-ML-GD2400',
-        name: 'Long Sleeve T-Shirt',
+        name: "Men's Long Sleeve T-Shirt",
         shortDescription: 'Classic long sleeve t-shirt for year-round wear',
         features: [
             'Seamless collar',
@@ -457,14 +414,18 @@ export const tshirtDetails = {
         productType: 'LONG_SLEEVE_T_SHIRT',
         category: "Men's T-shirts",
         imageUrls: {
-            base: '/assets/images/Apparel/Mens/T-Shirts/A-ML-GD2400/Blanks/png'
+            base: '/assets/images/Apparel/Mens/T-Shirts/A-ML-GD2400/Blanks/png',
+            cover: '/assets/images/Apparel/Mens/T-Shirts/A-ML-GD2400/Blanks/cover',
+            sizeChart: '/assets/images/Apparel/Mens/T-Shirts/A-ML-GD2400/Blanks/size-chart.png'
         },
         colorOptions: [
             { name: 'Black', filename: 'black.png' },
+            { name: 'Light Blue', filename: 'light-blue.png' },
+            { name: 'Royal', filename: 'royal.png' },
             { name: 'White', filename: 'white.png' },
-            { name: 'Navy', filename: 'navy.png' },
-            { name: 'Sport Grey', filename: 'sport-grey.png' },
-            { name: 'Red', filename: 'red.png' }
+            { name: 'Irish Green', filename: 'irish-green.png' },
+            { name: 'Red', filename: 'red.png' },
+            { name: 'Sport Grey', filename: 'sports-grey.png' }
         ],
         brand: {
             name: 'Gildan',
@@ -483,7 +444,7 @@ export const tshirtDetails = {
             value: 0.3,
             units: 'kg'
         },
-        pricing: generatePricingArray(71.99),
+        pricing: generatePricingArray(72),
         shippingZones: baseShippingZones,
         vatIncluded: true,
         customsDutyInfo: baseCustomsDutyInfo,
@@ -495,67 +456,79 @@ export const tshirtDetails = {
     // Women's T-shirts
     'A-WT-GD64000L': {
         sku: 'A-WT-GD64000L',
-        name: "Women's Classic Soft Cotton T-Shirt with Semi-Fitted Design",
+        name: "Women's Classic T-Shirt ",
         shortDescription: 'Ultra-soft 100% cotton women\'s t-shirt with flattering semi-fitted silhouette. Perfect blend of comfort and style for everyday wear. Available in multiple fashion-forward colors.',
         features: [
-            'Flattering semi-fitted silhouette designed for women',
-            'Premium seamless collar for maximum comfort',
-            'Reinforced taped neck and shoulders for durability',
-            'Quality double-needle stitched sleeve and bottom hem',
-            'Versatile design perfect for casual or dressed-up looks'
+            '100% cotton for ultimate comfort',
+            'Semi-fitted silhouette',
+            'Double-stitched neckline and sleeves',
+            'Shoulder-to-shoulder taping',
+            'Side-seamed construction'
         ],
         manufacturingLocation: 'Multiple locations worldwide',
-        materials: ['Premium 100% cotton construction (material content may vary for heather colors)'],
-        ecoProperties: ['WRAP certified manufacturing ensuring ethical production standards'],
-        careInstructions: [
-            'Machine wash warm',
-            'Tumble dry medium',
-            'Do not iron decoration',
-            'Do not dry clean'
+        materials: ['100% Cotton'],
+        ecoProperties: [
+            'Sustainable cotton',
+            'Low water usage',
+            'Environmentally friendly'
         ],
-        pdfUrl: 'https://www.prodigi.com/download/product-range/Prodigi%20Gildan%2064000L.pdf',
-        size: ['S', 'M', 'L', 'XL', '2XL'],
+        careInstructions: [
+            'Machine wash cold',
+            'Do not bleach',
+            'Tumble dry low'
+        ],
+        pdfUrl: 'https://www.prodigi.com/download/product-range/Prodigi%20Women%27s%20Classic%20Soft%20Cotton%20T-Shirt%20GD64000L.pdf',
+        size: ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'],
         productType: 'T_SHIRT',
         category: "Women's T-shirts",
         imageUrls: {
-            base: '/assets/images/Apparel/Womens/T-Shirts/A-WT-GD64000L/Blanks/png'
+            base: '/assets/images/Apparel/Womens/T-Shirts/A-WT-GD64000L/Blanks/png',
+            cover: '/assets/images/Apparel/Womens/T-Shirts/A-WT-GD64000L/Blanks/cover',
+            sizeChart: '/assets/images/Apparel/Womens/T-Shirts/A-WT-GD64000L/Blanks/size-chart.png'
         },
         colorOptions: [
+            { name: 'Azalea', filename: 'azalea.png' },
             { name: 'Black', filename: 'black.png' },
-            { name: 'White', filename: 'white.png' },
+            { name: 'Cornsilk', filename: 'cornsilk.png' },
+            { name: 'Daisy', filename: 'daisy.png' },
+            { name: 'Irish Green', filename: 'irish-green.png' },
+            { name: 'Light Blue', filename: 'light-blue.png' },
             { name: 'Navy', filename: 'navy.png' },
-            { name: 'Light Pink', filename: 'light-pink.png' },
-            { name: 'Sport Grey', filename: 'sport-grey.png' }
+            { name: 'Purple', filename: 'purple.png' },
+            { name: 'Red', filename: 'red.png' },
+            { name: 'Royal', filename: 'royal.png' },
+            { name: 'Sports Grey', filename: 'sports-grey.png' },
+            { name: 'White', filename: 'white.png' }
         ],
         brand: {
-            name: 'Gildan',
-            identifier: 'GIL'
+            name: 'American Apparel',
+            identifier: 'AA'
         },
         identifiers: {
-            mpn: '64000L'
+            mpn: 'GD64000L'
         },
         availability: 'https://schema.org/InStock',
         dimensions: {
-            width: 18,
-            height: 26,
+            width: 20,
+            height: 28,
             units: 'in'
         },
         weight: {
-            value: 0.25,
+            value: 0.14,
             units: 'kg'
         },
-        pricing: generatePricingArray(65.99),
+        pricing: generatePricingArray(30),
         shippingZones: baseShippingZones,
         vatIncluded: true,
         customsDutyInfo: baseCustomsDutyInfo,
         restrictions: {
             excludedCountries: [],
-            maxQuantityPerOrder: 10
+            maxQuantityPerOrder: 1000
         }
     },
     'GLOBAL-TEE-BC-6035': {
         sku: 'GLOBAL-TEE-BC-6035',
-        name: 'V-Neck Women\'s T-Shirt',
+        name: "Women's V-Neck T-Shirt",
         shortDescription: 'Flattering v-neck t-shirt with modern feminine fit',
         features: [
             'Deep v-neck',
@@ -577,13 +550,18 @@ export const tshirtDetails = {
         productType: 'T_SHIRT',
         category: "Women's T-shirts",
         imageUrls: {
-            base: '/assets/images/Apparel/Womens/T-Shirts/GLOBAL-TEE-BC-6035/Blanks/png'
+            base: '/assets/images/Apparel/Womens/T-Shirts/GLOBAL-TEE-BC-6035/Blanks/png',
+            cover: '/assets/images/Apparel/Womens/T-Shirts/GLOBAL-TEE-BC-6035/Blanks/cover',
+            sizeChart: '/assets/images/Apparel/Womens/T-Shirts/GLOBAL-TEE-BC-6035/Blanks/size-chart.png'
         },
         colorOptions: [
-            { name: 'Black', filename: 'black.png' },
-            { name: 'White', filename: 'white.png' },
+            { name: 'Athletic Heather', filename: 'athletic-heather.png' },
             { name: 'Navy', filename: 'navy.png' },
-            { name: 'Heather Mauve', filename: 'heather-mauve.png' }
+            { name: 'White', filename: 'white.png' },
+            { name: 'Black', filename: 'black.png' },
+            { name: 'Red', filename: 'red.png' },
+            { name: 'Dark Grey', filename: 'dark-grey.png' },
+            { name: 'True Royal', filename: 'true-royal.png' }
         ],
         brand: {
             name: 'Bella+Canvas',
@@ -602,7 +580,7 @@ export const tshirtDetails = {
             value: 0.25,
             units: 'kg'
         },
-        pricing: generatePricingArray(65.99),
+        pricing: generatePricingArray(66),
         shippingZones: baseShippingZones,
         vatIncluded: true,
         customsDutyInfo: baseCustomsDutyInfo,
@@ -614,7 +592,7 @@ export const tshirtDetails = {
     // Babies
     'A-BB-LA4411': {
         sku: 'A-BB-LA4411',
-        name: 'Baby Bodysuit',
+        name: "Baby's Bodysuit",
         shortDescription: 'Premium infant bodysuit with lap shoulders and snap closure',
         features: [
             'Lap shoulders for easy dressing',
@@ -646,12 +624,17 @@ export const tshirtDetails = {
         productType: 'BABY_BODYSUIT',
         category: "Baby Clothing",
         imageUrls: {
-            base: '/assets/images/Apparel/Kids+Babies/Babies/A-BB-LA4411/Blanks/png'
+            base: '/assets/images/Apparel/Kids+Babies/Babies/A-BB-LA4411/Blanks/png',
+            cover: '/assets/images/Apparel/Kids+Babies/Babies/A-BB-LA4411/Blanks/cover',
+            sizeChart: '/assets/images/Apparel/Kids+Babies/Babies/A-BB-LA4411/Blanks/size-chart.png'
         },
         colorOptions: [
-            { name: 'White', filename: 'white.png' },
-            { name: 'Light Pink', filename: 'light-pink.png' },
-            { name: 'Light Blue', filename: 'light-blue.png' }
+            { name: 'Black', filename: 'black.png' },
+            { name: 'Navy', filename: 'navy.png' },
+            { name: 'Red', filename: 'red.png' },
+            { name: 'Heather', filename: 'heather.png' },
+            { name: 'Pink', filename: 'pink.png' },
+            { name: 'White', filename: 'white.png' }
         ],
         brand: {
             name: 'LAT Apparel',
@@ -670,7 +653,7 @@ export const tshirtDetails = {
             value: 0.15,
             units: 'kg'
         },
-        pricing: generatePricingArray(65.99),
+        pricing: generatePricingArray(66),
         shippingZones: baseShippingZones,
         vatIncluded: true,
         customsDutyInfo: baseCustomsDutyInfo,
@@ -681,7 +664,7 @@ export const tshirtDetails = {
     },
     'GLOBAL-TEE-RS-3322': {
         sku: 'GLOBAL-TEE-RS-3322',
-        name: 'Baby T-Shirt',
+        name: "Baby's T-Shirt",
         shortDescription: 'Soft and durable baby t-shirt with easy-on neckline',
         features: [
             'Shoulder-to-shoulder tape for strength',
@@ -713,12 +696,20 @@ export const tshirtDetails = {
         productType: 'BABY_T_SHIRT',
         category: "Baby Clothing",
         imageUrls: {
-            base: '/assets/images/Apparel/Kids+Babies/Babies/GLOBAL-TEE-RS-3322/Blanks/png'
+            base: '/assets/images/Apparel/Kids+Babies/Babies/GLOBAL-TEE-RS-3322/Blanks/png',
+            cover: '/assets/images/Apparel/Kids+Babies/Babies/GLOBAL-TEE-RS-3322/Blanks/cover',
+            sizeChart: '/assets/images/Apparel/Kids+Babies/Babies/GLOBAL-TEE-RS-3322/Blanks/size-chart.png'
         },
         colorOptions: [
-            { name: 'White', filename: 'white.png' },
-            { name: 'Light Pink', filename: 'light-pink.png' },
-            { name: 'Light Blue', filename: 'light-blue.png' }
+            { name: 'Apple', filename: 'apple.png' },
+            { name: 'Butter', filename: 'butter.png' },
+            { name: 'Heather', filename: 'heather.png' },
+            { name: 'Navy', filename: 'navy.png' },
+            { name: 'Red', filename: 'red.png' },
+            { name: 'Black', filename: 'black.png' },
+            { name: 'Charcoal', filename: 'charcoal.png' },
+            { name: 'Light Blue', filename: 'light-blue.png' },
+            { name: 'Pink', filename: 'pink.png' }
         ],
         brand: {
             name: 'LAT Apparel',
@@ -737,7 +728,7 @@ export const tshirtDetails = {
             value: 0.15,
             units: 'kg'
         },
-        pricing: generatePricingArray(65.99),
+        pricing: generatePricingArray(66),
         shippingZones: baseShippingZones,
         vatIncluded: true,
         customsDutyInfo: baseCustomsDutyInfo,
@@ -749,7 +740,7 @@ export const tshirtDetails = {
     // Kids
     'A-KT-GD64000B': {
         sku: 'A-KT-GD64000B',
-        name: 'Kids T-Shirt',
+        name: "Kids' T-Shirt",
         shortDescription: 'Classic youth t-shirt with durable construction',
         features: [
             'Seamless double-needle 7/8" collar',
@@ -781,14 +772,20 @@ export const tshirtDetails = {
         productType: 'KIDS_T_SHIRT',
         category: "Kids' T-shirts",
         imageUrls: {
-            base: '/assets/images/Apparel/Kids+Babies/Kids/T-Shirts/A-KT-GD64000B/Blanks/png'
+            base: '/assets/images/Apparel/Kids+Babies/Kids/T-Shirts/A-KT-GD64000B/Blanks/png',
+            cover: '/assets/images/Apparel/Kids+Babies/Kids/T-Shirts/A-KT-GD64000B/Blanks/cover',
+            sizeChart: '/assets/images/Apparel/Kids+Babies/Kids/T-Shirts/A-KT-GD64000B/Blanks/size-chart.png'
         },
         colorOptions: [
             { name: 'Black', filename: 'black.png' },
-            { name: 'White', filename: 'white.png' },
+            { name: 'Charcoal', filename: 'charcoal.png' },
+            { name: 'Daisy', filename: 'daisy.png' },
+            { name: 'Light Blue', filename: 'light-blue.png' },
             { name: 'Navy', filename: 'navy.png' },
-            { name: 'Sport Grey', filename: 'sport-grey.png' },
-            { name: 'Red', filename: 'red.png' }
+            { name: 'Purple', filename: 'purple.png' },
+            { name: 'Red', filename: 'red.png' },
+            { name: 'Royal', filename: 'royal.png' },
+            { name: 'Sport Grey', filename: 'sports-grey.png' }
         ],
         brand: {
             name: 'Gildan',
@@ -807,7 +804,7 @@ export const tshirtDetails = {
             value: 0.2,
             units: 'kg'
         },
-        pricing: generatePricingArray(65.99),
+        pricing: generatePricingArray(66),
         shippingZones: baseShippingZones,
         vatIncluded: true,
         customsDutyInfo: baseCustomsDutyInfo,
@@ -818,7 +815,7 @@ export const tshirtDetails = {
     },
     'SWEAT-AWD-JH030B': {
         sku: 'SWEAT-AWD-JH030B',
-        name: 'Kids Sweatshirt',
+        name: "Kids' Sweatshirt",
         shortDescription: 'Premium kids sweatshirt with modern fit and superior comfort',
         features: [
             'Double fabric hood with self-colored cords',
@@ -851,20 +848,22 @@ export const tshirtDetails = {
         productType: 'KIDS_SWEATSHIRT',
         category: "Kids' Sweatshirts",
         imageUrls: {
-            base: '/assets/images/Apparel/Kids+Babies/Kids/T-Shirts/SWEAT-AWD-JH030B/Blanks/png'
+            base: '/assets/images/Apparel/Kids+Babies/Kids/T-Shirts/SWEAT-AWD-JH030B/Blanks/png',
+            cover: '/assets/images/Apparel/Kids+Babies/Kids/T-Shirts/SWEAT-AWD-JH030B/Blanks/cover',
+            sizeChart: '/assets/images/Apparel/Kids+Babies/Kids/T-Shirts/SWEAT-AWD-JH030B/Blanks/size-chart.png'
         },
         colorOptions: [
             { name: 'Arctic White', filename: 'arctic-white.png' },
             { name: 'Jet Black', filename: 'jet-black.png' },
-            { name: 'Charcoal', filename: 'charcoal.png' },
-            { name: 'Heather Grey', filename: 'heather-grey.png' },
-            { name: 'Oxford Navy', filename: 'oxford-navy.png' },
             { name: 'Royal Blue', filename: 'royal-blue.png' },
-            { name: 'Sky Blue', filename: 'sky-blue.png' },
             { name: 'Bottle Green', filename: 'bottle-green.png' },
             { name: 'Kelly Green', filename: 'kelly-green.png' },
-            { name: 'Red', filename: 'red.png' },
-            { name: 'Sun Yellow', filename: 'sun-yellow.png' }
+            { name: 'Sky Blue', filename: 'sky-blue.png' },
+            { name: 'Charcoal', filename: 'charcoal.png' },
+            { name: 'Oxford Navy', filename: 'oxford-navy.png' },
+            { name: 'Sun Yellow', filename: 'sun-yellow.png' },
+            { name: 'Heather Grey', filename: 'heather-grey.png' },
+            { name: 'Red', filename: 'red.png' }
         ],
         brand: {
             name: 'AWDis',
@@ -883,7 +882,7 @@ export const tshirtDetails = {
             value: 0.4,
             units: 'kg'
         },
-        pricing: generatePricingArray(67.99),
+        pricing: generatePricingArray(68),
         shippingZones: baseShippingZones,
         vatIncluded: true,
         customsDutyInfo: baseCustomsDutyInfo,

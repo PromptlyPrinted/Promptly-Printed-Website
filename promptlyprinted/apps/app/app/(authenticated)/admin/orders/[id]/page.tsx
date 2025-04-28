@@ -15,7 +15,7 @@ import { formatDistance } from "date-fns";
 import { Button } from "@repo/design-system/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 import UpdateOrderStatus from "./components/update-order-status";
-import { getProdigiClient } from "@/lib/prodigi";
+import { getProdigiProduct } from "@/lib/prodigi";
 
 async function getOrder(id: string) {
   const order = await database.order.findUnique({
@@ -40,19 +40,16 @@ async function getOrder(id: string) {
   }
 
   // If there's a Prodigi order ID, fetch the Prodigi order details
-  let prodigiOrder = null;
-  if (order.prodigiOrderId) {
-    const prodigiClient = getProdigiClient();
-    if (prodigiClient) {
-      try {
-        prodigiOrder = await prodigiClient.getOrder(order.prodigiOrderId);
-      } catch (error) {
-        console.error("Error fetching Prodigi order:", error);
-      }
+  let prodigiProduct = null;
+  if (order.prodigiSku) {
+    try {
+      prodigiProduct = await getProdigiProduct(order.prodigiSku);
+    } catch (error) {
+      console.error("Error fetching Prodigi product:", error);
     }
   }
 
-  return { order, prodigiOrder };
+  return { order, prodigiProduct };
 }
 
 export default async function AdminOrderDetailPage({
@@ -75,7 +72,7 @@ export default async function AdminOrderDetailPage({
     redirect("/");
   }
 
-  const { order, prodigiOrder } = await getOrder(params.id);
+  const { order, prodigiProduct } = await getOrder(params.id);
 
   return (
     <div className="space-y-6 p-6">
@@ -110,13 +107,13 @@ export default async function AdminOrderDetailPage({
               <dt className="font-medium">Customer Email</dt>
               <dd>{order.user.email}</dd>
             </div>
-            {order.prodigiOrderId && (
+            {order.prodigiSku && (
               <>
                 <div className="flex justify-between">
-                  <dt className="font-medium">Prodigi Order</dt>
+                  <dt className="font-medium">Prodigi Product</dt>
                   <dd>
                     <a
-                      href={`https://dashboard.prodigi.com/orders/${order.prodigiOrderId}`}
+                      href={`https://dashboard.prodigi.com/products/${order.prodigiSku}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:underline"
@@ -125,20 +122,20 @@ export default async function AdminOrderDetailPage({
                     </a>
                   </dd>
                 </div>
-                {prodigiOrder && (
+                {prodigiProduct && (
                   <div className="flex justify-between">
-                    <dt className="font-medium">Prodigi Status</dt>
+                    <dt className="font-medium">Prodigi Product Status</dt>
                     <dd>
                       <span
                         className={`px-2 py-1 rounded-full text-xs ${
-                          prodigiOrder.status === "complete"
+                          prodigiProduct.status === "active"
                             ? "bg-green-100 text-green-800"
-                            : prodigiOrder.status === "cancelled" || prodigiOrder.status === "error"
+                            : prodigiProduct.status === "inactive" || prodigiProduct.status === "error"
                             ? "bg-red-100 text-red-800"
                             : "bg-yellow-100 text-yellow-800"
                         }`}
                       >
-                        {prodigiOrder.status.toUpperCase()}
+                        {prodigiProduct.status.toUpperCase()}
                       </span>
                     </dd>
                   </div>

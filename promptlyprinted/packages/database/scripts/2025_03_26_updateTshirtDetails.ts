@@ -324,7 +324,11 @@ export const tshirtDetails: Record<string, ProductDetails> = {
     productType: 'T_SHIRT',
     category: "Men's T-shirts",
     imageUrls: {
-      base: '/assets/images/Apparel/Mens/T-Shirts/TEE-SS-STTU755/Blanks/png'
+      base: '/assets/images/Apparel/Mens/T-Shirts/TEE-SS-STTU755/Blanks/png',
+      front: '/assets/images/Apparel/Mens/T-Shirts/TEE-SS-STTU755/Blanks/png/front.png',
+      back: '/assets/images/Apparel/Mens/T-Shirts/TEE-SS-STTU755/Blanks/png/back.png',
+      closeup: '/assets/images/Apparel/Mens/T-Shirts/TEE-SS-STTU755/Blanks/png/closeup.png',
+      lifestyle: '/assets/images/Apparel/Mens/T-Shirts/TEE-SS-STTU755/Blanks/png/lifestyle.png'
     },
     colorOptions: [
       { name: 'White', filename: 'white.png' },

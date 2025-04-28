@@ -1,10 +1,79 @@
 import { PrismaClient } from '@prisma/client';
-import { tshirtDetails } from './2025_03_26_updateTshirtDetails.js';
+import { tshirtDetails } from './tshirt-details';
+
+interface TshirtDetails {
+  name: string;
+  shortDescription: string;
+  productType: string;
+  brand: { name: string };
+  colorOptions: Array<{ name: string; filename: string }>;
+  dimensions: {
+    width: number;
+    height: number;
+    units: string;
+  };
+  size: string[];
+  category: string;
+  imageUrls: {
+    base: string;
+    front: string;
+    back: string;
+    closeup: string;
+    lifestyle: string;
+  };
+  shippingZones: Record<string, any>;
+  customsDutyInfo: Record<string, string>;
+  restrictions: {
+    excludedCountries: string[];
+    maxQuantityPerOrder: number;
+  };
+  features: string[];
+  materials: string[];
+  ecoProperties: string[];
+  careInstructions: string[];
+  manufacturingLocation: string;
+  pricing: Array<{
+    amount: number;
+    currency: string;
+  }>;
+}
 
 // Initialize Prisma client
 const prisma = new PrismaClient({
   log: ['query', 'error', 'warn'],
 });
+
+// Define all shipping zones and countries
+const shippingZones = {
+  EU: {
+    countries: ['DE', 'FR', 'IT', 'ES', 'NL', 'BE', 'IE', 'AT', 'PT', 'FI', 'GR'],
+    currency: 'EUR',
+  },
+  UK: {
+    countries: ['GB'],
+    currency: 'GBP',
+  },
+  US: {
+    countries: ['US'],
+    currency: 'USD',
+  },
+  APAC: {
+    countries: ['AU', 'NZ', 'JP', 'KR', 'SG'],
+    currency: 'USD', // You may want to customize this per country if needed
+  },
+  ROW: {
+    countries: ['CH', 'SE', 'AE', 'DK', 'NO', 'CN'],
+    currency: 'USD', // You may want to customize this per country if needed
+  },
+};
+
+// Build a map of countryCode -> currency
+const countryCurrencyMap: Record<string, string> = {};
+for (const zone of Object.values(shippingZones)) {
+  for (const country of zone.countries) {
+    countryCurrencyMap[country] = zone.currency;
+  }
+}
 
 async function main() {
   try {
@@ -40,121 +109,102 @@ async function main() {
         continue;
       }
 
-      // Create base product
-      const product = await prisma.product.upsert({
-        where: { 
-          sku_countryCode: {
+      // --- Loop over all supported countries ---
+      for (const countryCode of Object.keys(countryCurrencyMap)) {
+        // Find the preferred currency for this country
+        const currency = countryCurrencyMap[countryCode];
+        // Find the price in that currency, fallback to USD if not found
+        const priceObj = details.pricing.find(p => p.currency === currency) || details.pricing[0];
+
+        // Create base product
+        const product = await prisma.product.upsert({
+          where: { 
+            sku_countryCode: {
+              sku: sku,
+              countryCode: countryCode
+            }
+          },
+          update: {
+            name: details.name,
+            description: details.shortDescription,
+            price: priceObj.amount,
+            customerPrice: priceObj.amount,
+            currency: priceObj.currency,
+            categoryId: categoryId,
+            productType: details.productType,
+            brand: details.brand.name,
+            color: details.colorOptions.map(opt => opt.name),
+            countryCode: countryCode,
+            gender: details.category.includes("Men's") ? 'M' : 
+                    details.category.includes("Women's") ? 'F' : 'U',
+            height: details.dimensions.height,
+            width: details.dimensions.width,
+            units: details.dimensions.units,
+            size: details.size,
+            shippingCost: 0, // Will be calculated based on shipping zones
+            taxAmount: 0, // Will be calculated based on region
+            totalCost: priceObj.amount,
+            edge: 'standard', // Default value
+            style: 'casual', // Default value
+            prodigiAttributes: {
+              features: details.features,
+              materials: details.materials,
+              ecoProperties: details.ecoProperties,
+              careInstructions: details.careInstructions,
+              manufacturingLocation: details.manufacturingLocation
+            },
+            prodigiDescription: details.shortDescription,
+            prodigiVariants: {
+              colorOptions: details.colorOptions,
+              shippingZones: details.shippingZones,
+              customsDutyInfo: details.customsDutyInfo,
+              restrictions: details.restrictions,
+              imageUrls: details.imageUrls
+            }
+          },
+          create: {
+            name: details.name,
             sku: sku,
-            countryCode: 'US' // Default to US for now
-          }
-        },
-        update: {
-          name: details.name,
-          description: details.shortDescription,
-          price: details.pricing[0].amount, // Use USD price as base
-          customerPrice: details.pricing[0].amount,
-          currency: details.pricing[0].currency,
-          categoryId: categoryId,
-          productType: details.productType,
-          brand: details.brand.name,
-          color: details.colorOptions.map(opt => opt.name),
-          countryCode: 'US',
-          gender: details.category.includes("Men's") ? 'M' : 
-                  details.category.includes("Women's") ? 'F' : 'U',
-          height: details.dimensions.height,
-          width: details.dimensions.width,
-          units: details.dimensions.units,
-          size: details.size,
-          shippingCost: 0, // Will be calculated based on shipping zones
-          taxAmount: 0, // Will be calculated based on region
-          totalCost: details.pricing[0].amount,
-          edge: 'standard', // Default value
-          style: 'casual', // Default value
-          prodigiAttributes: {
-            features: details.features,
-            materials: details.materials,
-            ecoProperties: details.ecoProperties,
-            careInstructions: details.careInstructions,
-            manufacturingLocation: details.manufacturingLocation
-          },
-          prodigiDescription: details.shortDescription,
-          prodigiVariants: {
-            colorOptions: details.colorOptions,
-            shippingZones: details.shippingZones,
-            customsDutyInfo: details.customsDutyInfo,
-            restrictions: details.restrictions
-          }
-        },
-        create: {
-          name: details.name,
-          sku: sku,
-          description: details.shortDescription,
-          price: details.pricing[0].amount,
-          customerPrice: details.pricing[0].amount,
-          currency: details.pricing[0].currency,
-          categoryId: categoryId,
-          productType: details.productType,
-          brand: details.brand.name,
-          color: details.colorOptions.map(opt => opt.name),
-          countryCode: 'US',
-          gender: details.category.includes("Men's") ? 'M' : 
-                  details.category.includes("Women's") ? 'F' : 'U',
-          height: details.dimensions.height,
-          width: details.dimensions.width,
-          units: details.dimensions.units,
-          size: details.size,
-          shippingCost: 0,
-          taxAmount: 0,
-          totalCost: details.pricing[0].amount,
-          edge: 'standard', // Default value
-          style: 'casual', // Default value
-          prodigiAttributes: {
-            features: details.features,
-            materials: details.materials,
-            ecoProperties: details.ecoProperties,
-            careInstructions: details.careInstructions,
-            manufacturingLocation: details.manufacturingLocation
-          },
-          prodigiDescription: details.shortDescription,
-          prodigiVariants: {
-            colorOptions: details.colorOptions,
-            shippingZones: details.shippingZones,
-            customsDutyInfo: details.customsDutyInfo,
-            restrictions: details.restrictions
-          }
-        }
-      });
-
-      // Create images for the product
-      if (details.imageUrls.base) {
-        await prisma.image.create({
-          data: {
-            url: details.imageUrls.base,
-            productId: product.id
+            description: details.shortDescription,
+            price: priceObj.amount,
+            customerPrice: priceObj.amount,
+            currency: priceObj.currency,
+            categoryId: categoryId,
+            productType: details.productType,
+            brand: details.brand.name,
+            color: details.colorOptions.map(opt => opt.name),
+            countryCode: countryCode,
+            gender: details.category.includes("Men's") ? 'M' : 
+                    details.category.includes("Women's") ? 'F' : 'U',
+            height: details.dimensions.height,
+            width: details.dimensions.width,
+            units: details.dimensions.units,
+            size: details.size,
+            shippingCost: 0, // Will be calculated based on shipping zones
+            taxAmount: 0, // Will be calculated based on region
+            totalCost: priceObj.amount,
+            edge: 'standard', // Default value
+            style: 'casual', // Default value
+            prodigiAttributes: {
+              features: details.features,
+              materials: details.materials,
+              ecoProperties: details.ecoProperties,
+              careInstructions: details.careInstructions,
+              manufacturingLocation: details.manufacturingLocation
+            },
+            prodigiDescription: details.shortDescription,
+            prodigiVariants: {
+              colorOptions: details.colorOptions,
+              shippingZones: details.shippingZones,
+              customsDutyInfo: details.customsDutyInfo,
+              restrictions: details.restrictions,
+              imageUrls: details.imageUrls
+            }
           }
         });
+        console.log(`Created/Updated product: ${sku} for country: ${countryCode}`);
       }
-
-      // Create additional images if they exist
-      const additionalImages = [
-        { url: details.imageUrls.front, type: 'front' },
-        { url: details.imageUrls.back, type: 'back' },
-        { url: details.imageUrls.closeup, type: 'closeup' },
-        { url: details.imageUrls.lifestyle, type: 'lifestyle' }
-      ].filter((img): img is { url: string; type: string } => 
-        typeof img.url === 'string'
-      );
-
-      for (const img of additionalImages) {
-        await prisma.image.create({
-          data: {
-            url: img.url,
-            productId: product.id
-          }
-        });
-      }
-
-      console.log(`Created/Updated product: ${sku}`);
+      // --- End country loop ---
     }
 
     console.log('Successfully inserted all t-shirt data');

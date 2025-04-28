@@ -7,8 +7,9 @@
     "target": "ESNext",
     "esModuleInterop": true,
     "allowJs": true,
+    "allowImportingTsExtensions": true,
     "outDir": "dist"
   },
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "dist"] // Exclude the output directory
 }

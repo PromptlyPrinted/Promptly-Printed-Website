@@ -1,5 +1,5 @@
 import { ColumnDef } from "@tanstack/react-table";
-import { Product } from "@prisma/client";
+import { Product } from "@repo/database";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -7,8 +7,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
+} from "@repo/design-system/components/ui/dropdown-menu";
+import { Button } from "@repo/design-system/components/ui/button";
 import { MoreHorizontal } from "lucide-react";
 import Link from "next/link";
 

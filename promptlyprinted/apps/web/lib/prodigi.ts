@@ -101,7 +101,7 @@ class ProdigiService {
 
   constructor() {
     this.apiKey = env.PRODIGI_API_KEY
-    this.baseUrl = env.PRODIGI_API_URL || "https://api.sandbox.prodigi.com/v4.0"
+    this.baseUrl = env.PRODIGI_API_URL || "https://api.prodigi.com/v4.0"
     this.headers = {
       "X-API-Key": this.apiKey,
       "Content-Type": "application/json"

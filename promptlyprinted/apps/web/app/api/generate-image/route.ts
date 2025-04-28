@@ -15,7 +15,7 @@ interface ModelConfig {
 
 export async function POST(request: Request) {
   try {
-    const { prompt, models, loraScale } = await request.json()
+    const { prompt, models, loraScale, width, height, dpi } = await request.json()
 
     if (!prompt || !models || !models.length) {
       return NextResponse.json(
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       )
     }
 
-    console.log('Making request to Together AI with:', { prompt, models, loraScale })
+    console.log('Making request to Together AI with:', { prompt, models, loraScale, width, height, dpi })
 
     try {
       // Get the base model (should be FLUX)
@@ -39,10 +39,6 @@ export async function POST(request: Request) {
         
       // Format LoRAs for the image_loras parameter according to Together AI docs
       const imageLoras = loraModels.map(lora => ({
-        // We need to include the full path to the model on HuggingFace
-        // but we only have the model ID in our request.
-        // Together AI requires the full path like "https://huggingface.co/model-id"
-        // We assume model name is the full path in this case
         path: lora.model,
         scale: lora.weight * (loraScale ?? 1)
       }))
@@ -53,19 +49,36 @@ export async function POST(request: Request) {
       // Validate parameters to ensure they're within allowed ranges
       const steps = 12; // Maximum allowed by the API
       
-      // Together AI typically supports these sizes: 512x512, 768x768, 1024x1024
-      // Some models may support other sizes, but these are commonly supported
-      const width = 1024;
-      const height = 1024;
+      // Scale down dimensions to fit within Together AI's limits while maintaining aspect ratio
+      const MAX_SIZE = 1024;
+      const aspectRatio = width / height;
+      let targetWidth = width;
+      let targetHeight = height;
+      
+      if (width > MAX_SIZE || height > MAX_SIZE) {
+        if (aspectRatio > 1) {
+          targetWidth = MAX_SIZE;
+          targetHeight = Math.round(MAX_SIZE / aspectRatio);
+        } else {
+          targetHeight = MAX_SIZE;
+          targetWidth = Math.round(MAX_SIZE * aspectRatio);
+        }
+      }
+
+      // Ensure dimensions are multiples of 8 (required by most AI models)
+      targetWidth = Math.floor(targetWidth / 8) * 8;
+      targetHeight = Math.floor(targetHeight / 8) * 8;
+
+      console.log('Using dimensions:', { targetWidth, targetHeight });
 
       const response = await together.images.create({
         model: baseModel.model,
-        prompt: prompt, // Use the original prompt without LoRA tags
+        prompt: prompt,
         n: 1,
         steps,
-        width,
-        height,
-        image_loras: imageLoras // Add the image_loras parameter with the correct format
+        width: targetWidth,
+        height: targetHeight,
+        image_loras: imageLoras
       })
 
       console.log('Together AI response:', response)

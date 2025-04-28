@@ -1,7 +1,5 @@
-import { database } from '@repo/database';
-import { Product } from '@/types/product'
-
-export const prisma = database;
+import { prisma } from '@repo/database';
+export { prisma };
 
 export async function getProductById(id: string): Promise<Product | null> {
   const product = await prisma.product.findUnique({
@@ -38,6 +36,10 @@ export async function getProductById(id: string): Promise<Product | null> {
   });
 
   if (!product) return null;
+
+  // Debugging: Log the raw product from Prisma and its size field
+  console.log('RAW PRODUCT:', product);
+  console.log('product.size:', product.size);
 
   return {
     id: product.id.toString(),

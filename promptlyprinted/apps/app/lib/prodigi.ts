@@ -14,6 +14,7 @@ console.log('Prodigi Configuration:', {
 interface ProdigiProduct {
   sku: string;
   description: string;
+  status: "active" | "inactive" | "error";
   productDimensions: {
     width: number;
     height: number;

@@ -5,7 +5,9 @@ export interface Product {
   price: number
   shippingCost: number
   imageUrl: string
+  imageUrlMap?: Record<string, string>
   images?: string[]
+  sku?: string
   category?: {
     id: string
     name: string
@@ -30,4 +32,22 @@ export interface Product {
       estimatedDays: number
     }>
   }
-} 
+  prodigiVariants?: {
+    imageUrls?: {
+      base: string
+    }
+    colorOptions?: Array<{
+      name: string
+      filename: string
+    }>
+    width?: number
+    height?: number
+    units?: string
+    brand?: string
+    style?: string
+    colors?: string[]
+    sizes?: string[]
+  }
+  savedImages: any[]
+  wishedBy: any[]
+}

@@ -19,7 +19,8 @@
     "lint": "eslint .",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
-    "db:seed": "ts-node prisma/seed.ts"
+    "db:seed": "ts-node prisma/seed.ts",
+    "seed:tshirts": "tsx scripts/seed-tshirt-details.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"

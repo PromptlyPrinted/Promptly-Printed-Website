@@ -1,7 +1,7 @@
 "use client"
 
 /**
- * Updated Product Detail Component with revised layout:
+ * Updated Product Detail Component with default `copies = 1`.
  * 
  * Left Panel:
  * - T-shirt preview with generated design overlay and thumbnails.
@@ -15,11 +15,10 @@
  * - Checkout buttons and shipping/review tabs.
  */
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import Image from 'next/image'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@repo/design-system/components/ui/tabs'
 import { Button } from '@repo/design-system/components/ui/button'
-import { Input } from '@repo/design-system/components/ui/input'
 import { Textarea } from '@repo/design-system/components/ui/textarea'
 import { Slider } from '@repo/design-system/components/ui/slider'
 import { Label } from '@repo/design-system/components/ui/label'
@@ -32,63 +31,82 @@ import {
 } from '@repo/design-system/components/ui/select'
 import { Product } from '@/types/product'
 import { Card } from '@repo/design-system/components/ui/card'
-import { Separator } from '@repo/design-system/components/ui/separator'
 import { StarIcon } from '@heroicons/react/24/solid'
 import { toast } from '@repo/design-system/components/ui/use-toast'
 import { Checkbox } from '@repo/design-system/components/ui/checkbox'
 import { LORAS, Lora } from '../../../../data/textModel'
-import { SUPPORTED_COUNTRIES, formatPrice, convertPrice, getDefaultCurrency } from '@/utils/currency'
+import { SUPPORTED_COUNTRIES, formatPrice, getDefaultCurrency } from '@/utils/currency'
 import { useExchangeRates } from '@/hooks/useExchangeRates'
-import { GlobeAltIcon, TruckIcon, ShieldCheckIcon } from '@heroicons/react/24/outline'
+import { TruckIcon } from '@heroicons/react/24/outline'
 import { CheckoutButton } from "@/components/CheckoutButton"
+import { PRODUCT_IMAGE_SIZES } from '@/constants/product-sizes'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@repo/design-system/components/ui/tooltip'
+import { X } from "lucide-react"
+import { DesignPicker } from "@/components/design-picker"
+
+interface CheckoutImage {
+  url: string
+  dpi?: number
+  width?: number
+  height?: number
+}
+
+/**
+ * Renamed `quantity` to `copies` here.
+ * The field is optional, defaulting to `1` in handleCheckout().
+ */
+interface CheckoutItem {
+  productId: string
+  name: string
+  price: number
+  copies?: number
+  images: CheckoutImage[]
+}
+
+// Utility to fetch the dominant color from an image
+const getDominantColor = async (imageUrl: string): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new window.Image()
+    img.crossOrigin = 'Anonymous'
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return resolve('#FFFFFF')
+
+      canvas.width = img.width
+      canvas.height = img.height
+      ctx.drawImage(img, 0, 0)
+
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      const data = imageData.data
+
+      const centerX = Math.floor(canvas.width / 2)
+      const centerY = Math.floor(canvas.height / 2)
+      const pixelIndex = (centerY * canvas.width + centerX) * 4
+
+      const r = data[pixelIndex]
+      const g = data[pixelIndex + 1]
+      const b = data[pixelIndex + 2]
+
+      resolve(`rgb(${r}, ${g}, ${b})`)
+    }
+    img.onerror = () => resolve('#FFFFFF')
+    img.src = imageUrl
+  })
+}
 
 interface ProductDetailProps {
   product: Product
 }
 
-// Add this function to extract dominant color from an image
-const getDominantColor = async (imageUrl: string): Promise<string> => {
-  return new Promise((resolve) => {
-    const img = new window.Image();
-    img.crossOrigin = 'Anonymous';
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return resolve('#FFFFFF');
-      
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
-      
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
-      
-      // Get the color of the center pixel
-      const centerX = Math.floor(canvas.width / 2);
-      const centerY = Math.floor(canvas.height / 2);
-      const pixelIndex = (centerY * canvas.width + centerX) * 4;
-      
-      const r = data[pixelIndex];
-      const g = data[pixelIndex + 1];
-      const b = data[pixelIndex + 2];
-      
-      resolve(`rgb(${r}, ${g}, ${b})`);
-    };
-    img.onerror = () => resolve('#FFFFFF');
-    img.src = imageUrl;
-  });
-};
-
 export function ProductDetail({ product }: ProductDetailProps) {
-  // State
   const [selectedSize, setSelectedSize] = useState<string | undefined>(undefined)
-  const [selectedColor, setSelectedColor] = useState(product.specifications?.color?.[0]?.toLowerCase() || 'white')
+  const [selectedColor, setSelectedColor] = useState<string | undefined>(undefined)
   const [promptText, setPromptText] = useState('')
   const [selectedModels, setSelectedModels] = useState<number[]>([LORAS[0].id])
   const [modelWeights, setModelWeights] = useState<Record<number, number>>({})
@@ -104,14 +122,60 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const [isSaving, setIsSaving] = useState(false)
   const [isAddingToWishlist, setIsAddingToWishlist] = useState(false)
   const [colorMap, setColorMap] = useState<Record<string, string>>({})
-  
-  // Refs for T-shirt and design images
+  const [checkoutItem, setCheckoutItem] = useState<CheckoutItem | null>(null)
+  const [imageUrl, setImageUrl] = useState('')
+  const [quantity, setQuantity] = useState<number>(1)
+
+  // Refs
   const tshirtImageRef = useRef<HTMLImageElement>(null)
   const designImageRef = useRef<HTMLImageElement>(null)
 
-  const { rates, loading: ratesLoading, error: ratesError, convertPrice: convertWithRates } = useExchangeRates()
+  const { rates, loading: ratesLoading, error: ratesError, convertPrice } = useExchangeRates()
 
-  // Preload generated image for faster download
+  // Utility: consistent kebab-case for color keys
+  function toKebabCase(str?: string) {
+    if (!str) return '';
+    return str
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
+  // Memoized color and size lists
+  const colorList = useMemo(() => (
+    (product.specifications?.color && product.specifications.color.length > 0)
+      ? product.specifications.color
+      : (product.prodigiVariants?.colorOptions?.map((opt: any) => opt.name) || [])
+  ), [product]);
+
+  const sizeList = useMemo(() => (
+    (product.specifications?.size && product.specifications.size.length > 0)
+      ? product.specifications.size
+      : (product.prodigiVariants?.sizes || [])
+  ), [product]);
+
+  useEffect(() => {
+    console.log('product.specifications.size:', product.specifications?.dimensions.width);
+    console.log('product.prodigiVariants.sizes:', product.specifications?.size);
+    console.log('sizeList:', sizeList);
+    console.log('product.specifications.color:', product.specifications?.color);
+    console.log('product.prodigiVariants.colorOptions:', product.prodigiVariants?.colorOptions);
+    console.log('colorList:', colorList);
+    if (!colorList.length || !product.prodigiVariants?.imageUrls?.base) return;
+    const loadColors = async () => {
+      const newColorMap: Record<string, string> = {};
+      for (const color of colorList) {
+        const colorValue = toKebabCase(color);
+        const imgUrl = `../${product.prodigiVariants.imageUrls.base}/${colorValue}.png`;
+        // Optionally: check if file exists, but for now just try to extract
+        const domColor = await getDominantColor(imgUrl);
+        newColorMap[colorValue] = domColor;
+      }
+      setColorMap(newColorMap);
+    };
+    loadColors();
+  }, [product, colorList]);
+
   useEffect(() => {
     if (generatedImage) {
       const img = document.createElement('img')
@@ -119,42 +183,25 @@ export function ProductDetail({ product }: ProductDetailProps) {
     }
   }, [generatedImage])
 
-  // Update currency when country changes
   useEffect(() => {
     const newCurrency = getDefaultCurrency(selectedCountry)
     setSelectedCurrency(newCurrency)
   }, [selectedCountry])
 
-  // Add useEffect to load color images and extract colors
   useEffect(() => {
-    const loadColors = async () => {
-      if (!product.specifications?.color) return;
-      
-      const newColorMap: Record<string, string> = {};
-      for (const color of product.specifications.color) {
-        // Convert color name to lowercase and replace spaces with hyphens
-        const colorValue = color.toLowerCase().replace(/\s+/g, '-');
-        const imageUrl = `../${product.imageUrl}/${colorValue}.png`;
-        const dominantColor = await getDominantColor(imageUrl);
-        newColorMap[colorValue] = dominantColor;
-      }
-      setColorMap(newColorMap);
-    };
-    
-    loadColors();
-  }, [product.specifications?.color, product.imageUrl]);
+    if (colorList.length > 0) {
+      setSelectedColor(toKebabCase(colorList[0]));
+    }
+  }, [colorList]);
 
-  // Get converted price with real-time exchange rates
   const getConvertedPrice = (price: number) => {
     if (ratesLoading) return price
-    return convertWithRates(price, 'USD', selectedCurrency)
+    return convertPrice(price, 'USD', selectedCurrency)
   }
 
-  // Get shipping information based on country
   const getShippingInfo = () => {
     const country = SUPPORTED_COUNTRIES.find(c => c.code === selectedCountry)
     if (!country) return null
-
     const isEU = country.currency === 'EUR'
     const baseShipping = product.shippingCost || 0
 
@@ -170,7 +217,13 @@ export function ProductDetail({ product }: ProductDetailProps) {
     }
   }
 
-  // ---- Generate Image (AI) ----
+  // --- Utility function to get color swatch (always use extracted color) ---
+  const getColorSwatch = (colorName: string): { color: string } => {
+    const colorValue = toKebabCase(colorName);
+    return { color: colorMap[colorValue] || '#FFFFFF' };
+  };
+
+  // ---- Generate Image ----
   const handleImageGeneration = async () => {
     if (!promptText.trim()) {
       toast({
@@ -181,50 +234,54 @@ export function ProductDetail({ product }: ProductDetailProps) {
       return
     }
 
+    if (!selectedSize) {
+      toast({
+        title: "Error",
+        description: "Please select a size before generating the design",
+        variant: "destructive"
+      })
+      return
+    }
+
     setIsGenerating(true)
     try {
-      // Prepare model configs
-      const selectedModelConfigs = selectedModels.map(id => {
-        const model = LORAS.find((m: Lora) => m.id === id)!
-        return {
-          model: model.path,
-          type: 'lora',
-          weight: modelWeights[id] || model.scale || 1.0,
-          steps: model.steps || 28
-        }
-      })
-
-      // Add the base FLUX model to the configuration
+      const productCode = product.specifications?.style || product.sku || product.id.toString()
+      const imageSize = PRODUCT_IMAGE_SIZES[productCode as keyof typeof PRODUCT_IMAGE_SIZES] || { width: 4677, height: 5787 }
+      const model = LORAS.find((m: Lora) => m.id === selectedModels[0])!
+      const modelConfig = {
+        model: model.path,
+        type: 'lora',
+        weight: modelWeights[model.id] || model.scale || 1.0,
+        steps: model.steps || 28
+      }
       const allModelConfigs = [
         {
           model: "black-forest-labs/FLUX.1-dev-lora",
           type: 'base',
           weight: 1.0
         },
-        ...selectedModelConfigs
+        modelConfig
       ]
-
-      // Enhanced prompt for high-quality T-shirt printing
       const enhancedPrompt = `${promptText}, high resolution, 300 dpi, detailed, clear image, suitable for t-shirt printing, centered composition, professional quality, sharp details`
-
-      // Call your /api/generate-image route
+      
       const response = await fetch('/api/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: enhancedPrompt,
           models: allModelConfigs,
-          loraScale
+          loraScale,
+          width: imageSize.width,
+          height: imageSize.height,
+          dpi: 300
         })
       })
 
       const data = await response.json()
       if (!response.ok) {
         const errorMessage = data.details || data.error || 'Failed to generate image'
-        console.error('API error details:', data)
         throw new Error(errorMessage)
       }
-
       if (data.data?.[0]?.url) {
         const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(data.data[0].url)}`
         setGeneratedImage(proxyUrl)
@@ -233,6 +290,8 @@ export function ProductDetail({ product }: ProductDetailProps) {
           description: "Image generated successfully!",
           variant: "default"
         })
+      } else {
+        throw new Error('No image URL in response')
       }
     } catch (error) {
       console.error('Error generating image:', error)
@@ -246,7 +305,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
     }
   }
 
-  // ---- Download High-Res PNG (300 DPI) ----
+  // ---- Download Image ----
   const handleDownloadImage = async () => {
     if (!generatedImage) {
       toast({
@@ -256,7 +315,6 @@ export function ProductDetail({ product }: ProductDetailProps) {
       })
       return
     }
-
     setIsDownloading(true)
     try {
       toast({
@@ -268,17 +326,12 @@ export function ProductDetail({ product }: ProductDetailProps) {
       const canvas = document.createElement('canvas')
       canvas.width = 4680
       canvas.height = 5790
-
       const ctx = canvas.getContext('2d')
-      if (!ctx) {
-        throw new Error('Could not create canvas context')
-      }
-
+      if (!ctx) throw new Error('Could not create canvas context')
       ctx.clearRect(0, 0, canvas.width, canvas.height)
 
       const designImage = document.createElement('img')
       designImage.crossOrigin = 'anonymous'
-
       await new Promise<void>((resolve, reject) => {
         designImage.onload = () => resolve()
         designImage.onerror = () => reject(new Error('Failed to load design image'))
@@ -319,14 +372,13 @@ export function ProductDetail({ product }: ProductDetailProps) {
         description: error instanceof Error ? error.message : 'Failed to download image',
         variant: "destructive"
       })
-
+      // fallback
       try {
         toast({
           title: "Trying simple fallback",
           description: "Downloading the design image as-is...",
           variant: "default"
         })
-
         const link = document.createElement('a')
         link.href = generatedImage
         link.download = `${product.name.replace(/\s+/g, '-').toLowerCase()}-design-only.png`
@@ -341,7 +393,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
     }
   }
 
-  // ---- Save Generated Image ----
+  // ---- Save Image ----
   const handleSaveImage = async () => {
     if (!generatedImage) {
       toast({
@@ -351,26 +403,23 @@ export function ProductDetail({ product }: ProductDetailProps) {
       })
       return
     }
-
     setIsSaving(true)
     try {
-      const response = await fetch('/api/save-image', {
+      const response = await fetch('/api/save-temp-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          imageUrl: generatedImage,
-          designName: `${product.name} Design`,
-          productId: product.id
+          url: generatedImage,
+          name: `${product.name} Design`
         })
       })
-
+      const data = await response.json()
       if (!response.ok) {
-        throw new Error('Failed to save image')
+        throw new Error(data.error || 'Failed to save image')
       }
-
       toast({
         title: "Success",
-        description: "Design saved to My Images!",
+        description: "Design saved successfully!",
         variant: "default"
       })
     } catch (error) {
@@ -395,35 +444,31 @@ export function ProductDetail({ product }: ProductDetailProps) {
       })
       return
     }
-
     setIsAddingToWishlist(true)
     try {
-      const saveResponse = await fetch('/api/save-image', {
+      const saveResponse = await fetch('/api/save-temp-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          imageUrl: generatedImage,
-          designName: `${product.name} Design`,
-          productId: product.id
+          url: generatedImage,
+          name: `${product.name} Design`
         })
       })
-
+      const data = await saveResponse.json()
       if (!saveResponse.ok) {
-        throw new Error('Failed to save design')
+        throw new Error(data.error || 'Failed to save design')
       }
-
       const wishlistResponse = await fetch('/api/wishlist/add', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          productId: product.id
+          productId: product.id,
+          imageId: data.id
         })
       })
-
       if (!wishlistResponse.ok) {
         throw new Error('Failed to add to wishlist')
       }
-
       toast({
         title: "Success",
         description: "Design saved to My Designs!",
@@ -446,133 +491,194 @@ export function ProductDetail({ product }: ProductDetailProps) {
     console.log('Submitting review:', { rating, reviewText })
   }
 
-  const handleDirectCheckout = () => {
-    if (!selectedSize || !selectedColor) {
+  // ---- Checkout ----
+  const handleCheckout = () => {
+    if (!selectedSize) {
       toast({
         title: "Error",
-        description: "Please select size and color",
+        description: "Please select a size before proceeding to checkout",
+        variant: "destructive"
+      })
+      return
+    }
+    if (!generatedImage) {
+      toast({
+        title: "Error",
+        description: "Please generate a design first",
         variant: "destructive"
       })
       return
     }
 
-    const checkoutItem = {
-      productId: Number(product.id),
-      name: product.name,
-      price: product.price,
-      quantity: 1,
-      images: product.images?.map(url => ({ url })) || []
+    const productCode = product.specifications?.style || product.sku || product.id
+    const imageSize = PRODUCT_IMAGE_SIZES[productCode as keyof typeof PRODUCT_IMAGE_SIZES] || {
+      width: 4677,
+      height: 5787
     }
 
-    return <CheckoutButton items={[checkoutItem]} />
+    // Use selected quantity
+    const item: CheckoutItem = {
+      productId: product.id.toString(),
+      name: product.name || 'Custom T-Shirt',
+      price: product.price || 0,
+      copies: quantity, // use selected quantity
+      images: [
+        {
+          url: generatedImage,
+          dpi: 300,
+          width: imageSize.width,
+          height: imageSize.height
+        }
+      ]
+    }
+
+    console.log('Setting checkout item:', item)
+    setCheckoutItem(item)
+  }
+
+  const handleCloseCheckout = () => {
+    setCheckoutItem(null)
+  }
+
+  const handleUploadClick = () => {
+    // Add logic to handle upload click
+  }
+
+  const generatePreview = async (designUrl: string) => {
+    // Add logic to generate preview
   }
 
   return (
     <div className="max-w-[1440px] mx-auto px-4 lg:px-8">
       <div className="grid grid-cols-1 gap-x-8 gap-y-10 lg:grid-cols-2">
-        {/* LEFT PANEL: T-shirt Preview and AI Prompt Input */}
+        {/* LEFT PANEL: T-shirt Preview + AI Prompt */}
         <div className="space-y-6">
-          {/* T-shirt Preview with teal border accent */}
-          <div className="relative w-full max-w-md mx-auto overflow-hidden rounded-lg border-2 border-teal-500 bg-gray-100 aspect-square">
-            <Image
-              src={`../${product.imageUrl}/${(selectedColor || product.specifications?.color?.[0] || 'white').replace(/ /g, '-')}.png`}
-              alt={product.name}
-              fill
-              className="object-contain"
-              ref={tshirtImageRef as any}
-              onError={(e) => {
-                console.log('Base path:', product.imageUrl)
-              }}
-            />
+          {/* T-shirt & Generated Design */}
+          <div className="relative w-full max-w-md mx-auto overflow-hidden rounded-lg border-2 border-teal-500 bg-teal-600 aspect-square">
+            {(() => {
+              console.log('Product data:', {
+                imageUrlMap: product.imageUrlMap,
+                colorValue: toKebabCase(selectedColor),
+                imageUrl: product.imageUrl,
+                selectedColor: selectedColor,
+                availableColors: product.specifications?.color
+              });
+              
+              if (product.imageUrlMap && product.imageUrlMap[selectedColor]) {
+                console.log('Using imageUrlMap:', product.prodigiVariants?.imageUrls?.base);
+                return (
+                  <Image
+                    src={product.imageUrlMap[selectedColor]}
+                    alt={product.name}
+                    fill
+                    className="object-contain"
+                    ref={tshirtImageRef as any}
+                  />
+                );
+              }
+
+              if (product.prodigiVariants?.imageUrls?.base) {
+                console.log('Product details now:', {
+                  imageUrl: product.imageUrl,
+                  prodigiVariants: product.prodigiVariants?.imageUrls?.base,
+                  imageUrls: product.prodigiVariants?.imageUrls,
+                  colorOptions: product.prodigiVariants?.colorOptions
+                });
+                const colorValue = selectedColor || (product.specifications?.color?.[0] ? toKebabCase(product.specifications.color[0]) :'black');
+                const imageUrl = `../${product.prodigiVariants?.imageUrls?.base}/${colorValue}.png`;
+                console.log('Using direct path:', {
+                  imageUrl: imageUrl,
+                  colorValue: colorValue,
+                  baseImageUrl: product.imageUrl
+                });
+                return (
+                  <Image
+                    src={imageUrl}
+                    alt={product.name}
+                    fill
+                    className="object-contain"
+                    ref={tshirtImageRef as any}
+                  />
+                );
+              }
+
+              return (
+                <div className="flex flex-col items-center justify-center text-white">
+                  <div>Loading...</div>
+                  <div className="mt-2">Base URL: {product.prodigiVariants?.imageUrls?.base || 'Not available'}</div>
+                </div>
+              );
+            })()}
 
             {generatedImage && (
-              <div
-                className="absolute"
-                style={{
-                  width: '35%',
-                  height: '40%',
-                  top: '30%',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  overflow: 'hidden',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center'
-                }}
-              >
-                <Image
-                  src={generatedImage}
-                  alt="Generated design"
-                  fill
-                  className="object-contain"
-                  ref={designImageRef as any}
-                  style={{
-                    imageRendering: 'crisp-edges',
-                    objectFit: 'contain'
-                  }}
-                />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="relative" style={{ width: '35%', height: '40%', overflow: 'hidden' }}>
+                  <Image
+                    src={generatedImage}
+                    alt="Generated design"
+                    fill
+                    className="object-contain"
+                    ref={designImageRef as any}
+                    priority
+                  />
+                </div>
               </div>
             )}
           </div>
 
-          {/* AI Prompt Input Section */}
+
+          {/* AI Prompt */}
           <div className="border rounded-lg p-6 space-y-4 border-teal-200">
             <h2 className="text-xl font-semibold mb-2 text-teal-700">Customize with AI</h2>
-            {generationMode === 'text' ? (
-              <div className="space-y-4">
-                <Label htmlFor="prompt" className="text-teal-600">Describe your design</Label>
-                <Textarea
-                  id="prompt"
-                  placeholder="Enter your design description..."
-                  value={promptText}
-                  onChange={(e) => setPromptText(e.target.value)}
-                />
-                <Button
-                  className="w-full bg-teal-600 hover:bg-teal-700 text-white"
-                  onClick={handleImageGeneration}
-                  disabled={isGenerating || !promptText}
-                >
-                  {isGenerating ? 'Generating...' : 'Generate Design'}
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <Label className="text-teal-600">Reference Image</Label>
-                <div className="mt-2 flex items-center justify-center border-2 border-dashed border-teal-200 rounded-lg p-6">
-                  <Button variant="outline">Upload Image</Button>
-                </div>
-                <Label htmlFor="imagePrompt" className="text-teal-600">Style Description</Label>
-                <Textarea
-                  id="imagePrompt"
-                  placeholder="Describe how you want to modify the reference image..."
-                  value={promptText}
-                  onChange={(e) => setPromptText(e.target.value)}
-                />
-                <Button
-                  className="w-full bg-teal-600 hover:bg-teal-700 text-white"
-                  onClick={handleImageGeneration}
-                  disabled={isGenerating || !promptText}
-                >
-                  {isGenerating ? 'Generating...' : 'Generate Design'}
-                </Button>
-              </div>
-            )}
+            <div className="space-y-4">
+              <Label htmlFor="prompt" className="text-teal-600">
+                Describe your design
+              </Label>
+              <Textarea
+                id="prompt"
+                placeholder="Enter your design description..."
+                value={promptText}
+                onChange={(e) => setPromptText(e.target.value)}
+              />
+              <Button
+                className="w-full bg-teal-600 hover:bg-teal-700 text-white"
+                onClick={handleImageGeneration}
+                disabled={isGenerating || !promptText}
+              >
+                {isGenerating ? 'Generating...' : 'Generate Design'}
+              </Button>
+            </div>
+          </div>
+
+          {/* Design Picker / Upload */}
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold">Customize Your Design</h2>
+            <div className="flex gap-4">
+              <Button onClick={handleUploadClick}>Upload Image</Button>
+              <DesignPicker
+                productId={Number(product.id)}
+                onDesignSelect={(design) => {
+                  setImageUrl(design.url)
+                  if (design.url) {
+                    generatePreview(design.url)
+                  }
+                }}
+              />
+            </div>
           </div>
         </div>
 
-        {/* RIGHT PANEL: Product Info, Options, AI Settings & Checkout */}
+      
+
+        {/* RIGHT PANEL: Product Info, AI Settings, Checkout */}
         <div className="space-y-6 lg:sticky lg:top-6">
           {/* Product Info */}
           <div className="space-y-2">
             <h1 className="text-3xl font-bold tracking-tight text-teal-900">{product.name}</h1>
             <div className="flex items-baseline space-x-2">
-              <p className="text-3xl font-bold text-teal-800">
-                {formatPrice(getConvertedPrice(product.price), selectedCurrency)}
-              </p>
+              <p className="text-3xl font-bold text-teal-800">{formatPrice(getConvertedPrice(product.price), selectedCurrency)}</p>
               {selectedCurrency !== 'USD' && (
-                <p className="text-sm text-gray-500">
-                  (${product.price.toFixed(2)} USD)
-                </p>
+                <p className="text-sm text-gray-500">(${product.price.toFixed(2)} USD)</p>
               )}
             </div>
           </div>
@@ -580,136 +686,129 @@ export function ProductDetail({ product }: ProductDetailProps) {
           {/* Description */}
           <div>
             <h3 className="text-sm font-medium text-teal-700">Description</h3>
-            <div className="mt-2 text-base text-gray-500 space-y-4">
-              {product.description}
-            </div>
+            <div className="mt-2 text-base text-gray-500 space-y-4">{product.description}</div>
           </div>
 
-          {/* Size and Color Selection */}
-          {(product.specifications?.size?.length || product.specifications?.color?.length) && (
+          {(sizeList.length > 0 || colorList.length > 0) && (
             <div className="space-y-4">
-              {product.specifications.size?.length > 0 && (
-                <div>
-                  <Label htmlFor="size" className="text-teal-600">Size</Label>
-                  <Select value={selectedSize} onValueChange={setSelectedSize}>
-                    <SelectTrigger id="size">
+              {/* Sizing Dropdown ABOVE Color Selector */}
+              {sizeList.length > 0 && (
+                <div className="mb-4">
+                  <Label htmlFor="size" className="text-teal-600">
+                    Size
+                  </Label>
+                  <Select
+                    value={selectedSize}
+                    onValueChange={setSelectedSize}
+                  >
+                    <SelectTrigger id="size" className="w-32 mt-2">
                       <SelectValue placeholder="Select size" />
                     </SelectTrigger>
                     <SelectContent>
-                      {product.specifications.size.map((size, idx) => (
-                        <SelectItem key={`size-${idx}-${size}`} value={size}>
-                          {size}
+                      {sizeList.map((sz) => (
+                        <SelectItem key={sz} value={sz}>
+                          {sz}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
               )}
-
-              {product.specifications.color?.length > 0 && (
+              {colorList.length > 0 && (
                 <div>
-                  <Label htmlFor="color" className="text-teal-600">Color</Label>
+                  <Label htmlFor="color" className="text-teal-600">
+                    Color
+                  </Label>
                   <div className="flex gap-2 mt-2">
                     <TooltipProvider>
-                      {product.specifications.color.map((color, idx) => {
-                        // Convert color name to lowercase and replace spaces with hyphens
-                        const colorValue = color.toLowerCase().replace(/\s+/g, '-');
-                        const hexColor = colorMap[colorValue] || '#FFFFFF';
-
+                      {colorList.map((clr, idx) => {
+                        const colorValue = toKebabCase(clr)
+                        const swatch = getColorSwatch(clr)
                         return (
-                          <Tooltip key={`color-${idx}-${color}`}>
+                          <Tooltip key={`color-${idx}-${clr}`}>
                             <TooltipTrigger asChild>
                               <button
                                 onClick={() => setSelectedColor(colorValue)}
-                                className={`w-8 h-8 rounded-full border-2 transition-all ${
+                                className={`w-8 h-8 rounded-full border-2 transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-teal-400 ${
                                   selectedColor === colorValue
-                                    ? 'border-teal-600 scale-110'
-                                    : 'border-transparent hover:border-teal-200'
+                                    ? 'border-teal-600 scale-110 ring-2 ring-teal-300'
+                                    : 'hover:border-teal-200 border-transparent'
                                 }`}
-                                style={{ backgroundColor: hexColor }}
-                                aria-label={`Select ${color} color`}
+                                aria-label={`Select ${clr} color`}
+                                style={{ backgroundColor: swatch.color }}
                               />
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>{color}</p>
+                              <p>{clr}</p>
                             </TooltipContent>
                           </Tooltip>
-                        );
+                        )
                       })}
                     </TooltipProvider>
                   </div>
                 </div>
               )}
+              {/* Quantity Selector always visible if any selector is shown */}
+              <div className="w-full flex flex-col items-start mt-2">
+                <Label htmlFor="quantity" className="text-teal-600 mb-1">
+                  Quantity
+                </Label>
+                <div className="flex items-center bg-teal-50 rounded-full px-2 py-1 shadow-inner gap-2">
+                  <button
+                    type="button"
+                    aria-label="Decrease quantity"
+                    className="w-9 h-9 rounded-full bg-white border border-teal-300 flex items-center justify-center text-teal-700 text-xl font-bold hover:bg-teal-100 active:bg-teal-200 transition disabled:opacity-50"
+                    onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                    disabled={quantity <= 1}
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    id="quantity"
+                    min={1}
+                    value={quantity}
+                    onChange={e => setQuantity(Math.max(1, Number(e.target.value)))}
+                    className="w-16 text-center border-none bg-teal-50 text-lg font-semibold focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    aria-label="Increase quantity"
+                    className="w-9 h-9 rounded-full bg-white border border-teal-300 flex items-center justify-center text-teal-700 text-xl font-bold hover:bg-teal-100 active:bg-teal-200 transition"
+                    onClick={() => setQuantity(q => q + 1)}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
-          {/* AI Settings Section */}
+          {/* AI Settings */}
           <div className="border rounded-lg p-6 space-y-4 border-teal-200">
             <h2 className="text-xl font-semibold text-teal-700">AI Settings</h2>
-            
-            {/* Model Selection Dropdown */}
-            <div className="space-y-2">
-              <Label className="text-teal-600">AI Model Type</Label>
-              <Select 
-                value={generationMode === 'text' ? 'lora' : 'basic'} 
-                onValueChange={(value) => {
-                  if (value === 'lora' || value === 'basic' || value === 'advanced') {
-                    setGenerationMode('text')
-                  } else {
-                    setGenerationMode('image')
-                  }
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select model type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {generationMode === 'text' ? (
-                    <>
-                      <SelectItem value="lora">LORA's</SelectItem>
-                      <SelectItem value="basic">Basic model (unlimited)</SelectItem>
-                      <SelectItem value="advanced">Advanced model</SelectItem>
-                    </>
-                  ) : (
-                    <>
-                      <SelectItem value="basic">Basic model</SelectItem>
-                      <SelectItem value="advanced">Advanced model</SelectItem>
-                    </>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Generation Mode Tabs */}
-            <Tabs defaultValue="text" onValueChange={(v) => setGenerationMode(v)}>
-              <TabsList className="mb-4">
-                <TabsTrigger value="text" className="data-[state=active]:text-teal-600">Text to Image</TabsTrigger>
-                <TabsTrigger value="image" className="data-[state=active]:text-teal-600">Image to Image</TabsTrigger>
-              </TabsList>
-            </Tabs>
-
-            {/* LORA Selection (only shown for text-to-image with LORA selected) */}
             {generationMode === 'text' && (
               <div>
                 <Label className="text-teal-600 mb-4 block">AI Models &amp; LoRAs</Label>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {LORAS.map((model: Lora) => (
-                    <div 
-                      key={model.id} 
+                    <div
+                      key={model.id}
                       className={`
                         relative aspect-square rounded-lg overflow-hidden cursor-pointer
                         transition-all duration-200 group
-                        ${selectedModels.includes(model.id) ? 'ring-2 ring-teal-500' : 'hover:ring-2 hover:ring-teal-200'}
+                        ${
+                          selectedModels.includes(model.id)
+                            ? 'ring-2 ring-teal-500'
+                            : 'hover:ring-2 hover:ring-teal-200'
+                        }
                       `}
                       onClick={() => {
-                        if (selectedModels.includes(model.id)) {
-                          setSelectedModels(selectedModels.filter(mid => mid !== model.id))
-                        } else {
-                          setSelectedModels([...selectedModels, model.id])
-                        }
+                        if (selectedModels[0] === model.id) return
+                        setSelectedModels([model.id])
+                        setModelWeights({ [model.id]: model.scale || 1.0 })
                       }}
                     >
-                      {/* Background Image */}
                       <div className="relative w-full h-full">
                         <Image
                           src={`/lora-images/${model.name.toLowerCase().replace(/\s+/g, '-')}.png`}
@@ -718,46 +817,38 @@ export function ProductDetail({ product }: ProductDetailProps) {
                           className="object-cover"
                         />
                       </div>
-
-                      {/* Label Overlay */}
                       <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/50 backdrop-blur-sm">
                         <p className="text-white text-sm font-medium text-center">
                           {model.name.split(/(?=[A-Z])/).join(' ')}
                         </p>
                       </div>
-
-                      {/* Checkbox Overlay */}
                       <div className="absolute top-2 left-2">
                         <Checkbox
                           id={`model-${model.id}`}
                           checked={selectedModels.includes(model.id)}
                           className="bg-white/90 border-teal-500 data-[state=checked]:bg-teal-500"
                           onClick={(e) => e.stopPropagation()}
-                          onCheckedChange={(checked) => {
+                          onCheckedChange={(checked: boolean) => {
                             if (checked) {
-                              setSelectedModels([...selectedModels, model.id])
-                            } else {
-                              setSelectedModels(selectedModels.filter(mid => mid !== model.id))
+                              setSelectedModels([model.id])
+                              setModelWeights({ [model.id]: model.scale || 1.0 })
+                            } else if (selectedModels.length === 1 && selectedModels[0] === model.id) {
+                              // Prevent unchecking the only selected model
+                              return
                             }
                           }}
                         />
                       </div>
-
-                      {/* Slider for selected models */}
                       {selectedModels.includes(model.id) && (
                         <div className="absolute left-0 right-0 bottom-12 px-4 py-2">
                           <Slider
                             value={[modelWeights[model.id] || model.scale || 1.0]}
                             onValueChange={([value]) => {
-                              setModelWeights({
-                                ...modelWeights,
-                                [model.id]: value
-                              })
+                              setModelWeights({ [model.id]: value })
                             }}
                             min={0}
                             max={1}
                             step={0.1}
-                            className="accent-teal-500"
                             onClick={(e) => e.stopPropagation()}
                           />
                         </div>
@@ -767,25 +858,13 @@ export function ProductDetail({ product }: ProductDetailProps) {
                 </div>
               </div>
             )}
-
-            <div className="mt-4">
-              <Label className="text-teal-600">LoRA Scale</Label>
-              <Slider
-                value={[loraScale]}
-                onValueChange={([value]) => setLoraScale(value)}
-                min={0}
-                max={1}
-                step={0.1}
-                className="mt-2 accent-teal-600"
-              />
-            </div>
             {generatedImage && (
               <div className="space-y-2">
                 <Button
                   className="w-full bg-teal-600 hover:bg-teal-700 text-white"
                   variant="outline"
                   onClick={handleDownloadImage}
-                  disabled={isDownloading || !generatedImage}
+                  disabled={isDownloading}
                 >
                   {isDownloading ? 'Downloading...' : 'Download as PNG (300 DPI)'}
                 </Button>
@@ -794,7 +873,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
                   className="w-full border-teal-600 text-teal-600 hover:bg-teal-50"
                   variant="outline"
                   onClick={handleSaveImage}
-                  disabled={isSaving || !generatedImage}
+                  disabled={isSaving}
                 >
                   {isSaving ? 'Saving...' : 'Save to My Images'}
                 </Button>
@@ -803,7 +882,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
                   className="w-full border-teal-600 text-teal-600 hover:bg-teal-50"
                   variant="outline"
                   onClick={handleAddToWishlist}
-                  disabled={isAddingToWishlist || !generatedImage}
+                  disabled={isAddingToWishlist}
                 >
                   {isAddingToWishlist ? 'Adding to Designs...' : 'Save to My Designs'}
                 </Button>
@@ -813,23 +892,33 @@ export function ProductDetail({ product }: ProductDetailProps) {
 
           {/* Checkout Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 mt-4">
-            <Button className="w-full sm:flex-1 bg-teal-600 hover:bg-teal-700 text-white" size="lg" onClick={() => {/* Add to cart logic */}}>
+            <Button
+              className="w-full sm:flex-1 bg-teal-600 hover:bg-teal-700 text-white"
+              size="lg"
+              onClick={() => {
+                if (!selectedSize) {
+                  toast({
+                    title: "Error",
+                    description: "Please select a size before adding to cart",
+                    variant: "destructive"
+                  })
+                  return
+                }
+                /* Add to cart logic */
+              }}
+            >
               Add to Cart
             </Button>
-            <CheckoutButton
-              items={[{
-                productId: Number(product.id),
-                name: product.name,
-                price: product.price,
-                quantity: 1,
-                images: product.images?.map(url => ({ url })) || []
-              }]}
-              variant="outline"
-              className="w-full sm:flex-1 border-teal-600 text-teal-600 hover:bg-teal-50"
-            />
+            <Button
+              className="w-full sm:flex-1 bg-teal-600 hover:bg-teal-700 text-white"
+              size="lg"
+              onClick={handleCheckout}
+            >
+              Buy Now
+            </Button>
           </div>
 
-          {/* Shipping Information */}
+          {/* Shipping Info */}
           <div className="bg-teal-50 rounded-lg p-4">
             <div className="flex items-center space-x-2">
               <TruckIcon className="h-5 w-5 text-teal-600" />
@@ -842,34 +931,25 @@ export function ProductDetail({ product }: ProductDetailProps) {
                 <div className="flex justify-between items-center">
                   <div>
                     <p className="font-medium text-teal-700">Standard Delivery</p>
-                    <p className="text-sm text-gray-500">
-                      {getShippingInfo()?.standard.days} business days
-                    </p>
+                    <p className="text-sm text-gray-500">{getShippingInfo()?.standard.days} business days</p>
                   </div>
                   <p className="font-medium text-teal-700">
                     {formatPrice(getConvertedPrice(getShippingInfo()?.standard.cost || 0), selectedCurrency)}
-                  </p>
-                </div>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-medium text-teal-700">Express Delivery</p>
-                    <p className="text-sm text-gray-500">
-                      {getShippingInfo()?.express.days} business days
-                    </p>
-                  </div>
-                  <p className="font-medium text-teal-700">
-                    {formatPrice(getConvertedPrice(getShippingInfo()?.express.cost || 0), selectedCurrency)}
                   </p>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Product Details Tabs (Shipping & Reviews) */}
+          {/* Tabs: Shipping & Reviews */}
           <Tabs defaultValue="shipping" className="mt-6">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="shipping" className="data-[state=active]:text-teal-600">Shipping</TabsTrigger>
-              <TabsTrigger value="reviews" className="data-[state=active]:text-teal-600">Reviews</TabsTrigger>
+              <TabsTrigger value="shipping" className="data-[state=active]:text-teal-600">
+                Shipping
+              </TabsTrigger>
+              <TabsTrigger value="reviews" className="data-[state=active]:text-teal-600">
+                Reviews
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="shipping" className="mt-4">
               <Card className="p-6 border border-teal-200">
@@ -878,10 +958,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
                   {product.shipping?.methods && product.shipping.methods.length > 0 ? (
                     <div className="space-y-4">
                       {product.shipping.methods.map((method, index) => (
-                        <div
-                          key={`shipping-${index}-${method.method}`}
-                          className="p-4 rounded-lg bg-teal-50"
-                        >
+                        <div key={`shipping-${index}-${method.method}`} className="p-4 rounded-lg bg-teal-50">
                           <div className="flex justify-between items-center">
                             <div>
                               <h4 className="font-medium text-teal-700">{method.method}</h4>
@@ -902,8 +979,9 @@ export function ProductDetail({ product }: ProductDetailProps) {
                     <div className="text-sm text-gray-500">
                       {selectedCountry === 'US'
                         ? "Shipping information not available"
-                        : `International shipping to ${SUPPORTED_COUNTRIES.find(c => c.code === selectedCountry)?.name} available`
-                      }
+                        : `International shipping to ${
+                            SUPPORTED_COUNTRIES.find(c => c.code === selectedCountry)?.name
+                          } available`}
                     </div>
                   )}
                 </div>
@@ -930,7 +1008,9 @@ export function ProductDetail({ product }: ProductDetailProps) {
                         </div>
                       </div>
                       <div>
-                        <Label htmlFor="review" className="text-teal-600">Your Review</Label>
+                        <Label htmlFor="review" className="text-teal-600">
+                          Your Review
+                        </Label>
                         <Textarea
                           id="review"
                           placeholder="Write your review here..."
@@ -939,7 +1019,10 @@ export function ProductDetail({ product }: ProductDetailProps) {
                           className="mt-1"
                         />
                       </div>
-                      <Button className="bg-teal-600 hover:bg-teal-700 text-white" onClick={handleSubmitReview}>
+                      <Button
+                        className="bg-teal-600 hover:bg-teal-700 text-white"
+                        onClick={handleSubmitReview}
+                      >
                         Submit Review
                       </Button>
                     </div>
@@ -950,6 +1033,24 @@ export function ProductDetail({ product }: ProductDetailProps) {
           </Tabs>
         </div>
       </div>
+
+      {/* Modal-like Checkout overlay */}
+      {checkoutItem && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          onClick={handleCloseCheckout}
+        >
+          <div className="bg-white p-6 rounded-lg shadow-lg" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Checkout</h3>
+              <Button variant="ghost" size="icon" onClick={handleCloseCheckout}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <CheckoutButton items={[checkoutItem]} />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

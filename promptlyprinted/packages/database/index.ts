@@ -3,25 +3,22 @@ import { PrismaClient } from "@prisma/client";
 import { withAccelerate } from "@prisma/extension-accelerate";
 import { env } from "@repo/env";
 
-declare global {
-  var cachedPrisma: PrismaClient;
-}
-
-let database: PrismaClient;
-
-if (process.env.NODE_ENV === "production") {
-  database = new PrismaClient({
-    log: ["error"],
+const prismaClientSingleton = () => {
+  return new PrismaClient({
+    log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
   }).$extends(withAccelerate());
-} else {
-  if (!global.cachedPrisma) {
-    global.cachedPrisma = new PrismaClient({
-      log: ["query", "error", "warn"],
-    }).$extends(withAccelerate());
-  }
-  database = global.cachedPrisma;
+};
+
+declare global {
+  var cachedPrisma: undefined | ReturnType<typeof prismaClientSingleton>;
 }
 
-export { database };
+export const prisma = globalThis.cachedPrisma ?? prismaClientSingleton();
+export const database = prisma; // For backwards compatibility
+
+if (process.env.NODE_ENV !== "production") {
+  globalThis.cachedPrisma = prisma;
+}
 
 export * from "@prisma/client";
+export type { User, Product, SavedImage } from "@prisma/client";
