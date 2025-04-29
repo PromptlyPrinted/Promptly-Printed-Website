@@ -123,6 +123,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const [isAddingToWishlist, setIsAddingToWishlist] = useState(false)
   const [colorMap, setColorMap] = useState<Record<string, string>>({})
   const [checkoutItem, setCheckoutItem] = useState<CheckoutItem | null>(null)
+  const [savedImageId, setSavedImageId] = useState<string | null>(null)
   const [imageUrl, setImageUrl] = useState('')
   const [quantity, setQuantity] = useState<number>(1)
 
@@ -405,18 +406,19 @@ export function ProductDetail({ product }: ProductDetailProps) {
     }
     setIsSaving(true)
     try {
-      const response = await fetch('/api/save-temp-image', {
+      // Persist design to database
+      const res = await fetch('/api/designs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          url: generatedImage,
-          name: `${product.name} Design`
-        })
+          name: `${product.name} Design`,
+          imageUrl: generatedImage,
+          productId: Number(product.id),
+        }),
       })
-      const data = await response.json()
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to save image')
-      }
+      const saved = await res.json()
+      if (!res.ok) throw new Error(saved.error || 'Failed to save design')
+      setSavedImageId(saved.id)
       toast({
         title: "Success",
         description: "Design saved successfully!",
@@ -444,26 +446,18 @@ export function ProductDetail({ product }: ProductDetailProps) {
       })
       return
     }
+    if (!savedImageId) {
+      toast({ title: "Error", description: "Please save your design first", variant: "destructive" })
+      return
+    }
     setIsAddingToWishlist(true)
     try {
-      const saveResponse = await fetch('/api/save-temp-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          url: generatedImage,
-          name: `${product.name} Design`
-        })
-      })
-      const data = await saveResponse.json()
-      if (!saveResponse.ok) {
-        throw new Error(data.error || 'Failed to save design')
-      }
       const wishlistResponse = await fetch('/api/wishlist/add', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          productId: product.id,
-          imageId: data.id
+          productId: Number(product.id),
+          savedImageId
         })
       })
       if (!wishlistResponse.ok) {
@@ -978,7 +972,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
                   ) : (
                     <div className="text-sm text-gray-500">
                       {selectedCountry === 'US'
-                        ? "Shipping information not available"
+                        ? "All shipping is currently free for all products"
                         : `International shipping to ${
                             SUPPORTED_COUNTRIES.find(c => c.code === selectedCountry)?.name
                           } available`}

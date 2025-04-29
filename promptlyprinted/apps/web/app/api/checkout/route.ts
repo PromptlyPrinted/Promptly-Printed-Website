@@ -1,4 +1,5 @@
 import { Prisma } from '@repo/database';
+import { prisma } from '@repo/database';
 import { auth } from '@clerk/nextjs/server';
 import type { User } from '@repo/database';
 import { NextRequest, NextResponse } from 'next/server';
@@ -89,6 +90,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const clerkUserId = authResult.userId;
+    // Determine base URL for building absolute image URLs
+    const urlObj = new URL(req.url);
+    const origin = process.env.NEXT_PUBLIC_APP_URL ?? urlObj.origin;
     console.log(`Authenticated Clerk User ID: ${clerkUserId}`);
 
     let orderItems: ValidatedCheckoutRequest;
@@ -243,7 +247,11 @@ export async function POST(req: NextRequest) {
             currency: 'usd',
             product_data: {
               name: item.name,
-              images: item.images.map(img => img.url),
+              images: item.images.map(img =>
+                img.url.startsWith('http')
+                  ? img.url
+                  : `${origin}${img.url}`
+              ),
             },
             unit_amount: Math.round(item.price * 100), // Convert to cents
           },

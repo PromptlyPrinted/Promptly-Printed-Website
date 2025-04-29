@@ -69,7 +69,7 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = params;
+  const { id } = await params;
   const product = await prisma.product.findUnique({
     where: { id: parseInt(id) },
     select: {
@@ -120,8 +120,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function ProductPage({ params }: Props) {
+  const { id } = await params;
   const rawProduct = await prisma.product.findUnique({
-    where: { id: parseInt(params.id) },
+    where: { id: parseInt(id) },
     select: {
       id: true,
       name: true,

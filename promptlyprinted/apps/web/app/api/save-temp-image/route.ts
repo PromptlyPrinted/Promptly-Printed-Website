@@ -63,19 +63,11 @@ export async function GET(request: Request) {
         );
       }
 
-      // For checkout process, we want to return the actual URL
-      if (entry.isPublic) {
-        return new Response(
-          JSON.stringify({ url: entry.url }), 
-          { headers: { "Content-Type": "application/json" } }
-        );
-      }
-
-      // For private images, proxy the request
+      // Proxy the image for both public and private entries
       try {
-        const response = await fetch(entry.url);
-        const contentType = response.headers.get("content-type") || "application/octet-stream";
-        return new Response(response.body, {
+        const fetched = await fetch(entry.url);
+        const contentType = fetched.headers.get("content-type") || "application/octet-stream";
+        return new Response(fetched.body, {
           headers: { "Content-Type": contentType }
         });
       } catch (error) {

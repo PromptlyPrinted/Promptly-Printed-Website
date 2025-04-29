@@ -21,12 +21,18 @@ export async function POST(request: Request) {
       return new Response("Product not found", { status: 404 });
     }
 
+    // Look up app user
+    const dbUser = await database.user.findUnique({ where: { clerkId: session.userId } });
+    if (!dbUser) {
+      return new Response("User not found", { status: 404 });
+    }
+
     // Save the design
     const savedImage = await database.savedImage.create({
       data: {
         name: validatedData.name,
         url: validatedData.imageUrl,
-        userId: session.userId,
+        userId: dbUser.id,
         productId: validatedData.productId,
       },
       include: {
@@ -62,9 +68,15 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const productId = searchParams.get("productId");
 
+    // Fetch saved designs for user
+    const dbUser = await database.user.findUnique({ where: { clerkId: session.userId } });
+    if (!dbUser) {
+      return new Response("User not found", { status: 404 });
+    }
+
     const designs = await database.savedImage.findMany({
       where: {
-        userId: session.userId,
+        userId: dbUser.id,
         ...(productId ? { productId: parseInt(productId) } : {}),
       },
       include: {

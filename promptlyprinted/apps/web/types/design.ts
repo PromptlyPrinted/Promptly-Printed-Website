@@ -3,7 +3,7 @@ import { z } from "zod";
 // Schema for saving a new design
 export const SaveDesignSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  imageUrl: z.string().url("Invalid image URL"),
+  imageUrl: z.string().min(1, "Image URL is required"),
   productId: z.number().int().positive("Product ID is required"),
 });
 
