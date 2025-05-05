@@ -24,7 +24,7 @@ interface ProdigiVariants {
 }
 
 interface DisplayProduct {
-  id: string;
+  id: number;
   name: string;
   description: string;
   price: number;
@@ -45,7 +45,7 @@ interface DisplayProduct {
     size: string[];
   };
   category?: {
-    id: string;
+    id: number;
     name: string;
   };
   prodigiAttributes?: any;
@@ -55,9 +55,8 @@ interface DisplayProduct {
 }
 
 type Props = {
-  params: {
-    id: string
-  }
+  params: { id: string }
+  searchParams: { [key: string]: string | string[] | undefined }
 }
 
 export async function generateStaticParams() {
@@ -69,9 +68,17 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params;
+  const numericId = parseInt(params.id);
+  
+  if (isNaN(numericId)) {
+    return {
+      title: 'Invalid Product ID',
+      description: 'The provided product ID is invalid.',
+    }
+  }
+
   const product = await prisma.product.findUnique({
-    where: { id: parseInt(id) },
+    where: { id: numericId },
     select: {
       id: true,
       name: true,
@@ -120,9 +127,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function ProductPage({ params }: Props) {
-  const { id } = await params;
+  const numericId = parseInt(params.id);
+  
+  if (isNaN(numericId)) {
+    notFound();
+  }
+
   const rawProduct = await prisma.product.findUnique({
-    where: { id: parseInt(id) },
+    where: { id: numericId },
     select: {
       id: true,
       name: true,
@@ -185,13 +197,12 @@ export default async function ProductPage({ params }: Props) {
   
   const product: DisplayProduct = {
     ...rawProduct,
-    id: rawProduct.id.toString(),
     specifications,
     imageUrlMap,
     imageUrl: variants?.imageUrls?.base || '',
     images: rawProduct.images.map(img => img.url),
     category: rawProduct.category ? {
-      id: rawProduct.category.id.toString(),
+      id: rawProduct.category.id,
       name: rawProduct.category.name
     } : undefined,
     prodigiVariants: variants

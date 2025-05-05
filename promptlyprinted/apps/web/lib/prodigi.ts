@@ -101,11 +101,12 @@ class ProdigiService {
 
   constructor() {
     this.apiKey = env.PRODIGI_API_KEY
-    this.baseUrl = env.PRODIGI_API_URL || "https://api.prodigi.com/v4.0"
+    this.baseUrl = "https://api.prodigi.com/v4.0"
     this.headers = {
       "X-API-Key": this.apiKey,
       "Content-Type": "application/json"
     }
+    console.log('Initialized ProdigiService with baseUrl:', this.baseUrl)
   }
 
   private async prepareItemWithHighResImage(item: ProdigiOrderItem) {
@@ -142,6 +143,17 @@ class ProdigiService {
   }
 
   async createOrder(request: ProdigiOrderRequest) {
+    console.log('Creating Prodigi order with request:', {
+      ...request,
+      items: request.items.map(item => ({
+        ...item,
+        assets: item.assets.map(asset => ({
+          ...asset,
+          url: asset.url.substring(0, 50) + '...' // Truncate URL for logging
+        }))
+      }))
+    })
+
     // Ensure all items have artwork URLs
     const items = await Promise.all(request.items.map(async item => {
       if (!item.assets[0]?.url) {
@@ -152,6 +164,15 @@ class ProdigiService {
         sizing: item.sizing || "fillPrintArea"
       }
     }))
+
+    console.log('Sending request to Prodigi API:', {
+      url: `${this.baseUrl}/orders`,
+      method: 'POST',
+      headers: {
+        ...this.headers,
+        'X-API-Key': '***' // Hide API key in logs
+      }
+    })
 
     const response = await fetch(`${this.baseUrl}/orders`, {
       method: "POST",
@@ -166,14 +187,26 @@ class ProdigiService {
       })
     })
 
+    console.log('Prodigi API response status:', response.status)
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => null)
+      console.error('Prodigi API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorData
+      })
       throw new Error(`Failed to create order: ${response.statusText}${
         errorData ? ` - ${JSON.stringify(errorData)}` : ''
       }`)
     }
 
-    return response.json()
+    const data = await response.json()
+    console.log('Successfully created Prodigi order:', {
+      id: data.id,
+      status: data.status
+    })
+    return data
   }
 
   async getOrder(prodigiOrderId: string) {

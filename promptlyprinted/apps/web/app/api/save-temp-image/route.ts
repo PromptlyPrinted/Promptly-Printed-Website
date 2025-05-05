@@ -1,18 +1,22 @@
-import { temporaryImageStore } from "@/lib/temp-image-store";
-
-setInterval(() => {
-  const now = Date.now();
-  for (const [id, entry] of temporaryImageStore.entries()) {
-    if (now - entry.timestamp > temporaryImageStore.IMAGE_TTL) {
-      temporaryImageStore.delete(id);
-    }
-  }
-}, temporaryImageStore.CLEANUP_INTERVAL);
+import { database } from "@repo/database";
+import { auth } from "@clerk/nextjs/server";
 
 export async function POST(request: Request) {
   try {
+    const session = await auth();
+    
+    if (!session?.userId) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }), 
+        { 
+          status: 401,
+          headers: { "Content-Type": "application/json" }
+        }
+      );
+    }
+
     const data = await request.json();
-    const { url, isPublic } = data;
+    const { url } = data;
 
     if (!url) {
       return new Response(
@@ -24,11 +28,44 @@ export async function POST(request: Request) {
       );
     }
 
-    const id = crypto.randomUUID();
-    temporaryImageStore.set(id, { url, timestamp: Date.now(), isPublic });
+    // Check if the image is already saved
+    const existingImage = await database.savedImage.findFirst({
+      where: { url }
+    });
+
+    if (existingImage) {
+      return new Response(
+        JSON.stringify({ id: existingImage.id }), 
+        { headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    // Get the database user ID from the Clerk user ID
+    const dbUser = await database.user.findUnique({
+      where: { clerkId: session.userId }
+    });
+
+    if (!dbUser) {
+      return new Response(
+        JSON.stringify({ error: "User not found in database" }), 
+        { 
+          status: 404,
+          headers: { "Content-Type": "application/json" }
+        }
+      );
+    }
+
+    // Save the image to the database
+    const savedImage = await database.savedImage.create({
+      data: {
+        name: "Checkout Image",
+        url,
+        userId: dbUser.id,
+      }
+    });
 
     return new Response(
-      JSON.stringify({ id }), 
+      JSON.stringify({ id: savedImage.id }), 
       { headers: { "Content-Type": "application/json" } }
     );
   } catch (error) {
@@ -52,8 +89,12 @@ export async function GET(request: Request) {
     const rawUrl = url.searchParams.get("url");
 
     if (id) {
-      const entry = temporaryImageStore.get(id);
-      if (!entry) {
+      // Get the image from the database
+      const savedImage = await database.savedImage.findUnique({
+        where: { id }
+      });
+
+      if (!savedImage) {
         return new Response(
           JSON.stringify({ error: "Image not found" }), 
           { 
@@ -63,9 +104,9 @@ export async function GET(request: Request) {
         );
       }
 
-      // Proxy the image for both public and private entries
+      // Proxy the image
       try {
-        const fetched = await fetch(entry.url);
+        const fetched = await fetch(savedImage.url);
         const contentType = fetched.headers.get("content-type") || "application/octet-stream";
         return new Response(fetched.body, {
           headers: { "Content-Type": contentType }

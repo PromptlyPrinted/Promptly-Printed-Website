@@ -33,91 +33,53 @@ export function CheckoutButton({ items, variant = "default", className }: Checko
   const handleCheckout = async () => {
     try {
       setIsLoading(true)
-      
-      console.log('Initial items:', items);
-      
-      // Save images to temporary storage first
-      const itemsWithTempImages = await Promise.all(items.map(async (item) => {
-        console.log('Processing item:', item);
-        
-        const imagesWithTempUrls = await Promise.all(item.images.map(async (img) => {
-          console.log('Processing image:', img);
-          
-          // Save the image URL temporarily
-          const saveResponse = await fetch('/api/save-temp-image', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              url: img.url,
-              name: 'Checkout Image'
-            })
-          });
+      console.log("Starting checkout process...")
 
-          const data = await saveResponse.json();
-          
-          if (!saveResponse.ok) {
-            console.error('Failed to save image:', data.error);
-            toast.error(data.error || 'Failed to save image');
-            throw new Error('Failed to save image for checkout');
+      // Process items and their images
+      const itemsWithSavedImages = await Promise.all(
+        items.map(async (item) => {
+          console.log("Processing item:", item)
+          const imageUrl = item.images[0].url
+
+          // If it's already a saved image URL, use it directly
+          if (imageUrl.includes("/api/save-temp-image")) {
+            console.log("Using existing saved image URL:", imageUrl)
+            return { ...item, images: [{ url: imageUrl }] }
           }
 
-          const { id: imageId } = data;
-          console.log('Got image ID:', imageId);
+          // For any other URL, save it first
+          console.log("Saving image URL:", imageUrl)
+          const response = await fetch("/api/save-temp-image", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: imageUrl }),
+          })
+          const data = await response.json()
+          if (!response.ok) throw new Error(data.error || "Failed to save image")
+          
+          return { ...item, images: [{ url: `/api/save-temp-image?id=${data.id}` }] }
+        })
+      )
 
-          return {
-            ...img,
-            url: `/api/save-temp-image?id=${imageId}` // Use the short ID instead of the full URL
-          };
-        }));
+      console.log("Items processed:", itemsWithSavedImages)
 
-        return {
-          ...item,
-          images: imagesWithTempUrls
-        };
-      }));
-
-      console.log('Items with temp images:', itemsWithTempImages);
-      
-      // Create a checkout session
-      const response = await fetch("/api/checkout", {
+      // Create checkout session
+      const successUrl = `${window.location.origin}/success?session_id={CHECKOUT_SESSION_ID}`;
+      const cancelUrl = `${window.location.origin}/cancel`;
+      const response = await fetch(`/api/checkout?successUrl=${encodeURIComponent(successUrl)}&cancelUrl=${encodeURIComponent(cancelUrl)}`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(itemsWithTempImages),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(itemsWithSavedImages),
       })
 
-      const data = await response.json();
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || "Failed to create checkout session")
 
-      if (!response.ok) {
-        console.error('Checkout Error:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: data.error,
-          requestBody: itemsWithTempImages
-        });
-        toast.error(data.error || 'Failed to create checkout session');
-        throw new Error(data.error || 'Failed to create checkout session')
-      }
-
-      if (!data.url || !data.orderId) {
-        console.error('Invalid checkout response:', data);
-        toast.error('Invalid checkout response');
-        throw new Error("Invalid checkout response");
-      }
-
-      console.log('Order Created:', {
-        orderId: data.orderId,
-        status: data.status,
-        redirectUrl: data.url
-      });
-
-      // Show success message and redirect
-      toast.success('Order created successfully!');
-      router.push(data.url)
+      // Redirect to checkout
+      window.location.href = data.url
     } catch (error) {
       console.error("Checkout error:", error)
-      toast.error('Failed to start checkout process');
+      toast.error(error instanceof Error ? error.message : "Failed to process checkout")
     } finally {
       setIsLoading(false)
     }

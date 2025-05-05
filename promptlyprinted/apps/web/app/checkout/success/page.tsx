@@ -43,7 +43,11 @@ export default async function CheckoutSuccessPage({
         recipient: true,
         orderItems: {
           include: {
-            product: true
+            product: {
+              include: {
+                images: true
+              }
+            }
           }
         }
       }
@@ -52,20 +56,39 @@ export default async function CheckoutSuccessPage({
     // Create Prodigi order
     if (order.recipient) {
       try {
+        console.log('Starting Prodigi order creation for order:', order.id)
+        
         // Prepare items with high-res images
         const items = await Promise.all(
           order.orderItems.map(async (item) => {
+            console.log('Processing item:', item.id, 'with SKU:', item.product.sku)
+            
             const spec = getImageSpecForSku(item.product.sku)
             if (!spec) {
               throw new Error(`No image specifications found for SKU: ${item.product.sku}`)
             }
+            console.log('Found image spec for SKU:', spec)
+
+            // Get the first image URL from the product's images
+            const imageUrl = item.product.images[0]?.url
+            if (!imageUrl) {
+              throw new Error(`No image found for product SKU: ${item.product.sku}`)
+            }
+            console.log('Found image URL:', imageUrl)
 
             // Generate high-res image URL
-            const highResUrl = await generateHighResImage(item.product.imageUrl, spec)
+            const highResUrl = await generateHighResImage(imageUrl, spec)
+            console.log('Generated high-res URL:', highResUrl)
 
             return {
               sku: item.product.sku,
               copies: item.copies,
+              merchantReference: `item_${item.id}`,
+              sizing: "fillPrintArea" as const,
+              recipientCost: {
+                amount: item.price.toString(),
+                currency: session.currency?.toUpperCase() || "USD"
+              },
               assets: [{
                 printArea: "default",
                 url: highResUrl
@@ -74,34 +97,65 @@ export default async function CheckoutSuccessPage({
           })
         )
 
+        console.log('Prepared items for Prodigi order:', items)
+
         const prodigiOrder = await prodigiService.createOrder({
-          shippingMethod: "Standard", // Or get from session metadata
+          shippingMethod: "Standard",
+          merchantReference: `order_${order.id}`,
+          idempotencyKey: `order_${order.id}_${Date.now()}`,
+          callbackUrl: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/prodigi`,
           recipient: {
             name: order.recipient.name,
             email: order.recipient.email || "",
-            phoneNumber: order.recipient.phoneNumber,
+            phoneNumber: order.recipient.phoneNumber || undefined,
             address: {
               line1: order.recipient.addressLine1,
-              line2: order.recipient.addressLine2,
+              line2: order.recipient.addressLine2 || undefined,
               postalOrZipCode: order.recipient.postalCode,
               countryCode: order.recipient.countryCode,
               townOrCity: order.recipient.city,
-              stateOrCounty: order.recipient.state
+              stateOrCounty: order.recipient.state || undefined
             }
           },
-          items
+          items,
+          metadata: {
+            orderId: order.id,
+            userId: order.userId,
+            stripeSessionId: session.id
+          }
         })
 
-        // Update order with Prodigi order ID
+        console.log('Created Prodigi order:', prodigiOrder)
+
+        // Update order with Prodigi order ID and status
         await prisma.order.update({
           where: { id: order.id },
           data: {
-            prodigiOrderId: prodigiOrder.id
+            prodigiOrderId: prodigiOrder.id,
+            prodigiCreatedAt: new Date(prodigiOrder.created),
+            prodigiLastUpdated: new Date(prodigiOrder.lastUpdated),
+            prodigiStage: prodigiOrder.status.stage,
+            prodigiStatusJson: prodigiOrder.status,
+            outcome: prodigiOrder.outcome
           }
         })
+
+        console.log('Updated order with Prodigi details')
       } catch (error) {
         console.error("Failed to create Prodigi order:", error)
-        // Consider sending notification to admin or retrying later
+        // Log the error for monitoring
+        await prisma.log.create({
+          data: {
+            level: "ERROR",
+            message: "Failed to create Prodigi order",
+            metadata: {
+              orderId: order.id,
+              error: error instanceof Error ? error.message : "Unknown error",
+              stack: error instanceof Error ? error.stack : undefined
+            }
+          }
+        })
+        // TODO: Send notification to admin about failed order
       }
     }
   }

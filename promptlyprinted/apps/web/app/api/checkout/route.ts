@@ -1,4 +1,4 @@
-import { Prisma } from '@repo/database';
+import { Prisma, OrderStatus, ShippingMethod } from '@repo/database';
 import { prisma } from '@repo/database';
 import { auth } from '@clerk/nextjs/server';
 import type { User } from '@repo/database';
@@ -53,27 +53,65 @@ type ValidatedCheckoutItem = z.infer<typeof CheckoutItemSchema>;
 type ValidatedCheckoutRequest = z.infer<typeof CheckoutRequestSchema>;
 type ImageSchemaType = z.infer<typeof ImageSchema>;
 
-function getImageUrl(url: string): string | null {
+async function getImageUrl(url: string): Promise<string | null> {
   try {
-    if (!url) return null;
+    if (!url) {
+      console.error('Empty image URL provided');
+      return null;
+    }
     
     // Handle temp: prefix
     if (url.startsWith('temp:')) {
       const tempId = url.split(':')[1];
       const tempImage = temporaryImageStore.get(tempId);
-      return tempImage?.url || null;
+      if (!tempImage) {
+        console.error('Temporary image not found:', tempId);
+        return null;
+      }
+      console.log('Resolved temp: image URL:', { tempId, url: tempImage.url });
+      return tempImage.url;
     }
     
     // Handle save-temp-image URLs
     if (url.includes('/api/save-temp-image')) {
       const idParam = url.match(/[?&]id=([^&]+)/);
       if (idParam) {
+        // Try to get the image from the database first
+        const savedImage = await prisma.savedImage.findUnique({
+          where: { id: idParam[1] }
+        });
+        
+        if (savedImage) {
+          console.log('Found saved image in database:', { id: idParam[1], url: savedImage.url });
+          return savedImage.url;
+        }
+        
+        // Fallback to temporary store
         const tempImage = temporaryImageStore.get(idParam[1]);
-        return tempImage?.url || null;
+        if (!tempImage) {
+          console.error('Image not found in database or temporary store:', idParam[1]);
+          return null;
+        }
+        console.log('Resolved save-temp-image URL from temporary store:', { id: idParam[1], url: tempImage.url });
+        return tempImage.url;
       }
     }
     
-    return url;
+    // If it's a relative URL, make it absolute
+    if (url.startsWith('/')) {
+      const absoluteUrl = `${process.env.NEXT_PUBLIC_APP_URL}${url}`;
+      console.log('Converted relative URL to absolute:', { relative: url, absolute: absoluteUrl });
+      return absoluteUrl;
+    }
+    
+    // If it's already an absolute URL, return it
+    if (url.startsWith('http')) {
+      console.log('Using absolute URL:', url);
+      return url;
+    }
+    
+    console.error('Invalid image URL format:', url);
+    return null;
   } catch (error) {
     console.error('Error resolving image URL:', error);
     return null;
@@ -94,6 +132,10 @@ export async function POST(req: NextRequest) {
     const urlObj = new URL(req.url);
     const origin = process.env.NEXT_PUBLIC_APP_URL ?? urlObj.origin;
     console.log(`Authenticated Clerk User ID: ${clerkUserId}`);
+
+    // Get success and cancel URLs from query parameters
+    const successUrl = urlObj.searchParams.get('successUrl') || `${origin}/success?session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = urlObj.searchParams.get('cancelUrl') || `${origin}/cancel`;
 
     let orderItems: ValidatedCheckoutRequest;
     try {
@@ -160,9 +202,9 @@ export async function POST(req: NextRequest) {
       const orderData = {
         userId: dbUser.id,
         totalPrice: total,
-        status: 'PENDING',
+        status: 'PENDING' as OrderStatus,
         merchantReference: "MyMerchantReference1",
-        shippingMethod: "STANDARD",
+        shippingMethod: "STANDARD" as ShippingMethod,
         callbackUrl: "https://promptlyprinted.com/callback",
         idempotencyKey: randomUUID(),
         metadata: {
@@ -187,11 +229,11 @@ export async function POST(req: NextRequest) {
           }
         },
         orderItems: {
-          create: orderItems.map((item) => {
+          create: await Promise.all(orderItems.map(async (item) => {
             // Convert each image object into something we can store in `assets` (JSON),
             // since there's no separate `images` relation in OrderItem.
-            const resolvedAssets = item.images.map((img) => {
-              const actualUrl = getImageUrl(img.url);
+            const resolvedAssets = await Promise.all(item.images.map(async (img) => {
+              const actualUrl = await getImageUrl(img.url);
               if (!actualUrl) {
                 console.warn(`Could not resolve or invalid image URL: ${img.url} for product ${item.productId}`);
                 return null;
@@ -206,28 +248,24 @@ export async function POST(req: NextRequest) {
                 height: img.height,
                 isPublic: true,
               };
-            }).filter(Boolean);
+            })).then(assets => assets.filter(Boolean));
 
             return {
               productId: item.productId,   
-              // "copies" instead of "quantity"
               copies: item.copies,
               price: item.price,
-              // We'll store these "images" as JSON in the OrderItem's "assets" field
               assets: resolvedAssets, 
-              // Additional fields
               merchantReference: item.merchantReference || `item #${item.productId}`,
               recipientCostAmount: item.recipientCostAmount ?? item.price,
               recipientCostCurrency: item.currency || "USD",
               sizing: item.customization?.sizing,
-              // If you want to store customization or designUrl in "attributes", do so:
               attributes: {
                 designUrl: item.designUrl,
                 printArea: item.customization?.printArea,
                 position: item.customization?.position
               },
             };
-          }),
+          })),
         },
       };
 
@@ -242,28 +280,66 @@ export async function POST(req: NextRequest) {
       // Create Stripe checkout session
       const session = await stripe.checkout.sessions.create({
         customer_email: dbUser.email,
-        line_items: orderItems.map(item => ({
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: item.name,
-              images: item.images.map(img =>
-                img.url.startsWith('http')
-                  ? img.url
-                  : `${origin}${img.url}`
-              ),
+        line_items: orderItems.map(item => {
+          const images = item.images.map(img => {
+            const resolvedUrl = getImageUrl(img.url);
+            if (!resolvedUrl) {
+              console.error('Failed to resolve image URL:', img.url);
+              return '';
+            }
+            console.log('Resolved image URL:', { original: img.url, resolved: resolvedUrl });
+            return resolvedUrl;
+          }).filter(Boolean);
+
+          if (images.length === 0) {
+            console.error('No valid images found for item:', item.productId);
+            throw new Error(`No valid images found for item ${item.productId}`);
+          }
+
+          return {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: item.name,
+                images: images,
+              },
+              unit_amount: Math.round(item.price * 100), // Convert to cents
             },
-            unit_amount: Math.round(item.price * 100), // Convert to cents
-          },
-          quantity: item.copies || 1,
-        })),
+            quantity: item.copies,
+          };
+        }),
         mode: 'payment',
-        success_url: `${process.env.NEXT_PUBLIC_APP_URL}/orders/${order.id}?success=true`,
-        cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/orders/${order.id}?canceled=true`,
+        success_url: successUrl,
+        cancel_url: cancelUrl,
         metadata: {
-          orderId: order.id,
-          userId: dbUser.id,
+          orderId: order.id.toString()
         },
+        shipping_address_collection: {
+          allowed_countries: ['US', 'CA', 'GB', 'AU', 'NZ']
+        },
+        payment_method_types: ['card', 'link', 'paypal'],
+        shipping_options: [
+          {
+            shipping_rate_data: {
+              type: 'fixed_amount',
+              fixed_amount: {
+                amount: 0,
+                currency: 'usd',
+              },
+              display_name: 'Free shipping',
+              delivery_estimate: {
+                minimum: {
+                  unit: 'business_day',
+                  value: 5,
+                },
+                maximum: {
+                  unit: 'business_day',
+                  value: 7,
+                },
+              },
+            },
+          },
+        ],
       });
 
       if (!session.url) {
@@ -273,7 +349,7 @@ export async function POST(req: NextRequest) {
       // Update order with Stripe session ID
       await prisma.order.update({
         where: { id: order.id },
-        data: { stripeSessionId: session.id },
+        data: { stripeSessionId: session.id }
       });
 
       // Clean up temporary images
@@ -286,11 +362,7 @@ export async function POST(req: NextRequest) {
         });
       });
 
-      return NextResponse.json({ 
-        url: session.url,
-        orderId: order.id,
-        status: order.status
-      }, { status: 201 });
+      return NextResponse.json({ url: session.url });
     } catch (error: unknown) {
       console.error('Error during checkout process:', error);
       if (error instanceof Error) {

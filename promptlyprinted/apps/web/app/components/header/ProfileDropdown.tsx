@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useUser } from "@clerk/nextjs";
 import { Button } from "@repo/design-system/components/ui/button";
 import { User, Image, Package, Heart, Settings, LogOut, X } from "lucide-react";
 
@@ -22,6 +23,7 @@ export function ProfileDropdown({
   onSignOut,
   onClose,
 }: ProfileDropdownProps) {
+  const { isLoaded, user } = useUser();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -94,7 +96,11 @@ export function ProfileDropdown({
                   <User className="w-6 h-6 text-gray-600" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-gray-900">Welcome back!</h3>
+                  <h3 className="font-medium text-gray-900">
+                    {isLoaded && user
+                      ? `Welcome back, ${user.firstName || user.fullName}!`
+                      : "Welcome back!"}
+                  </h3>
                   <p className="text-sm text-gray-500">Manage your account</p>
                 </div>
               </div>

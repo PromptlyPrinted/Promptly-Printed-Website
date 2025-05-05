@@ -1,6 +1,7 @@
 import { env } from '@repo/env';
 import { Status } from '@repo/observability/status';
 import Link from 'next/link';
+import PromptlyLogoUrl from "./PromptlyLogo.svg";
 
 export const Footer = () => {
   const navigationItems = [
@@ -47,17 +48,18 @@ export const Footer = () => {
   }
 
   return (
-    <section className="dark border-foreground/10 border-t">
-      <div className="w-full bg-background py-20 text-foreground lg:py-40">
+    <section className="border-foreground/10 border-t">
+      <div
+        className="w-full bg-cover bg-center py-20 text-foreground lg:py-40"
+        style={{ backgroundImage: "url('/footer.png')" }}
+      >
         <div className="container mx-auto">
           <div className="grid items-center gap-10 lg:grid-cols-2">
             <div className="flex flex-col items-start gap-8">
               <div className="flex flex-col gap-2">
-                <h2 className="max-w-xl text-left font-regular text-3xl tracking-tighter md:text-5xl">
-                  next-forge
-                </h2>
+                <img src={PromptlyLogoUrl} className="h-12 w-auto" alt="Promptly Printed logo" />
                 <p className="max-w-lg text-left text-foreground/75 text-lg leading-relaxed tracking-tight">
-                  This is the start of something new.
+                  Creativity Promptly Delivered.
                 </p>
               </div>
               <Status />
@@ -72,7 +74,7 @@ export const Footer = () => {
                     {item.href ? (
                       <Link
                         href={item.href}
-                        className="flex items-center justify-between"
+                        className="flex items-center justify-between text-purple-600"
                         target={
                           item.href.includes('http') ? '_blank' : undefined
                         }
@@ -85,7 +87,7 @@ export const Footer = () => {
                         <span className="text-xl">{item.title}</span>
                       </Link>
                     ) : (
-                      <p className="text-xl">{item.title}</p>
+                      <p className="text-xl text-purple-600">{item.title}</p>
                     )}
                     {item.items?.map((subItem) => (
                       <Link

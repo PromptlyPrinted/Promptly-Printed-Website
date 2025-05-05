@@ -3,7 +3,7 @@ import Image from 'next/image'
 import { Card } from '@repo/design-system/components/ui/card'
 
 interface ProductCardProps {
-  id: string
+  id: number
   name: string
   price: number
   imageUrl: string
@@ -12,7 +12,7 @@ interface ProductCardProps {
 
 export function ProductCard({ id, name, price, imageUrl, description }: ProductCardProps) {
   return (
-    <Link href={`/product/${id}`} className="block">
+    <Link href={`/product/${id.toString()}`} className="block">
       <Card className="overflow-hidden h-full transition-transform hover:scale-[1.02]">
         <div className="aspect-square relative">
           <Image

@@ -178,6 +178,18 @@ export function ProductDetail({ product }: ProductDetailProps) {
   }, [product, colorList]);
 
   useEffect(() => {
+    if (colorList.length > 0) {
+      setSelectedColor(toKebabCase(colorList[0]));
+    }
+  }, [colorList]);
+
+  useEffect(() => {
+    if (sizeList.length > 0) {
+      setSelectedSize(sizeList[0]);
+    }
+  }, [sizeList]);
+
+  useEffect(() => {
     if (generatedImage) {
       const img = document.createElement('img')
       img.src = generatedImage
@@ -188,12 +200,6 @@ export function ProductDetail({ product }: ProductDetailProps) {
     const newCurrency = getDefaultCurrency(selectedCountry)
     setSelectedCurrency(newCurrency)
   }, [selectedCountry])
-
-  useEffect(() => {
-    if (colorList.length > 0) {
-      setSelectedColor(toKebabCase(colorList[0]));
-    }
-  }, [colorList]);
 
   const getConvertedPrice = (price: number) => {
     if (ratesLoading) return price
@@ -406,19 +412,39 @@ export function ProductDetail({ product }: ProductDetailProps) {
     }
     setIsSaving(true)
     try {
-      // Persist design to database
+      // First, save the image to temporary storage to get a permanent URL
+      const tempRes = await fetch('/api/save-temp-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url: generatedImage,
+          isPublic: true
+        })
+      })
+      
+      if (!tempRes.ok) {
+        throw new Error('Failed to save image temporarily')
+      }
+      
+      const { id: tempId } = await tempRes.json()
+      const permanentUrl = `/api/save-temp-image?id=${tempId}`
+
+      // Then, save the design to the database with the permanent URL
       const res = await fetch('/api/designs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: `${product.name} Design`,
-          imageUrl: generatedImage,
+          imageUrl: permanentUrl,
           productId: Number(product.id),
         }),
       })
       const saved = await res.json()
       if (!res.ok) throw new Error(saved.error || 'Failed to save design')
+      
       setSavedImageId(saved.id)
+      setGeneratedImage(permanentUrl) // Update the generated image with the permanent URL
+      
       toast({
         title: "Success",
         description: "Design saved successfully!",

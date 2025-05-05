@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { tshirtDetails } from './tshirt-details';
+import { tshirtDetails } from './tshirt-details-wrapper.js';
 
 interface TshirtDetails {
   name: string;

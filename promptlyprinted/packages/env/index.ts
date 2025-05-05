@@ -24,6 +24,8 @@ const server: Parameters<typeof createEnv>[0]['server'] = {
   BASEHUB_TOKEN: z.string().min(1).startsWith('bshb_pk_'),
   UPSTASH_REDIS_REST_URL: z.string().min(1).url().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
+  PRODIGI_API_KEY: z.string().min(1),
+  PRODIGI_API: z.string().min(1).url().optional(),
 
   // Added by Sentry Integration, Vercel Marketplace
   SENTRY_ORG: z.string().min(1).optional(),
@@ -79,6 +81,8 @@ export const env = createEnv({
     LIVEBLOCKS_SECRET: process.env.LIVEBLOCKS_SECRET,
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     BASEHUB_TOKEN: process.env.BASEHUB_TOKEN,
+    PRODIGI_API_KEY: process.env.PRODIGI_API_KEY,
+    PRODIGI_API: process.env.PRODIGI_API,
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
       process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
     NEXT_PUBLIC_CLERK_SIGN_IN_URL: process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL,
