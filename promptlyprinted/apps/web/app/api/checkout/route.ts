@@ -47,7 +47,9 @@ const CheckoutItemSchema = z.object({
   sku: z.string().optional(),
 });
 
-const CheckoutRequestSchema = z.array(CheckoutItemSchema);
+const CheckoutRequestSchema = z.object({
+  items: z.array(CheckoutItemSchema)
+});
 
 type ValidatedCheckoutItem = z.infer<typeof CheckoutItemSchema>;
 type ValidatedCheckoutRequest = z.infer<typeof CheckoutRequestSchema>;
@@ -130,12 +132,12 @@ export async function POST(req: NextRequest) {
     const clerkUserId = authResult.userId;
     // Determine base URL for building absolute image URLs
     const urlObj = new URL(req.url);
-    const origin = process.env.NEXT_PUBLIC_APP_URL ?? urlObj.origin;
+    const origin = process.env.NEXT_PUBLIC_WEB_URL ?? urlObj.origin;
     console.log(`Authenticated Clerk User ID: ${clerkUserId}`);
 
     // Get success and cancel URLs from query parameters
-    const successUrl = urlObj.searchParams.get('successUrl') || `${origin}/success?session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = urlObj.searchParams.get('cancelUrl') || `${origin}/cancel`;
+    const successUrl = urlObj.searchParams.get('successUrl') || `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = urlObj.searchParams.get('cancelUrl') || `${origin}/checkout/cancel`;
 
     let orderItems: ValidatedCheckoutRequest;
     try {
@@ -153,7 +155,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Failed to parse request body' }, { status: 400 });
     }
 
-    if (!orderItems || orderItems.length === 0) {
+    if (!orderItems.items || orderItems.items.length === 0) {
       return NextResponse.json({ error: 'Checkout items cannot be empty' }, { status: 400 });
     }
 
@@ -172,39 +174,16 @@ export async function POST(req: NextRequest) {
       }
       console.log(`Found existing user with DB ID: ${dbUser.id}`);
 
-      const total = orderItems.reduce((acc, item) => acc + item.price * item.copies, 0);
+      const total = orderItems.items.reduce((acc, item) => acc + item.price * item.copies, 0);
       console.log(`Calculated Total Price: ${total}`);
-
-      // Hard-coded shipping details for demonstration
-      const recipientName = "Mr Testy McTestface";
-      const recipientEmail = "test@example.com";
-      const recipientPhone = "1234567890";
-      const recipientAddressLine1 = "14 test place";
-      const recipientAddressLine2 = "test";
-      const recipientPostalOrZipCode = "12345";
-      const recipientCountry = "US";
-      const recipientTownOrCity = "somewhere";
-      const recipientStateOrCounty = null;
-
-      if (
-        !recipientName ||
-        !recipientAddressLine1 ||
-        !recipientPostalOrZipCode ||
-        !recipientCountry ||
-        !recipientTownOrCity
-      ) {
-        throw new Error(
-          "Missing required shipping details. Please complete the shipping information before proceeding."
-        );
-      }
 
       // Build the order creation data
       const orderData = {
         userId: dbUser.id,
         totalPrice: total,
-        status: 'PENDING' as OrderStatus,
+        status: OrderStatus.PENDING as const,
         merchantReference: "MyMerchantReference1",
-        shippingMethod: "STANDARD" as ShippingMethod,
+        shippingMethod: ShippingMethod.STANDARD,
         callbackUrl: "https://promptlyprinted.com/callback",
         idempotencyKey: randomUUID(),
         metadata: {
@@ -217,19 +196,19 @@ export async function POST(req: NextRequest) {
         },
         recipient: {
           create: {
-            name: recipientName,
-            email: recipientEmail,
-            phoneNumber: recipientPhone,
-            addressLine1: recipientAddressLine1,
-            addressLine2: recipientAddressLine2 || "",
-            postalCode: recipientPostalOrZipCode,
-            countryCode: recipientCountry,
-            city: recipientTownOrCity,
-            state: recipientStateOrCounty || null,
+            name: "Pending",
+            email: dbUser.email,
+            phoneNumber: null,
+            addressLine1: "Pending",
+            addressLine2: "",
+            postalCode: "00000",
+            countryCode: "US",
+            city: "Pending",
+            state: null,
           }
         },
         orderItems: {
-          create: await Promise.all(orderItems.map(async (item) => {
+          create: await Promise.all(orderItems.items.map(async (item) => {
             // Convert each image object into something we can store in `assets` (JSON),
             // since there's no separate `images` relation in OrderItem.
             const resolvedAssets = await Promise.all(item.images.map(async (img) => {
@@ -280,7 +259,7 @@ export async function POST(req: NextRequest) {
       // Create Stripe checkout session
       const session = await stripe.checkout.sessions.create({
         customer_email: dbUser.email,
-        line_items: orderItems.map(item => {
+        line_items: orderItems.items.map(item => {
           const images = item.images.map(img => {
             const resolvedUrl = getImageUrl(img.url);
             if (!resolvedUrl) {
@@ -309,8 +288,8 @@ export async function POST(req: NextRequest) {
           };
         }),
         mode: 'payment',
-        success_url: successUrl,
-        cancel_url: cancelUrl,
+        success_url: `${process.env.NEXT_PUBLIC_WEB_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.NEXT_PUBLIC_WEB_URL}/cancel`,
         metadata: {
           orderId: order.id.toString()
         },
@@ -353,7 +332,7 @@ export async function POST(req: NextRequest) {
       });
 
       // Clean up temporary images
-      orderItems.forEach((item) => {
+      orderItems.items.forEach((item) => {
         item.images.forEach((img) => {
           if (img.url.startsWith('temp:')) {
             const tempId = img.url.split(':')[1];

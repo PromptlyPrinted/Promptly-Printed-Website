@@ -100,13 +100,34 @@ class ProdigiService {
   private headers: HeadersInit
 
   constructor() {
+    console.log('Initializing ProdigiService with environment:', {
+      hasEnv: !!env,
+      prodigiApiKey: env.PRODIGI_API_KEY ? '***' : 'missing',
+      prodigiApiKeyLength: env.PRODIGI_API_KEY?.length,
+      envKeys: Object.keys(env),
+      processEnvKeys: Object.keys(process.env).filter(key => key.includes('PRODIGI'))
+    })
+    
+    if (!env.PRODIGI_API_KEY) {
+      console.error('PRODIGI_API_KEY is missing from environment variables')
+      throw new Error('PRODIGI_API_KEY is required but not found in environment variables')
+    }
+    
     this.apiKey = env.PRODIGI_API_KEY
     this.baseUrl = "https://api.prodigi.com/v4.0"
     this.headers = {
       "X-API-Key": this.apiKey,
       "Content-Type": "application/json"
     }
-    console.log('Initialized ProdigiService with baseUrl:', this.baseUrl)
+    console.log('Initialized ProdigiService:', {
+      baseUrl: this.baseUrl,
+      hasApiKey: !!this.apiKey,
+      apiKeyLength: this.apiKey?.length,
+      headers: {
+        ...this.headers,
+        'X-API-Key': this.apiKey ? '***' : 'missing'
+      }
+    })
   }
 
   private async prepareItemWithHighResImage(item: ProdigiOrderItem) {
@@ -171,6 +192,18 @@ class ProdigiService {
       headers: {
         ...this.headers,
         'X-API-Key': '***' // Hide API key in logs
+      },
+      hasApiKey: !!this.apiKey,
+      apiKeyLength: this.apiKey?.length,
+      requestBody: {
+        ...request,
+        items: items.map(item => ({
+          ...item,
+          assets: item.assets.map(asset => ({
+            ...asset,
+            url: asset.url.substring(0, 50) + '...' // Truncate URL for logging
+          }))
+        }))
       }
     })
 
@@ -188,13 +221,16 @@ class ProdigiService {
     })
 
     console.log('Prodigi API response status:', response.status)
-
+    
     if (!response.ok) {
       const errorData = await response.json().catch(() => null)
       console.error('Prodigi API error:', {
         status: response.status,
         statusText: response.statusText,
-        errorData
+        errorData,
+        requestUrl: `${this.baseUrl}/orders`,
+        hasApiKey: !!this.apiKey,
+        apiKeyLength: this.apiKey?.length
       })
       throw new Error(`Failed to create order: ${response.statusText}${
         errorData ? ` - ${JSON.stringify(errorData)}` : ''

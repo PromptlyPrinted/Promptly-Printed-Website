@@ -68,12 +68,13 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const numericId = parseInt(params.id);
+  const { id } = await params;
+  const numericId = parseInt(id);
   
   if (isNaN(numericId)) {
     return {
-      title: 'Invalid Product ID',
-      description: 'The provided product ID is invalid.',
+      title: "Product Not Found",
+      description: "The requested product could not be found."
     }
   }
 
@@ -127,7 +128,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function ProductPage({ params }: Props) {
-  const numericId = parseInt(params.id);
+  const { id } = await params;
+  const numericId = parseInt(id);
   
   if (isNaN(numericId)) {
     notFound();

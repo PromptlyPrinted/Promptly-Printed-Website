@@ -4,6 +4,7 @@ import { Button } from "@repo/design-system/components/ui/button"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
+import { useAuth } from "@clerk/nextjs"
 
 interface CheckoutImage {
   url: string
@@ -29,11 +30,18 @@ interface CheckoutButtonProps {
 export function CheckoutButton({ items, variant = "default", className }: CheckoutButtonProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const { getToken } = useAuth()
 
   const handleCheckout = async () => {
     try {
       setIsLoading(true)
       console.log("Starting checkout process...")
+
+      // Get the auth token
+      const token = await getToken()
+      if (!token) {
+        throw new Error("You must be logged in to checkout")
+      }
 
       // Process items and their images
       const itemsWithSavedImages = await Promise.all(
@@ -51,7 +59,10 @@ export function CheckoutButton({ items, variant = "default", className }: Checko
           console.log("Saving image URL:", imageUrl)
           const response = await fetch("/api/save-temp-image", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            },
             body: JSON.stringify({ url: imageUrl }),
           })
           const data = await response.json()
@@ -68,8 +79,11 @@ export function CheckoutButton({ items, variant = "default", className }: Checko
       const cancelUrl = `${window.location.origin}/cancel`;
       const response = await fetch(`/api/checkout?successUrl=${encodeURIComponent(successUrl)}&cancelUrl=${encodeURIComponent(cancelUrl)}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(itemsWithSavedImages),
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ items: itemsWithSavedImages }),
       })
 
       const data = await response.json()
