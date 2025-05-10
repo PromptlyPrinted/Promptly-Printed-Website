@@ -48,6 +48,7 @@ import {
 } from '@repo/design-system/components/ui/tooltip'
 import { X } from "lucide-react"
 import { DesignPicker } from "@/components/design-picker"
+import { useAuth } from '@clerk/nextjs'
 
 interface CheckoutImage {
   url: string
@@ -126,6 +127,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const [savedImageId, setSavedImageId] = useState<string | null>(null)
   const [imageUrl, setImageUrl] = useState('')
   const [quantity, setQuantity] = useState<number>(1)
+  const { getToken } = useAuth()
 
   // Refs
   const tshirtImageRef = useRef<HTMLImageElement>(null)
@@ -512,7 +514,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
   }
 
   // ---- Checkout ----
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (!selectedSize) {
       toast({
         title: "Error",
@@ -530,30 +532,82 @@ export function ProductDetail({ product }: ProductDetailProps) {
       return
     }
 
-    const productCode = product.specifications?.style || product.sku || product.id
-    const imageSize = PRODUCT_IMAGE_SIZES[productCode as keyof typeof PRODUCT_IMAGE_SIZES] || {
-      width: 4677,
-      height: 5787
-    }
+    try {
+      const productCode = product.specifications?.style || product.sku || product.id
+      const imageSize = PRODUCT_IMAGE_SIZES[productCode as keyof typeof PRODUCT_IMAGE_SIZES] || {
+        width: 4677,
+        height: 5787
+      }
 
-    // Use selected quantity
-    const item: CheckoutItem = {
-      productId: product.id.toString(),
-      name: product.name || 'Custom T-Shirt',
-      price: product.price || 0,
-      copies: quantity, // use selected quantity
-      images: [
-        {
-          url: generatedImage,
-          dpi: 300,
-          width: imageSize.width,
-          height: imageSize.height
-        }
-      ]
-    }
+      // Use selected quantity
+      const item: CheckoutItem = {
+        productId: product.id.toString(),
+        name: product.name || 'Custom T-Shirt',
+        price: product.price || 0,
+        copies: quantity, // use selected quantity
+        images: [
+          {
+            url: generatedImage,
+            dpi: 300,
+            width: imageSize.width,
+            height: imageSize.height
+          }
+        ]
+      }
 
-    console.log('Setting checkout item:', item)
-    setCheckoutItem(item)
+      // Get the auth token
+      const token = await getToken()
+      if (!token) {
+        throw new Error("You must be logged in to checkout")
+      }
+
+      // Process items and their images
+      const itemsWithSavedImages = await Promise.all(
+        [item].map(async (item) => {
+          const imageUrl = item.images[0].url
+
+          // If it's already a saved image URL, use it directly
+          if (imageUrl.includes("/api/save-temp-image")) {
+            return { ...item, images: [{ url: imageUrl }] }
+          }
+
+          // For any other URL, save it first
+          const response = await fetch("/api/save-temp-image", {
+            method: "POST",
+            headers: { 
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({ url: imageUrl }),
+          })
+          const data = await response.json()
+          if (!response.ok) throw new Error(data.error || "Failed to save image")
+          
+          return { ...item, images: [{ url: `/api/save-temp-image?id=${data.id}` }] }
+        })
+      )
+
+      // Create checkout session
+      const successUrl = `${window.location.origin}/success?session_id={CHECKOUT_SESSION_ID}`;
+      const cancelUrl = `${window.location.origin}/cancel`;
+      const response = await fetch(`/api/checkout?successUrl=${encodeURIComponent(successUrl)}&cancelUrl=${encodeURIComponent(cancelUrl)}`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ items: itemsWithSavedImages }),
+      })
+
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error || "Failed to create checkout session")
+
+      // Redirect to checkout
+      window.location.href = data.url
+    } catch (error) {
+      console.error("Checkout error:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to process checkout")
+    }
   }
 
   const handleCloseCheckout = () => {
@@ -1053,24 +1107,6 @@ export function ProductDetail({ product }: ProductDetailProps) {
           </Tabs>
         </div>
       </div>
-
-      {/* Modal-like Checkout overlay */}
-      {checkoutItem && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-          onClick={handleCloseCheckout}
-        >
-          <div className="bg-white p-6 rounded-lg shadow-lg" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Checkout</h3>
-              <Button variant="ghost" size="icon" onClick={handleCloseCheckout}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            <CheckoutButton items={[checkoutItem]} />
-          </div>
-        </div>
-      )}
     </div>
   )
 }
