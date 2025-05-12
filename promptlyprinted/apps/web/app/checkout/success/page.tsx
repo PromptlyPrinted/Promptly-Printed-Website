@@ -131,7 +131,7 @@ export default async function CheckoutSuccessPage({
               merchantReference: `item_${item.id}`,
               sizing: item.attributes?.sizing || "fillPrintArea",
               attributes: {
-                color: item.attributes?.color || item.product.color[0],
+                color: (item.attributes?.color || item.product.color[0]).replace(/-/g, ' '),
                 size: prodigiSize
               },
               recipientCost: {
