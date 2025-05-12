@@ -42,15 +42,15 @@ export default async function CheckoutSuccessPage({
         },
         recipient: {
           update: {
-            name: session.shipping?.name || "Pending",
-            email: session.customer_email || session.customer_details?.email || "pending@example.com",
-            phoneNumber: session.shipping?.phone || null,
-            addressLine1: session.shipping?.address?.line1 || "Pending",
-            addressLine2: session.shipping?.address?.line2 || "",
-            postalCode: session.shipping?.address?.postal_code || "00000",
-            countryCode: session.shipping?.address?.country || "US",
-            city: session.shipping?.address?.city || "Pending",
-            state: session.shipping?.address?.state || null,
+            name: session.customer_details?.name || "Pending",
+            email: session.customer_details?.email || "pending@example.com",
+            phoneNumber: session.customer_details?.phone || undefined,
+            addressLine1: session.customer_details?.address?.line1 || "Pending",
+            addressLine2: session.customer_details?.address?.line2 || undefined,
+            postalCode: session.customer_details?.address?.postal_code || "00000",
+            countryCode: session.customer_details?.address?.country || "US",
+            city: session.customer_details?.address?.city || "Pending",
+            state: session.customer_details?.address?.state || undefined,
           }
         }
       },

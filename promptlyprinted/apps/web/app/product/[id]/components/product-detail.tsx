@@ -66,6 +66,8 @@ interface CheckoutItem {
   name: string
   price: number
   copies?: number
+  color: string
+  size: string
   images: CheckoutImage[]
 }
 
@@ -544,7 +546,9 @@ export function ProductDetail({ product }: ProductDetailProps) {
         productId: product.id.toString(),
         name: product.name || 'Custom T-Shirt',
         price: product.price || 0,
-        copies: quantity, // use selected quantity
+        copies: quantity,
+        color: selectedColor || '',
+        size: selectedSize || '',
         images: [
           {
             url: generatedImage,

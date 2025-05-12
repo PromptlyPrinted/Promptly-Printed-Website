@@ -32,7 +32,8 @@ const CheckoutItemSchema = z.object({
     .optional()     // 2) Allow it to be missing
     .default(1),    // 3) Default to 1 if missing
   images: z.array(ImageSchema),
-
+  color: z.string(),
+  size: z.string(),
   designUrl: z.string().optional(),
   customization: z
     .object({
@@ -181,18 +182,13 @@ export async function POST(req: NextRequest) {
       const orderData = {
         userId: dbUser.id,
         totalPrice: total,
-        status: OrderStatus.PENDING as const,
-        merchantReference: "MyMerchantReference1",
+        status: OrderStatus.PENDING,
+        merchantReference: `ORDER-${Date.now()}`,
         shippingMethod: ShippingMethod.STANDARD,
-        callbackUrl: "https://promptlyprinted.com/callback",
+        callbackUrl: `${process.env.NEXT_PUBLIC_WEB_URL}/api/webhooks/prodigi`,
         idempotencyKey: randomUUID(),
         metadata: {
-          mycustomkey: "some-guid",
-          someCustomerPreference: {
-            preference1: "something",
-            preference2: "red"
-          },
-          sourceId: 12345
+          sourceId: Date.now()
         },
         recipient: {
           create: {
@@ -241,7 +237,9 @@ export async function POST(req: NextRequest) {
               attributes: {
                 designUrl: item.designUrl,
                 printArea: item.customization?.printArea,
-                position: item.customization?.position
+                position: item.customization?.position,
+                color: item.color,
+                size: item.size
               },
             };
           })),
