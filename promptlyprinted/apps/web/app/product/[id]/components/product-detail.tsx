@@ -49,6 +49,7 @@ import {
 import { X } from "lucide-react"
 import { DesignPicker } from "@/components/design-picker"
 import { useAuth } from '@clerk/nextjs'
+import Together from "together-ai"
 
 interface CheckoutImage {
   url: string
@@ -111,8 +112,8 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const [selectedSize, setSelectedSize] = useState<string | undefined>(undefined)
   const [selectedColor, setSelectedColor] = useState<string | undefined>(undefined)
   const [promptText, setPromptText] = useState('')
-  const [selectedModels, setSelectedModels] = useState<number[]>([LORAS[0].id])
-  const [modelWeights, setModelWeights] = useState<Record<number, number>>({})
+  const [selectedModels, setSelectedModels] = useState<(number | string)[]>([LORAS[0].id])
+  const [modelWeights, setModelWeights] = useState<Record<string | number, number>>({})
   const [generationMode, setGenerationMode] = useState('text')
   const [loraScale, setLoraScale] = useState(0.7)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -130,6 +131,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const [imageUrl, setImageUrl] = useState('')
   const [quantity, setQuantity] = useState<number>(1)
   const { getToken } = useAuth()
+  const [isBaseModel, setIsBaseModel] = useState(false)
 
   // Refs
   const tshirtImageRef = useRef<HTMLImageElement>(null)
@@ -258,51 +260,111 @@ export function ProductDetail({ product }: ProductDetailProps) {
     try {
       const productCode = product.specifications?.style || product.sku || product.id.toString()
       const imageSize = PRODUCT_IMAGE_SIZES[productCode as keyof typeof PRODUCT_IMAGE_SIZES] || { width: 4677, height: 5787 }
-      const model = LORAS.find((m: Lora) => m.id === selectedModels[0])!
-      const modelConfig = {
-        model: model.path,
-        type: 'lora',
-        weight: modelWeights[model.id] || model.scale || 1.0,
-        steps: model.steps || 28
-      }
-      const allModelConfigs = [
-        {
-          model: "black-forest-labs/FLUX.1-dev-lora",
-          type: 'base',
-          weight: 1.0
-        },
-        modelConfig
-      ]
-      const enhancedPrompt = `${promptText}, high resolution, 300 dpi, detailed, clear image, suitable for t-shirt printing, centered composition, professional quality, sharp details`
-      
-      const response = await fetch('/api/generate-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: enhancedPrompt,
-          models: allModelConfigs,
-          loraScale,
-          width: imageSize.width,
-          height: imageSize.height,
-          dpi: 300
-        })
-      })
 
-      const data = await response.json()
-      if (!response.ok) {
-        const errorMessage = data.details || data.error || 'Failed to generate image'
-        throw new Error(errorMessage)
-      }
-      if (data.data?.[0]?.url) {
-        const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(data.data[0].url)}`
-        setGeneratedImage(proxyUrl)
-        toast({
-          title: "Success",
-          description: "Image generated successfully!",
-          variant: "default"
+      if (isBaseModel) {
+        // Use pure text-to-image model without LORAs
+        const payload = {
+          prompt: promptText,
+          models: [{
+            model: "black-forest-labs/FLUX.1-schnell-Free",
+            type: 'base',
+            weight: 1.0
+          }],
+          width: Math.min(imageSize.width, 1024),  // Cap at 1024 as per API limits
+          height: Math.min(imageSize.height, 1024),
+          dpi: 300,
+          steps: 4
+        }
+
+        console.log('Base model request payload:', JSON.stringify(payload, null, 2))
+
+        const response = await fetch('/api/generate-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
         })
+
+        const data = await response.json()
+        console.log('Base model response:', JSON.stringify(data, null, 2))
+
+        if (!response.ok) {
+          console.error('Base model error response:', {
+            status: response.status,
+            statusText: response.statusText,
+            data: data
+          })
+          const errorMessage = data.details || data.error || 'Failed to generate image'
+          throw new Error(errorMessage)
+        }
+
+        if (data.data?.[0]?.url) {  // Changed to match API response format
+          console.log('Found image URL in response:', data.data[0].url)
+          const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(data.data[0].url)}`
+          setGeneratedImage(proxyUrl)
+          toast({
+            title: "Success",
+            description: "Image generated successfully!",
+            variant: "default"
+          })
+        } else {
+          console.error('No image URL found in response:', data)
+          throw new Error('No image URL in response')
+        }
       } else {
-        throw new Error('No image URL in response')
+        // Use LORA-based generation
+        const modelId = selectedModels[0]
+        const model = LORAS.find((m: Lora) => m.id === modelId)
+        if (!model) {
+          throw new Error('Selected model not found')
+        }
+        
+        const modelConfig = {
+          model: model.path,
+          type: 'lora',
+          weight: modelWeights[modelId] || model.scale || 1.0,
+          steps: 4
+        }
+        const allModelConfigs = [
+          {
+            model: "black-forest-labs/FLUX.1-dev-lora",
+            type: 'base',
+            weight: 1.0,
+            steps: 4
+          },
+          modelConfig
+        ]
+        const enhancedPrompt = `${promptText}, high resolution, 300 dpi, detailed, clear image, suitable for t-shirt printing, centered composition, professional quality, sharp details`
+        
+        const response = await fetch('/api/generate-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: enhancedPrompt,
+            models: allModelConfigs,
+            loraScale,
+            width: imageSize.width,
+            height: imageSize.height,
+            dpi: 300,
+            steps: 4
+          })
+        })
+
+        const data = await response.json()
+        if (!response.ok) {
+          const errorMessage = data.details || data.error || 'Failed to generate image'
+          throw new Error(errorMessage)
+        }
+        if (data.data?.[0]?.url) {
+          const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(data.data[0].url)}`
+          setGeneratedImage(proxyUrl)
+          toast({
+            title: "Success",
+            description: "Image generated successfully!",
+            variant: "default"
+          })
+        } else {
+          throw new Error('No image URL in response')
+        }
       }
     } catch (error) {
       console.error('Error generating image:', error)
@@ -865,75 +927,135 @@ export function ProductDetail({ product }: ProductDetailProps) {
           {/* AI Settings */}
           <div className="border rounded-lg p-6 space-y-4 border-teal-200">
             <h2 className="text-xl font-semibold text-teal-700">AI Settings</h2>
+            
+            {/* Generation Mode Buttons */}
+            <div className="flex gap-4 mb-4">
+              <Button
+                className={`flex-1 ${
+                  generationMode === 'text'
+                    ? 'bg-teal-600 text-white'
+                    : 'bg-white text-teal-600 border-teal-600'
+                }`}
+                variant={generationMode === 'text' ? 'default' : 'outline'}
+                onClick={() => setGenerationMode('text')}
+              >
+                Text to Image
+              </Button>
+              <Button
+                className={`flex-1 ${
+                  generationMode === 'image'
+                    ? 'bg-teal-600 text-white'
+                    : 'bg-white text-teal-600 border-teal-600'
+                }`}
+                variant={generationMode === 'image' ? 'default' : 'outline'}
+                onClick={() => setGenerationMode('image')}
+              >
+                Image to Image
+              </Button>
+            </div>
+
             {generationMode === 'text' && (
               <div>
-                <Label className="text-teal-600 mb-4 block">AI Models &amp; LoRAs</Label>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {LORAS.map((model: Lora) => (
-                    <div
-                      key={model.id}
-                      className={`
-                        relative aspect-square rounded-lg overflow-hidden cursor-pointer
-                        transition-all duration-200 group
-                        ${
-                          selectedModels.includes(model.id)
-                            ? 'ring-2 ring-teal-500'
-                            : 'hover:ring-2 hover:ring-teal-200'
-                        }
-                      `}
-                      onClick={() => {
-                        if (selectedModels[0] === model.id) return
-                        setSelectedModels([model.id])
-                        setModelWeights({ [model.id]: model.scale || 1.0 })
-                      }}
-                    >
-                      <div className="relative w-full h-full">
-                        <Image
-                          src={`/lora-images/${model.name.toLowerCase().replace(/\s+/g, '-')}.png`}
-                          alt={model.name}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                      <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/50 backdrop-blur-sm">
-                        <p className="text-white text-sm font-medium text-center">
-                          {model.name.split(/(?=[A-Z])/).join(' ')}
-                        </p>
-                      </div>
-                      <div className="absolute top-2 left-2">
-                        <Checkbox
-                          id={`model-${model.id}`}
-                          checked={selectedModels.includes(model.id)}
-                          className="bg-white/90 border-teal-500 data-[state=checked]:bg-teal-500"
-                          onClick={(e) => e.stopPropagation()}
-                          onCheckedChange={(checked: boolean) => {
-                            if (checked) {
-                              setSelectedModels([model.id])
-                              setModelWeights({ [model.id]: model.scale || 1.0 })
-                            } else if (selectedModels.length === 1 && selectedModels[0] === model.id) {
-                              // Prevent unchecking the only selected model
-                              return
-                            }
-                          }}
-                        />
-                      </div>
-                      {selectedModels.includes(model.id) && (
-                        <div className="absolute left-0 right-0 bottom-12 px-4 py-2">
-                          <Slider
-                            value={[modelWeights[model.id] || model.scale || 1.0]}
-                            onValueChange={([value]) => {
-                              setModelWeights({ [model.id]: value })
-                            }}
-                            min={0}
-                            max={1}
-                            step={0.1}
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                <div className="mb-6">
+                  <Label className="text-teal-600 mb-2 block">Select Model</Label>
+                  <Select
+                    value={isBaseModel ? 'base' : selectedModels[0]?.toString()}
+                    onValueChange={(value) => {
+                      if (value === 'base') {
+                        setIsBaseModel(true)
+                        setSelectedModels([])
+                      } else {
+                        setIsBaseModel(false)
+                        setSelectedModels([Number(value)])
+                        setModelWeights({ [value]: 1.0 })
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-64 bg-white border-teal-200 hover:border-teal-300 focus:ring-teal-500">
+                      <SelectValue placeholder="Select a model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={LORAS[0].id.toString()}>
+                        Promptly LORA's (Fine-tuned)
+                      </SelectItem>
+                      <SelectItem value="base">
+                        Promptly Base Model (Pure Text-to-Image)
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+
+                {!isBaseModel && (
+                  <>
+                    <Label className="text-teal-600 mb-4 block">AI Models &amp; LoRAs</Label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {LORAS.map((model: Lora) => (
+                        <div
+                          key={model.id}
+                          className={`
+                            relative aspect-square rounded-lg overflow-hidden cursor-pointer
+                            transition-all duration-200 group
+                            ${
+                              selectedModels.includes(model.id)
+                                ? 'ring-2 ring-teal-500'
+                                : 'hover:ring-2 hover:ring-teal-200'
+                            }
+                          `}
+                          onClick={() => {
+                            if (selectedModels[0] === model.id) return
+                            setSelectedModels([model.id])
+                            setModelWeights({ [model.id]: model.scale || 1.0 })
+                          }}
+                        >
+                          <div className="relative w-full h-full">
+                            <Image
+                              src={`/lora-images/${model.name.toLowerCase().replace(/\s+/g, '-')}.png`}
+                              alt={model.name}
+                              fill
+                              className="object-cover"
+                            />
+                          </div>
+                          <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/50 backdrop-blur-sm">
+                            <p className="text-white text-sm font-medium text-center">
+                              {model.name.split(/(?=[A-Z])/).join(' ')}
+                            </p>
+                          </div>
+                          <div className="absolute top-2 left-2">
+                            <Checkbox
+                              id={`model-${model.id}`}
+                              checked={selectedModels.includes(model.id)}
+                              className="bg-white/90 border-teal-500 data-[state=checked]:bg-teal-500"
+                              onClick={(e) => e.stopPropagation()}
+                              onCheckedChange={(checked: boolean) => {
+                                if (checked) {
+                                  setSelectedModels([model.id])
+                                  setModelWeights({ [model.id]: model.scale || 1.0 })
+                                } else if (selectedModels.length === 1 && selectedModels[0] === model.id) {
+                                  // Prevent unchecking the only selected model
+                                  return
+                                }
+                              }}
+                            />
+                          </div>
+                          {selectedModels.includes(model.id) && (
+                            <div className="absolute left-0 right-0 bottom-12 px-4 py-2">
+                              <Slider
+                                value={[modelWeights[model.id] || model.scale || 1.0]}
+                                onValueChange={([value]) => {
+                                  setModelWeights({ [model.id]: value })
+                                }}
+                                min={0}
+                                max={1}
+                                step={0.1}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             )}
             {generatedImage && (

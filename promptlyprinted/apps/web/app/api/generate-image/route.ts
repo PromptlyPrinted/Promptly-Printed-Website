@@ -75,7 +75,7 @@ export async function POST(request: Request) {
         model: baseModel.model,
         prompt: prompt,
         n: 1,
-        steps,
+        steps: 4,
         width: targetWidth,
         height: targetHeight,
         image_loras: imageLoras
