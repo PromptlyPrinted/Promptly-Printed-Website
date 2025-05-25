@@ -19,6 +19,18 @@ interface CheckoutItem {
   price: number
   copies?: number
   images: CheckoutImage[]
+  color: string
+  size: string
+  designUrl?: string
+  customization?: {
+    printArea?: string
+    sizing?: string
+    position?: any
+  }
+  recipientCostAmount?: number
+  currency?: string
+  merchantReference?: string
+  sku?: string
 }
 
 interface CheckoutButtonProps {
@@ -74,6 +86,27 @@ export function CheckoutButton({ items, variant = "default", className }: Checko
 
       console.log("Items processed:", itemsWithSavedImages)
 
+      // Prepare the checkout request body
+      const checkoutBody = {
+        items: itemsWithSavedImages.map(item => ({
+          productId: parseInt(item.productId, 10),
+          name: item.name,
+          price: Number(item.price),
+          copies: Number(item.copies || 1),
+          color: item.color,
+          size: item.size,
+          designUrl: item.designUrl,
+          customization: item.customization,
+          recipientCostAmount: Number(item.recipientCostAmount || item.price),
+          currency: item.currency || "USD",
+          merchantReference: item.merchantReference || `item_${item.productId}`,
+          sku: item.sku,
+          images: [{ url: item.images[0].url }]
+        }))
+      }
+
+      console.log("Checkout request body:", JSON.stringify(checkoutBody, null, 2))
+
       // Create checkout session
       const successUrl = `${window.location.origin}/success?session_id={CHECKOUT_SESSION_ID}`;
       const cancelUrl = `${window.location.origin}/cancel`;
@@ -83,11 +116,16 @@ export function CheckoutButton({ items, variant = "default", className }: Checko
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({ items: itemsWithSavedImages }),
+        body: JSON.stringify(checkoutBody)
       })
 
       const data = await response.json()
-      if (!response.ok) throw new Error(data.error || "Failed to create checkout session")
+      console.log("Checkout response:", data)
+      
+      if (!response.ok) {
+        console.error("Checkout error details:", data)
+        throw new Error(data.error || "Failed to create checkout session")
+      }
 
       // Redirect to checkout
       window.location.href = data.url

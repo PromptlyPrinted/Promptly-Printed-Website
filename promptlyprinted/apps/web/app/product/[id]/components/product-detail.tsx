@@ -50,26 +50,45 @@ import { X } from "lucide-react"
 import { DesignPicker } from "@/components/design-picker"
 import { useAuth } from '@clerk/nextjs'
 import Together from "together-ai"
+import { useCartStore } from "@/lib/cart-store"
 
 interface CheckoutImage {
   url: string
-  dpi?: number
-  width?: number
-  height?: number
+  dpi: number
+  width: number
+  height: number
+  printArea: string
 }
 
-/**
- * Renamed `quantity` to `copies` here.
- * The field is optional, defaulting to `1` in handleCheckout().
- */
 interface CheckoutItem {
   productId: string
   name: string
   price: number
-  copies?: number
+  copies: number
   color: string
   size: string
+  customization: {
+    sizing: string
+  }
   images: CheckoutImage[]
+}
+
+interface CartItem {
+  id: string
+  productId: string
+  name: string
+  price: number
+  quantity: number
+  size: string
+  color: string
+  imageUrl: string
+  customization: {
+    sizing: string
+  }
+  assets: {
+    url: string
+    printArea: string
+  }[]
 }
 
 // Utility to fetch the dominant color from an image
@@ -132,6 +151,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const [quantity, setQuantity] = useState<number>(1)
   const { getToken } = useAuth()
   const [isBaseModel, setIsBaseModel] = useState(false)
+  const { addItem } = useCartStore()
 
   // Refs
   const tshirtImageRef = useRef<HTMLImageElement>(null)
@@ -587,14 +607,6 @@ export function ProductDetail({ product }: ProductDetailProps) {
       })
       return
     }
-    if (!generatedImage) {
-      toast({
-        title: "Error",
-        description: "Please generate a design first",
-        variant: "destructive"
-      })
-      return
-    }
 
     try {
       const productCode = product.specifications?.style || product.sku || product.id
@@ -603,20 +615,47 @@ export function ProductDetail({ product }: ProductDetailProps) {
         height: 5787
       }
 
-      // Use selected quantity
+      // Get the correct image URL
+      let imageUrl = generatedImage
+      if (!imageUrl) {
+        const colorKey = selectedColor?.toLowerCase() || ''
+        imageUrl = product.imageUrlMap?.[colorKey] || product.images?.[0]
+        if (!imageUrl) {
+          toast({
+            title: "Error",
+            description: "Product image not available",
+            variant: "destructive"
+          })
+          return
+        }
+
+        // If it's a relative URL from Prodigi, make it absolute
+        if (imageUrl.startsWith('../') && product.prodigiVariants?.imageUrls?.base) {
+          const baseUrl = product.prodigiVariants.imageUrls.base
+          if (baseUrl) {
+            imageUrl = `${baseUrl}/${colorKey}.png`
+          }
+        }
+      }
+
+      // Create the checkout item
       const item: CheckoutItem = {
         productId: product.id.toString(),
-        name: product.name || 'Custom T-Shirt',
+        name: product.name || '',
         price: product.price || 0,
         copies: quantity,
         color: selectedColor || '',
-        size: selectedSize || '',
+        size: selectedSize,
+        customization: {
+          sizing: "fillPrintArea"
+        },
         images: [
           {
-            url: generatedImage,
+            url: imageUrl,
             dpi: 300,
             width: imageSize.width,
-            height: imageSize.height
+            height: imageSize.height,
+            printArea: "front"
           }
         ]
       }
@@ -632,9 +671,18 @@ export function ProductDetail({ product }: ProductDetailProps) {
         [item].map(async (item) => {
           const imageUrl = item.images[0].url
 
-          // If it's already a saved image URL, use it directly
-          if (imageUrl.includes("/api/save-temp-image")) {
-            return { ...item, images: [{ url: imageUrl }] }
+          // If it's already a proxy URL or a saved image URL, use it directly
+          if (imageUrl.includes('/api/proxy-image') || imageUrl.includes('/api/save-temp-image')) {
+            return {
+              ...item,
+              images: [{
+                url: imageUrl,
+                dpi: 300,
+                width: imageSize.width,
+                height: imageSize.height,
+                printArea: "front"
+              }]
+            }
           }
 
           // For any other URL, save it first
@@ -649,7 +697,16 @@ export function ProductDetail({ product }: ProductDetailProps) {
           const data = await response.json()
           if (!response.ok) throw new Error(data.error || "Failed to save image")
           
-          return { ...item, images: [{ url: `/api/save-temp-image?id=${data.id}` }] }
+          return {
+            ...item,
+            images: [{
+              url: `/api/save-temp-image?id=${data.id}`,
+              dpi: 300,
+              width: imageSize.width,
+              height: imageSize.height,
+              printArea: "front"
+            }]
+          }
         })
       )
 
@@ -672,7 +729,11 @@ export function ProductDetail({ product }: ProductDetailProps) {
       window.location.href = data.url
     } catch (error) {
       console.error("Checkout error:", error)
-      toast.error(error instanceof Error ? error.message : "Failed to process checkout")
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to process checkout",
+        variant: "destructive"
+      })
     }
   }
 
@@ -686,6 +747,117 @@ export function ProductDetail({ product }: ProductDetailProps) {
 
   const generatePreview = async (designUrl: string) => {
     // Add logic to generate preview
+  }
+
+  const handleAddToCart = async () => {
+    if (!selectedSize) {
+      toast({
+        title: "Error",
+        description: "Please select a size before adding to cart",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (!selectedColor) {
+      toast({
+        title: "Error",
+        description: "Please select a color before adding to cart",
+        variant: "destructive"
+      })
+      return
+    }
+
+    try {
+      // If we have a generated image, use that
+      let imageUrl = generatedImage
+      
+      // If no generated image, use the product image
+      if (!imageUrl) {
+        imageUrl = product.imageUrlMap?.[selectedColor.toLowerCase()] || product.images?.[0]
+        if (!imageUrl) {
+          toast({
+            title: "Error",
+            description: "Product image not available",
+            variant: "destructive"
+          })
+          return
+        }
+
+        // If it's a relative URL from Prodigi, make it absolute
+        if (imageUrl.startsWith('../') && product.prodigiVariants?.imageUrls?.base) {
+          const baseUrl = product.prodigiVariants.imageUrls.base
+          if (baseUrl) {
+            imageUrl = `${baseUrl}/${selectedColor.toLowerCase()}.png`
+          }
+        }
+      }
+
+      // If the image URL is already a proxy URL, use it directly
+      if (imageUrl.includes('/api/proxy-image')) {
+        addItem({
+          id: `${product.id}-${selectedSize}-${selectedColor}`,
+          productId: product.id.toString(),
+          name: product.name || '',
+          price: product.price || 0,
+          quantity: quantity,
+          size: selectedSize,
+          color: selectedColor,
+          imageUrl: imageUrl,
+          customization: {
+            sizing: "fillPrintArea"
+          },
+          assets: [{
+            url: imageUrl,
+            printArea: "front"
+          }]
+        })
+      } else {
+        // Save the image to temporary storage
+        const response = await fetch('/api/save-temp-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: imageUrl, isPublic: true })
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to save product image')
+        }
+
+        const { id: tempId } = await response.json()
+        const permanentUrl = `/api/save-temp-image?id=${tempId}`
+
+        addItem({
+          id: `${product.id}-${selectedSize}-${selectedColor}`,
+          productId: product.id.toString(),
+          name: product.name || '',
+          price: product.price || 0,
+          quantity: quantity,
+          size: selectedSize,
+          color: selectedColor,
+          imageUrl: permanentUrl,
+          customization: {
+            sizing: "fillPrintArea"
+          },
+          assets: [{
+            url: permanentUrl,
+            printArea: "front"
+          }]
+        })
+      }
+
+      toast({
+        title: "Added to cart",
+        description: `${product.name || 'Product'} has been added to your cart`,
+      })
+    } catch (error) {
+      console.error('Error adding to cart:', error)
+      toast({
+        title: "Error",
+        description: "Failed to add item to cart. Please try again.",
+        variant: "destructive"
+      })
+    }
   }
 
   return (
@@ -1095,17 +1267,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
             <Button
               className="w-full sm:flex-1 bg-teal-600 hover:bg-teal-700 text-white"
               size="lg"
-              onClick={() => {
-                if (!selectedSize) {
-                  toast({
-                    title: "Error",
-                    description: "Please select a size before adding to cart",
-                    variant: "destructive"
-                  })
-                  return
-                }
-                /* Add to cart logic */
-              }}
+              onClick={handleAddToCart}
             >
               Add to Cart
             </Button>
