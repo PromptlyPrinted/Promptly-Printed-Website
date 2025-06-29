@@ -5,6 +5,7 @@ import { prisma } from '@repo/database';
 import { env } from '@repo/env';
 import { stripe } from '@repo/payments';
 import { CheckCircle } from 'lucide-react';
+import { ClearCart } from './ClearCart';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
@@ -298,6 +299,7 @@ export default async function CheckoutSuccessPage({
 
   return (
     <div className="container mx-auto py-20 text-center">
+      <ClearCart />
       <div className="mx-auto max-w-md">
         <div className="mb-8">
           <CheckCircle className="mx-auto mb-4 h-16 w-16 text-green-500" />

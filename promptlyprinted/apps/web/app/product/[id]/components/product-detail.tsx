@@ -18,6 +18,7 @@
 import { DesignPicker } from '@/components/design-picker';
 import { PRODUCT_IMAGE_SIZES } from '@/constants/product-sizes';
 import { useExchangeRates } from '@/hooks/useExchangeRates';
+import { useCheckout } from '@/hooks/useCheckout';
 import type { Product } from '@/types/product';
 import {
   SUPPORTED_COUNTRIES,
@@ -52,6 +53,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@repo/design-system/components/ui/tooltip';
+import { useCartStore } from '@/lib/cart-store';
 import { toast } from '@repo/design-system/components/ui/use-toast';
 import Image from 'next/image';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -144,6 +146,8 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const [savedImageId, setSavedImageId] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState('');
   const [quantity, setQuantity] = useState<number>(1);
+  const { items: cartItems, addItem } = useCartStore();
+  const { initiateCheckout, isLoading: isCheckingOut } = useCheckout();
   const { getToken } = useAuth();
   const [isBaseModel, setIsBaseModel] = useState(false);
 
@@ -670,115 +674,26 @@ export function ProductDetail({ product }: ProductDetailProps) {
       return;
     }
 
-    try {
-      const productCode =
-        product.specifications?.style || product.sku || product.id;
-      const imageSize = PRODUCT_IMAGE_SIZES[
-        productCode as keyof typeof PRODUCT_IMAGE_SIZES
-      ] || {
-        width: 4677,
-        height: 5787,
-      };
+    const itemToAdd = {
+      id: `${product.id}-${selectedSize}-${selectedColor}`,
+      productId: product.id.toString(),
+      name: product.name,
+      price: product.price,
+      quantity: quantity,
+      size: selectedSize,
+      color: selectedColor,
+      imageUrl: generatedImage || product.imageUrl,
+      assets: [],
+    };
+    addItem(itemToAdd);
 
-      // Get the actual image URL from the proxy URL
-      let actualImageUrl = generatedImage;
-      if (generatedImage.startsWith('/api/proxy-image')) {
-        const urlParams = new URLSearchParams(generatedImage.split('?')[1]);
-        actualImageUrl = urlParams.get('url') || generatedImage;
-      }
-
-      console.log('Actual image URL:', actualImageUrl);
-
-      // Get the auth token
-      const token = await getToken();
-      if (!token) {
-        throw new Error('You must be logged in to checkout');
-      }
-
-      // Save the design permanently to the database
-      const designResponse = await fetch('/api/designs', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          name: `${product.name} Design`,
-          imageUrl: actualImageUrl,
-          productId: Number(product.id),
-        }),
-      });
-
-      if (!designResponse.ok) {
-        const error = await designResponse.json();
-        throw new Error(error.error || 'Failed to save design');
-      }
-
-      const designData = await designResponse.json();
-      console.log('Design save response:', designData);
-
-      // Use the original image URL if we don't get a permanent URL back
-      const permanentImageUrl = designData.imageUrl || actualImageUrl;
-      if (!permanentImageUrl) {
-        throw new Error('No image URL available for checkout');
-      }
-
-      console.log('Using image URL for checkout:', permanentImageUrl);
-
-      // Create the checkout item with the permanent image URL
-      const item = {
-        productId: Number(product.id),
-        name: product.name || 'Custom T-Shirt',
-        price: product.price || 0,
-        copies: quantity,
-        color: selectedColor || '',
-        size: selectedSize || '',
-        images: [
-          {
-            url: permanentImageUrl,
-            dpi: 300,
-            width: imageSize.width,
-            height: imageSize.height,
-          },
-        ],
-        customization: {
-          printArea: 'front',
-          sizing: 'fit',
-        },
-      };
-
-      console.log('Sending checkout item:', JSON.stringify(item, null, 2));
-
-      // Create checkout session
-      const successUrl = `${window.location.origin}/success?session_id={CHECKOUT_SESSION_ID}`;
-      const cancelUrl = `${window.location.origin}/cancel`;
-      const response = await fetch(
-        `/api/checkout?successUrl=${encodeURIComponent(successUrl)}&cancelUrl=${encodeURIComponent(cancelUrl)}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ items: [item] }),
-        }
-      );
-
-      const data = await response.json();
-      if (!response.ok)
-        throw new Error(data.error || 'Failed to create checkout session');
-
-      // Redirect to checkout
-      window.location.href = data.url;
-    } catch (error) {
-      console.error('Checkout error:', error);
-      toast({
-        title: 'Error',
-        description:
-          error instanceof Error ? error.message : 'Failed to process checkout',
-        variant: 'destructive',
-      });
-    }
+    const allItems = [...cartItems, itemToAdd];
+    const allItemsAsCheckoutItems = allItems.map(item => ({
+      ...item,
+      images: [{ url: item.imageUrl }],
+      copies: item.quantity,
+    }));
+    initiateCheckout(allItemsAsCheckoutItems);
   };
 
   const handleCloseCheckout = () => {
@@ -1244,7 +1159,22 @@ export function ProductDetail({ product }: ProductDetailProps) {
                   });
                   return;
                 }
-                /* Add to cart logic */
+                                const itemToAdd = {
+                  id: `${product.id}-${selectedSize}-${selectedColor}`,
+                  productId: product.id.toString(),
+                  name: product.name,
+                  price: product.price,
+                  quantity: quantity,
+                  size: selectedSize,
+                  color: selectedColor,
+                  imageUrl: generatedImage || product.imageUrl,
+                  assets: [],
+                };
+                addItem(itemToAdd);
+                toast({
+                  title: 'Added to cart',
+                  description: `${product.name} has been added to your cart.`,
+                });
               }}
             >
               Add to Cart
