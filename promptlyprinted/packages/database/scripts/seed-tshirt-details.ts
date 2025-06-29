@@ -28,14 +28,18 @@ const countryCurrencyMap = [
   { countryCode: 'KR', currency: 'KRW' },
   { countryCode: 'JP', currency: 'JPY' },
   { countryCode: 'SG', currency: 'SGD' },
-  { countryCode: 'CN', currency: 'CNY' }
+  { countryCode: 'CN', currency: 'CNY' },
 ];
 
 type Pricing = { amount: number; currency: string };
 
 function getPriceForCurrency(pricingArr: Pricing[], currency: string): number {
   // Find the price object for the given currency
-  return pricingArr.find((p: Pricing) => p.currency === currency)?.amount ?? pricingArr[0]?.amount ?? 0;
+  return (
+    pricingArr.find((p: Pricing) => p.currency === currency)?.amount ??
+    pricingArr[0]?.amount ??
+    0
+  );
 }
 
 async function main() {
@@ -54,10 +58,15 @@ async function main() {
             categoryId: null, // Set your category logic if needed
             productType: details.productType,
             brand: details.brand.name,
-            color: details.colorOptions.map((opt: { name: string }) => opt.name),
+            color: details.colorOptions.map(
+              (opt: { name: string }) => opt.name
+            ),
             countryCode: countryCode,
-            gender: details.category.includes("Men's") ? 'M' : 
-                    details.category.includes("Women's") ? 'F' : 'U',
+            gender: details.category.includes("Men's")
+              ? 'M'
+              : details.category.includes("Women's")
+                ? 'F'
+                : 'U',
             height: details.dimensions.height,
             width: details.dimensions.width,
             units: details.dimensions.units,
@@ -72,7 +81,7 @@ async function main() {
               materials: details.materials,
               ecoProperties: details.ecoProperties,
               careInstructions: details.careInstructions,
-              manufacturingLocation: details.manufacturingLocation
+              manufacturingLocation: details.manufacturingLocation,
             },
             prodigiDescription: details.shortDescription,
             prodigiVariants: {
@@ -80,8 +89,8 @@ async function main() {
               shippingZones: details.shippingZones,
               customsDutyInfo: details.customsDutyInfo,
               restrictions: details.restrictions,
-              imageUrls: details.imageUrls
-            }
+              imageUrls: details.imageUrls,
+            },
           },
           create: {
             name: details.name,
@@ -93,10 +102,15 @@ async function main() {
             categoryId: null, // Set your category logic if needed
             productType: details.productType,
             brand: details.brand.name,
-            color: details.colorOptions.map((opt: { name: string }) => opt.name),
+            color: details.colorOptions.map(
+              (opt: { name: string }) => opt.name
+            ),
             countryCode: countryCode,
-            gender: details.category.includes("Men's") ? 'M' : 
-                    details.category.includes("Women's") ? 'F' : 'U',
+            gender: details.category.includes("Men's")
+              ? 'M'
+              : details.category.includes("Women's")
+                ? 'F'
+                : 'U',
             height: details.dimensions.height,
             width: details.dimensions.width,
             units: details.dimensions.units,
@@ -111,7 +125,7 @@ async function main() {
               materials: details.materials,
               ecoProperties: details.ecoProperties,
               careInstructions: details.careInstructions,
-              manufacturingLocation: details.manufacturingLocation
+              manufacturingLocation: details.manufacturingLocation,
             },
             prodigiDescription: details.shortDescription,
             prodigiVariants: {
@@ -119,13 +133,16 @@ async function main() {
               shippingZones: details.shippingZones,
               customsDutyInfo: details.customsDutyInfo,
               restrictions: details.restrictions,
-              imageUrls: details.imageUrls
-            }
-          }
+              imageUrls: details.imageUrls,
+            },
+          },
         });
         console.log(`Upserted product: ${sku} for country: ${countryCode}`);
       } catch (err) {
-        console.error(`Error inserting SKU ${sku} for country ${countryCode}:`, err);
+        console.error(
+          `Error inserting SKU ${sku} for country ${countryCode}:`,
+          err
+        );
       }
     }
   }

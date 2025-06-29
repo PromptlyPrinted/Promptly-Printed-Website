@@ -1,8 +1,8 @@
-import { PrismaClient } from '@prisma/client';
-import { updateProductData } from './updateProducts.js';
-import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as path from 'path';
+import { PrismaClient } from '@prisma/client';
+import * as dotenv from 'dotenv';
+import { updateProductData } from './updateProducts.js';
 
 dotenv.config();
 
@@ -12,7 +12,7 @@ const RATE_LIMIT_DELAY = 30000;
 const RETRY_DELAY = 5000;
 const PROGRESS_FILE = path.join(__dirname, 'processed_skus.json');
 
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function loadProcessedSKUs(): Promise<Set<string>> {
   try {
@@ -34,7 +34,10 @@ async function saveProcessedSKUs(skus: Set<string>): Promise<void> {
   }
 }
 
-async function processProduct(sku: string, processedSKUs: Set<string>): Promise<void> {
+async function processProduct(
+  sku: string,
+  processedSKUs: Set<string>
+): Promise<void> {
   if (processedSKUs.has(sku)) {
     console.log(`Skipping already processed SKU: ${sku}`);
     return;
@@ -51,7 +54,9 @@ async function processProduct(sku: string, processedSKUs: Set<string>): Promise<
       return;
     } catch (error: any) {
       if (error.message?.includes('rate limit') && retries < maxRetries - 1) {
-        console.log(`Rate limit for SKU ${sku}, waiting ${RATE_LIMIT_DELAY/1000}s before retry...`);
+        console.log(
+          `Rate limit for SKU ${sku}, waiting ${RATE_LIMIT_DELAY / 1000}s before retry...`
+        );
         await delay(RATE_LIMIT_DELAY);
         retries++;
       } else {
@@ -62,22 +67,31 @@ async function processProduct(sku: string, processedSKUs: Set<string>): Promise<
   }
 }
 
-async function processBatch(skus: string[], processedSKUs: Set<string>): Promise<void> {
-  const promises = skus.map(sku => processProduct(sku, processedSKUs));
+async function processBatch(
+  skus: string[],
+  processedSKUs: Set<string>
+): Promise<void> {
+  const promises = skus.map((sku) => processProduct(sku, processedSKUs));
   await Promise.all(promises);
   await delay(DELAY_BETWEEN_PRODUCTS);
 }
 
-export async function clearAndUpdateProducts(skipCleanup = false): Promise<void> {
+export async function clearAndUpdateProducts(
+  skipCleanup = false
+): Promise<void> {
   const prisma = new PrismaClient();
   const processedSKUs = await loadProcessedSKUs();
 
   try {
-    if (!skipCleanup) {
+    if (skipCleanup) {
+      console.log(
+        `Resuming from ${processedSKUs.size} previously processed SKUs`
+      );
+    } else {
       console.log('Cleaning up existing products...');
       const deletedProducts = await prisma.product.deleteMany({});
       console.log(`Deleted ${deletedProducts.count} products`);
-      
+
       console.log('Cleaning up existing categories...');
       await prisma.category.deleteMany({});
       console.log('Categories cleaned up');
@@ -86,8 +100,6 @@ export async function clearAndUpdateProducts(skipCleanup = false): Promise<void>
       if (fs.existsSync(PROGRESS_FILE)) {
         fs.unlinkSync(PROGRESS_FILE);
       }
-    } else {
-      console.log(`Resuming from ${processedSKUs.size} previously processed SKUs`);
     }
 
     const skus = [
@@ -101,10 +113,10 @@ export async function clearAndUpdateProducts(skipCleanup = false): Promise<void>
       // Kids T-shirts
       'TEE-BC-3006',
       // Women's Hoodies
-      'GLOBAL-TEE-BC-3413'
+      'GLOBAL-TEE-BC-3413',
     ];
 
-    const remainingSkus = skus.filter(sku => !processedSKUs.has(sku));
+    const remainingSkus = skus.filter((sku) => !processedSKUs.has(sku));
     console.log(`Processing ${remainingSkus.length} remaining SKUs`);
 
     for (let i = 0; i < remainingSkus.length; i += BATCH_SIZE) {
@@ -122,9 +134,8 @@ export async function clearAndUpdateProducts(skipCleanup = false): Promise<void>
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  clearAndUpdateProducts(true)
-    .catch(error => {
-      console.error('Error:', error);
-      process.exit(1);
-    });
-} 
+  clearAndUpdateProducts(true).catch((error) => {
+    console.error('Error:', error);
+    process.exit(1);
+  });
+}

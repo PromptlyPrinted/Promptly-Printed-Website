@@ -1,6 +1,8 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
+import { useDesigns } from '@/hooks/use-designs';
+import type { DesignResponse } from '@/types/design';
+import { Button } from '@repo/design-system/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -8,11 +10,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@repo/design-system/components/ui/dialog";
-import { Button } from "@repo/design-system/components/ui/button";
-import { DesignCard } from "./design-card";
-import { useDesigns } from "@/hooks/use-designs";
-import type { DesignResponse } from "@/types/design";
+} from '@repo/design-system/components/ui/dialog';
+import { useEffect, useState } from 'react';
+import { DesignCard } from './design-card';
 
 interface DesignPickerProps {
   productId: number;
@@ -31,9 +31,7 @@ export function DesignPicker({
 
   useEffect(() => {
     if (open) {
-      getDesigns()
-        .then(setDesigns)
-        .catch(console.error);
+      getDesigns().then(setDesigns).catch(console.error);
     }
   }, [open]);
 
@@ -47,7 +45,7 @@ export function DesignPicker({
       <DialogTrigger asChild>
         {trigger || <Button variant="outline">Use Saved Design</Button>}
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-h-[80vh] max-w-4xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Choose a Design</DialogTitle>
           <DialogDescription>
@@ -61,7 +59,7 @@ export function DesignPicker({
             <p className="text-gray-500">No saved designs found</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 py-4">
+          <div className="grid grid-cols-1 gap-4 py-4 sm:grid-cols-2 lg:grid-cols-3">
             {designs.map((design) => (
               <DesignCard
                 key={design.id}

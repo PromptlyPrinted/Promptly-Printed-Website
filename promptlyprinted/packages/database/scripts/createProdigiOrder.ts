@@ -44,7 +44,7 @@ async function createProdigiOrder(
       stateOrCounty?: string;
     };
   },
-  merchantReference: string = `order_${Date.now()}`
+  merchantReference = `order_${Date.now()}`
 ): Promise<any> {
   const order: ProdigiOrder = {
     shippingMethod: 'standard',
@@ -58,11 +58,11 @@ async function createProdigiOrder(
         sizing: 'shrinkToFit', // or 'crop' depending on your needs
         assets: [
           {
-            printArea: imageUrl
-          }
-        ]
-      }
-    ]
+            printArea: imageUrl,
+          },
+        ],
+      },
+    ],
   };
 
   try {
@@ -70,9 +70,9 @@ async function createProdigiOrder(
       method: 'POST',
       headers: {
         'X-API-Key': process.env.PRODIGI_API_KEY || '',
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(order)
+      body: JSON.stringify(order),
     });
 
     if (!response.ok) {
@@ -108,4 +108,4 @@ createProdigiOrder(imageUrl, sku, recipient)
 */
 
 export { createProdigiOrder };
-export type { ProdigiOrder, ProdigiOrderItem }; 
+export type { ProdigiOrder, ProdigiOrderItem };

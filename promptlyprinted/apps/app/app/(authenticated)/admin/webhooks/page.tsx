@@ -1,7 +1,6 @@
 import { auth } from '@repo/auth/server';
 import { database } from '@repo/database';
-import { notFound } from 'next/navigation';
-import { Card } from "@repo/design-system/components/ui/card";
+import { Card } from '@repo/design-system/components/ui/card';
 import {
   Table,
   TableBody,
@@ -9,8 +8,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@repo/design-system/components/ui/table";
-import { formatDistance } from "date-fns";
+} from '@repo/design-system/components/ui/table';
+import { formatDistance } from 'date-fns';
+import { notFound } from 'next/navigation';
 
 export const metadata = {
   title: 'Webhooks - Admin Dashboard',
@@ -35,16 +35,16 @@ export default async function WebhooksPage() {
     select: { role: true },
   });
 
-  if (user?.role !== "ADMIN") {
+  if (user?.role !== 'ADMIN') {
     notFound();
   }
 
   const webhookLogs = await getWebhookLogs();
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Webhook Logs</h1>
+    <div className="container mx-auto space-y-6 p-6">
+      <div className="flex items-center justify-between">
+        <h1 className="font-bold text-3xl">Webhook Logs</h1>
       </div>
 
       <Card>
@@ -65,18 +65,22 @@ export default async function WebhooksPage() {
                 <TableCell>{log.type}</TableCell>
                 <TableCell>
                   <span
-                    className={`px-2 py-1 rounded-full text-xs ${
-                      log.status === "success"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-red-100 text-red-800"
+                    className={`rounded-full px-2 py-1 text-xs ${
+                      log.status === 'success'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
                     }`}
                   >
                     {log.status}
                   </span>
                 </TableCell>
-                <TableCell className="max-w-md truncate">{log.response}</TableCell>
+                <TableCell className="max-w-md truncate">
+                  {log.response}
+                </TableCell>
                 <TableCell>
-                  {formatDistance(log.createdAt, new Date(), { addSuffix: true })}
+                  {formatDistance(log.createdAt, new Date(), {
+                    addSuffix: true,
+                  })}
                 </TableCell>
               </TableRow>
             ))}
@@ -85,4 +89,4 @@ export default async function WebhooksPage() {
       </Card>
     </div>
   );
-} 
+}

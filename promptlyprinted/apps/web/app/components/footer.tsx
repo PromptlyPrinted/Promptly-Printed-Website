@@ -1,7 +1,7 @@
 import { env } from '@repo/env';
 import { Status } from '@repo/observability/status';
 import Link from 'next/link';
-import PromptlyLogoUrl from "./PromptlyLogo.svg";
+import PromptlyLogoUrl from './PromptlyLogo.svg';
 
 export const Footer = () => {
   const navigationItems = [
@@ -50,14 +50,18 @@ export const Footer = () => {
   return (
     <section className="border-foreground/10 border-t">
       <div
-        className="w-full bg-cover bg-center py-20 text-foreground lg:py-40"
+        className="w-full bg-center bg-cover py-20 text-foreground lg:py-40"
         style={{ backgroundImage: "url('/footer.png')" }}
       >
         <div className="container mx-auto">
           <div className="grid items-center gap-10 lg:grid-cols-2">
             <div className="flex flex-col items-start gap-8">
               <div className="flex flex-col gap-2">
-                <img src={PromptlyLogoUrl} className="h-12 w-auto" alt="Promptly Printed logo" />
+                <img
+                  src={PromptlyLogoUrl}
+                  className="h-12 w-auto"
+                  alt="Promptly Printed logo"
+                />
                 <p className="max-w-lg text-left text-foreground/75 text-lg leading-relaxed tracking-tight">
                   Creativity Promptly Delivered.
                 </p>
@@ -87,7 +91,7 @@ export const Footer = () => {
                         <span className="text-xl">{item.title}</span>
                       </Link>
                     ) : (
-                      <p className="text-xl text-purple-600">{item.title}</p>
+                      <p className="text-purple-600 text-xl">{item.title}</p>
                     )}
                     {item.items?.map((subItem) => (
                       <Link

@@ -1,30 +1,30 @@
 // ProductsDropdown.tsx
-"use client";
+'use client';
 
-import React, { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
-import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion } from 'framer-motion';
 import {
-  Shirt,
-  User,
   Baby,
-  Ruler,
-  Key,
-  Watch,
-  Square,
-  Image as ImageIcon,
-  Triangle,
+  Book,
+  BookOpen,
   FileText,
   Gamepad2,
-  BookOpen,
-  Book,
-  Sticker,
-  PenTool,
-  ShoppingBag,
   Home,
+  Image as ImageIcon,
+  Key,
   MoreHorizontal,
-} from "lucide-react";
+  PenTool,
+  Ruler,
+  Shirt,
+  ShoppingBag,
+  Square,
+  Sticker,
+  Triangle,
+  User,
+  Watch,
+} from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 export type ProductsDropdownProps = {
   headerBottom: number;
@@ -54,7 +54,7 @@ export function ProductsDropdown({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.2 }}
-      className="fixed left-0 right-0 z-40 bg-white shadow-lg"
+      className="fixed right-0 left-0 z-40 bg-white shadow-lg"
       onMouseEnter={onDropdownEnter}
       onMouseLeave={onDropdownLeave}
     >
@@ -62,29 +62,29 @@ export function ProductsDropdown({
         <div className="flex divide-x">
           {/* Column 1: Intro/Promotional Section */}
           <div className="pr-8">
-            <h3 className="text-xl font-semibold text-gray-800">
+            <h3 className="font-semibold text-gray-800 text-xl">
               Use your imagination
             </h3>
             <div className="mt-4 grid grid-cols-2 gap-4">
-              <div className="flex items-center justify-center aspect-square rounded-xl bg-gradient-to-br from-pink-100 via-green-100 to-purple-100 p-4">
+              <div className="flex aspect-square items-center justify-center rounded-xl bg-gradient-to-br from-pink-100 via-green-100 to-purple-100 p-4">
                 <Shirt className="h-6 w-6 text-gray-600" />
               </div>
-              <div className="flex items-center justify-center aspect-square rounded-xl bg-gradient-to-br from-pink-100 via-green-100 to-purple-100 p-4">
+              <div className="flex aspect-square items-center justify-center rounded-xl bg-gradient-to-br from-pink-100 via-green-100 to-purple-100 p-4">
                 <ShoppingBag className="h-6 w-6 text-gray-600" />
               </div>
-              <div className="flex items-center justify-center aspect-square rounded-xl bg-gradient-to-br from-pink-100 via-green-100 to-purple-100 p-4">
+              <div className="flex aspect-square items-center justify-center rounded-xl bg-gradient-to-br from-pink-100 via-green-100 to-purple-100 p-4">
                 <Home className="h-6 w-6 text-gray-600" />
               </div>
-              <div className="flex items-center justify-center aspect-square rounded-xl bg-gradient-to-br from-pink-100 via-green-100 to-purple-100 p-4">
+              <div className="flex aspect-square items-center justify-center rounded-xl bg-gradient-to-br from-pink-100 via-green-100 to-purple-100 p-4">
                 <MoreHorizontal className="h-6 w-6 text-gray-600" />
               </div>
             </div>
-            <p className="mt-4 text-sm text-gray-600">
+            <p className="mt-4 text-gray-600 text-sm">
               Discover unique products that spark creativity and imagination.
             </p>
             <Link
               href="/products/all"
-              className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-gray-900 transition-colors duration-200 hover:text-gray-700"
+              className="mt-4 inline-flex items-center gap-2 font-medium text-gray-900 text-sm transition-colors duration-200 hover:text-gray-700"
             >
               <Shirt className="h-5 w-5" />
               Explore Products →
@@ -93,7 +93,7 @@ export function ProductsDropdown({
 
           {/* Column 2: Apparel */}
           <div className="px-8">
-            <h3 className="flex items-center gap-2 text-xl font-semibold text-gray-800">
+            <h3 className="flex items-center gap-2 font-semibold text-gray-800 text-xl">
               <Shirt className="h-6 w-6" /> Apparel
             </h3>
             <ul className="mt-4 space-y-4">
@@ -138,7 +138,7 @@ export function ProductsDropdown({
 
           {/* Column 3: Accessories */}
           <div className="px-8">
-            <h3 className="flex items-center gap-2 text-xl font-semibold text-gray-800">
+            <h3 className="flex items-center gap-2 font-semibold text-gray-800 text-xl">
               <ShoppingBag className="h-6 w-6" /> Accessories
             </h3>
             <ul className="mt-4 space-y-4">
@@ -193,7 +193,7 @@ export function ProductsDropdown({
 
           {/* Column 4: Home & Living */}
           <div className="px-8">
-            <h3 className="flex items-center gap-2 text-xl font-semibold text-gray-800">
+            <h3 className="flex items-center gap-2 font-semibold text-gray-800 text-xl">
               <Home className="h-6 w-6" /> Home &amp; Living
             </h3>
             <ul className="mt-4 space-y-4">
@@ -238,7 +238,7 @@ export function ProductsDropdown({
 
           {/* Column 5: Others */}
           <div className="pl-8">
-            <h3 className="flex items-center gap-2 text-xl font-semibold text-gray-800">
+            <h3 className="flex items-center gap-2 font-semibold text-gray-800 text-xl">
               <MoreHorizontal className="h-6 w-6" /> Others
             </h3>
             <ul className="mt-4 space-y-4">

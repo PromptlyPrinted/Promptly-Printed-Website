@@ -1,20 +1,23 @@
 import { createMetadata } from '@repo/seo/metadata';
-import type { Metadata } from 'next';
 import { AlertCircle } from 'lucide-react';
+import type { Metadata } from 'next';
 
 export const metadata: Metadata = createMetadata({
   title: 'Acceptable Use Policy | Promptly Printed',
-  description: 'Guidelines for acceptable use of Promptly Printed services and content restrictions.',
+  description:
+    'Guidelines for acceptable use of Promptly Printed services and content restrictions.',
 });
 
 export default function AcceptableUsePage() {
   return (
     <div className="container mx-auto py-20">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-12">
-          <AlertCircle className="w-16 h-16 mx-auto mb-6 text-primary" />
-          <h1 className="text-4xl font-bold tracking-tight mb-4">Acceptable Use Policy</h1>
-          <p className="text-xl text-muted-foreground">
+      <div className="mx-auto max-w-4xl">
+        <div className="mb-12 text-center">
+          <AlertCircle className="mx-auto mb-6 h-16 w-16 text-primary" />
+          <h1 className="mb-4 font-bold text-4xl tracking-tight">
+            Acceptable Use Policy
+          </h1>
+          <p className="text-muted-foreground text-xl">
             Last updated: {new Date().toLocaleDateString()}
           </p>
         </div>
@@ -22,15 +25,13 @@ export default function AcceptableUsePage() {
         <div className="prose prose-lg max-w-none">
           <h2>1. Purpose</h2>
           <p>
-            This Acceptable Use Policy outlines the guidelines for using Promptly Printed's
-            services and the types of content that may not be printed or distributed through
-            our platform.
+            This Acceptable Use Policy outlines the guidelines for using
+            Promptly Printed's services and the types of content that may not be
+            printed or distributed through our platform.
           </p>
 
           <h2>2. Prohibited Content</h2>
-          <p>
-            The following types of content are prohibited:
-          </p>
+          <p>The following types of content are prohibited:</p>
           <ul>
             <li>Hate speech or discriminatory content</li>
             <li>Explicit adult content or nudity</li>
@@ -43,9 +44,7 @@ export default function AcceptableUsePage() {
           </ul>
 
           <h2>3. Design Guidelines</h2>
-          <p>
-            All designs submitted for printing must:
-          </p>
+          <p>All designs submitted for printing must:</p>
           <ul>
             <li>Be original or properly licensed</li>
             <li>Meet our quality standards for printing</li>
@@ -55,9 +54,7 @@ export default function AcceptableUsePage() {
           </ul>
 
           <h2>4. User Conduct</h2>
-          <p>
-            Users of our service must:
-          </p>
+          <p>Users of our service must:</p>
           <ul>
             <li>Provide accurate information when placing orders</li>
             <li>Not attempt to circumvent our content review process</li>
@@ -67,9 +64,7 @@ export default function AcceptableUsePage() {
           </ul>
 
           <h2>5. Content Review</h2>
-          <p>
-            We reserve the right to:
-          </p>
+          <p>We reserve the right to:</p>
           <ul>
             <li>Review all submitted designs before printing</li>
             <li>Reject any order that violates this policy</li>
@@ -78,9 +73,7 @@ export default function AcceptableUsePage() {
           </ul>
 
           <h2>6. Intellectual Property</h2>
-          <p>
-            Users must respect intellectual property rights and:
-          </p>
+          <p>Users must respect intellectual property rights and:</p>
           <ul>
             <li>Only upload content they own or have permission to use</li>
             <li>Not infringe on copyrights, trademarks, or patents</li>
@@ -89,9 +82,7 @@ export default function AcceptableUsePage() {
           </ul>
 
           <h2>7. Enforcement</h2>
-          <p>
-            Violations of this policy may result in:
-          </p>
+          <p>Violations of this policy may result in:</p>
           <ul>
             <li>Immediate rejection of orders</li>
             <li>Account suspension or termination</li>
@@ -101,9 +92,12 @@ export default function AcceptableUsePage() {
 
           <h2>8. Reporting Violations</h2>
           <p>
-            If you encounter content that violates this policy, please report it to{' '}
-            <a href="mailto:abuse@promptlyprinted.com">abuse@promptlyprinted.com</a>.
-            Include relevant details and order numbers if applicable.
+            If you encounter content that violates this policy, please report it
+            to{' '}
+            <a href="mailto:abuse@promptlyprinted.com">
+              abuse@promptlyprinted.com
+            </a>
+            . Include relevant details and order numbers if applicable.
           </p>
 
           <h2>9. Policy Updates</h2>
@@ -115,10 +109,13 @@ export default function AcceptableUsePage() {
           <h2>10. Questions</h2>
           <p>
             For questions about this policy, contact us at{' '}
-            <a href="mailto:legal@promptlyprinted.com">legal@promptlyprinted.com</a>.
+            <a href="mailto:legal@promptlyprinted.com">
+              legal@promptlyprinted.com
+            </a>
+            .
           </p>
         </div>
       </div>
     </div>
   );
-} 
+}

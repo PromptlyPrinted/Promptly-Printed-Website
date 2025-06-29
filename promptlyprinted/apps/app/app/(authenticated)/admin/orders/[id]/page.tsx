@@ -1,8 +1,8 @@
-import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
-import Link from "next/link";
-import { database } from "@repo/database";
-import { Card } from "@repo/design-system/components/ui/card";
+import { getProdigiProduct } from '@/lib/prodigi';
+import { auth } from '@clerk/nextjs/server';
+import { database } from '@repo/database';
+import { Button } from '@repo/design-system/components/ui/button';
+import { Card } from '@repo/design-system/components/ui/card';
 import {
   Table,
   TableBody,
@@ -10,16 +10,16 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@repo/design-system/components/ui/table";
-import { formatDistance } from "date-fns";
-import { Button } from "@repo/design-system/components/ui/button";
-import { ChevronLeft } from "lucide-react";
-import UpdateOrderStatus from "./components/update-order-status";
-import { getProdigiProduct } from "@/lib/prodigi";
+} from '@repo/design-system/components/ui/table';
+import { formatDistance } from 'date-fns';
+import { ChevronLeft } from 'lucide-react';
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import UpdateOrderStatus from './components/update-order-status';
 
 async function getOrder(id: string) {
   const order = await database.order.findUnique({
-    where: { id: parseInt(id) },
+    where: { id: Number.parseInt(id) },
     include: {
       user: {
         select: {
@@ -36,7 +36,7 @@ async function getOrder(id: string) {
   });
 
   if (!order) {
-    redirect("/admin/orders");
+    redirect('/admin/orders');
   }
 
   // If there's a Prodigi order ID, fetch the Prodigi order details
@@ -45,7 +45,7 @@ async function getOrder(id: string) {
     try {
       prodigiProduct = await getProdigiProduct(order.prodigiSku);
     } catch (error) {
-      console.error("Error fetching Prodigi product:", error);
+      console.error('Error fetching Prodigi product:', error);
     }
   }
 
@@ -59,7 +59,7 @@ export default async function AdminOrderDetailPage({
 }) {
   const { userId } = await auth();
   if (!userId) {
-    redirect("/sign-in");
+    redirect('/sign-in');
   }
 
   // Verify admin status
@@ -68,8 +68,8 @@ export default async function AdminOrderDetailPage({
     select: { role: true },
   });
 
-  if (user?.role !== "ADMIN") {
-    redirect("/");
+  if (user?.role !== 'ADMIN') {
+    redirect('/');
   }
 
   const { order, prodigiProduct } = await getOrder(params.id);
@@ -82,17 +82,20 @@ export default async function AdminOrderDetailPage({
             <ChevronLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <h1 className="text-3xl font-bold">Order #{order.id}</h1>
+        <h1 className="font-bold text-3xl">Order #{order.id}</h1>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Order Details</h2>
+          <h2 className="mb-4 font-semibold text-xl">Order Details</h2>
           <dl className="space-y-2">
             <div className="flex justify-between">
               <dt className="font-medium">Status</dt>
               <dd>
-                <UpdateOrderStatus orderId={order.id} currentStatus={order.status} />
+                <UpdateOrderStatus
+                  orderId={order.id}
+                  currentStatus={order.status}
+                />
               </dd>
             </div>
             <div className="flex justify-between">
@@ -101,7 +104,11 @@ export default async function AdminOrderDetailPage({
             </div>
             <div className="flex justify-between">
               <dt className="font-medium">Created</dt>
-              <dd>{formatDistance(order.createdAt, new Date(), { addSuffix: true })}</dd>
+              <dd>
+                {formatDistance(order.createdAt, new Date(), {
+                  addSuffix: true,
+                })}
+              </dd>
             </div>
             <div className="flex justify-between">
               <dt className="font-medium">Customer Email</dt>
@@ -127,12 +134,13 @@ export default async function AdminOrderDetailPage({
                     <dt className="font-medium">Prodigi Product Status</dt>
                     <dd>
                       <span
-                        className={`px-2 py-1 rounded-full text-xs ${
-                          prodigiProduct.status === "active"
-                            ? "bg-green-100 text-green-800"
-                            : prodigiProduct.status === "inactive" || prodigiProduct.status === "error"
-                            ? "bg-red-100 text-red-800"
-                            : "bg-yellow-100 text-yellow-800"
+                        className={`rounded-full px-2 py-1 text-xs ${
+                          prodigiProduct.status === 'active'
+                            ? 'bg-green-100 text-green-800'
+                            : prodigiProduct.status === 'inactive' ||
+                                prodigiProduct.status === 'error'
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-yellow-100 text-yellow-800'
                         }`}
                       >
                         {prodigiProduct.status.toUpperCase()}
@@ -147,7 +155,7 @@ export default async function AdminOrderDetailPage({
 
         {order.recipient && (
           <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Shipping Address</h2>
+            <h2 className="mb-4 font-semibold text-xl">Shipping Address</h2>
             <dl className="space-y-2">
               <div className="flex justify-between">
                 <dt className="font-medium">Name</dt>
@@ -155,11 +163,11 @@ export default async function AdminOrderDetailPage({
               </div>
               <div className="flex justify-between">
                 <dt className="font-medium">Email</dt>
-                <dd>{order.recipient.email || "-"}</dd>
+                <dd>{order.recipient.email || '-'}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="font-medium">Phone</dt>
-                <dd>{order.recipient.phoneNumber || "-"}</dd>
+                <dd>{order.recipient.phoneNumber || '-'}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="font-medium">Address</dt>
@@ -168,7 +176,8 @@ export default async function AdminOrderDetailPage({
                   {order.recipient.addressLine2 && <br />}
                   {order.recipient.addressLine2}
                   <br />
-                  {order.recipient.city}, {order.recipient.state} {order.recipient.postalCode}
+                  {order.recipient.city}, {order.recipient.state}{' '}
+                  {order.recipient.postalCode}
                   <br />
                   {order.recipient.countryCode}
                 </dd>
@@ -179,7 +188,7 @@ export default async function AdminOrderDetailPage({
       </div>
 
       <Card>
-        <h2 className="text-xl font-semibold p-6 pb-0">Order Items</h2>
+        <h2 className="p-6 pb-0 font-semibold text-xl">Order Items</h2>
         <Table>
           <TableHeader>
             <TableRow>
@@ -205,4 +214,4 @@ export default async function AdminOrderDetailPage({
       </Card>
     </div>
   );
-} 
+}

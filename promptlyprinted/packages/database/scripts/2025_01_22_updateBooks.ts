@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
-import fetch from 'node-fetch';
 import * as dotenv from 'dotenv';
+import fetch from 'node-fetch';
 
 dotenv.config();
 
@@ -30,20 +30,70 @@ const SUPPORTED_COUNTRIES = [
 ];
 
 const bookGroups = {
-  "Books": [
-    { sku: "BOOK-FE-A5-P-HARD-G", price: "29.99", name: "A5 Portrait Hardcover", description: "Premium hardcover book with glossy finish." },
-    { sku: "BOOK-FE-A4-L-SOFT-S", price: "29.99", name: "A4 Landscape Softcover", description: "12x9\" softcover book with silk finish, 72h production." },
-    { sku: "BOOK-FE-A4-P-SOFT-S", price: "29.99", name: "A4 Portrait Softcover", description: "9x12\" softcover book with silk finish, 72h production." },
-    { sku: "BOOK-FE-8_3-SQ-SOFT-S", price: "24.99", name: "8.3\" Square Softcover", description: "9x9\" softcover book with silk finish, 72h production." },
-    { sku: "BOOK-FE-A5-L-SOFT-S", price: "20.99", name: "A5 Landscape Softcover", description: "9x6\" softcover book with silk finish, 72h production." },
-    { sku: "BOOK-FE-A5-P-SOFT-S", price: "20.99", name: "A5 Portrait Softcover", description: "6x9\" softcover book with silk finish, 72h production." }
+  Books: [
+    {
+      sku: 'BOOK-FE-A5-P-HARD-G',
+      price: '29.99',
+      name: 'A5 Portrait Hardcover',
+      description: 'Premium hardcover book with glossy finish.',
+    },
+    {
+      sku: 'BOOK-FE-A4-L-SOFT-S',
+      price: '29.99',
+      name: 'A4 Landscape Softcover',
+      description: '12x9" softcover book with silk finish, 72h production.',
+    },
+    {
+      sku: 'BOOK-FE-A4-P-SOFT-S',
+      price: '29.99',
+      name: 'A4 Portrait Softcover',
+      description: '9x12" softcover book with silk finish, 72h production.',
+    },
+    {
+      sku: 'BOOK-FE-8_3-SQ-SOFT-S',
+      price: '24.99',
+      name: '8.3" Square Softcover',
+      description: '9x9" softcover book with silk finish, 72h production.',
+    },
+    {
+      sku: 'BOOK-FE-A5-L-SOFT-S',
+      price: '20.99',
+      name: 'A5 Landscape Softcover',
+      description: '9x6" softcover book with silk finish, 72h production.',
+    },
+    {
+      sku: 'BOOK-FE-A5-P-SOFT-S',
+      price: '20.99',
+      name: 'A5 Portrait Softcover',
+      description: '6x9" softcover book with silk finish, 72h production.',
+    },
   ],
-  "Notebooks": [
-    { sku: "NB-GRAPH", price: "19.99", name: "6x9\" Graph Notebook", description: "Graph paper notebook, 48h production." },
-    { sku: "NB-LINED", price: "19.99", name: "6x9\" Lined Notebook", description: "Lined paper notebook, 48h production." },
-    { sku: "NB-GRAPH-A4", price: "25.99", name: "9x12\" Graph Notebook", description: "A4 graph paper notebook, 48h production." },
-    { sku: "NB-LINED-A4", price: "25.99", name: "9x12\" Lined Notebook", description: "A4 lined paper notebook, 48h production." }
-  ]
+  Notebooks: [
+    {
+      sku: 'NB-GRAPH',
+      price: '19.99',
+      name: '6x9" Graph Notebook',
+      description: 'Graph paper notebook, 48h production.',
+    },
+    {
+      sku: 'NB-LINED',
+      price: '19.99',
+      name: '6x9" Lined Notebook',
+      description: 'Lined paper notebook, 48h production.',
+    },
+    {
+      sku: 'NB-GRAPH-A4',
+      price: '25.99',
+      name: '9x12" Graph Notebook',
+      description: 'A4 graph paper notebook, 48h production.',
+    },
+    {
+      sku: 'NB-LINED-A4',
+      price: '25.99',
+      name: '9x12" Lined Notebook',
+      description: 'A4 lined paper notebook, 48h production.',
+    },
+  ],
 };
 
 interface ProdigiProduct {
@@ -81,13 +131,15 @@ interface ExchangeRateResponse {
 }
 
 function delay(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function getExchangeRates(): Promise<Record<string, number>> {
   try {
-    const response = await fetch(`https://api.exchangerate-api.com/v4/latest/USD`);
-    const data = await response.json() as ExchangeRateResponse;
+    const response = await fetch(
+      `https://api.exchangerate-api.com/v4/latest/USD`
+    );
+    const data = (await response.json()) as ExchangeRateResponse;
     return data.rates;
   } catch (error) {
     console.error('Error fetching exchange rates:', error);
@@ -95,17 +147,23 @@ async function getExchangeRates(): Promise<Record<string, number>> {
   }
 }
 
-async function convertPrice(priceUSD: number, targetCurrency: string, rates: Record<string, number>): Promise<number> {
+async function convertPrice(
+  priceUSD: number,
+  targetCurrency: string,
+  rates: Record<string, number>
+): Promise<number> {
   if (targetCurrency === 'USD') return priceUSD;
-  
+
   const rate = rates[targetCurrency];
   if (!rate) {
-    console.warn(`No exchange rate found for ${targetCurrency}, using USD price`);
+    console.warn(
+      `No exchange rate found for ${targetCurrency}, using USD price`
+    );
     return priceUSD;
   }
 
   const converted = priceUSD * rate;
-  
+
   // Round to 2 decimal places for most currencies, except JPY and KRW
   if (targetCurrency === 'JPY' || targetCurrency === 'KRW') {
     return Math.round(converted);
@@ -117,12 +175,15 @@ async function getProdigiProduct(sku: string): Promise<ProdigiProduct | null> {
   try {
     await delay(1000); // Rate limiting
 
-    const response = await fetch(`https://api.prodigi.com/v4.0/products/${sku}`, {
-      headers: {
-        'X-API-Key': process.env.PRODIGI_API_KEY!,
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await fetch(
+      `https://api.prodigi.com/v4.0/products/${sku}`,
+      {
+        headers: {
+          'X-API-Key': process.env.PRODIGI_API_KEY!,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
 
     if (response.status === 429) {
       console.warn(`Rate limit hit for SKU ${sku}, waiting 30s...`);
@@ -134,7 +195,7 @@ async function getProdigiProduct(sku: string): Promise<ProdigiProduct | null> {
       throw new Error(`API error: ${response.status}`);
     }
 
-    const data = await response.json() as ProdigiResponse;
+    const data = (await response.json()) as ProdigiResponse;
     return data.product || null;
   } catch (error) {
     console.error(`Error fetching product ${sku}:`, error);
@@ -144,13 +205,18 @@ async function getProdigiProduct(sku: string): Promise<ProdigiProduct | null> {
 
 async function updateBook(
   groupName: string,
-  { sku, price, name, description }: { sku: string; price: string; name: string; description: string },
+  {
+    sku,
+    price,
+    name,
+    description,
+  }: { sku: string; price: string; name: string; description: string },
   exchangeRates: Record<string, number>
 ) {
   try {
     console.log(`Processing ${groupName} - ${sku}`);
 
-    const priceUSD = parseFloat(price);
+    const priceUSD = Number.parseFloat(price);
 
     // For each supported country
     for (const country of SUPPORTED_COUNTRIES) {
@@ -162,7 +228,7 @@ async function updateBook(
       // Determine product type based on group name and SKU
       let productType = 'BOOK';
       let subcategory = groupName.toUpperCase().replace(' ', '_');
-      
+
       if (groupName === 'Hardcover Books') {
         productType = 'HARDCOVER_BOOK';
       } else if (groupName === 'Softcover Books') {
@@ -188,7 +254,7 @@ async function updateBook(
       try {
         await prisma.product.upsert({
           where: {
-            sku: sku
+            sku: sku,
           },
           update: {
             name,
@@ -203,21 +269,21 @@ async function updateBook(
             listed: true,
             width: 0,
             height: 0,
-            units: "IN",
-            brand: "Custom Brand",
-            edge: "Standard",
-            color: ["Black"],
-            gender: "Unisex",
-            size: ["Standard"],
-            style: "Standard",
+            units: 'IN',
+            brand: 'Custom Brand',
+            edge: 'Standard',
+            color: ['Black'],
+            gender: 'Unisex',
+            size: ['Standard'],
+            style: 'Standard',
             countryCode,
             category: {
               connectOrCreate: {
                 where: { name: groupName },
-                create: { name: groupName }
-              }
+                create: { name: groupName },
+              },
             },
-            updatedAt: new Date()
+            updatedAt: new Date(),
           },
           create: {
             sku,
@@ -233,24 +299,26 @@ async function updateBook(
             listed: true,
             width: 0,
             height: 0,
-            units: "IN",
-            brand: "Custom Brand",
-            edge: "Standard",
-            color: ["Black"],
-            gender: "Unisex",
-            size: ["Standard"],
-            style: "Standard",
+            units: 'IN',
+            brand: 'Custom Brand',
+            edge: 'Standard',
+            color: ['Black'],
+            gender: 'Unisex',
+            size: ['Standard'],
+            style: 'Standard',
             countryCode,
             category: {
               connectOrCreate: {
                 where: { name: groupName },
-                create: { name: groupName }
-              }
-            }
-          }
+                create: { name: groupName },
+              },
+            },
+          },
         });
 
-        console.log(`Updated ${sku} for ${countryCode} (${currency} ${localPrice})`);
+        console.log(
+          `Updated ${sku} for ${countryCode} (${currency} ${localPrice})`
+        );
       } catch (error) {
         console.error(`Error updating ${sku} for ${countryCode}:`, error);
       }
@@ -281,4 +349,4 @@ async function main() {
   }
 }
 
-main(); 
+main();

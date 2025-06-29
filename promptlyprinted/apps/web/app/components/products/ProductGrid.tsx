@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
 import { Button } from '@repo/design-system/components/ui/button';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { useState } from 'react';
 import { ProductCategoryCard } from './ProductCategoryCard';
 import type { IconName } from './productCategories';
 
@@ -27,19 +27,21 @@ export function ProductGrid({
   initialVisibleCount = 4,
 }: ProductGridProps) {
   const [showAll, setShowAll] = useState(false);
-  const visibleCategories = showAll ? categories : categories.slice(0, initialVisibleCount);
+  const visibleCategories = showAll
+    ? categories
+    : categories.slice(0, initialVisibleCount);
 
   return (
-    <div className="container mx-auto py-20 px-4">
-      <div className="max-w-[1200px] mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold tracking-tight mb-4">{title}</h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+    <div className="container mx-auto px-4 py-20">
+      <div className="mx-auto max-w-[1200px]">
+        <div className="mb-12 text-center">
+          <h1 className="mb-4 font-bold text-4xl tracking-tight">{title}</h1>
+          <p className="mx-auto max-w-2xl text-muted-foreground text-xl">
             {description}
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {visibleCategories.map((category) => (
             <ProductCategoryCard
               key={category.id}
@@ -60,11 +62,11 @@ export function ProductGrid({
             >
               {showAll ? (
                 <>
-                  Show Less <ChevronUp className="w-4 h-4" />
+                  Show Less <ChevronUp className="h-4 w-4" />
                 </>
               ) : (
                 <>
-                  Show More <ChevronDown className="w-4 h-4" />
+                  Show More <ChevronDown className="h-4 w-4" />
                 </>
               )}
             </Button>
@@ -73,4 +75,4 @@ export function ProductGrid({
       </div>
     </div>
   );
-} 
+}

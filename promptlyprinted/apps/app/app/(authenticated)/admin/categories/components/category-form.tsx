@@ -1,9 +1,7 @@
-"use client";
+'use client';
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-import { Button } from "@repo/design-system/components/ui/button";
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Button } from '@repo/design-system/components/ui/button';
 import {
   Form,
   FormControl,
@@ -11,12 +9,14 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@repo/design-system/components/ui/form";
-import { Input } from "@repo/design-system/components/ui/input";
-import { Textarea } from "@repo/design-system/components/ui/textarea";
+} from '@repo/design-system/components/ui/form';
+import { Input } from '@repo/design-system/components/ui/input';
+import { Textarea } from '@repo/design-system/components/ui/textarea';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
 
 const formSchema = z.object({
-  name: z.string().min(1, "Name is required"),
+  name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
 });
 
@@ -42,8 +42,8 @@ export function CategoryForm({ category, onSubmit }: CategoryFormProps) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: category?.name || "",
-      description: category?.description || "",
+      name: category?.name || '',
+      description: category?.description || '',
     },
   });
 
@@ -78,10 +78,7 @@ export function CategoryForm({ category, onSubmit }: CategoryFormProps) {
             <FormItem>
               <FormLabel>Description (Optional)</FormLabel>
               <FormControl>
-                <Textarea
-                  placeholder="Enter category description"
-                  {...field}
-                />
+                <Textarea placeholder="Enter category description" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -89,9 +86,9 @@ export function CategoryForm({ category, onSubmit }: CategoryFormProps) {
         />
 
         <Button type="submit">
-          {category ? "Update Category" : "Create Category"}
+          {category ? 'Update Category' : 'Create Category'}
         </Button>
       </form>
     </Form>
   );
-} 
+}

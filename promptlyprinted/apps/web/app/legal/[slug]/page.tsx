@@ -72,7 +72,7 @@ const LegalPage = async ({ params }: LegalPageProperties) => {
             </p>
             <div className="mt-16 flex flex-col items-start gap-8 sm:flex-row">
               <div className="sm:flex-1">
-                <div className="prose prose-neutral dark:prose-invert">
+                <div className="prose prose-neutral">
                   <Body content={page.body.json.content} />
                 </div>
               </div>

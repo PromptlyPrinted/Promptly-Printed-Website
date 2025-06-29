@@ -1,11 +1,13 @@
-import "server-only";
-import { PrismaClient } from "@prisma/client";
-import { withAccelerate } from "@prisma/extension-accelerate";
-import { env } from "@repo/env";
+import 'server-only';
+import { PrismaClient } from '@prisma/client';
+import { withAccelerate } from '@prisma/extension-accelerate';
 
 const prismaClientSingleton = () => {
   return new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
+    log:
+      process.env.NODE_ENV === 'development'
+        ? ['query', 'error', 'warn']
+        : ['error'],
   }).$extends(withAccelerate());
 };
 
@@ -16,9 +18,9 @@ declare global {
 export const prisma = globalThis.cachedPrisma ?? prismaClientSingleton();
 export const database = prisma; // For backwards compatibility
 
-if (process.env.NODE_ENV !== "production") {
+if (process.env.NODE_ENV !== 'production') {
   globalThis.cachedPrisma = prisma;
 }
 
-export * from "@prisma/client";
-export type { User, Product, SavedImage } from "@prisma/client";
+export * from '@prisma/client';
+export type { User, Product, SavedImage } from '@prisma/client';

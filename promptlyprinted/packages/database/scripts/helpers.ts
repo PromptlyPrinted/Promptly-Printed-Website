@@ -9,19 +9,24 @@ export const exchangeRates = {
   DKK: 6.86, // Danish Krone
   NOK: 10.58, // Norwegian Krone
   NZD: 1.65, // New Zealand Dollar
-  KRW: 1335.50, // South Korean Won
+  KRW: 1335.5, // South Korean Won
   JPY: 150.55, // Japanese Yen
   SGD: 1.34, // Singapore Dollar
-  CNY: 7.23 // Chinese Yuan
+  CNY: 7.23, // Chinese Yuan
 } as const;
 
-export function convertFromUSD(amount: number, targetCurrency: keyof typeof exchangeRates): number {
+export function convertFromUSD(
+  amount: number,
+  targetCurrency: keyof typeof exchangeRates
+): number {
   const rate = exchangeRates[targetCurrency];
   if (!rate) throw new Error(`Unsupported currency: ${targetCurrency}`);
   return amount * rate;
 }
 
-export function generatePricingArray(basePrice: number): Array<{ amount: number; currency: string }> {
+export function generatePricingArray(
+  basePrice: number
+): Array<{ amount: number; currency: string }> {
   return [
     { amount: basePrice, currency: 'USD' },
     { amount: convertFromUSD(basePrice, 'EUR'), currency: 'EUR' },
@@ -36,6 +41,6 @@ export function generatePricingArray(basePrice: number): Array<{ amount: number;
     { amount: convertFromUSD(basePrice, 'KRW'), currency: 'KRW' },
     { amount: convertFromUSD(basePrice, 'JPY'), currency: 'JPY' },
     { amount: convertFromUSD(basePrice, 'SGD'), currency: 'SGD' },
-    { amount: convertFromUSD(basePrice, 'CNY'), currency: 'CNY' }
+    { amount: convertFromUSD(basePrice, 'CNY'), currency: 'CNY' },
   ];
 }

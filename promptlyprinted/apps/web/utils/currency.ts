@@ -29,17 +29,20 @@ export const SUPPORTED_COUNTRIES: Country[] = [
   { code: 'KR', currency: 'KRW', name: 'South Korea' },
   { code: 'JP', currency: 'JPY', name: 'Japan' },
   { code: 'SG', currency: 'SGD', name: 'Singapore' },
-  { code: 'CN', currency: 'CNY', name: 'China' }
+  { code: 'CN', currency: 'CNY', name: 'China' },
 ];
 
 // Group countries by currency
-export const COUNTRIES_BY_CURRENCY = SUPPORTED_COUNTRIES.reduce((acc, country) => {
-  if (!acc[country.currency]) {
-    acc[country.currency] = [];
-  }
-  acc[country.currency].push(country);
-  return acc;
-}, {} as Record<string, Country[]>);
+export const COUNTRIES_BY_CURRENCY = SUPPORTED_COUNTRIES.reduce(
+  (acc, country) => {
+    if (!acc[country.currency]) {
+      acc[country.currency] = [];
+    }
+    acc[country.currency].push(country);
+    return acc;
+  },
+  {} as Record<string, Country[]>
+);
 
 // Format price based on currency
 export function formatPrice(price: number, currency: string): string {
@@ -52,7 +55,11 @@ export function formatPrice(price: number, currency: string): string {
 }
 
 // Convert price between currencies (you'll need to implement real exchange rates)
-export function convertPrice(price: number, fromCurrency: string, toCurrency: string): number {
+export function convertPrice(
+  price: number,
+  fromCurrency: string,
+  toCurrency: string
+): number {
   // This is a placeholder - you should use real exchange rates from an API
   const exchangeRates: Record<string, number> = {
     USD: 1,
@@ -68,7 +75,7 @@ export function convertPrice(price: number, fromCurrency: string, toCurrency: st
     KRW: 1331.89,
     JPY: 150.41,
     SGD: 1.34,
-    CNY: 7.19
+    CNY: 7.19,
   };
 
   const usdAmount = price / (exchangeRates[fromCurrency] || 1);
@@ -77,17 +84,17 @@ export function convertPrice(price: number, fromCurrency: string, toCurrency: st
 
 // Get default currency for a country
 export function getDefaultCurrency(countryCode: string): string {
-  const country = SUPPORTED_COUNTRIES.find(c => c.code === countryCode);
+  const country = SUPPORTED_COUNTRIES.find((c) => c.code === countryCode);
   return country?.currency || 'USD';
 }
 
 // Check if a country is in the Eurozone
 export function isEurozone(countryCode: string): boolean {
-  const country = SUPPORTED_COUNTRIES.find(c => c.code === countryCode);
+  const country = SUPPORTED_COUNTRIES.find((c) => c.code === countryCode);
   return country?.currency === 'EUR';
 }
 
 // Get all Eurozone countries
 export function getEurozoneCountries(): Country[] {
-  return SUPPORTED_COUNTRIES.filter(country => country.currency === 'EUR');
-} 
+  return SUPPORTED_COUNTRIES.filter((country) => country.currency === 'EUR');
+}

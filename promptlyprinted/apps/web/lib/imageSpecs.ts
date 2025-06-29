@@ -15,7 +15,7 @@ const PRODUCT_SPECS: Record<string, ImageSpec> = {
     dpi: 300,
     format: 'jpg',
     colorSpace: 'RGB',
-    maxFileSize: 20 * 1024 * 1024 // 20MB
+    maxFileSize: 20 * 1024 * 1024, // 20MB
   },
   'GLOBAL-CFPM-12X18': {
     width: 3600,
@@ -23,7 +23,7 @@ const PRODUCT_SPECS: Record<string, ImageSpec> = {
     dpi: 300,
     format: 'jpg',
     colorSpace: 'RGB',
-    maxFileSize: 15 * 1024 * 1024 // 15MB
+    maxFileSize: 15 * 1024 * 1024, // 15MB
   },
   'GLOBAL-CFPM-8X10': {
     width: 2400,
@@ -31,9 +31,9 @@ const PRODUCT_SPECS: Record<string, ImageSpec> = {
     dpi: 300,
     format: 'jpg',
     colorSpace: 'RGB',
-    maxFileSize: 10 * 1024 * 1024 // 10MB
-  }
-}
+    maxFileSize: 10 * 1024 * 1024, // 10MB
+  },
+};
 
 /**
  * Placeholder function to get image specifications for a given SKU.
@@ -41,7 +41,7 @@ const PRODUCT_SPECS: Record<string, ImageSpec> = {
  * This might involve looking up data from a database, a CMS, or a configuration file.
  */
 export function getImageSpecForSku(sku: string): ImageSpec | undefined {
-  return PRODUCT_SPECS[sku]
+  return PRODUCT_SPECS[sku];
 }
 
 /**
@@ -50,18 +50,21 @@ export function getImageSpecForSku(sku: string): ImageSpec | undefined {
  * This might involve calling an image processing service, an AI upscaler,
  * or retrieving a pre-generated URL.
  */
-export async function generateHighResImage(imageUrl: string, spec: ImageSpec): Promise<string> {
+export async function generateHighResImage(
+  imageUrl: string,
+  spec: ImageSpec
+): Promise<string> {
   try {
     // Verify the image URL is accessible
-    const response = await fetch(imageUrl)
+    const response = await fetch(imageUrl);
     if (!response.ok) {
-      throw new Error(`Failed to access image URL: ${response.statusText}`)
+      throw new Error(`Failed to access image URL: ${response.statusText}`);
     }
 
     // Return the original URL since we're using 300 DPI images
-    return imageUrl
+    return imageUrl;
   } catch (error) {
-    console.error('Error generating high-res image:', error)
-    throw error
+    console.error('Error generating high-res image:', error);
+    throw error;
   }
 }

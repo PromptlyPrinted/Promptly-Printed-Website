@@ -1,22 +1,20 @@
 // ResourcesDropdown.tsx
-"use client";
+'use client';
 
-import React, { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
-import { motion } from "framer-motion";
-import Link from "next/link";
+import { motion } from 'framer-motion';
 import {
-  HelpCircle,
-  FileText,
-  Store,
   Book,
-  Users2,
-  Gift,
-  MessageSquare,
   FileCheck,
-  GraduationCap,
-  Video as VideoIcon,
-} from "lucide-react";
+  FileText,
+  Gift,
+  HelpCircle,
+  MessageSquare,
+  Store,
+  Users2,
+} from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 export type ResourcesDropdownProps = {
   headerBottom: number;
@@ -47,21 +45,21 @@ export function ResourcesDropdown({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.2 }}
-      className="fixed left-0 right-0 z-40 bg-white shadow-lg"
+      className="fixed right-0 left-0 z-40 bg-white shadow-lg"
       onMouseEnter={onDropdownEnter}
       onMouseLeave={onDropdownLeave}
     >
-      <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x">
+      <div className="mx-auto max-w-7xl">
+        <div className="flex flex-col divide-y md:flex-row md:divide-x md:divide-y-0">
           {/* RESOURCES */}
           <div className="flex-1 px-8 py-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">
+            <h2 className="mb-2 font-semibold text-gray-900 text-lg">
               Resources
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <Link
                 href="/faq"
-                className="bg-green-50 border border-gray-200 rounded-lg p-6 flex flex-col items-center justify-center hover:shadow-md transition-shadow"
+                className="flex flex-col items-center justify-center rounded-lg border border-gray-200 bg-green-50 p-6 transition-shadow hover:shadow-md"
               >
                 <MessageSquare size={32} className="text-gray-700" />
                 <span className="mt-2 font-medium text-gray-900">
@@ -70,24 +68,26 @@ export function ResourcesDropdown({
               </Link>
               <Link
                 href="/blog"
-                className="bg-purple-50 border border-gray-200 rounded-lg p-6 flex flex-col items-center justify-center hover:shadow-md transition-shadow"
+                className="flex flex-col items-center justify-center rounded-lg border border-gray-200 bg-purple-50 p-6 transition-shadow hover:shadow-md"
               >
                 <FileText size={32} className="text-gray-700" />
                 <span className="mt-2 font-medium text-gray-900">Blog</span>
               </Link>
               <Link
                 href="/etsy-store"
-                className="bg-blue-50 border border-gray-200 rounded-lg p-6 flex flex-col items-center justify-center hover:shadow-md transition-shadow"
+                className="flex flex-col items-center justify-center rounded-lg border border-gray-200 bg-blue-50 p-6 transition-shadow hover:shadow-md"
               >
                 <Store size={32} className="text-gray-700" />
-                <span className="mt-2 font-medium text-gray-900">Etsy Store</span>
+                <span className="mt-2 font-medium text-gray-900">
+                  Etsy Store
+                </span>
               </Link>
             </div>
           </div>
 
           {/* LEARN */}
           <div className="flex-1 px-8 py-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">Learn</h2>
+            <h2 className="mb-2 font-semibold text-gray-900 text-lg">Learn</h2>
             <div className="flex flex-col space-y-3">
               <Link
                 href="/blog"
@@ -108,7 +108,7 @@ export function ResourcesDropdown({
 
           {/* COMMUNITY */}
           <div className="flex-1 px-8 py-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">
+            <h2 className="mb-2 font-semibold text-gray-900 text-lg">
               Community
             </h2>
             <div className="flex flex-col space-y-3">
@@ -138,7 +138,7 @@ export function ResourcesDropdown({
 
           {/* GET SUPPORT */}
           <div className="flex-1 px-8 py-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">
+            <h2 className="mb-2 font-semibold text-gray-900 text-lg">
               Get Support
             </h2>
             <div className="flex flex-col space-y-3">

@@ -1,10 +1,11 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { Button } from "@repo/design-system/components/ui/button";
-import { Input } from "@repo/design-system/components/ui/input";
-import { Label } from "@repo/design-system/components/ui/label";
-import type { Author } from "./BlogAuthors";
+import { Button } from '@repo/design-system/components/ui/button';
+import { Input } from '@repo/design-system/components/ui/input';
+import { Label } from '@repo/design-system/components/ui/label';
+import type React from 'react';
+import { useState } from 'react';
+import type { Author } from './BlogAuthors';
 
 interface AuthorFormProps {
   author: Author;
@@ -14,9 +15,9 @@ interface AuthorFormProps {
 export default function AuthorForm({ author, onSave }: AuthorFormProps) {
   const [formData, setFormData] = useState<Author>({
     id: author.id,
-    title: author.title || "",
-    avatar: author.avatar || "",
-    xUrl: author.xUrl || "",
+    title: author.title || '',
+    avatar: author.avatar || '',
+    xUrl: author.xUrl || '',
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -32,9 +33,7 @@ export default function AuthorForm({ author, onSave }: AuthorFormProps) {
         <Input
           id="title"
           value={formData.title}
-          onChange={(e) =>
-            setFormData({ ...formData, title: e.target.value })
-          }
+          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
         />
       </div>
 
@@ -44,9 +43,7 @@ export default function AuthorForm({ author, onSave }: AuthorFormProps) {
         <Input
           id="avatar"
           value={formData.avatar}
-          onChange={(e) =>
-            setFormData({ ...formData, avatar: e.target.value })
-          }
+          onChange={(e) => setFormData({ ...formData, avatar: e.target.value })}
         />
       </div>
 
@@ -56,9 +53,7 @@ export default function AuthorForm({ author, onSave }: AuthorFormProps) {
         <Input
           id="xUrl"
           value={formData.xUrl}
-          onChange={(e) =>
-            setFormData({ ...formData, xUrl: e.target.value })
-          }
+          onChange={(e) => setFormData({ ...formData, xUrl: e.target.value })}
         />
       </div>
 
@@ -66,4 +61,4 @@ export default function AuthorForm({ author, onSave }: AuthorFormProps) {
       <Button type="submit">Save</Button>
     </form>
   );
-} 
+}

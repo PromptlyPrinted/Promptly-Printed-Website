@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
-import fetch from 'node-fetch';
 import * as dotenv from 'dotenv';
+import fetch from 'node-fetch';
 
 dotenv.config();
 
@@ -30,15 +30,40 @@ const SUPPORTED_COUNTRIES = [
 ];
 
 const footwearGroups = {
-  "Socks": [
-    { sku: "GLOBAL-TUBE-SOCKS", price: "19.99", name: "Tube Socks", description: "Comfortable tube socks with custom design." },
-    { sku: "GLOBAL-ANKLE-SOCKS", price: "19.99", name: "Ankle Socks", description: "Stylish ankle socks with custom design." }
+  Socks: [
+    {
+      sku: 'GLOBAL-TUBE-SOCKS',
+      price: '19.99',
+      name: 'Tube Socks',
+      description: 'Comfortable tube socks with custom design.',
+    },
+    {
+      sku: 'GLOBAL-ANKLE-SOCKS',
+      price: '19.99',
+      name: 'Ankle Socks',
+      description: 'Stylish ankle socks with custom design.',
+    },
   ],
-  "Flip-Flops": [
-    { sku: "M-FLIPFLOP-SML", price: "29.99", name: "Flip-Flops Small", description: "Custom designed flip-flops, small size." },
-    { sku: "M-FLIPFLOP-MED", price: "32.99", name: "Flip-Flops Medium", description: "Custom designed flip-flops, medium size." },
-    { sku: "M-FLIPFLOP-LRG", price: "34.99", name: "Flip-Flops Large", description: "Custom designed flip-flops, large size." }
-  ]
+  'Flip-Flops': [
+    {
+      sku: 'M-FLIPFLOP-SML',
+      price: '29.99',
+      name: 'Flip-Flops Small',
+      description: 'Custom designed flip-flops, small size.',
+    },
+    {
+      sku: 'M-FLIPFLOP-MED',
+      price: '32.99',
+      name: 'Flip-Flops Medium',
+      description: 'Custom designed flip-flops, medium size.',
+    },
+    {
+      sku: 'M-FLIPFLOP-LRG',
+      price: '34.99',
+      name: 'Flip-Flops Large',
+      description: 'Custom designed flip-flops, large size.',
+    },
+  ],
 };
 
 interface ProdigiProduct {
@@ -76,13 +101,15 @@ interface ExchangeRateResponse {
 }
 
 function delay(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function getExchangeRates(): Promise<Record<string, number>> {
   try {
-    const response = await fetch(`https://api.exchangerate-api.com/v4/latest/USD`);
-    const data = await response.json() as ExchangeRateResponse;
+    const response = await fetch(
+      `https://api.exchangerate-api.com/v4/latest/USD`
+    );
+    const data = (await response.json()) as ExchangeRateResponse;
     return data.rates;
   } catch (error) {
     console.error('Error fetching exchange rates:', error);
@@ -90,17 +117,23 @@ async function getExchangeRates(): Promise<Record<string, number>> {
   }
 }
 
-async function convertPrice(priceUSD: number, targetCurrency: string, rates: Record<string, number>): Promise<number> {
+async function convertPrice(
+  priceUSD: number,
+  targetCurrency: string,
+  rates: Record<string, number>
+): Promise<number> {
   if (targetCurrency === 'USD') return priceUSD;
-  
+
   const rate = rates[targetCurrency];
   if (!rate) {
-    console.warn(`No exchange rate found for ${targetCurrency}, using USD price`);
+    console.warn(
+      `No exchange rate found for ${targetCurrency}, using USD price`
+    );
     return priceUSD;
   }
 
   const converted = priceUSD * rate;
-  
+
   // Round to 2 decimal places for most currencies, except JPY and KRW
   if (targetCurrency === 'JPY' || targetCurrency === 'KRW') {
     return Math.round(converted);
@@ -112,12 +145,15 @@ async function getProdigiProduct(sku: string): Promise<ProdigiProduct | null> {
   try {
     await delay(1000); // Rate limiting
 
-    const response = await fetch(`https://api.prodigi.com/v4.0/products/${sku}`, {
-      headers: {
-        'X-API-Key': process.env.PRODIGI_API_KEY!,
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await fetch(
+      `https://api.prodigi.com/v4.0/products/${sku}`,
+      {
+        headers: {
+          'X-API-Key': process.env.PRODIGI_API_KEY!,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
 
     if (response.status === 429) {
       console.warn(`Rate limit hit for SKU ${sku}, waiting 30s...`);
@@ -129,7 +165,7 @@ async function getProdigiProduct(sku: string): Promise<ProdigiProduct | null> {
       throw new Error(`API error: ${response.status}`);
     }
 
-    const data = await response.json() as ProdigiResponse;
+    const data = (await response.json()) as ProdigiResponse;
     return data.product || null;
   } catch (error) {
     console.error(`Error fetching product ${sku}:`, error);
@@ -151,14 +187,14 @@ async function updateFootwear(
       return;
     }
 
-    const priceUSD = parseFloat(price);
+    const priceUSD = Number.parseFloat(price);
 
     // For each supported country that the product ships to
     for (const country of SUPPORTED_COUNTRIES) {
       const { code: countryCode, currency } = country;
 
       // Check if product ships to this country
-      const shipsToCountry = product.variants.some(v => 
+      const shipsToCountry = product.variants.some((v) =>
         v.shipsTo.includes(countryCode)
       );
 
@@ -172,7 +208,9 @@ async function updateFootwear(
 
       // Determine product type and gender based on group name and SKU
       let productType = 'SOCKS';
-      let gender = groupName.toLowerCase().includes('men') ? 'Male' : 'Female';
+      const gender = groupName.toLowerCase().includes('men')
+        ? 'Male'
+        : 'Female';
 
       if (sku.includes('FLIP')) {
         productType = 'FLIP_FLOPS';
@@ -227,7 +265,9 @@ async function updateFootwear(
         },
       });
 
-      console.log(`Updated ${productData.sku} for ${countryCode} (${currency} ${localPrice})`);
+      console.log(
+        `Updated ${productData.sku} for ${countryCode} (${currency} ${localPrice})`
+      );
     }
   } catch (error) {
     console.error(`Error processing ${sku}:`, error);
@@ -255,4 +295,4 @@ async function main() {
   }
 }
 
-main(); 
+main();

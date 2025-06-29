@@ -1,5 +1,5 @@
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
 export function formatDate(date: Date | string) {
   return new Date(date).toLocaleDateString('en-US', {
@@ -13,4 +13,4 @@ export function formatDate(date: Date | string) {
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
-} 
+}

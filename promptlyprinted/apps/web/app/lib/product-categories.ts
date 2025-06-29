@@ -32,13 +32,33 @@ export const productCategories: ProductCategory[] = [
     description: "High-quality men's apparel for every occasion",
     subcategories: [
       { title: 'T-Shirts', href: '/products/mens/t-shirts', iconName: 'shirt' },
-      { title: 'Tank Tops', href: '/products/mens/tank-tops', iconName: 'shirt' },
-      { title: 'Long Sleeve Shirts', href: '/products/mens/long-sleeve-shirts', iconName: 'shirt' },
+      {
+        title: 'Tank Tops',
+        href: '/products/mens/tank-tops',
+        iconName: 'shirt',
+      },
+      {
+        title: 'Long Sleeve Shirts',
+        href: '/products/mens/long-sleeve-shirts',
+        iconName: 'shirt',
+      },
       { title: 'Hoodies', href: '/products/mens/hoodies', iconName: 'shirt' },
-      { title: 'Sweatshirts', href: '/products/mens/sweatshirts', iconName: 'shirt' },
-      { title: 'Sweatpants', href: '/products/mens/sweatpants', iconName: 'shirt' },
+      {
+        title: 'Sweatshirts',
+        href: '/products/mens/sweatshirts',
+        iconName: 'shirt',
+      },
+      {
+        title: 'Sweatpants',
+        href: '/products/mens/sweatpants',
+        iconName: 'shirt',
+      },
       { title: 'Shorts', href: '/products/mens/shorts', iconName: 'shirt' },
-      { title: 'Coats & Jackets', href: '/products/mens/coats-jackets', iconName: 'shirt' },
+      {
+        title: 'Coats & Jackets',
+        href: '/products/mens/coats-jackets',
+        iconName: 'shirt',
+      },
     ],
   },
   {
@@ -47,17 +67,49 @@ export const productCategories: ProductCategory[] = [
     iconName: 'user',
     description: "Stylish women's apparel that you can personalize",
     subcategories: [
-      { title: 'T-Shirts', href: '/products/womens/t-shirts', iconName: 'shirt' },
-      { title: 'Tank Tops', href: '/products/womens/tank-tops', iconName: 'shirt' },
-      { title: 'Long Sleeve Shirts', href: '/products/womens/long-sleeve-shirts', iconName: 'shirt' },
+      {
+        title: 'T-Shirts',
+        href: '/products/womens/t-shirts',
+        iconName: 'shirt',
+      },
+      {
+        title: 'Tank Tops',
+        href: '/products/womens/tank-tops',
+        iconName: 'shirt',
+      },
+      {
+        title: 'Long Sleeve Shirts',
+        href: '/products/womens/long-sleeve-shirts',
+        iconName: 'shirt',
+      },
       { title: 'Hoodies', href: '/products/womens/hoodies', iconName: 'shirt' },
-      { title: 'Sweatshirts', href: '/products/womens/sweatshirts', iconName: 'shirt' },
-      { title: 'Sweatpants', href: '/products/womens/sweatpants', iconName: 'shirt' },
+      {
+        title: 'Sweatshirts',
+        href: '/products/womens/sweatshirts',
+        iconName: 'shirt',
+      },
+      {
+        title: 'Sweatpants',
+        href: '/products/womens/sweatpants',
+        iconName: 'shirt',
+      },
       { title: 'Shorts', href: '/products/womens/shorts', iconName: 'shirt' },
-      { title: 'Coats & Jackets', href: '/products/womens/coats-jackets', iconName: 'shirt' },
+      {
+        title: 'Coats & Jackets',
+        href: '/products/womens/coats-jackets',
+        iconName: 'shirt',
+      },
       { title: 'Dresses', href: '/products/womens/dresses', iconName: 'shirt' },
-      { title: 'Swimwear', href: '/products/womens/swimwear', iconName: 'shirt' },
-      { title: 'Sportswear', href: '/products/womens/sportswear', iconName: 'shirt' },
+      {
+        title: 'Swimwear',
+        href: '/products/womens/swimwear',
+        iconName: 'shirt',
+      },
+      {
+        title: 'Sportswear',
+        href: '/products/womens/sportswear',
+        iconName: 'shirt',
+      },
     ],
   },
   {
@@ -66,27 +118,76 @@ export const productCategories: ProductCategory[] = [
     iconName: 'baby',
     description: 'Adorable and comfortable clothing for kids and babies',
     subcategories: [
-      { title: 'T-Shirts', href: '/products/kids-babies/t-shirts', iconName: 'baby' },
-      { title: 'Tank Tops', href: '/products/kids-babies/tank-tops', iconName: 'baby' },
-      { title: 'Long Sleeve Shirts', href: '/products/kids-babies/long-sleeve-shirts', iconName: 'baby' },
-      { title: 'Hoodies', href: '/products/kids-babies/hoodies', iconName: 'baby' },
-      { title: 'Sweatshirts', href: '/products/kids-babies/sweatshirts', iconName: 'baby' },
-      { title: 'Sweatpants', href: '/products/kids-babies/sweatpants', iconName: 'baby' },
-      { title: 'Shorts', href: '/products/kids-babies/shorts', iconName: 'baby' },
-      { title: 'Coats & Jackets', href: '/products/kids-babies/coats-jackets', iconName: 'baby' },
+      {
+        title: 'T-Shirts',
+        href: '/products/kids-babies/t-shirts',
+        iconName: 'baby',
+      },
+      {
+        title: 'Tank Tops',
+        href: '/products/kids-babies/tank-tops',
+        iconName: 'baby',
+      },
+      {
+        title: 'Long Sleeve Shirts',
+        href: '/products/kids-babies/long-sleeve-shirts',
+        iconName: 'baby',
+      },
+      {
+        title: 'Hoodies',
+        href: '/products/kids-babies/hoodies',
+        iconName: 'baby',
+      },
+      {
+        title: 'Sweatshirts',
+        href: '/products/kids-babies/sweatshirts',
+        iconName: 'baby',
+      },
+      {
+        title: 'Sweatpants',
+        href: '/products/kids-babies/sweatpants',
+        iconName: 'baby',
+      },
+      {
+        title: 'Shorts',
+        href: '/products/kids-babies/shorts',
+        iconName: 'baby',
+      },
+      {
+        title: 'Coats & Jackets',
+        href: '/products/kids-babies/coats-jackets',
+        iconName: 'baby',
+      },
     ],
   },
   {
     title: 'Accessories',
     href: '/products/accessories',
     iconName: 'shopping-bag',
-    description: 'Complete your look with our range of customizable accessories',
+    description:
+      'Complete your look with our range of customizable accessories',
     subcategories: [
       { title: 'Bags', href: '/products/bags', iconName: 'shopping-bag' },
-      { title: 'Watch Straps', href: '/products/watch-straps', iconName: 'watch' },
-      { title: 'Mats & Sleeves', href: '/products/mats-sleeves', iconName: 'ruler' },
-      { title: 'Socks & Flip-flops', href: '/products/socks-flipflops', iconName: 'ruler' },
-      { title: 'Pendants & Keyrings', href: '/products/pendants-keyrings', iconName: 'key' },
+      {
+        title: 'Watch Straps',
+        href: '/products/watch-straps',
+        iconName: 'watch',
+      },
+      {
+        title: 'Mats & Sleeves',
+        href: '/products/mats-sleeves',
+        iconName: 'ruler',
+      },
+      {
+        title: 'Socks & Flip-flops',
+        href: '/products/socks-flipflops',
+        iconName: 'ruler',
+      },
+      {
+        title: 'Pendants & Keyrings',
+        href: '/products/pendants-keyrings',
+        iconName: 'key',
+      },
     ],
   },
   {
@@ -96,9 +197,21 @@ export const productCategories: ProductCategory[] = [
     description: 'Bring your designs into your living space',
     subcategories: [
       { title: 'Cushions', href: '/products/cushions', iconName: 'square' },
-      { title: 'Gallery Boards', href: '/products/gallery-boards', iconName: 'file-text' },
-      { title: 'Acrylic Prisms', href: '/products/acrylic-prisms', iconName: 'triangle' },
-      { title: 'Prints and Posters', href: '/products/prints-posters', iconName: 'file-text' },
+      {
+        title: 'Gallery Boards',
+        href: '/products/gallery-boards',
+        iconName: 'file-text',
+      },
+      {
+        title: 'Acrylic Prisms',
+        href: '/products/acrylic-prisms',
+        iconName: 'triangle',
+      },
+      {
+        title: 'Prints and Posters',
+        href: '/products/prints-posters',
+        iconName: 'file-text',
+      },
     ],
   },
   {
@@ -114,4 +227,4 @@ export const productCategories: ProductCategory[] = [
       { title: 'Tattoos', href: '/products/tattoos', iconName: 'pen-tool' },
     ],
   },
-]; 
+];

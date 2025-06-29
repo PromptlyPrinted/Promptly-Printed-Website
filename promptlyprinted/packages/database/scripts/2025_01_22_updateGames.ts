@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
-import fetch from 'node-fetch';
 import * as dotenv from 'dotenv';
+import fetch from 'node-fetch';
 
 dotenv.config();
 
@@ -30,14 +30,44 @@ const SUPPORTED_COUNTRIES = [
 ];
 
 const gameGroups = {
-  "Games": [
-    { sku: "PLAY-CARD", price: "18.45", name: "Playing Cards", description: "Custom designed playing cards for any occasion." },
-    { sku: "JIGSAW-PUZZLE-30", price: "34.99", name: "30 Piece Puzzle", description: "Perfect puzzle for young children." },
-    { sku: "JIGSAW-PUZZLE-110", price: "37.99", name: "110 Piece Puzzle", description: "Great puzzle for beginners." },
-    { sku: "JIGSAW-PUZZLE-252", price: "40.99", name: "252 Piece Puzzle", description: "Intermediate level puzzle challenge." },
-    { sku: "JIGSAW-PUZZLE-500", price: "43.99", name: "500 Piece Puzzle", description: "Advanced puzzle for enthusiasts." },
-    { sku: "JIGSAW-PUZZLE-1000", price: "49.99", name: "1000 Piece Puzzle", description: "Expert level puzzle for true puzzle lovers." }
-  ]
+  Games: [
+    {
+      sku: 'PLAY-CARD',
+      price: '18.45',
+      name: 'Playing Cards',
+      description: 'Custom designed playing cards for any occasion.',
+    },
+    {
+      sku: 'JIGSAW-PUZZLE-30',
+      price: '34.99',
+      name: '30 Piece Puzzle',
+      description: 'Perfect puzzle for young children.',
+    },
+    {
+      sku: 'JIGSAW-PUZZLE-110',
+      price: '37.99',
+      name: '110 Piece Puzzle',
+      description: 'Great puzzle for beginners.',
+    },
+    {
+      sku: 'JIGSAW-PUZZLE-252',
+      price: '40.99',
+      name: '252 Piece Puzzle',
+      description: 'Intermediate level puzzle challenge.',
+    },
+    {
+      sku: 'JIGSAW-PUZZLE-500',
+      price: '43.99',
+      name: '500 Piece Puzzle',
+      description: 'Advanced puzzle for enthusiasts.',
+    },
+    {
+      sku: 'JIGSAW-PUZZLE-1000',
+      price: '49.99',
+      name: '1000 Piece Puzzle',
+      description: 'Expert level puzzle for true puzzle lovers.',
+    },
+  ],
 };
 
 interface ProdigiProduct {
@@ -75,13 +105,15 @@ interface ExchangeRateResponse {
 }
 
 function delay(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function getExchangeRates(): Promise<Record<string, number>> {
   try {
-    const response = await fetch(`https://api.exchangerate-api.com/v4/latest/USD`);
-    const data = await response.json() as ExchangeRateResponse;
+    const response = await fetch(
+      `https://api.exchangerate-api.com/v4/latest/USD`
+    );
+    const data = (await response.json()) as ExchangeRateResponse;
     return data.rates;
   } catch (error) {
     console.error('Error fetching exchange rates:', error);
@@ -89,17 +121,23 @@ async function getExchangeRates(): Promise<Record<string, number>> {
   }
 }
 
-async function convertPrice(priceUSD: number, targetCurrency: string, rates: Record<string, number>): Promise<number> {
+async function convertPrice(
+  priceUSD: number,
+  targetCurrency: string,
+  rates: Record<string, number>
+): Promise<number> {
   if (targetCurrency === 'USD') return priceUSD;
-  
+
   const rate = rates[targetCurrency];
   if (!rate) {
-    console.warn(`No exchange rate found for ${targetCurrency}, using USD price`);
+    console.warn(
+      `No exchange rate found for ${targetCurrency}, using USD price`
+    );
     return priceUSD;
   }
 
   const converted = priceUSD * rate;
-  
+
   // Round to 2 decimal places for most currencies, except JPY and KRW
   if (targetCurrency === 'JPY' || targetCurrency === 'KRW') {
     return Math.round(converted);
@@ -111,12 +149,15 @@ async function getProdigiProduct(sku: string): Promise<ProdigiProduct | null> {
   try {
     await delay(1000); // Rate limiting
 
-    const response = await fetch(`https://api.prodigi.com/v4.0/products/${sku}`, {
-      headers: {
-        'X-API-Key': process.env.PRODIGI_API_KEY!,
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await fetch(
+      `https://api.prodigi.com/v4.0/products/${sku}`,
+      {
+        headers: {
+          'X-API-Key': process.env.PRODIGI_API_KEY!,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
 
     if (response.status === 429) {
       console.warn(`Rate limit hit for SKU ${sku}, waiting 30s...`);
@@ -128,7 +169,7 @@ async function getProdigiProduct(sku: string): Promise<ProdigiProduct | null> {
       throw new Error(`API error: ${response.status}`);
     }
 
-    const data = await response.json() as ProdigiResponse;
+    const data = (await response.json()) as ProdigiResponse;
     return data.product || null;
   } catch (error) {
     console.error(`Error fetching product ${sku}:`, error);
@@ -150,14 +191,14 @@ async function updateGame(
       return;
     }
 
-    const priceUSD = parseFloat(price);
+    const priceUSD = Number.parseFloat(price);
 
     // For each supported country that the product ships to
     for (const country of SUPPORTED_COUNTRIES) {
       const { code: countryCode, currency } = country;
 
       // Check if product ships to this country
-      const shipsToCountry = product.variants.some(v => 
+      const shipsToCountry = product.variants.some((v) =>
         v.shipsTo.includes(countryCode)
       );
 
@@ -230,7 +271,9 @@ async function updateGame(
         },
       });
 
-      console.log(`Updated ${productData.sku} for ${countryCode} (${currency} ${localPrice})`);
+      console.log(
+        `Updated ${productData.sku} for ${countryCode} (${currency} ${localPrice})`
+      );
     }
   } catch (error) {
     console.error(`Error processing ${sku}:`, error);
@@ -258,4 +301,4 @@ async function main() {
   }
 }
 
-main(); 
+main();

@@ -1,31 +1,36 @@
+import { Button } from '@repo/design-system/components/ui/button';
 import { createMetadata } from '@repo/seo/metadata';
 import type { Metadata } from 'next';
-import { Button } from '@repo/design-system/components/ui/button';
 
 export const metadata: Metadata = createMetadata({
   title: 'Affiliate Program | Promptly Printed',
-  description: 'Join our affiliate program and earn rewards for sharing Promptly Printed.',
+  description:
+    'Join our affiliate program and earn rewards for sharing Promptly Printed.',
 });
 
 export default function AffiliatePage() {
   return (
     <div className="container mx-auto py-20">
-      <div className="max-w-3xl mx-auto">
-        <h1 className="text-4xl font-bold tracking-tight mb-8">Affiliate Program</h1>
-        
-        <div className="bg-card rounded-lg p-8 shadow-sm">
-          <h2 className="text-2xl font-semibold mb-4">Join Our Affiliate Program</h2>
-          <p className="text-lg text-muted-foreground leading-relaxed mb-6">
+      <div className="mx-auto max-w-3xl">
+        <h1 className="mb-8 font-bold text-4xl tracking-tight">
+          Affiliate Program
+        </h1>
+
+        <div className="rounded-lg bg-card p-8 shadow-sm">
+          <h2 className="mb-4 font-semibold text-2xl">
+            Join Our Affiliate Program
+          </h2>
+          <p className="mb-6 text-lg text-muted-foreground leading-relaxed">
             Partner with us and earn commission for every successful referral.
             Our affiliate program offers competitive rates and dedicated support
             to help you succeed.
           </p>
-          
+
           <div className="grid gap-6">
             <div className="flex items-center gap-4">
-              <div className="bg-primary/10 p-3 rounded-full">
+              <div className="rounded-full bg-primary/10 p-3">
                 <svg
-                  className="w-6 h-6 text-primary"
+                  className="h-6 w-6 text-primary"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -40,7 +45,7 @@ export default function AffiliatePage() {
               </div>
               <div>
                 <h3 className="font-semibold">Competitive Commission</h3>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   Earn up to 20% commission on each sale
                 </p>
               </div>
@@ -54,4 +59,4 @@ export default function AffiliatePage() {
       </div>
     </div>
   );
-} 
+}

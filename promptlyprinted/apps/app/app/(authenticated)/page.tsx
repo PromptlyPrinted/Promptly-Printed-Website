@@ -1,14 +1,7 @@
 import { auth } from '@repo/auth/server';
 import { database } from '@repo/database';
-import { env } from '@repo/env';
-import type { Metadata } from 'next';
-import dynamic from 'next/dynamic';
-import { notFound } from 'next/navigation';
-import { AvatarStack } from './components/avatar-stack';
-import { Cursors } from './components/cursors';
-import { Header } from './components/header';
-import { Card } from "@repo/design-system/components/ui/card";
-import { Button } from "@repo/design-system/components/ui/button";
+import { Button } from '@repo/design-system/components/ui/button';
+import { Card } from '@repo/design-system/components/ui/card';
 import {
   Table,
   TableBody,
@@ -16,11 +9,25 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@repo/design-system/components/ui/table";
-import { formatDistance } from "date-fns";
-import { UsersIcon, ShoppingCartIcon, PackageIcon, CreditCardIcon, TrendingUpIcon, TrendingDownIcon, MinusIcon, DownloadIcon } from "lucide-react";
+} from '@repo/design-system/components/ui/table';
+import { env } from '@repo/env';
+import { formatDistance } from 'date-fns';
+import {
+  CreditCardIcon,
+  DownloadIcon,
+  MinusIcon,
+  PackageIcon,
+  ShoppingCartIcon,
+  TrendingDownIcon,
+  TrendingUpIcon,
+  UsersIcon,
+} from 'lucide-react';
+import type { Metadata } from 'next';
+import dynamic from 'next/dynamic';
+import { notFound } from 'next/navigation';
 import { calculateMetrics } from '../lib/metrics';
-import { generatePDFReport } from '../lib/generate-report';
+import { Cursors } from './components/cursors';
+import { Header } from './components/header';
 
 const CollaborationProvider = dynamic(() =>
   import('./components/collaboration-provider').then(
@@ -39,7 +46,7 @@ export const metadata: Metadata = {
 async function getOverviewData() {
   const [allOrders, allUsers] = await Promise.all([
     database.order.findMany({
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
       include: {
         user: {
           select: {
@@ -49,7 +56,7 @@ async function getOverviewData() {
       },
     }),
     database.user.findMany({
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
       select: {
         id: true,
         email: true,
@@ -83,7 +90,7 @@ const App = async () => {
     select: { role: true },
   });
 
-  if (user?.role !== "ADMIN") {
+  if (user?.role !== 'ADMIN') {
     notFound();
   }
 
@@ -98,48 +105,52 @@ const App = async () => {
           </CollaborationProvider>
         )}
       </Header>
-      <div className="container mx-auto p-6 space-y-8">
-        <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold">Dashboard Overview</h1>
+      <div className="container mx-auto space-y-8 p-6">
+        <div className="flex items-center justify-between">
+          <h1 className="font-bold text-3xl">Dashboard Overview</h1>
           <form action="/api/reports/download" method="POST">
             <Button type="submit" variant="outline" size="sm">
-              <DownloadIcon className="h-4 w-4 mr-2" />
+              <DownloadIcon className="mr-2 h-4 w-4" />
               Download Report
             </Button>
           </form>
         </div>
 
         {/* Period Metrics */}
-        {(["daily", "weekly", "monthly"] as const).map((period) => (
+        {(['daily', 'weekly', 'monthly'] as const).map((period) => (
           <div key={period} className="space-y-4">
-            <h2 className="text-2xl font-bold capitalize">{period} Metrics</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <h2 className="font-bold text-2xl capitalize">{period} Metrics</h2>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
               <Card className="p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
-                    <div className="p-2 bg-blue-100 rounded-full">
+                    <div className="rounded-full bg-blue-100 p-2">
                       <CreditCardIcon className="h-6 w-6 text-blue-600" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Sales</p>
-                      <h3 className="text-2xl font-bold">${metrics.sales[period].current.toFixed(2)}</h3>
+                      <p className="text-muted-foreground text-sm">Sales</p>
+                      <h3 className="font-bold text-2xl">
+                        ${metrics.sales[period].current.toFixed(2)}
+                      </h3>
                     </div>
                   </div>
                   <div className="flex items-center">
-                    {metrics.sales[period].trend === "up" ? (
+                    {metrics.sales[period].trend === 'up' ? (
                       <TrendingUpIcon className="h-4 w-4 text-green-500" />
-                    ) : metrics.sales[period].trend === "down" ? (
+                    ) : metrics.sales[period].trend === 'down' ? (
                       <TrendingDownIcon className="h-4 w-4 text-red-500" />
                     ) : (
                       <MinusIcon className="h-4 w-4 text-gray-500" />
                     )}
-                    <span className={`ml-1 text-sm ${
-                      metrics.sales[period].trend === "up" 
-                        ? "text-green-500" 
-                        : metrics.sales[period].trend === "down" 
-                        ? "text-red-500" 
-                        : "text-gray-500"
-                    }`}>
+                    <span
+                      className={`ml-1 text-sm ${
+                        metrics.sales[period].trend === 'up'
+                          ? 'text-green-500'
+                          : metrics.sales[period].trend === 'down'
+                            ? 'text-red-500'
+                            : 'text-gray-500'
+                      }`}
+                    >
                       {metrics.sales[period].percentageChange.toFixed(1)}%
                     </span>
                   </div>
@@ -149,29 +160,33 @@ const App = async () => {
               <Card className="p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
-                    <div className="p-2 bg-green-100 rounded-full">
+                    <div className="rounded-full bg-green-100 p-2">
                       <ShoppingCartIcon className="h-6 w-6 text-green-600" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Orders</p>
-                      <h3 className="text-2xl font-bold">{metrics.orders[period].current}</h3>
+                      <p className="text-muted-foreground text-sm">Orders</p>
+                      <h3 className="font-bold text-2xl">
+                        {metrics.orders[period].current}
+                      </h3>
                     </div>
                   </div>
                   <div className="flex items-center">
-                    {metrics.orders[period].trend === "up" ? (
+                    {metrics.orders[period].trend === 'up' ? (
                       <TrendingUpIcon className="h-4 w-4 text-green-500" />
-                    ) : metrics.orders[period].trend === "down" ? (
+                    ) : metrics.orders[period].trend === 'down' ? (
                       <TrendingDownIcon className="h-4 w-4 text-red-500" />
                     ) : (
                       <MinusIcon className="h-4 w-4 text-gray-500" />
                     )}
-                    <span className={`ml-1 text-sm ${
-                      metrics.orders[period].trend === "up" 
-                        ? "text-green-500" 
-                        : metrics.orders[period].trend === "down" 
-                        ? "text-red-500" 
-                        : "text-gray-500"
-                    }`}>
+                    <span
+                      className={`ml-1 text-sm ${
+                        metrics.orders[period].trend === 'up'
+                          ? 'text-green-500'
+                          : metrics.orders[period].trend === 'down'
+                            ? 'text-red-500'
+                            : 'text-gray-500'
+                      }`}
+                    >
                       {metrics.orders[period].percentageChange.toFixed(1)}%
                     </span>
                   </div>
@@ -181,29 +196,33 @@ const App = async () => {
               <Card className="p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
-                    <div className="p-2 bg-purple-100 rounded-full">
+                    <div className="rounded-full bg-purple-100 p-2">
                       <UsersIcon className="h-6 w-6 text-purple-600" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Users</p>
-                      <h3 className="text-2xl font-bold">{metrics.users[period].current}</h3>
+                      <p className="text-muted-foreground text-sm">Users</p>
+                      <h3 className="font-bold text-2xl">
+                        {metrics.users[period].current}
+                      </h3>
                     </div>
                   </div>
                   <div className="flex items-center">
-                    {metrics.users[period].trend === "up" ? (
+                    {metrics.users[period].trend === 'up' ? (
                       <TrendingUpIcon className="h-4 w-4 text-green-500" />
-                    ) : metrics.users[period].trend === "down" ? (
+                    ) : metrics.users[period].trend === 'down' ? (
                       <TrendingDownIcon className="h-4 w-4 text-red-500" />
                     ) : (
                       <MinusIcon className="h-4 w-4 text-gray-500" />
                     )}
-                    <span className={`ml-1 text-sm ${
-                      metrics.users[period].trend === "up" 
-                        ? "text-green-500" 
-                        : metrics.users[period].trend === "down" 
-                        ? "text-red-500" 
-                        : "text-gray-500"
-                    }`}>
+                    <span
+                      className={`ml-1 text-sm ${
+                        metrics.users[period].trend === 'up'
+                          ? 'text-green-500'
+                          : metrics.users[period].trend === 'down'
+                            ? 'text-red-500'
+                            : 'text-gray-500'
+                      }`}
+                    >
                       {metrics.users[period].percentageChange.toFixed(1)}%
                     </span>
                   </div>
@@ -213,30 +232,39 @@ const App = async () => {
               <Card className="p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
-                    <div className="p-2 bg-yellow-100 rounded-full">
+                    <div className="rounded-full bg-yellow-100 p-2">
                       <PackageIcon className="h-6 w-6 text-yellow-600" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Avg Order Value</p>
-                      <h3 className="text-2xl font-bold">${metrics.averageOrderValue[period].current.toFixed(2)}</h3>
+                      <p className="text-muted-foreground text-sm">
+                        Avg Order Value
+                      </p>
+                      <h3 className="font-bold text-2xl">
+                        ${metrics.averageOrderValue[period].current.toFixed(2)}
+                      </h3>
                     </div>
                   </div>
                   <div className="flex items-center">
-                    {metrics.averageOrderValue[period].trend === "up" ? (
+                    {metrics.averageOrderValue[period].trend === 'up' ? (
                       <TrendingUpIcon className="h-4 w-4 text-green-500" />
-                    ) : metrics.averageOrderValue[period].trend === "down" ? (
+                    ) : metrics.averageOrderValue[period].trend === 'down' ? (
                       <TrendingDownIcon className="h-4 w-4 text-red-500" />
                     ) : (
                       <MinusIcon className="h-4 w-4 text-gray-500" />
                     )}
-                    <span className={`ml-1 text-sm ${
-                      metrics.averageOrderValue[period].trend === "up" 
-                        ? "text-green-500" 
-                        : metrics.averageOrderValue[period].trend === "down" 
-                        ? "text-red-500" 
-                        : "text-gray-500"
-                    }`}>
-                      {metrics.averageOrderValue[period].percentageChange.toFixed(1)}%
+                    <span
+                      className={`ml-1 text-sm ${
+                        metrics.averageOrderValue[period].trend === 'up'
+                          ? 'text-green-500'
+                          : metrics.averageOrderValue[period].trend === 'down'
+                            ? 'text-red-500'
+                            : 'text-gray-500'
+                      }`}
+                    >
+                      {metrics.averageOrderValue[
+                        period
+                      ].percentageChange.toFixed(1)}
+                      %
                     </span>
                   </div>
                 </div>
@@ -247,7 +275,7 @@ const App = async () => {
 
         {/* Recent Orders */}
         <div className="space-y-4">
-          <h2 className="text-2xl font-bold">Recent Orders</h2>
+          <h2 className="font-bold text-2xl">Recent Orders</h2>
           <Card>
             <Table>
               <TableHeader>
@@ -267,19 +295,21 @@ const App = async () => {
                     <TableCell>${order.totalPrice.toFixed(2)}</TableCell>
                     <TableCell>
                       <span
-                        className={`px-2 py-1 rounded-full text-xs ${
-                          order.status === "COMPLETED"
-                            ? "bg-green-100 text-green-800"
-                            : order.status === "PENDING"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
+                        className={`rounded-full px-2 py-1 text-xs ${
+                          order.status === 'COMPLETED'
+                            ? 'bg-green-100 text-green-800'
+                            : order.status === 'PENDING'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-red-100 text-red-800'
                         }`}
                       >
                         {order.status}
                       </span>
                     </TableCell>
                     <TableCell>
-                      {formatDistance(order.createdAt, new Date(), { addSuffix: true })}
+                      {formatDistance(order.createdAt, new Date(), {
+                        addSuffix: true,
+                      })}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -290,7 +320,7 @@ const App = async () => {
 
         {/* Recent Users */}
         <div className="space-y-4">
-          <h2 className="text-2xl font-bold">Recent Users</h2>
+          <h2 className="font-bold text-2xl">Recent Users</h2>
           <Card>
             <Table>
               <TableHeader>
@@ -308,7 +338,9 @@ const App = async () => {
                     </TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
-                      {formatDistance(user.createdAt, new Date(), { addSuffix: true })}
+                      {formatDistance(user.createdAt, new Date(), {
+                        addSuffix: true,
+                      })}
                     </TableCell>
                   </TableRow>
                 ))}

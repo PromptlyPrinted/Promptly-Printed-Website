@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import React, { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
-import { motion } from "framer-motion";
-import Link from "next/link";
-import { useUser } from "@clerk/nextjs";
-import { Button } from "@repo/design-system/components/ui/button";
-import { User, Image, Package, Heart, Settings, LogOut, X } from "lucide-react";
+import { useUser } from '@clerk/nextjs';
+import { Button } from '@repo/design-system/components/ui/button';
+import { motion } from 'framer-motion';
+import { Heart, Image, LogOut, Package, Settings, User, X } from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 type ProfileDropdownProps = {
   headerBottom: number;
@@ -44,7 +44,7 @@ export function ProfileDropdown({
       document.body.style.position = '';
       document.body.style.width = '';
       document.body.style.top = '';
-      window.scrollTo(0, parseInt(scrollY || '0') * -1);
+      window.scrollTo(0, Number.parseInt(scrollY || '0') * -1);
     }
 
     return () => {
@@ -65,7 +65,7 @@ export function ProfileDropdown({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
-        className="fixed inset-0 bg-black/5 backdrop-blur-sm z-40"
+        className="fixed inset-0 z-40 bg-black/5 backdrop-blur-sm"
         onClick={onClose}
       />
       <motion.div
@@ -77,13 +77,13 @@ export function ProfileDropdown({
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -10 }}
         transition={{ duration: 0.2 }}
-        className="fixed z-50 w-[300px] bg-white shadow-lg border border-gray-200 rounded-lg"
+        className="fixed z-50 w-[300px] rounded-lg border border-gray-200 bg-white shadow-lg"
       >
-        <div className="p-4 relative">
+        <div className="relative p-4">
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute right-4 top-4 p-1 hover:bg-gray-100 rounded-full transition-colors"
+            className="absolute top-4 right-4 rounded-full p-1 transition-colors hover:bg-gray-100"
           >
             <X className="h-5 w-5" />
           </button>
@@ -91,64 +91,64 @@ export function ProfileDropdown({
           {isSignedIn ? (
             <>
               {/* Signed In View */}
-              <div className="flex items-center space-x-3 pb-4 border-b">
-                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
-                  <User className="w-6 h-6 text-gray-600" />
+              <div className="flex items-center space-x-3 border-b pb-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+                  <User className="h-6 w-6 text-gray-600" />
                 </div>
                 <div>
                   <h3 className="font-medium text-gray-900">
                     {isLoaded && user
                       ? `Welcome back, ${user.firstName || user.fullName}!`
-                      : "Welcome back!"}
+                      : 'Welcome back!'}
                   </h3>
-                  <p className="text-sm text-gray-500">Manage your account</p>
+                  <p className="text-gray-500 text-sm">Manage your account</p>
                 </div>
               </div>
 
-              <div className="py-3 space-y-1">
+              <div className="space-y-1 py-3">
                 <Link
                   href="/profile"
-                  className="flex items-center space-x-3 px-3 py-2 text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+                  className="flex items-center space-x-3 rounded-md px-3 py-2 text-gray-700 transition-colors hover:bg-gray-50"
                 >
-                  <User className="w-5 h-5" />
+                  <User className="h-5 w-5" />
                   <span>Profile</span>
                 </Link>
                 <Link
                   href="/my-images"
-                  className="flex items-center space-x-3 px-3 py-2 text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+                  className="flex items-center space-x-3 rounded-md px-3 py-2 text-gray-700 transition-colors hover:bg-gray-50"
                 >
-                  <Image className="w-5 h-5" />
+                  <Image className="h-5 w-5" />
                   <span>My Images</span>
                 </Link>
                 <Link
                   href="/my-designs"
-                  className="flex items-center space-x-3 px-3 py-2 text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+                  className="flex items-center space-x-3 rounded-md px-3 py-2 text-gray-700 transition-colors hover:bg-gray-50"
                 >
-                  <Heart className="w-5 h-5" />
+                  <Heart className="h-5 w-5" />
                   <span>My Designs</span>
                 </Link>
                 <Link
                   href="/orders"
-                  className="flex items-center space-x-3 px-3 py-2 text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+                  className="flex items-center space-x-3 rounded-md px-3 py-2 text-gray-700 transition-colors hover:bg-gray-50"
                 >
-                  <Package className="w-5 h-5" />
+                  <Package className="h-5 w-5" />
                   <span>Orders</span>
                 </Link>
                 <Link
                   href="/settings"
-                  className="flex items-center space-x-3 px-3 py-2 text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+                  className="flex items-center space-x-3 rounded-md px-3 py-2 text-gray-700 transition-colors hover:bg-gray-50"
                 >
-                  <Settings className="w-5 h-5" />
+                  <Settings className="h-5 w-5" />
                   <span>Settings</span>
                 </Link>
               </div>
 
-              <div className="pt-3 border-t">
+              <div className="border-t pt-3">
                 <button
                   onClick={onSignOut}
-                  className="flex items-center space-x-3 px-3 py-2 text-gray-700 hover:bg-gray-50 rounded-md transition-colors w-full"
+                  className="flex w-full items-center space-x-3 rounded-md px-3 py-2 text-gray-700 transition-colors hover:bg-gray-50"
                 >
-                  <LogOut className="w-5 h-5" />
+                  <LogOut className="h-5 w-5" />
                   <span>Sign Out</span>
                 </button>
               </div>
@@ -156,18 +156,29 @@ export function ProfileDropdown({
           ) : (
             <>
               {/* Sign In View */}
-              <div className="text-center py-4">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <User className="w-8 h-8 text-gray-600" />
+              <div className="py-4 text-center">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
+                  <User className="h-8 w-8 text-gray-600" />
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Welcome to Promptly</h3>
-                <p className="text-sm text-gray-500 mb-4">Sign in to manage your account</p>
+                <h3 className="mb-2 font-medium text-gray-900 text-lg">
+                  Welcome to Promptly
+                </h3>
+                <p className="mb-4 text-gray-500 text-sm">
+                  Sign in to manage your account
+                </p>
                 <div className="space-y-3">
-                  <Button asChild className="w-full bg-black text-white hover:bg-gray-800">
-                    <Link href={`${process.env.NEXT_PUBLIC_APP_URL}/sign-in`}>Sign In</Link>
+                  <Button
+                    asChild
+                    className="w-full bg-black text-white hover:bg-gray-800"
+                  >
+                    <Link href={`${process.env.NEXT_PUBLIC_APP_URL}/sign-in`}>
+                      Sign In
+                    </Link>
                   </Button>
                   <Button asChild variant="outline" className="w-full">
-                    <Link href={`${process.env.NEXT_PUBLIC_APP_URL}/sign-up`}>Create Account</Link>
+                    <Link href={`${process.env.NEXT_PUBLIC_APP_URL}/sign-up`}>
+                      Create Account
+                    </Link>
                   </Button>
                 </div>
               </div>

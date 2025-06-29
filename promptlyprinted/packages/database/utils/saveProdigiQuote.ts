@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { ProdigiQuoteResponse } from './getProdigiQuote.js';
+import type { ProdigiQuoteResponse } from './getProdigiQuote.js';
 
 const prisma = new PrismaClient();
 
@@ -127,4 +127,4 @@ export async function saveProdigiQuote(quoteResponse: ProdigiQuoteResponse) {
 
     return savedQuote;
   });
-} 
+}

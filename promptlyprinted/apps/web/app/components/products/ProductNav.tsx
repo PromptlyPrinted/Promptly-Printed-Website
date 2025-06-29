@@ -24,7 +24,7 @@ export function ProductNav() {
             <Link
               key={category.href}
               href={category.href}
-              className={`border-b-2 py-4 text-sm font-medium transition-colors hover:text-gray-900 ${
+              className={`border-b-2 py-4 font-medium text-sm transition-colors hover:text-gray-900 ${
                 pathname === category.href
                   ? 'border-black text-gray-900'
                   : 'border-transparent text-gray-600'
@@ -37,4 +37,4 @@ export function ProductNav() {
       </div>
     </nav>
   );
-} 
+}

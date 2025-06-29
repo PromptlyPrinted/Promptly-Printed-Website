@@ -1,8 +1,15 @@
-import { type Order, type User } from "@prisma/client";
-import { startOfDay, startOfWeek, startOfMonth, subDays, subMonths, subWeeks } from "date-fns";
+import type { Order, User } from '@prisma/client';
+import {
+  startOfDay,
+  startOfMonth,
+  startOfWeek,
+  subDays,
+  subMonths,
+  subWeeks,
+} from 'date-fns';
 
-export type MetricPeriod = "daily" | "weekly" | "monthly";
-export type MetricTrend = "up" | "down" | "neutral";
+export type MetricPeriod = 'daily' | 'weekly' | 'monthly';
+export type MetricTrend = 'up' | 'down' | 'neutral';
 
 interface MetricData {
   current: number;
@@ -18,26 +25,34 @@ export interface AdvancedMetrics {
   averageOrderValue: Record<MetricPeriod, MetricData>;
 }
 
-function calculateTrend(current: number, previous: number): { trend: MetricTrend; percentageChange: number } {
-  if (previous === 0) return { trend: "neutral", percentageChange: 0 };
-  
+function calculateTrend(
+  current: number,
+  previous: number
+): { trend: MetricTrend; percentageChange: number } {
+  if (previous === 0) return { trend: 'neutral', percentageChange: 0 };
+
   const percentageChange = ((current - previous) / previous) * 100;
-  const trend: MetricTrend = percentageChange > 0 ? "up" : percentageChange < 0 ? "down" : "neutral";
-  
+  const trend: MetricTrend =
+    percentageChange > 0 ? 'up' : percentageChange < 0 ? 'down' : 'neutral';
+
   return { trend, percentageChange: Math.abs(percentageChange) };
 }
 
 function filterOrdersByDateRange(orders: Order[], startDate: Date): Order[] {
-  return orders.filter(order => order.createdAt >= startDate && order.createdAt <= new Date());
+  return orders.filter(
+    (order) => order.createdAt >= startDate && order.createdAt <= new Date()
+  );
 }
 
 function filterUsersByDateRange(users: User[], startDate: Date): User[] {
-  return users.filter(user => user.createdAt >= startDate && user.createdAt <= new Date());
+  return users.filter(
+    (user) => user.createdAt >= startDate && user.createdAt <= new Date()
+  );
 }
 
 export function calculateMetrics(
   orders: Order[],
-  users: User[],
+  users: User[]
 ): AdvancedMetrics {
   const now = new Date();
   const metrics: AdvancedMetrics = {
@@ -48,21 +63,21 @@ export function calculateMetrics(
   };
 
   // Calculate metrics for each period
-  (["daily", "weekly", "monthly"] as const).forEach((period: MetricPeriod) => {
+  (['daily', 'weekly', 'monthly'] as const).forEach((period: MetricPeriod) => {
     // Define date ranges
     let currentStart: Date;
     let previousStart: Date;
 
     switch (period) {
-      case "daily":
+      case 'daily':
         currentStart = startOfDay(now);
         previousStart = startOfDay(subDays(now, 1));
         break;
-      case "weekly":
+      case 'weekly':
         currentStart = startOfWeek(now);
         previousStart = startOfWeek(subWeeks(now, 1));
         break;
-      case "monthly":
+      case 'monthly':
         currentStart = startOfMonth(now);
         previousStart = startOfMonth(subMonths(now, 1));
         break;
@@ -71,14 +86,22 @@ export function calculateMetrics(
     // Current period data
     const currentOrders = filterOrdersByDateRange(orders, currentStart);
     const currentUsers = filterUsersByDateRange(users, currentStart);
-    const currentSales = currentOrders.reduce((sum, order) => sum + order.totalPrice, 0);
-    const currentAvgOrder = currentOrders.length > 0 ? currentSales / currentOrders.length : 0;
+    const currentSales = currentOrders.reduce(
+      (sum, order) => sum + order.totalPrice,
+      0
+    );
+    const currentAvgOrder =
+      currentOrders.length > 0 ? currentSales / currentOrders.length : 0;
 
     // Previous period data
     const previousOrders = filterOrdersByDateRange(orders, previousStart);
     const previousUsers = filterUsersByDateRange(users, previousStart);
-    const previousSales = previousOrders.reduce((sum, order) => sum + order.totalPrice, 0);
-    const previousAvgOrder = previousOrders.length > 0 ? previousSales / previousOrders.length : 0;
+    const previousSales = previousOrders.reduce(
+      (sum, order) => sum + order.totalPrice,
+      0
+    );
+    const previousAvgOrder =
+      previousOrders.length > 0 ? previousSales / previousOrders.length : 0;
 
     // Calculate trends
     metrics.sales[period] = {
@@ -107,4 +130,4 @@ export function calculateMetrics(
   });
 
   return metrics;
-} 
+}

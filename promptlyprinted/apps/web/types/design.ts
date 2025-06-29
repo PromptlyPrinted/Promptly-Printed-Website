@@ -1,10 +1,10 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 // Schema for saving a new design
 export const SaveDesignSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  imageUrl: z.string().min(1, "Image URL is required"),
-  productId: z.number().int().positive("Product ID is required"),
+  name: z.string().min(1, 'Name is required'),
+  imageUrl: z.string().min(1, 'Image URL is required'),
+  productId: z.number().int().positive('Product ID is required'),
 });
 
 export type SaveDesignInput = z.infer<typeof SaveDesignSchema>;
@@ -17,11 +17,13 @@ export const DesignResponseSchema = z.object({
   createdAt: z.string(),
   updatedAt: z.string(),
   productId: z.number().nullable(),
-  product: z.object({
-    name: z.string(),
-    sku: z.string(),
-    color: z.array(z.string()),
-  }).nullable(),
+  product: z
+    .object({
+      name: z.string(),
+      sku: z.string(),
+      color: z.array(z.string()),
+    })
+    .nullable(),
 });
 
 export type DesignResponse = z.infer<typeof DesignResponseSchema>;

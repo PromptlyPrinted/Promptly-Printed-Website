@@ -1,7 +1,6 @@
 import { auth } from '@repo/auth/server';
 import { database } from '@repo/database';
-import { notFound } from 'next/navigation';
-import { Card } from "@repo/design-system/components/ui/card";
+import { Card } from '@repo/design-system/components/ui/card';
 import {
   Table,
   TableBody,
@@ -9,8 +8,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@repo/design-system/components/ui/table";
+} from '@repo/design-system/components/ui/table';
 import { env } from '@repo/env';
+import { notFound } from 'next/navigation';
 
 export const metadata = {
   title: 'Settings - Admin Dashboard',
@@ -25,7 +25,10 @@ function maskValue(value: string | undefined): string {
 }
 
 // Function to check if an environment variable exists
-function getEnvStatus(value: string | undefined): { status: string; color: string } {
+function getEnvStatus(value: string | undefined): {
+  status: string;
+  color: string;
+} {
   if (!value) {
     return { status: 'Not Configured', color: 'bg-red-100 text-red-800' };
   }
@@ -44,7 +47,7 @@ export default async function SettingsPage() {
     select: { role: true },
   });
 
-  if (user?.role !== "ADMIN") {
+  if (user?.role !== 'ADMIN') {
     notFound();
   }
 
@@ -52,15 +55,23 @@ export default async function SettingsPage() {
   const envVariables = [
     { name: 'DATABASE_URL', value: env.DATABASE_URL, isSensitive: true },
     { name: 'SVIX_TOKEN', value: process.env.SVIX_TOKEN, isSensitive: true },
-    { name: 'FLAGS_SECRET', value: process.env.FLAGS_SECRET, isSensitive: true },
-    { name: 'BASEHUB_TOKEN', value: process.env.BASEHUB_TOKEN, isSensitive: true },
+    {
+      name: 'FLAGS_SECRET',
+      value: process.env.FLAGS_SECRET,
+      isSensitive: true,
+    },
+    {
+      name: 'BASEHUB_TOKEN',
+      value: process.env.BASEHUB_TOKEN,
+      isSensitive: true,
+    },
     { name: 'NODE_ENV', value: process.env.NODE_ENV, isSensitive: false },
   ];
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">System Settings</h1>
+    <div className="container mx-auto space-y-6 p-6">
+      <div className="flex items-center justify-between">
+        <h1 className="font-bold text-3xl">System Settings</h1>
       </div>
 
       <Card>
@@ -79,17 +90,19 @@ export default async function SettingsPage() {
                 <TableRow key={variable.name}>
                   <TableCell className="font-mono">{variable.name}</TableCell>
                   <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs ${status.color}`}>
+                    <span
+                      className={`rounded-full px-2 py-1 text-xs ${status.color}`}
+                    >
                       {status.status}
                     </span>
                   </TableCell>
                   <TableCell>
                     {variable.isSensitive ? (
-                      <code className="px-2 py-1 bg-gray-100 rounded">
+                      <code className="rounded bg-gray-100 px-2 py-1">
                         {maskValue(variable.value)}
                       </code>
                     ) : (
-                      <code className="px-2 py-1 bg-gray-100 rounded">
+                      <code className="rounded bg-gray-100 px-2 py-1">
                         {variable.value || 'Not set'}
                       </code>
                     )}
@@ -101,9 +114,9 @@ export default async function SettingsPage() {
         </Table>
       </Card>
 
-      <div className="text-sm text-gray-500">
+      <div className="text-gray-500 text-sm">
         <p>Note: Sensitive values are partially masked for security reasons.</p>
       </div>
     </div>
   );
-} 
+}

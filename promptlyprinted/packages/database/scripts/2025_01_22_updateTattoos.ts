@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
-import fetch from 'node-fetch';
 import * as dotenv from 'dotenv';
+import fetch from 'node-fetch';
 
 dotenv.config();
 
@@ -30,12 +30,23 @@ const SUPPORTED_COUNTRIES = [
 ];
 
 const tattooGroups = {
-  "Small Tattoos": [
-    { sku: "GLOBAL-TATT-S", price: "9.99", name: "2x3-inch Temporary Tattoo", description: "Small round temporary tattoo, perfect for simple designs and symbols." },
+  'Small Tattoos': [
+    {
+      sku: 'GLOBAL-TATT-S',
+      price: '9.99',
+      name: '2x3-inch Temporary Tattoo',
+      description:
+        'Small round temporary tattoo, perfect for simple designs and symbols.',
+    },
   ],
-  "Medium Tattoos": [
-    { sku: "GLOBAL-TATT-M", price: "16.99", name: "3x4-inch Temporary Tattoo", description: "Medium temporary tattoo for detailed artwork." },
-   ]
+  'Medium Tattoos': [
+    {
+      sku: 'GLOBAL-TATT-M',
+      price: '16.99',
+      name: '3x4-inch Temporary Tattoo',
+      description: 'Medium temporary tattoo for detailed artwork.',
+    },
+  ],
 };
 
 interface ProdigiProduct {
@@ -73,13 +84,15 @@ interface ExchangeRateResponse {
 }
 
 function delay(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function getExchangeRates(): Promise<Record<string, number>> {
   try {
-    const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
-    const data = await response.json() as ExchangeRateResponse;
+    const response = await fetch(
+      'https://api.exchangerate-api.com/v4/latest/USD'
+    );
+    const data = (await response.json()) as ExchangeRateResponse;
     return data.rates;
   } catch (error) {
     console.error('Error fetching exchange rates:', error);
@@ -95,12 +108,15 @@ async function getProdigiProduct(sku: string): Promise<ProdigiProduct | null> {
   try {
     await delay(1000); // Rate limiting
 
-    const response = await fetch(`https://api.prodigi.com/v4.0/products/${sku}`, {
-      headers: {
-        'X-API-Key': process.env.PRODIGI_API_KEY!,
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await fetch(
+      `https://api.prodigi.com/v4.0/products/${sku}`,
+      {
+        headers: {
+          'X-API-Key': process.env.PRODIGI_API_KEY!,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
 
     if (response.status === 429) {
       console.warn(`Rate limit hit for SKU ${sku}, waiting 30s...`);
@@ -112,7 +128,7 @@ async function getProdigiProduct(sku: string): Promise<ProdigiProduct | null> {
       throw new Error(`API error: ${response.status}`);
     }
 
-    const data = await response.json() as ProdigiResponse;
+    const data = (await response.json()) as ProdigiResponse;
     return data.product || null;
   } catch (error) {
     console.error(`Error fetching product ${sku}:`, error);
@@ -122,13 +138,18 @@ async function getProdigiProduct(sku: string): Promise<ProdigiProduct | null> {
 
 async function updateTattoo(
   groupName: string,
-  { sku, price, name, description }: { sku: string; price: string; name: string; description: string },
+  {
+    sku,
+    price,
+    name,
+    description,
+  }: { sku: string; price: string; name: string; description: string },
   exchangeRates: Record<string, number>
 ) {
   try {
     console.log(`Processing ${groupName} - ${sku}`);
 
-    const priceUSD = parseFloat(price);
+    const priceUSD = Number.parseFloat(price);
 
     // For each supported country
     for (const country of SUPPORTED_COUNTRIES) {
@@ -140,7 +161,7 @@ async function updateTattoo(
       try {
         await prisma.product.upsert({
           where: {
-            sku: sku
+            sku: sku,
           },
           update: {
             name,
@@ -151,25 +172,25 @@ async function updateTattoo(
             taxAmount: 0,
             totalCost: localPrice,
             customerPrice: localPrice,
-            productType: "TEMPORARY_TATTOO",
+            productType: 'TEMPORARY_TATTOO',
             listed: true,
             width: 0,
             height: 0,
-            units: "IN",
-            brand: "Custom Brand",
-            edge: "Standard",
-            color: ["Black"],
-            gender: "Unisex",
-            size: ["Standard"],
-            style: "Standard",
+            units: 'IN',
+            brand: 'Custom Brand',
+            edge: 'Standard',
+            color: ['Black'],
+            gender: 'Unisex',
+            size: ['Standard'],
+            style: 'Standard',
             countryCode,
             category: {
               connectOrCreate: {
                 where: { name: groupName },
-                create: { name: groupName }
-              }
+                create: { name: groupName },
+              },
             },
-            updatedAt: new Date()
+            updatedAt: new Date(),
           },
           create: {
             sku,
@@ -181,28 +202,30 @@ async function updateTattoo(
             taxAmount: 0,
             totalCost: localPrice,
             customerPrice: localPrice,
-            productType: "TEMPORARY_TATTOO",
+            productType: 'TEMPORARY_TATTOO',
             listed: true,
             width: 0,
             height: 0,
-            units: "IN",
-            brand: "Custom Brand",
-            edge: "Standard",
-            color: ["Black"],
-            gender: "Unisex",
-            size: ["Standard"],
-            style: "Standard",
+            units: 'IN',
+            brand: 'Custom Brand',
+            edge: 'Standard',
+            color: ['Black'],
+            gender: 'Unisex',
+            size: ['Standard'],
+            style: 'Standard',
             countryCode,
             category: {
               connectOrCreate: {
                 where: { name: groupName },
-                create: { name: groupName }
-              }
-            }
-          }
+                create: { name: groupName },
+              },
+            },
+          },
         });
 
-        console.log(`Updated ${sku} for ${countryCode} (${currency} ${localPrice})`);
+        console.log(
+          `Updated ${sku} for ${countryCode} (${currency} ${localPrice})`
+        );
       } catch (error) {
         console.error(`Error updating ${sku} for ${countryCode}:`, error);
       }
@@ -218,7 +241,7 @@ async function main() {
 
   for (const [groupName, products] of Object.entries(tattooGroups)) {
     console.log(`\nProcessing ${groupName}...`);
-    
+
     for (const product of products) {
       await updateTattoo(groupName, product, exchangeRates);
     }
@@ -232,4 +255,4 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
-  }); 
+  });

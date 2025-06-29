@@ -11,10 +11,10 @@ import {
 } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import { users } from '@clerk/nextjs';
+import { PrismaClient } from '@prisma/client';
 import chalk from 'chalk';
 import { program } from 'commander';
-import { PrismaClient } from '@prisma/client';
-import { users } from '@clerk/nextjs';
 const { log } = console;
 
 const url = 'https://github.com/haydenbleasel/next-forge';
@@ -41,10 +41,10 @@ const database = new PrismaClient();
 async function syncClerkUsers() {
   try {
     console.log('Starting Clerk users sync...');
-    
+
     // Get all users from Clerk
     const clerkUsers = await users.getUserList();
-    
+
     console.log(`Found ${clerkUsers.data.length} users in Clerk`);
 
     // Create or update each user in the database
@@ -75,10 +75,10 @@ async function syncClerkUsers() {
 // Export the sync function
 export const initializeDatabase = async () => {
   console.log('Initializing database...');
-  
+
   // Sync Clerk users
   await syncClerkUsers();
-  
+
   console.log('Database initialization complete');
 };
 

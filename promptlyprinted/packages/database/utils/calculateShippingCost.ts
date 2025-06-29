@@ -1,11 +1,11 @@
-import { PrismaClient, ShippingMethod } from '@prisma/client';
+import { PrismaClient, type ShippingMethod } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 export async function calculateShippingCost(
   method: ShippingMethod,
   itemCount: number,
-  currency: string = 'USD'
+  currency = 'USD'
 ): Promise<number> {
   try {
     // Get the shipping price for the specified method and currency
@@ -19,13 +19,16 @@ export async function calculateShippingCost(
     });
 
     if (!shippingPrice) {
-      throw new Error(`No shipping price found for method ${method} and currency ${currency}`);
+      throw new Error(
+        `No shipping price found for method ${method} and currency ${currency}`
+      );
     }
 
     // Calculate total shipping cost
     // Base price + (additional item price * (number of items - 1))
-    const totalShippingCost = shippingPrice.basePrice + 
-      (shippingPrice.additionalItemPrice * Math.max(0, itemCount - 1));
+    const totalShippingCost =
+      shippingPrice.basePrice +
+      shippingPrice.additionalItemPrice * Math.max(0, itemCount - 1);
 
     // Round to 2 decimal places
     return Math.round(totalShippingCost * 100) / 100;
@@ -33,4 +36,4 @@ export async function calculateShippingCost(
     console.error('Error calculating shipping cost:', error);
     throw error;
   }
-} 
+}

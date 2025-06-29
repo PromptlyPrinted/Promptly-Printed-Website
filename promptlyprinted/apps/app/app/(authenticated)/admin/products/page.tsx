@@ -1,14 +1,14 @@
-import { Suspense } from "react";
-import { ProductsClient } from "./components/products-client";
-import { Skeleton } from "@repo/design-system/components/ui/skeleton";
-import { checkAdmin } from "@/lib/auth-utils";
-import { database as db } from "@repo/database";
+import { checkAdmin } from '@/lib/auth-utils';
+import { database as db } from '@repo/database';
+import { Skeleton } from '@repo/design-system/components/ui/skeleton';
+import { Suspense } from 'react';
+import { ProductsClient } from './components/products-client';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 const ITEMS_PER_PAGE = 50;
-const DEFAULT_COUNTRY = "GB";
+const DEFAULT_COUNTRY = 'GB';
 
 // Supported countries with their currencies
 const SUPPORTED_COUNTRIES = [
@@ -37,7 +37,7 @@ const SUPPORTED_COUNTRIES = [
 export default async function ProductsPage({
   searchParams,
 }: {
-  searchParams?: { 
+  searchParams?: {
     page?: string;
     country?: string;
     search?: string;
@@ -55,27 +55,30 @@ export default async function ProductsPage({
   const skip = (currentPage - 1) * ITEMS_PER_PAGE;
 
   // Ensure the country code is in the supported list or "all"
-  if (countryCode !== "all" && !SUPPORTED_COUNTRIES.find(c => c.code === countryCode)) {
+  if (
+    countryCode !== 'all' &&
+    !SUPPORTED_COUNTRIES.find((c) => c.code === countryCode)
+  ) {
     throw new Error(`Unsupported country code: ${countryCode}`);
   }
 
   // Build where clause based on filters
   const where: any = {};
-  
-  if (countryCode !== "all") {
+
+  if (countryCode !== 'all') {
     where.countryCode = countryCode;
   }
 
   if (searchParams?.search) {
     where.OR = [
       { name: { contains: searchParams.search, mode: 'insensitive' } },
-      { sku: { contains: searchParams.search, mode: 'insensitive' } }
+      { sku: { contains: searchParams.search, mode: 'insensitive' } },
     ];
   }
 
   if (searchParams?.category) {
     where.category = {
-      name: searchParams.category
+      name: searchParams.category,
     };
   }
 
@@ -90,10 +93,10 @@ export default async function ProductsPage({
   if (searchParams?.minPrice || searchParams?.maxPrice) {
     where.customerPrice = {};
     if (searchParams?.minPrice) {
-      where.customerPrice.gte = parseFloat(searchParams.minPrice);
+      where.customerPrice.gte = Number.parseFloat(searchParams.minPrice);
     }
     if (searchParams?.maxPrice) {
-      where.customerPrice.lte = parseFloat(searchParams.maxPrice);
+      where.customerPrice.lte = Number.parseFloat(searchParams.maxPrice);
     }
   }
 
@@ -128,7 +131,7 @@ export default async function ProductsPage({
         },
       },
       orderBy: {
-        createdAt: "desc",
+        createdAt: 'desc',
       },
     }),
     db.category.findMany({
@@ -137,31 +140,31 @@ export default async function ProductsPage({
         name: true,
       },
       orderBy: {
-        name: "asc",
+        name: 'asc',
       },
     }),
     db.product.count({ where }),
   ]);
 
   const totalPages = Math.ceil(totalProducts / ITEMS_PER_PAGE);
-  
+
   return (
     <div className="flex h-full flex-1 flex-col space-y-8 p-8">
       <div className="flex items-center justify-between space-y-2">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Products</h2>
+          <h2 className="font-bold text-2xl tracking-tight">Products</h2>
           <p className="text-muted-foreground">
             Manage your product catalog and inventory
           </p>
         </div>
       </div>
       <Suspense fallback={<Skeleton className="h-[calc(100vh-12rem)]" />}>
-        <ProductsClient 
-          initialProducts={products} 
+        <ProductsClient
+          initialProducts={products}
           categories={categories}
           currentPage={currentPage}
           totalPages={totalPages}
-          countries={SUPPORTED_COUNTRIES.map(c => c.code)}
+          countries={SUPPORTED_COUNTRIES.map((c) => c.code)}
           selectedCountry={countryCode}
         />
       </Suspense>

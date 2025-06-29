@@ -1,16 +1,16 @@
 import { PrismaClient } from '@prisma/client';
-import fetch from 'node-fetch';
 import * as dotenv from 'dotenv';
+import fetch from 'node-fetch';
 
 dotenv.config();
 
 const prisma = new PrismaClient();
 
 // Configuration
-const BATCH_SIZE = 10;  // Process 10 products at a time
-const DELAY_BETWEEN_PRODUCTS = 1000;  // 1 second between products
+const BATCH_SIZE = 10; // Process 10 products at a time
+const DELAY_BETWEEN_PRODUCTS = 1000; // 1 second between products
 const MAX_RETRIES = 3;
-const INITIAL_RETRY_DELAY = 30000;  // 30 seconds
+const INITIAL_RETRY_DELAY = 30000; // 30 seconds
 
 // A simpler interface for re-fetching pricing
 interface ProdigiPricing {
@@ -41,22 +41,22 @@ interface ProdigiPricing {
 // ADDED: Minimal guess function if you want to re-check productType
 function guessProductType(sku: string): string {
   const skuUpper = sku.toUpperCase();
-  if (skuUpper.includes("AP-WS")) return "WATCH_STRAP";
-  if (skuUpper.includes("CUSH")) return "CUSHION";
-  if (skuUpper.includes("TATT")) return "TATTOO";
-  if (skuUpper.includes("STI")) return "STICKER";
-  if (skuUpper.includes("BOARD")) return "GALLERY_BOARD";
-  if (skuUpper.includes("PRISM")) return "ACRYLIC_PRISM";
-  if (skuUpper.includes("GITD")) return "GLOW_IN_THE_DARK_PRINT";
-  if (skuUpper.includes("PAP")) return "PHOTO_PAPER";
-  if (skuUpper.includes("HGE")) return "HAHNEMUHLE_ETCHING";
-  if (skuUpper.includes("NB-"))  return "NOTEBOOK";
+  if (skuUpper.includes('AP-WS')) return 'WATCH_STRAP';
+  if (skuUpper.includes('CUSH')) return 'CUSHION';
+  if (skuUpper.includes('TATT')) return 'TATTOO';
+  if (skuUpper.includes('STI')) return 'STICKER';
+  if (skuUpper.includes('BOARD')) return 'GALLERY_BOARD';
+  if (skuUpper.includes('PRISM')) return 'ACRYLIC_PRISM';
+  if (skuUpper.includes('GITD')) return 'GLOW_IN_THE_DARK_PRINT';
+  if (skuUpper.includes('PAP')) return 'PHOTO_PAPER';
+  if (skuUpper.includes('HGE')) return 'HAHNEMUHLE_ETCHING';
+  if (skuUpper.includes('NB-')) return 'NOTEBOOK';
   // fallback
-  return "APPAREL";
+  return 'APPAREL';
 }
 
 async function delay(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -85,10 +85,10 @@ async function getProdigiPricingWithRetry(
       baseSku = fullSku.slice(0, indexDash);
     }
 
-    await new Promise(res => setTimeout(res, 500));
+    await new Promise((res) => setTimeout(res, 500));
 
     // Get quotes for all shipping methods
-    const shippingMethods = ["Budget", "Standard", "Express", "Overnight"];
+    const shippingMethods = ['Budget', 'Standard', 'Express', 'Overnight'];
     const quotes = await Promise.all(
       shippingMethods.map(async (method) => {
         const response = await fetch(`https://api.prodigi.com/v4.0/quotes`, {
@@ -100,12 +100,14 @@ async function getProdigiPricingWithRetry(
           body: JSON.stringify({
             shippingMethod: method,
             destinationCountryCode: countryCode,
-            items: [{
-              sku: baseSku,
-              copies: 1,
-              assets: [{ printArea: "default" }]
-            }]
-          })
+            items: [
+              {
+                sku: baseSku,
+                copies: 1,
+                assets: [{ printArea: 'default' }],
+              },
+            ],
+          }),
         });
 
         if (!response.ok) {
@@ -115,38 +117,42 @@ async function getProdigiPricingWithRetry(
           return null;
         }
 
-        const data = await response.json() as ProdigiPricing;
-        return data.outcome === 'Created' ? { method, quote: data.quotes[0] } : null;
+        const data = (await response.json()) as ProdigiPricing;
+        return data.outcome === 'Created'
+          ? { method, quote: data.quotes[0] }
+          : null;
       })
     );
 
     // Filter out failed quotes
-    const validQuotes = quotes.filter(q => q !== null);
+    const validQuotes = quotes.filter((q) => q !== null);
     if (!validQuotes.length) {
       console.error(`No valid quotes for SKU [${fullSku}]`);
       return null;
     }
 
     // Get the budget quote for base pricing
-    const budgetQuote = validQuotes.find(q => q?.method === "Budget")?.quote;
+    const budgetQuote = validQuotes.find((q) => q?.method === 'Budget')?.quote;
     if (!budgetQuote) {
       console.error(`No budget quote available for SKU [${fullSku}]`);
       return null;
     }
 
     const item = budgetQuote.items[0];
-    const basePrice = parseFloat(item.unitCost.amount || '0');
-    const shippingCost = parseFloat(budgetQuote.costSummary.shipping.amount || '0');
+    const basePrice = Number.parseFloat(item.unitCost.amount || '0');
+    const shippingCost = Number.parseFloat(
+      budgetQuote.costSummary.shipping.amount || '0'
+    );
     const taxAmount = budgetQuote.costSummary.totalTax
-      ? parseFloat(budgetQuote.costSummary.totalTax.amount || '0')
+      ? Number.parseFloat(budgetQuote.costSummary.totalTax.amount || '0')
       : 0;
     const totalCost = budgetQuote.costSummary.totalCost
-      ? parseFloat(budgetQuote.costSummary.totalCost.amount || '0')
+      ? Number.parseFloat(budgetQuote.costSummary.totalCost.amount || '0')
       : basePrice + shippingCost + taxAmount;
 
     // For budget shipping: customer price is 3x total cost with free shipping
     const customerPrice = totalCost * 3;
-      
+
     return {
       currency: item.unitCost.currency,
       basePrice,
@@ -154,14 +160,18 @@ async function getProdigiPricingWithRetry(
       taxAmount,
       totalCost,
       customerPrice,
-      fulfillmentCountryCode: budgetQuote.shipments[0]?.fulfillmentLocation.countryCode || '',
-      fulfillmentLabCode: budgetQuote.shipments[0]?.fulfillmentLocation.labCode || '',
-      availableShippingMethods: validQuotes.map(q => q!.method)
+      fulfillmentCountryCode:
+        budgetQuote.shipments[0]?.fulfillmentLocation.countryCode || '',
+      fulfillmentLabCode:
+        budgetQuote.shipments[0]?.fulfillmentLocation.labCode || '',
+      availableShippingMethods: validQuotes.map((q) => q!.method),
     };
   } catch (error: any) {
     if (error.message === 'Rate limit exceeded' && retryCount < MAX_RETRIES) {
       const retryDelay = INITIAL_RETRY_DELAY * Math.pow(2, retryCount);
-      console.warn(`Rate limit hit for SKU [${fullSku}], retry ${retryCount + 1} in ${retryDelay/1000}s...`);
+      console.warn(
+        `Rate limit hit for SKU [${fullSku}], retry ${retryCount + 1} in ${retryDelay / 1000}s...`
+      );
       await delay(retryDelay);
       return getProdigiPricingWithRetry(fullSku, countryCode, retryCount + 1);
     }
@@ -170,12 +180,22 @@ async function getProdigiPricingWithRetry(
   }
 }
 
-async function processBatch(products: Array<{ id: number; sku: string; countryCode: string; productType: string }>) {
+async function processBatch(
+  products: Array<{
+    id: number;
+    sku: string;
+    countryCode: string;
+    productType: string;
+  }>
+) {
   for (const p of products) {
     try {
       console.log(`Processing [${p.sku}] for country [${p.countryCode}]...`);
 
-      const pricing = await getProdigiPricingWithRetry(p.sku, p.countryCode || 'US');
+      const pricing = await getProdigiPricingWithRetry(
+        p.sku,
+        p.countryCode || 'US'
+      );
       if (!pricing) {
         console.warn(`No updated pricing for [${p.sku}]`);
         continue;
@@ -203,7 +223,9 @@ async function processBatch(products: Array<{ id: number; sku: string; countryCo
           updatedAt: new Date(),
         },
       });
-      console.log(`  => Successfully updated [${p.sku}] with productType [${newProductType}]`);
+      console.log(
+        `  => Successfully updated [${p.sku}] with productType [${newProductType}]`
+      );
 
       // Add delay between products
       await delay(DELAY_BETWEEN_PRODUCTS);
@@ -240,7 +262,9 @@ async function updateProductPrices() {
     // Process in batches
     for (let i = 0; i < products.length; i += BATCH_SIZE) {
       const batch = products.slice(i, i + BATCH_SIZE);
-      console.log(`Processing batch ${Math.floor(i/BATCH_SIZE) + 1} of ${Math.ceil(products.length/BATCH_SIZE)}...`);
+      console.log(
+        `Processing batch ${Math.floor(i / BATCH_SIZE) + 1} of ${Math.ceil(products.length / BATCH_SIZE)}...`
+      );
       await processBatch(batch);
     }
 

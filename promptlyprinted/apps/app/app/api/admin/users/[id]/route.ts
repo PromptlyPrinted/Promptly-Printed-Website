@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { auth } from "@clerk/nextjs/server";
+import { auth } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
 
 export async function GET(
   request: Request,
@@ -9,7 +9,7 @@ export async function GET(
   try {
     const { id } = context.params;
     const session = await auth();
-    
+
     if (!session?.userId) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
@@ -58,7 +58,7 @@ export async function PATCH(
   try {
     const { id } = context.params;
     const session = await auth();
-    
+
     if (!session?.userId) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
@@ -102,4 +102,4 @@ export async function PATCH(
     console.error('Error in user PATCH route:', error);
     return new NextResponse('Internal Server Error', { status: 500 });
   }
-} 
+}

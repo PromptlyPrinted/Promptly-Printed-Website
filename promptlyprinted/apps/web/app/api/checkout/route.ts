@@ -1,12 +1,12 @@
-import { Prisma, OrderStatus, ShippingMethod } from '@repo/database';
-import { prisma } from '@repo/database';
-import { auth } from '@clerk/nextjs/server';
-import type { User } from '@repo/database';
-import { NextRequest, NextResponse } from 'next/server';
-import { z, ZodError } from 'zod';
-import { temporaryImageStore } from '@/lib/temp-image-store';
 import { randomUUID } from 'crypto';
+import { temporaryImageStore } from '@/lib/temp-image-store';
+import { auth } from '@clerk/nextjs/server';
+import { OrderStatus, ShippingMethod } from '@repo/database';
+import { prisma } from '@repo/database';
+import type { User } from '@repo/database';
+import { type NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { ZodError, z } from 'zod';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-02-24.acacia',
@@ -25,12 +25,12 @@ const CheckoutItemSchema = z.object({
   name: z.string(),
   price: z.number(),
   // Was `quantity`, but your schema uses `copies`:
-  copies: z
-    .coerce.number()
+  copies: z.coerce
+    .number()
     .int()
-    .min(1)         // 1) Apply numeric constraints
-    .optional()     // 2) Allow it to be missing
-    .default(1),    // 3) Default to 1 if missing
+    .min(1) // 1) Apply numeric constraints
+    .optional() // 2) Allow it to be missing
+    .default(1), // 3) Default to 1 if missing
   images: z.array(ImageSchema),
   color: z.string(),
   size: z.string(),
@@ -49,7 +49,7 @@ const CheckoutItemSchema = z.object({
 });
 
 const CheckoutRequestSchema = z.object({
-  items: z.array(CheckoutItemSchema)
+  items: z.array(CheckoutItemSchema),
 });
 
 type ValidatedCheckoutItem = z.infer<typeof CheckoutItemSchema>;
@@ -62,7 +62,13 @@ async function getImageUrl(url: string): Promise<string | null> {
       console.error('Empty image URL provided');
       return null;
     }
-    
+
+    // If it's a base64 image, return it directly
+    if (url.startsWith('data:image')) {
+      console.log('Using base64 image directly');
+      return url;
+    }
+
     // Handle temp: prefix
     if (url.startsWith('temp:')) {
       const tempId = url.split(':')[1];
@@ -74,45 +80,57 @@ async function getImageUrl(url: string): Promise<string | null> {
       console.log('Resolved temp: image URL:', { tempId, url: tempImage.url });
       return tempImage.url;
     }
-    
+
     // Handle save-temp-image URLs
     if (url.includes('/api/save-temp-image')) {
       const idParam = url.match(/[?&]id=([^&]+)/);
       if (idParam) {
         // Try to get the image from the database first
         const savedImage = await prisma.savedImage.findUnique({
-          where: { id: idParam[1] }
+          where: { id: idParam[1] },
         });
-        
+
         if (savedImage) {
-          console.log('Found saved image in database:', { id: idParam[1], url: savedImage.url });
+          console.log('Found saved image in database:', {
+            id: idParam[1],
+            url: savedImage.url,
+          });
           return savedImage.url;
         }
-        
+
         // Fallback to temporary store
         const tempImage = temporaryImageStore.get(idParam[1]);
         if (!tempImage) {
-          console.error('Image not found in database or temporary store:', idParam[1]);
+          console.error(
+            'Image not found in database or temporary store:',
+            idParam[1]
+          );
           return null;
         }
-        console.log('Resolved save-temp-image URL from temporary store:', { id: idParam[1], url: tempImage.url });
+        console.log('Resolved save-temp-image URL from temporary store:', {
+          id: idParam[1],
+          url: tempImage.url,
+        });
         return tempImage.url;
       }
     }
-    
+
     // If it's a relative URL, make it absolute
     if (url.startsWith('/')) {
       const absoluteUrl = `${process.env.NEXT_PUBLIC_APP_URL}${url}`;
-      console.log('Converted relative URL to absolute:', { relative: url, absolute: absoluteUrl });
+      console.log('Converted relative URL to absolute:', {
+        relative: url,
+        absolute: absoluteUrl,
+      });
       return absoluteUrl;
     }
-    
+
     // If it's already an absolute URL, return it
     if (url.startsWith('http')) {
       console.log('Using absolute URL:', url);
       return url;
     }
-    
+
     console.error('Invalid image URL format:', url);
     return null;
   } catch (error) {
@@ -137,14 +155,20 @@ export async function POST(req: NextRequest) {
     console.log(`Authenticated Clerk User ID: ${clerkUserId}`);
 
     // Get success and cancel URLs from query parameters
-    const successUrl = urlObj.searchParams.get('successUrl') || `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
-    const cancelUrl = urlObj.searchParams.get('cancelUrl') || `${origin}/checkout/cancel`;
+    const successUrl =
+      urlObj.searchParams.get('successUrl') ||
+      `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl =
+      urlObj.searchParams.get('cancelUrl') || `${origin}/checkout/cancel`;
 
     let orderItems: ValidatedCheckoutRequest;
     try {
       const body = await req.json();
       orderItems = CheckoutRequestSchema.parse(body);
-      console.log('Parsed Checkout Items:', JSON.stringify(orderItems, null, 2));
+      console.log(
+        'Parsed Checkout Items:',
+        JSON.stringify(orderItems, null, 2)
+      );
     } catch (error: unknown) {
       console.error('Failed to parse request body:', error);
       if (error instanceof ZodError) {
@@ -153,11 +177,17 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
       }
-      return NextResponse.json({ error: 'Failed to parse request body' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Failed to parse request body' },
+        { status: 400 }
+      );
     }
 
     if (!orderItems.items || orderItems.items.length === 0) {
-      return NextResponse.json({ error: 'Checkout items cannot be empty' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Checkout items cannot be empty' },
+        { status: 400 }
+      );
     }
 
     let dbUser: User | null = null;
@@ -167,7 +197,9 @@ export async function POST(req: NextRequest) {
       });
 
       if (!dbUser) {
-        console.error(`User with clerkId ${clerkUserId} not found in the database.`);
+        console.error(
+          `User with clerkId ${clerkUserId} not found in the database.`
+        );
         return NextResponse.json(
           { error: 'User data not found. Please contact support.' },
           { status: 500 }
@@ -175,7 +207,10 @@ export async function POST(req: NextRequest) {
       }
       console.log(`Found existing user with DB ID: ${dbUser.id}`);
 
-      const total = orderItems.items.reduce((acc, item) => acc + item.price * item.copies, 0);
+      const total = orderItems.items.reduce(
+        (acc, item) => acc + item.price * item.copies,
+        0
+      );
       console.log(`Calculated Total Price: ${total}`);
 
       // Build the order creation data
@@ -188,61 +223,80 @@ export async function POST(req: NextRequest) {
         callbackUrl: `${process.env.NEXT_PUBLIC_WEB_URL}/api/webhooks/prodigi`,
         idempotencyKey: randomUUID(),
         metadata: {
-          sourceId: Date.now()
+          sourceId: Date.now(),
         },
         recipient: {
           create: {
-            name: "Pending",
+            name: 'Pending',
             email: dbUser.email,
             phoneNumber: null,
-            addressLine1: "Pending",
-            addressLine2: "",
-            postalCode: "00000",
-            countryCode: "US",
-            city: "Pending",
+            addressLine1: 'Pending',
+            addressLine2: '',
+            postalCode: '00000',
+            countryCode: 'US',
+            city: 'Pending',
             state: null,
-          }
+          },
         },
         orderItems: {
-          create: await Promise.all(orderItems.items.map(async (item) => {
-            // Convert each image object into something we can store in `assets` (JSON),
-            // since there's no separate `images` relation in OrderItem.
-            const resolvedAssets = await Promise.all(item.images.map(async (img) => {
-              const actualUrl = await getImageUrl(img.url);
-              if (!actualUrl) {
-                console.warn(`Could not resolve or invalid image URL: ${img.url} for product ${item.productId}`);
-                return null;
-              }
-              const publicUrl = actualUrl.startsWith('/api/save-temp-image')
-                ? actualUrl
-                : `/api/save-temp-image?url=${encodeURIComponent(actualUrl)}`;
-              return {
-                url: publicUrl,
-                dpi: img.dpi,
-                width: img.width,
-                height: img.height,
-                isPublic: true,
-              };
-            })).then(assets => assets.filter(Boolean));
+          create: await Promise.all(
+            orderItems.items.map(async (item) => {
+              // Convert each image object into something we can store in `assets` (JSON),
+              // since there's no separate `images` relation in OrderItem.
+              const resolvedAssets = await Promise.all(
+                item.images.map(async (img) => {
+                  // If it's a base64 image, use it directly
+                  if (img.url.startsWith('data:image')) {
+                    return {
+                      url: img.url,
+                      dpi: img.dpi,
+                      width: img.width,
+                      height: img.height,
+                      isPublic: true,
+                    };
+                  }
 
-            return {
-              productId: item.productId,   
-              copies: item.copies,
-              price: item.price,
-              assets: resolvedAssets, 
-              merchantReference: item.merchantReference || `item #${item.productId}`,
-              recipientCostAmount: item.recipientCostAmount ?? item.price,
-              recipientCostCurrency: item.currency || "USD",
-              sizing: item.customization?.sizing,
-              attributes: {
-                designUrl: item.designUrl,
-                printArea: item.customization?.printArea,
-                position: item.customization?.position,
-                color: item.color,
-                size: item.size
-              },
-            };
-          })),
+                  // For non-base64 images, resolve the URL
+                  const actualUrl = await getImageUrl(img.url);
+                  if (!actualUrl) {
+                    console.warn(
+                      `Could not resolve or invalid image URL: ${img.url} for product ${item.productId}`
+                    );
+                    return null;
+                  }
+                  const publicUrl = actualUrl.startsWith('/api/save-temp-image')
+                    ? actualUrl
+                    : `/api/save-temp-image?url=${encodeURIComponent(actualUrl)}`;
+                  return {
+                    url: publicUrl,
+                    dpi: img.dpi,
+                    width: img.width,
+                    height: img.height,
+                    isPublic: true,
+                  };
+                })
+              ).then((assets) => assets.filter(Boolean));
+
+              return {
+                productId: item.productId,
+                copies: item.copies,
+                price: item.price,
+                assets: resolvedAssets,
+                merchantReference:
+                  item.merchantReference || `item #${item.productId}`,
+                recipientCostAmount: item.recipientCostAmount ?? item.price,
+                recipientCostCurrency: item.currency || 'USD',
+                sizing: item.customization?.sizing,
+                attributes: {
+                  designUrl: item.designUrl,
+                  printArea: item.customization?.printArea,
+                  position: item.customization?.position,
+                  color: item.color,
+                  size: item.size,
+                },
+              };
+            })
+          ),
         },
       };
 
@@ -257,16 +311,21 @@ export async function POST(req: NextRequest) {
       // Create Stripe checkout session
       const session = await stripe.checkout.sessions.create({
         customer_email: dbUser.email,
-        line_items: orderItems.items.map(item => {
-          const images = item.images.map(img => {
-            const resolvedUrl = getImageUrl(img.url);
-            if (!resolvedUrl) {
-              console.error('Failed to resolve image URL:', img.url);
-              return '';
-            }
-            console.log('Resolved image URL:', { original: img.url, resolved: resolvedUrl });
-            return resolvedUrl;
-          }).filter(Boolean);
+        line_items: orderItems.items.map((item) => {
+          const images = item.images
+            .map((img) => {
+              const resolvedUrl = getImageUrl(img.url);
+              if (!resolvedUrl) {
+                console.error('Failed to resolve image URL:', img.url);
+                return '';
+              }
+              console.log('Resolved image URL:', {
+                original: img.url,
+                resolved: resolvedUrl,
+              });
+              return resolvedUrl;
+            })
+            .filter(Boolean);
 
           if (images.length === 0) {
             console.error('No valid images found for item:', item.productId);
@@ -289,10 +348,10 @@ export async function POST(req: NextRequest) {
         success_url: `${process.env.NEXT_PUBLIC_WEB_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${process.env.NEXT_PUBLIC_WEB_URL}/cancel`,
         metadata: {
-          orderId: order.id.toString()
+          orderId: order.id.toString(),
         },
         shipping_address_collection: {
-          allowed_countries: ['US', 'CA', 'GB', 'AU', 'NZ']
+          allowed_countries: ['US', 'CA', 'GB', 'AU', 'NZ'],
         },
         payment_method_types: ['card', 'link', 'paypal'],
         shipping_options: [
@@ -326,7 +385,7 @@ export async function POST(req: NextRequest) {
       // Update order with Stripe session ID
       await prisma.order.update({
         where: { id: order.id },
-        data: { stripeSessionId: session.id }
+        data: { stripeSessionId: session.id },
       });
 
       // Clean up temporary images
@@ -344,12 +403,23 @@ export async function POST(req: NextRequest) {
       console.error('Error during checkout process:', error);
       if (error instanceof Error) {
         if ('code' in error && typeof (error as any).code === 'string') {
-          console.error(`Prisma Error Code: ${(error as any).code}, Meta: ${JSON.stringify((error as any).meta)}`);
+          console.error(
+            `Prisma Error Code: ${(error as any).code}, Meta: ${JSON.stringify((error as any).meta)}`
+          );
         }
-        return NextResponse.json({ error: 'Failed to create order', details: error.message }, { status: 500 });
+        return NextResponse.json(
+          { error: 'Failed to create order', details: error.message },
+          { status: 500 }
+        );
       } else {
         console.error('Unknown checkout error:', JSON.stringify(error));
-        return NextResponse.json({ error: 'Failed to create order', details: 'An unknown error occurred' }, { status: 500 });
+        return NextResponse.json(
+          {
+            error: 'Failed to create order',
+            details: 'An unknown error occurred',
+          },
+          { status: 500 }
+        );
       }
     } finally {
       await prisma.$disconnect();
@@ -358,12 +428,23 @@ export async function POST(req: NextRequest) {
     console.error('Error during checkout process:', error);
     if (error instanceof Error) {
       if ('code' in error && typeof (error as any).code === 'string') {
-        console.error(`Prisma Error Code: ${(error as any).code}, Meta: ${JSON.stringify((error as any).meta)}`);
+        console.error(
+          `Prisma Error Code: ${(error as any).code}, Meta: ${JSON.stringify((error as any).meta)}`
+        );
       }
-      return NextResponse.json({ error: 'Failed to create order', details: error.message }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to create order', details: error.message },
+        { status: 500 }
+      );
     } else {
       console.error('Unknown checkout error:', JSON.stringify(error));
-      return NextResponse.json({ error: 'Failed to create order', details: 'An unknown error occurred' }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: 'Failed to create order',
+          details: 'An unknown error occurred',
+        },
+        { status: 500 }
+      );
     }
   }
 }

@@ -10,4 +10,4 @@ try {
 } catch (error) {
   console.error('Error copying environment variables:', error);
   process.exit(1);
-} 
+}

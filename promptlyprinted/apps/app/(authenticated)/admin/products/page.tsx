@@ -1,5 +1,5 @@
-import { ColumnDef } from "@tanstack/react-table";
-import { Product } from "@repo/database";
+import type { Product } from '@repo/database';
+import { Button } from '@repo/design-system/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -7,101 +7,101 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@repo/design-system/components/ui/dropdown-menu";
-import { Button } from "@repo/design-system/components/ui/button";
-import { MoreHorizontal } from "lucide-react";
-import Link from "next/link";
+} from '@repo/design-system/components/ui/dropdown-menu';
+import type { ColumnDef } from '@tanstack/react-table';
+import { MoreHorizontal } from 'lucide-react';
+import Link from 'next/link';
 
 const columns: ColumnDef<Product>[] = [
   {
-    accessorKey: "sku",
-    header: "SKU",
+    accessorKey: 'sku',
+    header: 'SKU',
   },
   {
-    accessorKey: "name",
-    header: "Name",
+    accessorKey: 'name',
+    header: 'Name',
   },
   {
-    accessorKey: "price",
-    header: "Base Price",
+    accessorKey: 'price',
+    header: 'Base Price',
     cell: ({ row }) => {
-      const amount = parseFloat(row.getValue("price"));
-      const formatted = new Intl.NumberFormat("en-US", {
-        style: "currency",
+      const amount = Number.parseFloat(row.getValue('price'));
+      const formatted = new Intl.NumberFormat('en-US', {
+        style: 'currency',
         currency: row.original.currency,
       }).format(amount);
       return formatted;
     },
   },
   {
-    accessorKey: "shippingCost",
-    header: "Shipping",
+    accessorKey: 'shippingCost',
+    header: 'Shipping',
     cell: ({ row }) => {
-      const amount = parseFloat(row.getValue("shippingCost"));
-      const formatted = new Intl.NumberFormat("en-US", {
-        style: "currency",
+      const amount = Number.parseFloat(row.getValue('shippingCost'));
+      const formatted = new Intl.NumberFormat('en-US', {
+        style: 'currency',
         currency: row.original.currency,
       }).format(amount);
       return formatted;
     },
   },
   {
-    accessorKey: "taxAmount",
-    header: "Tax",
+    accessorKey: 'taxAmount',
+    header: 'Tax',
     cell: ({ row }) => {
-      const amount = parseFloat(row.getValue("taxAmount"));
-      const formatted = new Intl.NumberFormat("en-US", {
-        style: "currency",
+      const amount = Number.parseFloat(row.getValue('taxAmount'));
+      const formatted = new Intl.NumberFormat('en-US', {
+        style: 'currency',
         currency: row.original.currency,
       }).format(amount);
       return formatted;
     },
   },
   {
-    accessorKey: "totalCost",
-    header: "Total Cost",
+    accessorKey: 'totalCost',
+    header: 'Total Cost',
     cell: ({ row }) => {
-      const amount = parseFloat(row.getValue("totalCost"));
-      const formatted = new Intl.NumberFormat("en-US", {
-        style: "currency",
+      const amount = Number.parseFloat(row.getValue('totalCost'));
+      const formatted = new Intl.NumberFormat('en-US', {
+        style: 'currency',
         currency: row.original.currency,
       }).format(amount);
       return formatted;
     },
   },
   {
-    accessorKey: "customerPrice",
-    header: "Retail Price",
+    accessorKey: 'customerPrice',
+    header: 'Retail Price',
     cell: ({ row }) => {
-      const amount = parseFloat(row.getValue("customerPrice"));
-      const formatted = new Intl.NumberFormat("en-US", {
-        style: "currency",
+      const amount = Number.parseFloat(row.getValue('customerPrice'));
+      const formatted = new Intl.NumberFormat('en-US', {
+        style: 'currency',
         currency: row.original.currency,
       }).format(amount);
       return formatted;
     },
   },
   {
-    accessorKey: "countryCode",
-    header: "Country",
+    accessorKey: 'countryCode',
+    header: 'Country',
   },
   {
-    accessorKey: "fulfillmentCountryCode",
-    header: "Fulfillment Country",
+    accessorKey: 'fulfillmentCountryCode',
+    header: 'Fulfillment Country',
   },
   {
-    accessorKey: "stock",
-    header: "Stock",
+    accessorKey: 'stock',
+    header: 'Stock',
   },
   {
-    accessorKey: "listed",
-    header: "Listed",
+    accessorKey: 'listed',
+    header: 'Listed',
     cell: ({ row }) => {
-      return row.getValue("listed") ? "Yes" : "No";
+      return row.getValue('listed') ? 'Yes' : 'No';
     },
   },
   {
-    id: "actions",
+    id: 'actions',
     cell: ({ row }) => {
       const product = row.original;
       return (
@@ -115,7 +115,9 @@ const columns: ColumnDef<Product>[] = [
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuItem
-              onClick={() => navigator.clipboard.writeText(product.id.toString())}
+              onClick={() =>
+                navigator.clipboard.writeText(product.id.toString())
+              }
             >
               Copy product ID
             </DropdownMenuItem>
@@ -128,4 +130,4 @@ const columns: ColumnDef<Product>[] = [
       );
     },
   },
-]; 
+];

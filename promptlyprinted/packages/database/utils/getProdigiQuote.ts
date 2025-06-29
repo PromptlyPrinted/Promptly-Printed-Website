@@ -1,4 +1,4 @@
-import { ShippingMethod } from '@prisma/client';
+import type { ShippingMethod } from '@prisma/client';
 
 interface ProdigiQuoteItem {
   sku: string;
@@ -63,7 +63,7 @@ export async function getProdigiQuote({
   shippingMethod,
   destinationCountryCode,
   currencyCode = 'USD',
-  items
+  items,
 }: ProdigiQuoteRequest): Promise<ProdigiQuoteResponse> {
   const apiKey = process.env.PRODIGI_API_KEY;
   if (!apiKey) {
@@ -100,4 +100,4 @@ export function convertShippingMethodToProdigi(method: ShippingMethod): string {
 // Helper function to convert Prodigi's shipping method to our enum
 export function convertProdigiToShippingMethod(method: string): ShippingMethod {
   return method.toUpperCase() as ShippingMethod;
-} 
+}

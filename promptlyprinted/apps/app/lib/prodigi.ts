@@ -8,13 +8,13 @@ console.log('Prodigi Configuration:', {
   keyLength: PRODIGI_API_KEY?.length,
   rawApiEnv: process.env.PRODIGI_API,
   rawKeyEnv: process.env.PRODIGI_API_KEY?.substring(0, 4) + '...',
-  nodeEnv: process.env.NODE_ENV
+  nodeEnv: process.env.NODE_ENV,
 });
 
 interface ProdigiProduct {
   sku: string;
   description: string;
-  status: "active" | "inactive" | "error";
+  status: 'active' | 'inactive' | 'error';
   productDimensions: {
     width: number;
     height: number;
@@ -77,9 +77,11 @@ export async function getProdigiProducts() {
       console.error('Prodigi API Response:', {
         status: response.status,
         statusText: response.statusText,
-        body: errorText
+        body: errorText,
       });
-      throw new Error(`Prodigi API error: ${response.status} ${response.statusText} - ${errorText}`);
+      throw new Error(
+        `Prodigi API error: ${response.status} ${response.statusText} - ${errorText}`
+      );
     }
 
     const data = await response.json();
@@ -112,9 +114,11 @@ export async function getProdigiProduct(sku: string) {
       console.error('Prodigi API Response:', {
         status: response.status,
         statusText: response.statusText,
-        body: errorText
+        body: errorText,
       });
-      throw new Error(`Prodigi API error: ${response.status} ${response.statusText} - ${errorText}`);
+      throw new Error(
+        `Prodigi API error: ${response.status} ${response.statusText} - ${errorText}`
+      );
     }
 
     const data = await response.json();
@@ -146,4 +150,4 @@ export async function validateProdigiSku(sku: string): Promise<boolean> {
     console.error('[PRODIGI_VALIDATE_SKU]', error);
     return false;
   }
-} 
+}

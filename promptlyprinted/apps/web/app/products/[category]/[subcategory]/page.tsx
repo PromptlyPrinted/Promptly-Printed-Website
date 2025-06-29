@@ -1,21 +1,24 @@
-import { notFound } from 'next/navigation';
 import { ProductList } from '@/app/components/products/ProductList';
-import { productCategories, type ProductCategory } from '@/app/lib/product-categories';
 import { prisma } from '@/app/lib/db';
+import {
+  type ProductCategory,
+  productCategories,
+} from '@/app/lib/product-categories';
+import { notFound } from 'next/navigation';
 
 // Convert URL-friendly subcategory names to database category names
 const subcategoryMapping: Record<string, string> = {
-  't-shirts': "T-Shirts",
-  'tank-tops': "Tank Tops",
-  'long-sleeve-shirts': "Long Sleeve Shirts",
-  'hoodies': "Hoodies",
-  'sweatshirts': "Sweatshirts",
-  'sweatpants': "Sweatpants",
-  'shorts': "Shorts",
-  'coats-jackets': "Coats & Jackets",
-  'dresses': "Dresses",
-  'swimwear': "Swimwear",
-  'sportswear': "Sportswear",
+  't-shirts': 'T-Shirts',
+  'tank-tops': 'Tank Tops',
+  'long-sleeve-shirts': 'Long Sleeve Shirts',
+  hoodies: 'Hoodies',
+  sweatshirts: 'Sweatshirts',
+  sweatpants: 'Sweatpants',
+  shorts: 'Shorts',
+  'coats-jackets': 'Coats & Jackets',
+  dresses: 'Dresses',
+  swimwear: 'Swimwear',
+  sportswear: 'Sportswear',
 };
 
 export default async function SubcategoryPage({
@@ -39,10 +42,12 @@ export default async function SubcategoryPage({
     notFound();
   }
 
-  const subcategoryData = categoryData.subcategories?.find((subcat: ProductCategory) => {
-    const subcategorySlug = subcat.href.split('/').pop();
-    return subcategorySlug === subcategory;
-  });
+  const subcategoryData = categoryData.subcategories?.find(
+    (subcat: ProductCategory) => {
+      const subcategorySlug = subcat.href.split('/').pop();
+      return subcategorySlug === subcategory;
+    }
+  );
 
   if (!subcategoryData) {
     notFound();
@@ -69,7 +74,9 @@ export default async function SubcategoryPage({
         name: dbSubcategory,
       },
       // Add parent category filter for apparel categories
-      ...(category === 'mens' || category === 'womens' || category === 'kids-babies'
+      ...(category === 'mens' ||
+      category === 'womens' ||
+      category === 'kids-babies'
         ? { parentCategory: category.replace('-babies', '') }
         : {}),
     },
@@ -91,8 +98,8 @@ export default async function SubcategoryPage({
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-4xl font-bold mb-4">{subcategoryData.title}</h1>
-      <p className="text-lg text-gray-600 mb-8">
+      <h1 className="mb-4 font-bold text-4xl">{subcategoryData.title}</h1>
+      <p className="mb-8 text-gray-600 text-lg">
         {`Browse our collection of ${subcategoryData.title.toLowerCase()} in the ${categoryData.title} category`}
       </p>
       <ProductList
@@ -103,4 +110,4 @@ export default async function SubcategoryPage({
       />
     </div>
   );
-} 
+}

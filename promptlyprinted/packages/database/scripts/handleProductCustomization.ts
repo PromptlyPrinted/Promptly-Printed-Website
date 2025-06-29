@@ -1,4 +1,4 @@
-import { PrismaClient, OrderStatus } from '@prisma/client';
+import { type OrderStatus, PrismaClient } from '@prisma/client';
 import * as dotenv from 'dotenv';
 import { createProdigiOrder } from './createProdigiOrder.js';
 
@@ -33,12 +33,14 @@ interface OrderDetails {
   };
 }
 
-async function validateImage(file: File): Promise<{ valid: boolean; error?: string }> {
+async function validateImage(
+  file: File
+): Promise<{ valid: boolean; error?: string }> {
   // Check file type
   if (!['image/jpeg', 'image/png'].includes(file.type)) {
     return {
       valid: false,
-      error: 'Only JPG and PNG files are supported'
+      error: 'Only JPG and PNG files are supported',
     };
   }
 
@@ -46,7 +48,7 @@ async function validateImage(file: File): Promise<{ valid: boolean; error?: stri
   if (file.size > 10 * 1024 * 1024) {
     return {
       valid: false,
-      error: 'Image must be smaller than 10MB'
+      error: 'Image must be smaller than 10MB',
     };
   }
 
@@ -57,12 +59,13 @@ async function validateImage(file: File): Promise<{ valid: boolean; error?: stri
 
     img.onload = () => {
       URL.revokeObjectURL(url);
-      
+
       // Check minimum dimensions (recommend at least 1500px for quality printing)
       if (img.width < 1500 || img.height < 1500) {
         resolve({
           valid: false,
-          error: 'Image should be at least 1500x1500 pixels for best print quality'
+          error:
+            'Image should be at least 1500x1500 pixels for best print quality',
         });
       }
 
@@ -73,7 +76,7 @@ async function validateImage(file: File): Promise<{ valid: boolean; error?: stri
       URL.revokeObjectURL(url);
       resolve({
         valid: false,
-        error: 'Failed to load image'
+        error: 'Failed to load image',
       });
     };
 
@@ -105,7 +108,7 @@ async function uploadCustomization(
   // TODO: Replace with your actual upload endpoint
   const response = await fetch('/api/upload-design', {
     method: 'POST',
-    body: formData
+    body: formData,
   });
 
   if (!response.ok) {
@@ -144,11 +147,13 @@ async function createCustomOrder(
         designUrl,
         printArea: customization.printArea,
         sizing: customization.sizing,
-        position: customization.position ? JSON.stringify(customization.position) : null,
+        position: customization.position
+          ? JSON.stringify(customization.position)
+          : null,
         status: 'CREATED' as OrderStatus,
         prodigiOrderId: order.id,
         // Add other relevant fields
-      }
+      },
     });
 
     return order;
@@ -206,4 +211,4 @@ async function handleCustomization(event: FormEvent) {
 */
 
 export { createCustomOrder, validateImage };
-export type { CustomizationOptions, OrderDetails }; 
+export type { CustomizationOptions, OrderDetails };

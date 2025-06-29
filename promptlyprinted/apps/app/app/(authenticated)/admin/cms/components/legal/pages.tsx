@@ -1,7 +1,16 @@
 'use client';
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { Button } from '@repo/design-system/components/ui/button';
+import { Card } from '@repo/design-system/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@repo/design-system/components/ui/dialog';
+import { Input } from '@repo/design-system/components/ui/input';
+import { Label } from '@repo/design-system/components/ui/label';
 import {
   Table,
   TableBody,
@@ -9,21 +18,12 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@repo/design-system/components/ui/table";
-import { Card } from "@repo/design-system/components/ui/card";
-import { Button } from "@repo/design-system/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@repo/design-system/components/ui/dialog";
-import { Input } from "@repo/design-system/components/ui/input";
-import { Textarea } from "@repo/design-system/components/ui/textarea";
-import { Label } from "@repo/design-system/components/ui/label";
-import { Toggle } from "@repo/design-system/components/ui/toggle";
-import { LayoutGrid, List } from "lucide-react";
+} from '@repo/design-system/components/ui/table';
+import { Textarea } from '@repo/design-system/components/ui/textarea';
+import { Toggle } from '@repo/design-system/components/ui/toggle';
+import { LayoutGrid, List } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 interface LegalPage {
   id: string;
@@ -38,11 +38,11 @@ const useLegalPages = () => {
 
   const fetchPages = async () => {
     try {
-      const response = await fetch("/api/cms/legal/pages");
+      const response = await fetch('/api/cms/legal/pages');
       const data = await response.json();
       setPages(data);
     } catch (error) {
-      console.error("Error fetching legal pages:", error);
+      console.error('Error fetching legal pages:', error);
     } finally {
       setLoading(false);
     }
@@ -56,20 +56,20 @@ const useLegalPages = () => {
 };
 
 export default function LegalPages() {
-  const [view, setView] = useState<"table" | "gallery">("table");
+  const [view, setView] = useState<'table' | 'gallery'>('table');
   const router = useRouter();
 
   const { data: pages, mutate } = useLegalPages();
 
   const handleSave = async (page: LegalPage) => {
-    const method = page.id ? "PUT" : "POST";
+    const method = page.id ? 'PUT' : 'POST';
     const url = page.id
       ? `/api/cms/legal/pages/${page.id}`
-      : "/api/cms/legal/pages";
+      : '/api/cms/legal/pages';
 
     await fetch(url, {
       method,
-      headers: { "Content-Type": "application/json" },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(page),
     });
 
@@ -78,7 +78,7 @@ export default function LegalPages() {
   };
 
   const handleDelete = async (id: string) => {
-    await fetch(`/api/cms/legal/pages/${id}`, { method: "DELETE" });
+    await fetch(`/api/cms/legal/pages/${id}`, { method: 'DELETE' });
     mutate();
     router.refresh();
   };
@@ -87,18 +87,18 @@ export default function LegalPages() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Legal Pages</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="font-bold text-2xl">Legal Pages</h2>
         <div className="flex gap-2">
           <Toggle
-            pressed={view === "table"}
-            onPressedChange={() => setView("table")}
+            pressed={view === 'table'}
+            onPressedChange={() => setView('table')}
           >
             <List className="h-4 w-4" />
           </Toggle>
           <Toggle
-            pressed={view === "gallery"}
-            onPressedChange={() => setView("gallery")}
+            pressed={view === 'gallery'}
+            onPressedChange={() => setView('gallery')}
           >
             <LayoutGrid className="h-4 w-4" />
           </Toggle>
@@ -112,10 +112,10 @@ export default function LegalPages() {
               </DialogHeader>
               <LegalPageForm
                 page={{
-                  id: "",
-                  title: "",
-                  description: "",
-                  body: "",
+                  id: '',
+                  title: '',
+                  description: '',
+                  body: '',
                 }}
                 onSave={handleSave}
               />
@@ -124,7 +124,7 @@ export default function LegalPages() {
         </div>
       </div>
 
-      {view === "table" ? (
+      {view === 'table' ? (
         <Table>
           <TableHeader>
             <TableRow>
@@ -150,10 +150,7 @@ export default function LegalPages() {
                         <DialogHeader>
                           <DialogTitle>Edit Legal Page</DialogTitle>
                         </DialogHeader>
-                        <LegalPageForm
-                          page={page}
-                          onSave={handleSave}
-                        />
+                        <LegalPageForm page={page} onSave={handleSave} />
                       </DialogContent>
                     </Dialog>
                     <Button
@@ -170,11 +167,11 @@ export default function LegalPages() {
           </TableBody>
         </Table>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {pages.map((page: LegalPage) => (
             <Card key={page.id} className="p-4">
-              <h3 className="font-semibold mb-2">{page.title}</h3>
-              <p className="text-sm text-muted-foreground mb-4">
+              <h3 className="mb-2 font-semibold">{page.title}</h3>
+              <p className="mb-4 text-muted-foreground text-sm">
                 {page.description}
               </p>
               <div className="flex gap-2">
@@ -188,10 +185,7 @@ export default function LegalPages() {
                     <DialogHeader>
                       <DialogTitle>Edit Legal Page</DialogTitle>
                     </DialogHeader>
-                    <LegalPageForm
-                      page={page}
-                      onSave={handleSave}
-                    />
+                    <LegalPageForm page={page} onSave={handleSave} />
                   </DialogContent>
                 </Dialog>
                 <Button
@@ -230,9 +224,7 @@ function LegalPageForm({ page, onSave }: LegalPageFormProps) {
         <Input
           id="title"
           value={formData.title}
-          onChange={(e) =>
-            setFormData({ ...formData, title: e.target.value })
-          }
+          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
         />
       </div>
 
@@ -252,9 +244,7 @@ function LegalPageForm({ page, onSave }: LegalPageFormProps) {
         <Textarea
           id="body"
           value={formData.body}
-          onChange={(e) =>
-            setFormData({ ...formData, body: e.target.value })
-          }
+          onChange={(e) => setFormData({ ...formData, body: e.target.value })}
           className="min-h-[200px]"
         />
       </div>
@@ -262,4 +252,4 @@ function LegalPageForm({ page, onSave }: LegalPageFormProps) {
       <Button type="submit">Save</Button>
     </form>
   );
-} 
+}

@@ -4,11 +4,11 @@ import { database } from '@repo/database';
 async function syncClerkUsers() {
   try {
     console.log('Starting Clerk users sync...');
-    
+
     // Get all users from Clerk
     const clerk = await clerkClient();
     const users = await clerk.users.getUserList();
-    
+
     console.log(`Found ${users.data.length} users in Clerk`);
 
     // Create or update each user in the database
@@ -42,4 +42,4 @@ syncClerkUsers()
   .catch((error) => {
     console.error('Unhandled error:', error);
     process.exit(1);
-  }); 
+  });

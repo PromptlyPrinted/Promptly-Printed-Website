@@ -8,26 +8,26 @@ async function main() {
       method: ShippingMethod.BUDGET,
       basePrice: 4.99,
       additionalItemPrice: 1.99,
-      currency: 'USD'
+      currency: 'USD',
     },
     {
       method: ShippingMethod.STANDARD,
       basePrice: 7.99,
       additionalItemPrice: 2.99,
-      currency: 'USD'
+      currency: 'USD',
     },
     {
       method: ShippingMethod.EXPRESS,
       basePrice: 14.99,
       additionalItemPrice: 4.99,
-      currency: 'USD'
+      currency: 'USD',
     },
     {
       method: ShippingMethod.OVERNIGHT,
       basePrice: 24.99,
       additionalItemPrice: 7.99,
-      currency: 'USD'
-    }
+      currency: 'USD',
+    },
   ];
 
   for (const price of shippingPrices) {
@@ -35,11 +35,11 @@ async function main() {
       where: {
         method_currency: {
           method: price.method,
-          currency: price.currency
-        }
+          currency: price.currency,
+        },
       },
       update: price,
-      create: price
+      create: price,
     });
   }
 
@@ -53,4 +53,4 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
-  }); 
+  });

@@ -1,6 +1,6 @@
-import { auth } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
-import { basehub, fragmentOn } from "basehub";
+import { auth } from '@clerk/nextjs/server';
+import { basehub, fragmentOn } from 'basehub';
+import { NextResponse } from 'next/server';
 
 // Define fragments for reusable parts of queries
 const imageFragment = fragmentOn('BlockImage', {
@@ -51,14 +51,14 @@ const legalPostFragment = fragmentOn('LegalPagesItem', {
 
 // Define queries using fragments
 const queries = {
-  "blog/posts": {
+  'blog/posts': {
     blog: {
       posts: {
         items: postFragment,
       },
     },
   },
-  "blog/authors": {
+  'blog/authors': {
     blog: {
       authors: {
         items: {
@@ -69,7 +69,7 @@ const queries = {
       },
     },
   },
-  "blog/categories": {
+  'blog/categories': {
     blog: {
       categories: {
         items: {
@@ -78,7 +78,7 @@ const queries = {
       },
     },
   },
-  "legal/pages": {
+  'legal/pages': {
     legalPages: {
       items: legalPostFragment,
     },
@@ -86,10 +86,12 @@ const queries = {
 };
 
 async function fetchFromBasehub(path: string, options: RequestInit = {}) {
-  const pathSegments = path.replace(/^\//, "").split("/");
-  const contentType = pathSegments.slice(0, 2).join("/") as keyof typeof queries;
+  const pathSegments = path.replace(/^\//, '').split('/');
+  const contentType = pathSegments
+    .slice(0, 2)
+    .join('/') as keyof typeof queries;
 
-  if (options.method === "GET" && queries[contentType]) {
+  if (options.method === 'GET' && queries[contentType]) {
     try {
       const data = await basehub().query(queries[contentType]);
       return transformResponse(contentType, data);
@@ -100,7 +102,11 @@ async function fetchFromBasehub(path: string, options: RequestInit = {}) {
     }
   }
 
-  if (options.method === "POST" || options.method === "PUT" || options.method === "DELETE") {
+  if (
+    options.method === 'POST' ||
+    options.method === 'PUT' ||
+    options.method === 'DELETE'
+  ) {
     // For now, return success response
     return { success: true };
   }
@@ -110,41 +116,43 @@ async function fetchFromBasehub(path: string, options: RequestInit = {}) {
 
 function transformResponse(contentType: keyof typeof queries, response: any) {
   switch (contentType) {
-    case "blog/posts":
+    case 'blog/posts':
       return (response?.blog?.posts?.items || []).map((post: any) => ({
         id: post._slug,
         title: post._title,
         description: post.description,
         date: post.date,
         image: post.image?.url,
-        authors: post.authors?.items?.map((author: any) => ({
-          id: author._slug,
-          title: author._title
-        })) || [],
-        categories: post.categories?.items?.map((category: any) => ({
-          id: category._slug,
-          title: category._title
-        })) || [],
-        body: post.body?.plainText || ""
+        authors:
+          post.authors?.items?.map((author: any) => ({
+            id: author._slug,
+            title: author._title,
+          })) || [],
+        categories:
+          post.categories?.items?.map((category: any) => ({
+            id: category._slug,
+            title: category._title,
+          })) || [],
+        body: post.body?.plainText || '',
       }));
-    case "blog/authors":
+    case 'blog/authors':
       return (response?.blog?.authors?.items || []).map((author: any) => ({
         id: author._slug,
         title: author._title,
         avatar: author.avatar?.url,
-        xUrl: author.xUrl
+        xUrl: author.xUrl,
       }));
-    case "blog/categories":
+    case 'blog/categories':
       return (response?.blog?.categories?.items || []).map((category: any) => ({
         id: category._slug,
-        title: category._title
+        title: category._title,
       }));
-    case "legal/pages":
+    case 'legal/pages':
       return (response?.legalPages?.items || []).map((page: any) => ({
         id: page._slug,
         title: page._title,
         description: page.description,
-        body: page.body?.plainText || ""
+        body: page.body?.plainText || '',
       }));
     default:
       return [];
@@ -153,42 +161,54 @@ function transformResponse(contentType: keyof typeof queries, response: any) {
 
 function getMockData(contentType: keyof typeof queries) {
   switch (contentType) {
-    case "blog/posts":
-      return [{
-        id: "sample-post",
-        title: "Sample Post",
-        description: "This is a sample post",
-        date: new Date().toISOString(),
-        image: "https://picsum.photos/800/400",
-        authors: [{
-          id: "john-doe",
-          title: "John Doe"
-        }],
-        categories: [{
-          id: "general",
-          title: "General"
-        }],
-        body: "Sample content"
-      }];
-    case "blog/authors":
-      return [{
-        id: "john-doe",
-        title: "John Doe",
-        avatar: "https://picsum.photos/200/200",
-        xUrl: "https://x.com/johndoe"
-      }];
-    case "blog/categories":
-      return [{
-        id: "general",
-        title: "General"
-      }];
-    case "legal/pages":
-      return [{
-        id: "terms-of-service",
-        title: "Terms of Service",
-        description: "Our terms of service",
-        body: "Sample terms of service content"
-      }];
+    case 'blog/posts':
+      return [
+        {
+          id: 'sample-post',
+          title: 'Sample Post',
+          description: 'This is a sample post',
+          date: new Date().toISOString(),
+          image: 'https://picsum.photos/800/400',
+          authors: [
+            {
+              id: 'john-doe',
+              title: 'John Doe',
+            },
+          ],
+          categories: [
+            {
+              id: 'general',
+              title: 'General',
+            },
+          ],
+          body: 'Sample content',
+        },
+      ];
+    case 'blog/authors':
+      return [
+        {
+          id: 'john-doe',
+          title: 'John Doe',
+          avatar: 'https://picsum.photos/200/200',
+          xUrl: 'https://x.com/johndoe',
+        },
+      ];
+    case 'blog/categories':
+      return [
+        {
+          id: 'general',
+          title: 'General',
+        },
+      ];
+    case 'legal/pages':
+      return [
+        {
+          id: 'terms-of-service',
+          title: 'Terms of Service',
+          description: 'Our terms of service',
+          body: 'Sample terms of service content',
+        },
+      ];
   }
 }
 
@@ -199,27 +219,27 @@ export async function GET(
   try {
     const session = await auth();
     if (!session?.userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     if (!process.env.BASEHUB_TOKEN) {
       return NextResponse.json(
-        { error: "BASEHUB_TOKEN is not configured" },
+        { error: 'BASEHUB_TOKEN is not configured' },
         { status: 500 }
       );
     }
 
-    const path = `/${params.route.join("/")}`;
-    const data = await fetchFromBasehub(path, { method: "GET" });
+    const path = `/${params.route.join('/')}`;
+    const data = await fetchFromBasehub(path, { method: 'GET' });
     return NextResponse.json(data);
   } catch (error: any) {
-    console.error("API error:", {
-      path: params.route?.join("/") || "unknown",
+    console.error('API error:', {
+      path: params.route?.join('/') || 'unknown',
       error: error.message,
       stack: error.stack,
     });
     return NextResponse.json(
-      { error: error.message || "Internal Server Error" },
+      { error: error.message || 'Internal Server Error' },
       { status: 500 }
     );
   }
@@ -235,22 +255,24 @@ export async function POST(
 ) {
   const session = await auth();
   if (!session?.userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    const path = `/${params.route.join("/")}`;
+    const path = `/${params.route.join('/')}`;
     const body = await request.json();
 
     const data = await fetchFromBasehub(path, {
-      method: "POST",
+      method: 'POST',
       body: JSON.stringify(body),
     });
     return NextResponse.json(data);
   } catch (error) {
-    console.error("API error:", error);
+    console.error('API error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Internal Server Error" },
+      {
+        error: error instanceof Error ? error.message : 'Internal Server Error',
+      },
       { status: 500 }
     );
   }
@@ -265,22 +287,24 @@ export async function PUT(
 ) {
   const session = await auth();
   if (!session?.userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    const path = `/${params.route.join("/")}`;
+    const path = `/${params.route.join('/')}`;
     const body = await request.json();
 
     const data = await fetchFromBasehub(path, {
-      method: "PUT",
+      method: 'PUT',
       body: JSON.stringify(body),
     });
     return NextResponse.json(data);
   } catch (error) {
-    console.error("API error:", error);
+    console.error('API error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Internal Server Error" },
+      {
+        error: error instanceof Error ? error.message : 'Internal Server Error',
+      },
       { status: 500 }
     );
   }
@@ -295,20 +319,22 @@ export async function DELETE(
 ) {
   const session = await auth();
   if (!session?.userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    const path = `/${params.route.join("/")}`;
+    const path = `/${params.route.join('/')}`;
 
     const data = await fetchFromBasehub(path, {
-      method: "DELETE",
+      method: 'DELETE',
     });
     return NextResponse.json(data);
   } catch (error) {
-    console.error("API error:", error);
+    console.error('API error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Internal Server Error" },
+      {
+        error: error instanceof Error ? error.message : 'Internal Server Error',
+      },
       { status: 500 }
     );
   }

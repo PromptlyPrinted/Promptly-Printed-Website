@@ -1,7 +1,7 @@
-import { notFound } from "next/navigation";
-import Link from "next/link";
-import { prisma } from "@/lib/prisma";
-import { formatDate } from "@/lib/utils";
+import { prisma } from '@/lib/prisma';
+import { formatDate } from '@/lib/utils';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
 
 export default async function PaymentDetailPage({
   params,
@@ -10,7 +10,7 @@ export default async function PaymentDetailPage({
 }) {
   const payment = await prisma.payment.findUnique({
     where: {
-      id: parseInt(params.id),
+      id: Number.parseInt(params.id),
     },
     include: {
       Order: true,
@@ -24,7 +24,7 @@ export default async function PaymentDetailPage({
   return (
     <div className="p-6">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold tracking-tight">Payment Details</h1>
+        <h1 className="font-bold text-2xl tracking-tight">Payment Details</h1>
         <p className="text-muted-foreground">
           Details for payment ID: {payment.id}
         </p>
@@ -32,8 +32,8 @@ export default async function PaymentDetailPage({
 
       <div className="grid gap-6">
         <div className="rounded-lg border p-4">
-          <h2 className="text-lg font-semibold mb-4">Payment Information</h2>
-          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <h2 className="mb-4 font-semibold text-lg">Payment Information</h2>
+          <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <dt className="font-medium text-muted-foreground">ID</dt>
               <dd>{payment.id}</dd>
@@ -49,8 +49,8 @@ export default async function PaymentDetailPage({
             <div>
               <dt className="font-medium text-muted-foreground">Amount</dt>
               <dd>
-                {new Intl.NumberFormat("en-US", {
-                  style: "currency",
+                {new Intl.NumberFormat('en-US', {
+                  style: 'currency',
                   currency: payment.currency,
                 }).format(payment.amount)}
               </dd>
@@ -68,13 +68,16 @@ export default async function PaymentDetailPage({
 
         {payment.Order.length > 0 && (
           <div className="rounded-lg border p-4">
-            <h2 className="text-lg font-semibold mb-4">Associated Orders</h2>
+            <h2 className="mb-4 font-semibold text-lg">Associated Orders</h2>
             <div className="space-y-4">
               {payment.Order.map((order) => (
-                <div key={order.id} className="flex items-center justify-between border-b pb-4 last:border-0">
+                <div
+                  key={order.id}
+                  className="flex items-center justify-between border-b pb-4 last:border-0"
+                >
                   <div>
                     <p className="font-medium">Order #{order.id}</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                       Status: {order.status}
                     </p>
                   </div>
@@ -92,4 +95,4 @@ export default async function PaymentDetailPage({
       </div>
     </div>
   );
-} 
+}

@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 async function createSystemUser() {
   try {
     console.log('Creating system user...');
-    
+
     // Create or update the system user
     const systemUser = await prisma.user.upsert({
       where: { email: 'system@promptlyprinted.com' },
@@ -35,4 +35,4 @@ createSystemUser()
   .catch((error) => {
     console.error('Unhandled error:', error);
     process.exit(1);
-  }); 
+  });

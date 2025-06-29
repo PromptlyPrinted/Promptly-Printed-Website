@@ -1,18 +1,32 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-import { Button } from "@repo/design-system/components/ui/button";
-import { Input } from "@repo/design-system/components/ui/input";
-import { Textarea } from "@repo/design-system/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/design-system/components/ui/select";
-import { Switch } from "@repo/design-system/components/ui/switch";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@repo/design-system/components/ui/form";
-import { Product, Category, ShippingMethod } from "@prisma/client";
-import { toast } from "sonner";
+import { zodResolver } from '@hookform/resolvers/zod';
+import { type Category, type Product, ShippingMethod } from '@prisma/client';
+import { Button } from '@repo/design-system/components/ui/button';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@repo/design-system/components/ui/form';
+import { Input } from '@repo/design-system/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@repo/design-system/components/ui/select';
+import { Switch } from '@repo/design-system/components/ui/switch';
+import { Textarea } from '@repo/design-system/components/ui/textarea';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import * as z from 'zod';
 
 interface ProdigiProduct {
   sku: string;
@@ -62,24 +76,26 @@ interface ProdigiProduct {
 }
 
 const productSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  sku: z.string()
-    .min(1, "SKU is required")
+  name: z.string().min(1, 'Name is required'),
+  sku: z
+    .string()
+    .min(1, 'SKU is required')
     .refine((val) => /^[A-Z0-9-]+$/.test(val), {
-      message: "SKU must contain only uppercase letters, numbers, and hyphens"
+      message: 'SKU must contain only uppercase letters, numbers, and hyphens',
     }),
-  description: z.string().min(1, "Description is required"),
-  supplierPrice: z.number().min(0, "Price must be positive"),
-  customerPrice: z.number().min(0, "Price must be positive"),
-  currency: z.string().min(1, "Currency is required"),
-  stock: z.number().min(0, "Stock must be non-negative"),
+  description: z.string().min(1, 'Description is required'),
+  supplierPrice: z.number().min(0, 'Price must be positive'),
+  customerPrice: z.number().min(0, 'Price must be positive'),
+  currency: z.string().min(1, 'Currency is required'),
+  stock: z.number().min(0, 'Stock must be non-negative'),
   listed: z.boolean(),
-  categoryId: z.string()
-    .min(1, "Category is required")
-    .refine((val) => ["PRINTS", "FRAMES", "CARDS"].includes(val), {
-      message: "Category must be one of: PRINTS, FRAMES, CARDS"
+  categoryId: z
+    .string()
+    .min(1, 'Category is required')
+    .refine((val) => ['PRINTS', 'FRAMES', 'CARDS'].includes(val), {
+      message: 'Category must be one of: PRINTS, FRAMES, CARDS',
     }),
-  productType: z.string().min(1, "Product type is required"),
+  productType: z.string().min(1, 'Product type is required'),
   prodigiSku: z.string().optional(),
   prodigiVariant: z.string().optional(),
   shippingMethod: z.nativeEnum(ShippingMethod).optional(),
@@ -96,8 +112,11 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [prodigiProducts, setProdigiProducts] = useState<ProdigiProduct[]>([]);
-  const [selectedProdigiProduct, setSelectedProdigiProduct] = useState<ProdigiProduct | null>(null);
-  const [shippingQuotes, setShippingQuotes] = useState<Record<ShippingMethod, number>>({
+  const [selectedProdigiProduct, setSelectedProdigiProduct] =
+    useState<ProdigiProduct | null>(null);
+  const [shippingQuotes, setShippingQuotes] = useState<
+    Record<ShippingMethod, number>
+  >({
     [ShippingMethod.BUDGET]: 0,
     [ShippingMethod.STANDARD]: 0,
     [ShippingMethod.EXPRESS]: 0,
@@ -106,51 +125,58 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
-    defaultValues: initialData ? {
-      ...initialData,
-      categoryId: initialData.categoryId?.toString(),
-      supplierPrice: initialData.price,
-      customerPrice: initialData.customerPrice,
-    } : {
-      name: "",
-      sku: "",
-      description: "",
-      supplierPrice: 0,
-      customerPrice: 0,
-      currency: "USD",
-      stock: 0,
-      listed: false,
-      categoryId: "",
-      productType: "",
-    },
+    defaultValues: initialData
+      ? {
+          ...initialData,
+          categoryId: initialData.categoryId?.toString(),
+          supplierPrice: initialData.price,
+          customerPrice: initialData.customerPrice,
+        }
+      : {
+          name: '',
+          sku: '',
+          description: '',
+          supplierPrice: 0,
+          customerPrice: 0,
+          currency: 'USD',
+          stock: 0,
+          listed: false,
+          categoryId: '',
+          productType: '',
+        },
   });
 
   const { watch, setValue } = form;
-  const supplierPrice = watch("supplierPrice");
-  const customerPrice = watch("customerPrice");
+  const supplierPrice = watch('supplierPrice');
+  const customerPrice = watch('customerPrice');
   const margin = customerPrice - supplierPrice;
-  const marginPercentage = supplierPrice > 0 ? ((margin / supplierPrice) * 100).toFixed(1) : "0";
+  const marginPercentage =
+    supplierPrice > 0 ? ((margin / supplierPrice) * 100).toFixed(1) : '0';
 
   useEffect(() => {
     async function fetchProdigiProducts() {
       try {
-        const response = await fetch("/api/admin/prodigi/products");
+        const response = await fetch('/api/admin/prodigi/products');
         const data = await response.json();
-        
+
         if (!response.ok) {
-          console.error("Prodigi API Error:", data);
-          throw new Error(data.error || "Failed to fetch Prodigi products");
+          console.error('Prodigi API Error:', data);
+          throw new Error(data.error || 'Failed to fetch Prodigi products');
         }
 
         if (!data.products) {
-          console.error("Unexpected response format:", data);
-          throw new Error("Invalid response format from Prodigi API");
+          console.error('Unexpected response format:', data);
+          throw new Error('Invalid response format from Prodigi API');
         }
-        
+
         setProdigiProducts(data.products);
       } catch (error) {
-        console.error("Error fetching Prodigi products:", error);
-        toast.error(error instanceof Error ? error.message : "Failed to load Prodigi products");
+        console.error('Error fetching Prodigi products:', error);
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : 'Failed to load Prodigi products'
+        );
       }
     }
 
@@ -165,11 +191,13 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          items: [{
-            sku,
-            copies: 1,
-            assets: [{ printArea: 'default' }]
-          }],
+          items: [
+            {
+              sku,
+              copies: 1,
+              assets: [{ printArea: 'default' }],
+            },
+          ],
           destinationCountryCode: 'US', // Default to US for now
         }),
       });
@@ -185,14 +213,14 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
         [ShippingMethod.EXPRESS]: 0,
         [ShippingMethod.OVERNIGHT]: 0,
       };
-      
+
       // Extract shipping costs for each method
       Object.values(ShippingMethod).forEach((method) => {
-        const quote = data.quotes.find((q: any) => 
-          q.shipmentMethod.toUpperCase() === method
+        const quote = data.quotes.find(
+          (q: any) => q.shipmentMethod.toUpperCase() === method
         );
         if (quote) {
-          quotes[method] = parseFloat(quote.costSummary.shipping.amount);
+          quotes[method] = Number.parseFloat(quote.costSummary.shipping.amount);
         }
       });
 
@@ -209,36 +237,42 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
       const data = await response.json();
 
       if (!response.ok) {
-        console.error("Prodigi API Error:", data);
-        throw new Error(data.error || "Failed to fetch Prodigi product details");
+        console.error('Prodigi API Error:', data);
+        throw new Error(
+          data.error || 'Failed to fetch Prodigi product details'
+        );
       }
 
       if (!data.product) {
-        console.error("Unexpected response format:", data);
-        throw new Error("Invalid response format from Prodigi API");
+        console.error('Unexpected response format:', data);
+        throw new Error('Invalid response format from Prodigi API');
       }
 
       const product = data.product;
       setSelectedProdigiProduct(product);
 
       // Pre-fill form with Prodigi product details
-      setValue("sku", product.sku);
-      setValue("name", product.description);
-      setValue("description", product.description);
-      
+      setValue('sku', product.sku);
+      setValue('name', product.description);
+      setValue('description', product.description);
+
       // Get the first variant's attributes for display
       const firstVariant = product.variants[0];
       if (firstVariant) {
-        setValue("prodigiVariant", JSON.stringify(firstVariant.attributes));
+        setValue('prodigiVariant', JSON.stringify(firstVariant.attributes));
       }
-      
-      setValue("prodigiSku", product.sku);
+
+      setValue('prodigiSku', product.sku);
 
       // After setting product details, fetch shipping quotes
       await fetchShippingQuotes(sku);
     } catch (error) {
-      console.error("Error fetching Prodigi product details:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to load Prodigi product details");
+      console.error('Error fetching Prodigi product details:', error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Failed to load Prodigi product details'
+      );
     }
   }
 
@@ -247,27 +281,30 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
       setIsLoading(true);
 
       // First, get a fresh shipping quote
-      const response = await fetch(`/api/admin/products${initialData ? `/${initialData.id}` : ""}`, {
-        method: initialData ? "PATCH" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...data,
-          categoryId: parseInt(data.categoryId),
-          price: data.supplierPrice,
-        }),
-      });
+      const response = await fetch(
+        `/api/admin/products${initialData ? `/${initialData.id}` : ''}`,
+        {
+          method: initialData ? 'PATCH' : 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...data,
+            categoryId: Number.parseInt(data.categoryId),
+            price: data.supplierPrice,
+          }),
+        }
+      );
 
       if (!response.ok) {
-        throw new Error("Something went wrong");
+        throw new Error('Something went wrong');
       }
 
       router.refresh();
-      router.push("/admin/products");
-      toast.success(initialData ? "Product updated" : "Product created");
+      router.push('/admin/products');
+      toast.success(initialData ? 'Product updated' : 'Product created');
     } catch (error) {
-      toast.error("Something went wrong");
+      toast.error('Something went wrong');
     } finally {
       setIsLoading(false);
     }
@@ -328,16 +365,21 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {selectedProdigiProduct?.variants.map((variant: ProdigiProduct['variants'][0], index: number) => (
-                        <SelectItem 
-                          key={index} 
-                          value={JSON.stringify(variant.attributes)}
-                        >
-                          {Object.entries(variant.attributes)
-                            .map(([key, value]) => `${key}: ${value}`)
-                            .join(", ")}
-                        </SelectItem>
-                      ))}
+                      {selectedProdigiProduct?.variants.map(
+                        (
+                          variant: ProdigiProduct['variants'][0],
+                          index: number
+                        ) => (
+                          <SelectItem
+                            key={index}
+                            value={JSON.stringify(variant.attributes)}
+                          >
+                            {Object.entries(variant.attributes)
+                              .map(([key, value]) => `${key}: ${value}`)
+                              .join(', ')}
+                          </SelectItem>
+                        )
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -396,7 +438,9 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
                     type="number"
                     step="0.01"
                     {...field}
-                    onChange={e => field.onChange(parseFloat(e.target.value))}
+                    onChange={(e) =>
+                      field.onChange(Number.parseFloat(e.target.value))
+                    }
                   />
                 </FormControl>
                 <FormMessage />
@@ -414,10 +458,16 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
                     type="number"
                     step="0.01"
                     {...field}
-                    onChange={e => field.onChange(parseFloat(e.target.value))}
+                    onChange={(e) =>
+                      field.onChange(Number.parseFloat(e.target.value))
+                    }
                   />
                 </FormControl>
-                <FormDescription className={margin > supplierPrice * 0.5 ? "text-green-600" : ""}>
+                <FormDescription
+                  className={
+                    margin > supplierPrice * 0.5 ? 'text-green-600' : ''
+                  }
+                >
                   Margin: {margin.toFixed(2)} ({marginPercentage}%)
                 </FormDescription>
                 <FormMessage />
@@ -430,7 +480,10 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Currency</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select currency" />
@@ -456,7 +509,9 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
                   <Input
                     type="number"
                     {...field}
-                    onChange={e => field.onChange(parseInt(e.target.value))}
+                    onChange={(e) =>
+                      field.onChange(Number.parseInt(e.target.value))
+                    }
                   />
                 </FormControl>
                 <FormMessage />
@@ -469,7 +524,10 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Category</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
@@ -477,7 +535,10 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
                   </FormControl>
                   <SelectContent>
                     {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id.toString()}>
+                      <SelectItem
+                        key={category.id}
+                        value={category.id.toString()}
+                      >
                         {category.name}
                       </SelectItem>
                     ))}
@@ -493,7 +554,10 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Product Type</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select product type" />
@@ -548,9 +612,11 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
                   <SelectContent>
                     {Object.entries(ShippingMethod).map(([key, value]) => (
                       <SelectItem key={key} value={value}>
-                        {value} ({shippingQuotes[value] 
-                          ? `$${shippingQuotes[value].toFixed(2)}` 
-                          : 'Quote not available'})
+                        {value} (
+                        {shippingQuotes[value]
+                          ? `$${shippingQuotes[value].toFixed(2)}`
+                          : 'Quote not available'}
+                        )
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -564,15 +630,13 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
           />
         </div>
         <Button type="submit" disabled={isLoading}>
-          {isLoading ? (
-            "Saving..."
-          ) : initialData ? (
-            "Save changes"
-          ) : (
-            "Create product"
-          )}
+          {isLoading
+            ? 'Saving...'
+            : initialData
+              ? 'Save changes'
+              : 'Create product'}
         </Button>
       </form>
     </Form>
   );
-} 
+}

@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
-import fetch from 'node-fetch';
 import * as dotenv from 'dotenv';
+import fetch from 'node-fetch';
 
 dotenv.config();
 
@@ -30,25 +30,90 @@ const SUPPORTED_COUNTRIES = [
 ];
 
 const homeLivingGroups = {
-  "Drinkware": [
-    { sku: "GLOBAL-MUG-W", price: "19.99", name: "Global Mug White", description: "Classic ceramic mug for your favorite beverages." },
-    { sku: "H-MUG-METAL-16OZ-B", price: "55.99", name: "Metal Mug 16oz Black", description: "Premium metal mug, perfect for hot and cold drinks." },
-    { sku: "650ML-WATER-BOTTLE-BLACK", price: "49.99", name: "Water Bottle 650ml Black", description: "Sleek water bottle for your daily hydration needs." }
+  Drinkware: [
+    {
+      sku: 'GLOBAL-MUG-W',
+      price: '19.99',
+      name: 'Global Mug White',
+      description: 'Classic ceramic mug for your favorite beverages.',
+    },
+    {
+      sku: 'H-MUG-METAL-16OZ-B',
+      price: '55.99',
+      name: 'Metal Mug 16oz Black',
+      description: 'Premium metal mug, perfect for hot and cold drinks.',
+    },
+    {
+      sku: '650ML-WATER-BOTTLE-BLACK',
+      price: '49.99',
+      name: 'Water Bottle 650ml Black',
+      description: 'Sleek water bottle for your daily hydration needs.',
+    },
   ],
-  "Kitchen": [
-    { sku: "H-APR-AA-BTIE", price: "29.99", name: "Adult Apron", description: "Stylish and practical adult apron for cooking." },
-    { sku: "H-APR-CA-BTIE", price: "25.99", name: "Child Apron", description: "Fun and protective apron for young chefs." },
-    { sku: "H-CUTTINGBOARD-GLASS", price: "29.99", name: "Glass Cutting Board", description: "Durable glass cutting board with custom design." },
-    { sku: "H-CUTTINGBOARD-GLASS-CIRC", price: "25.99", name: "Circular Glass Cutting Board", description: "Round glass cutting board with custom design." }
+  Kitchen: [
+    {
+      sku: 'H-APR-AA-BTIE',
+      price: '29.99',
+      name: 'Adult Apron',
+      description: 'Stylish and practical adult apron for cooking.',
+    },
+    {
+      sku: 'H-APR-CA-BTIE',
+      price: '25.99',
+      name: 'Child Apron',
+      description: 'Fun and protective apron for young chefs.',
+    },
+    {
+      sku: 'H-CUTTINGBOARD-GLASS',
+      price: '29.99',
+      name: 'Glass Cutting Board',
+      description: 'Durable glass cutting board with custom design.',
+    },
+    {
+      sku: 'H-CUTTINGBOARD-GLASS-CIRC',
+      price: '25.99',
+      name: 'Circular Glass Cutting Board',
+      description: 'Round glass cutting board with custom design.',
+    },
   ],
-  "Decor": [
-    { sku: "PLANT-POT", price: "25.99", name: "Plant Pot", description: "Decorative pot for your indoor plants." },
-    { sku: "MET-TIN-ROU", price: "26.99", name: "Round Metal Tin", description: "Stylish round metal tin for storage or decoration." },
-    { sku: "MET-TIN-REC", price: "25.99", name: "Rectangular Metal Tin", description: "Versatile rectangular metal tin for storage or decoration." },
-    { sku: "GLOBAL-MINI-11X14", price: "25.99", name: "Mini Frame 11x14", description: "Elegant mini frame for your favorite photos." },
-    { sku: "H-COAST-2PK", price: "19.99", name: "Coaster 2-Pack", description: "Set of 2 custom designed coasters." },
-    { sku: "GLOBAL-POST-MOH-6X4", price: "3.00", name: "Postcard 6x4", description: "High-quality custom printed postcard." }
-  ]
+  Decor: [
+    {
+      sku: 'PLANT-POT',
+      price: '25.99',
+      name: 'Plant Pot',
+      description: 'Decorative pot for your indoor plants.',
+    },
+    {
+      sku: 'MET-TIN-ROU',
+      price: '26.99',
+      name: 'Round Metal Tin',
+      description: 'Stylish round metal tin for storage or decoration.',
+    },
+    {
+      sku: 'MET-TIN-REC',
+      price: '25.99',
+      name: 'Rectangular Metal Tin',
+      description: 'Versatile rectangular metal tin for storage or decoration.',
+    },
+    {
+      sku: 'GLOBAL-MINI-11X14',
+      price: '25.99',
+      name: 'Mini Frame 11x14',
+      description: 'Elegant mini frame for your favorite photos.',
+    },
+    {
+      sku: 'H-COAST-2PK',
+      price: '19.99',
+      name: 'Coaster 2-Pack',
+      description: 'Set of 2 custom designed coasters.',
+    },
+    {
+      sku: 'GLOBAL-POST-MOH-6X4',
+      price: '3.00',
+      name: 'Postcard 6x4',
+      description: 'High-quality custom printed postcard.',
+    },
+  ],
 };
 
 interface ProdigiProduct {
@@ -86,13 +151,15 @@ interface ExchangeRateResponse {
 }
 
 function delay(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function getExchangeRates(): Promise<Record<string, number>> {
   try {
-    const response = await fetch(`https://api.exchangerate-api.com/v4/latest/USD`);
-    const data = await response.json() as ExchangeRateResponse;
+    const response = await fetch(
+      `https://api.exchangerate-api.com/v4/latest/USD`
+    );
+    const data = (await response.json()) as ExchangeRateResponse;
     return data.rates;
   } catch (error) {
     console.error('Error fetching exchange rates:', error);
@@ -100,17 +167,23 @@ async function getExchangeRates(): Promise<Record<string, number>> {
   }
 }
 
-async function convertPrice(priceUSD: number, targetCurrency: string, rates: Record<string, number>): Promise<number> {
+async function convertPrice(
+  priceUSD: number,
+  targetCurrency: string,
+  rates: Record<string, number>
+): Promise<number> {
   if (targetCurrency === 'USD') return priceUSD;
-  
+
   const rate = rates[targetCurrency];
   if (!rate) {
-    console.warn(`No exchange rate found for ${targetCurrency}, using USD price`);
+    console.warn(
+      `No exchange rate found for ${targetCurrency}, using USD price`
+    );
     return priceUSD;
   }
 
   const converted = priceUSD * rate;
-  
+
   // Round to 2 decimal places for most currencies, except JPY and KRW
   if (targetCurrency === 'JPY' || targetCurrency === 'KRW') {
     return Math.round(converted);
@@ -122,12 +195,15 @@ async function getProdigiProduct(sku: string): Promise<ProdigiProduct | null> {
   try {
     await delay(1000); // Rate limiting
 
-    const response = await fetch(`https://api.prodigi.com/v4.0/products/${sku}`, {
-      headers: {
-        'X-API-Key': process.env.PRODIGI_API_KEY!,
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await fetch(
+      `https://api.prodigi.com/v4.0/products/${sku}`,
+      {
+        headers: {
+          'X-API-Key': process.env.PRODIGI_API_KEY!,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
 
     if (response.status === 429) {
       console.warn(`Rate limit hit for SKU ${sku}, waiting 30s...`);
@@ -139,7 +215,7 @@ async function getProdigiProduct(sku: string): Promise<ProdigiProduct | null> {
       throw new Error(`API error: ${response.status}`);
     }
 
-    const data = await response.json() as ProdigiResponse;
+    const data = (await response.json()) as ProdigiResponse;
     return data.product || null;
   } catch (error) {
     console.error(`Error fetching product ${sku}:`, error);
@@ -161,14 +237,14 @@ async function updateHomeLiving(
       return;
     }
 
-    const priceUSD = parseFloat(price);
+    const priceUSD = Number.parseFloat(price);
 
     // For each supported country that the product ships to
     for (const country of SUPPORTED_COUNTRIES) {
       const { code: countryCode, currency } = country;
 
       // Check if product ships to this country
-      const shipsToCountry = product.variants.some(v => 
+      const shipsToCountry = product.variants.some((v) =>
         v.shipsTo.includes(countryCode)
       );
 
@@ -236,7 +312,9 @@ async function updateHomeLiving(
         },
       });
 
-      console.log(`Updated ${productData.sku} for ${countryCode} (${currency} ${localPrice})`);
+      console.log(
+        `Updated ${productData.sku} for ${countryCode} (${currency} ${localPrice})`
+      );
     }
   } catch (error) {
     console.error(`Error processing ${sku}:`, error);
@@ -264,4 +342,4 @@ async function main() {
   }
 }
 
-main(); 
+main();

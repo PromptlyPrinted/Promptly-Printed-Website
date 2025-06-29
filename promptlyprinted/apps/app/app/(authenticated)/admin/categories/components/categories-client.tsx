@@ -1,7 +1,15 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Button } from '@repo/design-system/components/ui/button';
+import { Card } from '@repo/design-system/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@repo/design-system/components/ui/dialog';
+import { Input } from '@repo/design-system/components/ui/input';
 import {
   Table,
   TableBody,
@@ -9,22 +17,13 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@repo/design-system/components/ui/table";
-import { Card } from "@repo/design-system/components/ui/card";
-import { Button } from "@repo/design-system/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@repo/design-system/components/ui/dialog";
-import { Input } from "@repo/design-system/components/ui/input";
-import { Label } from "@repo/design-system/components/ui/label";
-import { Toggle } from "@repo/design-system/components/ui/toggle";
-import { LayoutGrid, List, Search } from "lucide-react";
-import { toast } from "sonner";
-import { CategoryForm } from "./category-form";
+} from '@repo/design-system/components/ui/table';
+import { Toggle } from '@repo/design-system/components/ui/toggle';
+import { LayoutGrid, List, Search } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { CategoryForm } from './category-form';
 
 interface Category {
   id: number;
@@ -42,8 +41,8 @@ interface CategoriesClientProps {
 
 export function CategoriesClient({ initialCategories }: CategoriesClientProps) {
   const [categories, setCategories] = useState(initialCategories);
-  const [view, setView] = useState<"table" | "grid">("table");
-  const [search, setSearch] = useState("");
+  const [view, setView] = useState<'table' | 'grid'>('table');
+  const [search, setSearch] = useState('');
   const router = useRouter();
 
   const filteredCategories = categories.filter((category) =>
@@ -52,65 +51,65 @@ export function CategoriesClient({ initialCategories }: CategoriesClientProps) {
 
   const handleSave = async (category: Partial<Category>) => {
     try {
-      const method = category.id ? "PUT" : "POST";
+      const method = category.id ? 'PUT' : 'POST';
       const url = category.id
         ? `/api/admin/categories/${category.id}`
-        : "/api/admin/categories";
+        : '/api/admin/categories';
 
       const response = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(category),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to save category");
+        throw new Error('Failed to save category');
       }
 
       const updatedCategory = await response.json();
-      
+
       if (category.id) {
-        setCategories(categories.map((c) => 
-          c.id === category.id ? updatedCategory : c
-        ));
-        toast.success("Category updated successfully");
+        setCategories(
+          categories.map((c) => (c.id === category.id ? updatedCategory : c))
+        );
+        toast.success('Category updated successfully');
       } else {
         setCategories([...categories, updatedCategory]);
-        toast.success("Category created successfully");
+        toast.success('Category created successfully');
       }
 
       router.refresh();
     } catch (error) {
-      console.error("Error saving category:", error);
-      toast.error("Failed to save category");
+      console.error('Error saving category:', error);
+      toast.error('Failed to save category');
     }
   };
 
   const handleDelete = async (id: number) => {
     try {
       const response = await fetch(`/api/admin/categories/${id}`, {
-        method: "DELETE",
+        method: 'DELETE',
       });
 
       if (!response.ok) {
-        throw new Error("Failed to delete category");
+        throw new Error('Failed to delete category');
       }
 
       setCategories(categories.filter((c) => c.id !== id));
-      toast.success("Category deleted successfully");
+      toast.success('Category deleted successfully');
       router.refresh();
     } catch (error) {
-      console.error("Error deleting category:", error);
-      toast.error("Failed to delete category");
+      console.error('Error deleting category:', error);
+      toast.error('Failed to delete category');
     }
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="relative w-64">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute top-2.5 left-2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search categories..."
               value={search}
@@ -120,14 +119,14 @@ export function CategoriesClient({ initialCategories }: CategoriesClientProps) {
           </div>
           <div className="flex gap-2">
             <Toggle
-              pressed={view === "table"}
-              onPressedChange={() => setView("table")}
+              pressed={view === 'table'}
+              onPressedChange={() => setView('table')}
             >
               <List className="h-4 w-4" />
             </Toggle>
             <Toggle
-              pressed={view === "grid"}
-              onPressedChange={() => setView("grid")}
+              pressed={view === 'grid'}
+              onPressedChange={() => setView('grid')}
             >
               <LayoutGrid className="h-4 w-4" />
             </Toggle>
@@ -146,7 +145,7 @@ export function CategoriesClient({ initialCategories }: CategoriesClientProps) {
         </Dialog>
       </div>
 
-      {view === "table" ? (
+      {view === 'table' ? (
         <Card>
           <Table>
             <TableHeader>
@@ -163,8 +162,12 @@ export function CategoriesClient({ initialCategories }: CategoriesClientProps) {
                 <TableRow key={category.id}>
                   <TableCell>{category.name}</TableCell>
                   <TableCell>{category._count.products}</TableCell>
-                  <TableCell>{new Date(category.createdAt).toLocaleDateString()}</TableCell>
-                  <TableCell>{new Date(category.updatedAt).toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    {new Date(category.createdAt).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    {new Date(category.updatedAt).toLocaleDateString()}
+                  </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       <Dialog>
@@ -177,7 +180,10 @@ export function CategoriesClient({ initialCategories }: CategoriesClientProps) {
                           <DialogHeader>
                             <DialogTitle>Edit Category</DialogTitle>
                           </DialogHeader>
-                          <CategoryForm category={category} onSubmit={handleSave} />
+                          <CategoryForm
+                            category={category}
+                            onSubmit={handleSave}
+                          />
                         </DialogContent>
                       </Dialog>
                       <Button
@@ -203,13 +209,13 @@ export function CategoriesClient({ initialCategories }: CategoriesClientProps) {
           </Table>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredCategories.map((category) => (
             <Card key={category.id} className="p-4">
-              <div className="flex justify-between items-start">
+              <div className="flex items-start justify-between">
                 <div>
                   <h3 className="font-semibold">{category.name}</h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-muted-foreground text-sm">
                     {category._count.products} products
                   </p>
                 </div>
@@ -244,9 +250,13 @@ export function CategoriesClient({ initialCategories }: CategoriesClientProps) {
                   </Button>
                 </div>
               </div>
-              <div className="mt-2 text-sm text-muted-foreground">
-                <p>Created: {new Date(category.createdAt).toLocaleDateString()}</p>
-                <p>Updated: {new Date(category.updatedAt).toLocaleDateString()}</p>
+              <div className="mt-2 text-muted-foreground text-sm">
+                <p>
+                  Created: {new Date(category.createdAt).toLocaleDateString()}
+                </p>
+                <p>
+                  Updated: {new Date(category.updatedAt).toLocaleDateString()}
+                </p>
               </div>
             </Card>
           ))}
@@ -254,4 +264,4 @@ export function CategoriesClient({ initialCategories }: CategoriesClientProps) {
       )}
     </div>
   );
-} 
+}

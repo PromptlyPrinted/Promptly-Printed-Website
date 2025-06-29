@@ -1,24 +1,24 @@
-import { NextResponse } from "next/server";
-import { checkAdmin } from "@/lib/auth-utils";
+import { checkAdmin } from '@/lib/auth-utils';
+import { NextResponse } from 'next/server';
 
 const PRODIGI_API = process.env.PRODIGI_API || 'https://api.prodigi.com/v4.0';
 const PRODIGI_API_KEY = process.env.PRODIGI_API_KEY;
 
-export async function GET(
-  req: Request
-) {
+export async function GET(req: Request) {
   try {
     await checkAdmin();
 
     if (!PRODIGI_API_KEY) {
-      throw new Error('Prodigi API key not configured in environment variables');
+      throw new Error(
+        'Prodigi API key not configured in environment variables'
+      );
     }
 
     const { searchParams } = new URL(req.url);
-    const sku = searchParams.get("sku");
+    const sku = searchParams.get('sku');
 
     // Construct the Prodigi API URL based on whether we're fetching a specific product or all products
-    const url = sku 
+    const url = sku
       ? `${PRODIGI_API}/products/${sku}`
       : `${PRODIGI_API}/products/catalogue`;
 
@@ -36,18 +36,18 @@ export async function GET(
         status: response.status,
         statusText: response.statusText,
         url,
-        error: errorText
+        error: errorText,
       });
       return new NextResponse(
         JSON.stringify({
           error: `Prodigi API error: ${response.status} ${response.statusText}`,
-          details: errorText
+          details: errorText,
         }),
-        { 
+        {
           status: response.status,
           headers: {
-            'Content-Type': 'application/json'
-          }
+            'Content-Type': 'application/json',
+          },
         }
       );
     }
@@ -55,21 +55,20 @@ export async function GET(
     // Forward the Prodigi response directly to the client
     const data = await response.json();
     return NextResponse.json(data);
-
   } catch (error) {
-    console.error("[PRODIGI_PRODUCTS_GET]", error);
-    
+    console.error('[PRODIGI_PRODUCTS_GET]', error);
+
     return new NextResponse(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : "Internal error",
-        details: error instanceof Error ? error.stack : undefined
-      }), 
-      { 
+      JSON.stringify({
+        error: error instanceof Error ? error.message : 'Internal error',
+        details: error instanceof Error ? error.stack : undefined,
+      }),
+      {
         status: 500,
         headers: {
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       }
     );
   }
-} 
+}

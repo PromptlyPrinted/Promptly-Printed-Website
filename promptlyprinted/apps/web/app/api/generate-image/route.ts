@@ -1,60 +1,71 @@
-import { NextResponse } from 'next/server'
-import Together from 'together-ai'
+import { NextResponse } from 'next/server';
+import Together from 'together-ai';
 
 if (!process.env.TOGETHER_API_KEY) {
-  throw new Error('TOGETHER_API_KEY is not set')
+  throw new Error('TOGETHER_API_KEY is not set');
 }
 
-const together = new Together({ apiKey: process.env.TOGETHER_API_KEY })
+const together = new Together({ apiKey: process.env.TOGETHER_API_KEY });
 
 interface ModelConfig {
-  model: string
-  type: 'base' | 'lora'
-  weight: number
+  model: string;
+  type: 'base' | 'lora';
+  weight: number;
 }
 
 export async function POST(request: Request) {
   try {
-    const { prompt, models, loraScale, width, height, dpi } = await request.json()
+    const { prompt, models, loraScale, width, height, dpi } =
+      await request.json();
 
     if (!prompt || !models || !models.length) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
-      )
+      );
     }
 
-    console.log('Making request to Together AI with:', { prompt, models, loraScale, width, height, dpi })
+    console.log('Making request to Together AI with:', {
+      prompt,
+      models,
+      loraScale,
+      width,
+      height,
+      dpi,
+    });
 
     try {
       // Get the base model (should be FLUX)
-      const baseModel = (models as ModelConfig[]).find(m => m.type === 'base')
+      const baseModel = (models as ModelConfig[]).find(
+        (m) => m.type === 'base'
+      );
       if (!baseModel) {
-        throw new Error('No base model selected')
+        throw new Error('No base model selected');
       }
 
       // Extract LoRA models
-      const loraModels = (models as ModelConfig[])
-        .filter(m => m.type === 'lora')
-        
-      // Format LoRAs for the image_loras parameter according to Together AI docs
-      const imageLoras = loraModels.map(lora => ({
-        path: lora.model,
-        scale: lora.weight * (loraScale ?? 1)
-      }))
+      const loraModels = (models as ModelConfig[]).filter(
+        (m) => m.type === 'lora'
+      );
 
-      console.log('Using base model:', baseModel.model)
-      console.log('Using LoRAs:', imageLoras)
+      // Format LoRAs for the image_loras parameter according to Together AI docs
+      const imageLoras = loraModels.map((lora) => ({
+        path: lora.model,
+        scale: lora.weight * (loraScale ?? 1),
+      }));
+
+      console.log('Using base model:', baseModel.model);
+      console.log('Using LoRAs:', imageLoras);
 
       // Validate parameters to ensure they're within allowed ranges
       const steps = 12; // Maximum allowed by the API
-      
+
       // Scale down dimensions to fit within Together AI's limits while maintaining aspect ratio
       const MAX_SIZE = 1024;
       const aspectRatio = width / height;
       let targetWidth = width;
       let targetHeight = height;
-      
+
       if (width > MAX_SIZE || height > MAX_SIZE) {
         if (aspectRatio > 1) {
           targetWidth = MAX_SIZE;
@@ -78,25 +89,25 @@ export async function POST(request: Request) {
         steps: 4,
         width: targetWidth,
         height: targetHeight,
-        image_loras: imageLoras
-      })
+        image_loras: imageLoras,
+      });
 
-      console.log('Together AI response:', response)
+      console.log('Together AI response:', response);
 
       if (!response.data?.[0]) {
-        throw new Error('No image generated')
+        throw new Error('No image generated');
       }
 
-      return NextResponse.json({ data: response.data })
+      return NextResponse.json({ data: response.data });
     } catch (apiError) {
-      console.error('Together AI API error:', apiError)
-      
+      console.error('Together AI API error:', apiError);
+
       // Extract the specific error message from the API response if available
       let errorMessage = 'API error';
       if (apiError instanceof Error) {
         errorMessage = apiError.message;
       }
-      
+
       // Check if it's a response error with more details
       if (typeof apiError === 'object' && apiError !== null) {
         // @ts-ignore - Handle potential response error format
@@ -105,17 +116,17 @@ export async function POST(request: Request) {
           errorMessage = apiError.response.data.error.message;
         }
       }
-      
+
       throw new Error(errorMessage);
     }
   } catch (error) {
-    console.error('Error generating image:', error)
+    console.error('Error generating image:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to generate image',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
-    )
+    );
   }
-} 
+}

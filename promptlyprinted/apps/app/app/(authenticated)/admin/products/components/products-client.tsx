@@ -1,28 +1,27 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { Button } from "@repo/design-system/components/ui/button";
-import { Card } from "@repo/design-system/components/ui/card";
-import { Input } from "@repo/design-system/components/ui/input";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableHead,
-  TableRow,
-  TableCell,
-} from "@repo/design-system/components/ui/table";
+import { Button } from '@repo/design-system/components/ui/button';
+import { Card } from '@repo/design-system/components/ui/card';
+import { Input } from '@repo/design-system/components/ui/input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@repo/design-system/components/ui/select";
-import { Toggle } from "@repo/design-system/components/ui/toggle";
-import { LayoutGrid, List } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { Product, Category } from "@prisma/client";
+} from '@repo/design-system/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@repo/design-system/components/ui/table';
+import { Toggle } from '@repo/design-system/components/ui/toggle';
+import { LayoutGrid, List } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 const PRODUCT_TYPES = [
   'T-SHIRT',
@@ -37,10 +36,10 @@ const PRODUCT_TYPES = [
   'COMIC_BOOK',
   'CHILDREN_BOOK',
   'ART_BOOK',
-  'COFFEE_TABLE_BOOK'
+  'COFFEE_TABLE_BOOK',
 ];
 
-type ViewMode = "table" | "grid";
+type ViewMode = 'table' | 'grid';
 
 type ProductWithBasicInfo = {
   id: number;
@@ -86,12 +85,12 @@ export function ProductsClient({
   selectedCountry,
 }: ProductsClientProps) {
   const router = useRouter();
-  const [viewMode, setViewMode] = useState<ViewMode>("table");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [selectedType, setSelectedType] = useState<string>("all");
-  const [showListed, setShowListed] = useState<string>("all");
-  const [priceRange, setPriceRange] = useState({ min: "", max: "" });
+  const [viewMode, setViewMode] = useState<ViewMode>('table');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedType, setSelectedType] = useState<string>('all');
+  const [showListed, setShowListed] = useState<string>('all');
+  const [priceRange, setPriceRange] = useState({ min: '', max: '' });
 
   // Filter logic
   const filteredProducts = initialProducts.filter((product) => {
@@ -100,22 +99,24 @@ export function ProductsClient({
       product.sku.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesCategory =
-      selectedCategory === "all" || product.category?.name === selectedCategory;
+      selectedCategory === 'all' || product.category?.name === selectedCategory;
 
     const matchesType =
-      selectedType === "all" || product.productType === selectedType;
+      selectedType === 'all' || product.productType === selectedType;
 
     const matchesListed =
-      showListed === "all" ||
-      (showListed === "listed" && product.listed) ||
-      (showListed === "unlisted" && !product.listed);
+      showListed === 'all' ||
+      (showListed === 'listed' && product.listed) ||
+      (showListed === 'unlisted' && !product.listed);
 
     const matchesPriceRange =
-      (priceRange.min === "" || product.customerPrice >= Number(priceRange.min)) &&
-      (priceRange.max === "" || product.customerPrice <= Number(priceRange.max));
+      (priceRange.min === '' ||
+        product.customerPrice >= Number(priceRange.min)) &&
+      (priceRange.max === '' ||
+        product.customerPrice <= Number(priceRange.max));
 
     const matchesCountry =
-      selectedCountry === "all" || product.countryCode === selectedCountry;
+      selectedCountry === 'all' || product.countryCode === selectedCountry;
 
     return (
       matchesSearch &&
@@ -132,12 +133,13 @@ export function ProductsClient({
     searchParams.set('page', page.toString());
     searchParams.set('country', selectedCountry);
     if (searchQuery) searchParams.set('search', searchQuery);
-    if (selectedCategory !== 'all') searchParams.set('category', selectedCategory);
+    if (selectedCategory !== 'all')
+      searchParams.set('category', selectedCategory);
     if (selectedType !== 'all') searchParams.set('type', selectedType);
     if (showListed !== 'all') searchParams.set('listed', showListed);
     if (priceRange.min) searchParams.set('minPrice', priceRange.min);
     if (priceRange.max) searchParams.set('maxPrice', priceRange.max);
-    
+
     router.push(`/admin/products?${searchParams.toString()}`);
   };
 
@@ -146,12 +148,13 @@ export function ProductsClient({
     searchParams.set('page', '1');
     searchParams.set('country', country);
     if (searchQuery) searchParams.set('search', searchQuery);
-    if (selectedCategory !== 'all') searchParams.set('category', selectedCategory);
+    if (selectedCategory !== 'all')
+      searchParams.set('category', selectedCategory);
     if (selectedType !== 'all') searchParams.set('type', selectedType);
     if (showListed !== 'all') searchParams.set('listed', showListed);
     if (priceRange.min) searchParams.set('minPrice', priceRange.min);
     if (priceRange.max) searchParams.set('maxPrice', priceRange.max);
-    
+
     router.push(`/admin/products?${searchParams.toString()}`);
   };
 
@@ -160,12 +163,13 @@ export function ProductsClient({
     searchParams.set('page', '1');
     searchParams.set('country', selectedCountry);
     if (searchQuery) searchParams.set('search', searchQuery);
-    if (selectedCategory !== 'all') searchParams.set('category', selectedCategory);
+    if (selectedCategory !== 'all')
+      searchParams.set('category', selectedCategory);
     if (selectedType !== 'all') searchParams.set('type', selectedType);
     if (showListed !== 'all') searchParams.set('listed', showListed);
     if (priceRange.min) searchParams.set('minPrice', priceRange.min);
     if (priceRange.max) searchParams.set('maxPrice', priceRange.max);
-    
+
     router.push(`/admin/products?${searchParams.toString()}`);
   };
 
@@ -183,7 +187,13 @@ export function ProductsClient({
   // Apply filters when they change
   useEffect(() => {
     applyFilters();
-  }, [selectedCategory, selectedType, showListed, priceRange.min, priceRange.max]);
+  }, [
+    selectedCategory,
+    selectedType,
+    showListed,
+    priceRange.min,
+    priceRange.max,
+  ]);
 
   return (
     <div className="space-y-4">
@@ -191,10 +201,7 @@ export function ProductsClient({
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         {/* Left side: country + search + category + productType + listed */}
         <div className="flex flex-1 items-center space-x-2">
-          <Select
-            value={selectedCountry}
-            onValueChange={changeCountry}
-          >
+          <Select value={selectedCountry} onValueChange={changeCountry}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Select Country" />
             </SelectTrigger>
@@ -214,10 +221,7 @@ export function ProductsClient({
             onChange={(e) => setSearchQuery(e.target.value)}
             className="max-w-[300px]"
           />
-          <Select
-            value={selectedCategory}
-            onValueChange={setSelectedCategory}
-          >
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
@@ -262,28 +266,28 @@ export function ProductsClient({
         <div className="flex items-center space-x-2">
           <div className="flex items-center space-x-1 rounded-md border">
             <Toggle
-              pressed={viewMode === "table"}
-              onPressedChange={() => setViewMode("table")}
+              pressed={viewMode === 'table'}
+              onPressedChange={() => setViewMode('table')}
               aria-label="Table view"
             >
               <List className="h-4 w-4" />
             </Toggle>
             <Toggle
-              pressed={viewMode === "grid"}
-              onPressedChange={() => setViewMode("grid")}
+              pressed={viewMode === 'grid'}
+              onPressedChange={() => setViewMode('grid')}
               aria-label="Grid view"
             >
               <LayoutGrid className="h-4 w-4" />
             </Toggle>
           </div>
-          <Button onClick={() => router.push("/admin/products/new")}>
+          <Button onClick={() => router.push('/admin/products/new')}>
             Add Product
           </Button>
         </div>
       </div>
 
       {/* TABLE view */}
-      {viewMode === "table" ? (
+      {viewMode === 'table' ? (
         <div className="rounded-md border">
           <Table>
             <TableHeader>
@@ -304,15 +308,13 @@ export function ProductsClient({
               {filteredProducts.map((product) => {
                 const catName =
                   categories.find((c) => c.id === product.categoryId)?.name ||
-                  "—";
+                  '—';
                 return (
                   <TableRow key={product.id}>
                     <TableCell>{product.name}</TableCell>
                     <TableCell>{product.sku}</TableCell>
                     <TableCell>{catName}</TableCell>
-                    <TableCell>
-                      {product.productType || "—"}
-                    </TableCell>
+                    <TableCell>{product.productType || '—'}</TableCell>
                     <TableCell>
                       {product.currency} {product.customerPrice.toFixed(2)}
                     </TableCell>
@@ -323,13 +325,13 @@ export function ProductsClient({
                     <TableCell>{product.stock}</TableCell>
                     <TableCell>
                       <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-medium text-xs ${
                           product.listed
-                            ? "bg-green-100 text-green-800"
-                            : "bg-yellow-100 text-yellow-800"
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-yellow-100 text-yellow-800'
                         }`}
                       >
-                        {product.listed ? "Listed" : "Unlisted"}
+                        {product.listed ? 'Listed' : 'Unlisted'}
                       </span>
                     </TableCell>
                     <TableCell>
@@ -348,14 +350,14 @@ export function ProductsClient({
 
               {filteredProducts.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8">
+                  <TableCell colSpan={9} className="py-8 text-center">
                     No products found.
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
-          
+
           {/* Pagination Controls */}
           <div className="flex items-center justify-between border-t px-4 py-4">
             <div className="flex items-center gap-2">
@@ -367,7 +369,7 @@ export function ProductsClient({
               >
                 Previous
               </Button>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-muted-foreground text-sm">
                 Page {currentPage} of {totalPages}
               </span>
               <Button
@@ -386,7 +388,7 @@ export function ProductsClient({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredProducts.map((product) => {
             const catName =
-              categories.find((c) => c.id === product.categoryId)?.name || "—";
+              categories.find((c) => c.id === product.categoryId)?.name || '—';
             return (
               <Card
                 key={product.id}
@@ -395,32 +397,31 @@ export function ProductsClient({
               >
                 <div className="p-4">
                   <h3 className="font-semibold">{product.name}</h3>
-                  <p className="text-sm text-gray-500">{product.sku}</p>
-                  <p className="mt-1 text-xs text-gray-400">
-                    {catName} | {product.productType || "—"}
+                  <p className="text-gray-500 text-sm">{product.sku}</p>
+                  <p className="mt-1 text-gray-400 text-xs">
+                    {catName} | {product.productType || '—'}
                   </p>
                   <div className="mt-2 space-y-1">
                     {/* price */}
-                    <p className="text-lg font-bold">
+                    <p className="font-bold text-lg">
                       {product.currency} {product.customerPrice.toFixed(2)}
                     </p>
                     {/* shipping */}
-                    <p className="text-sm text-gray-600">
-                      Shipping: {product.currency} {product.shippingCost.toFixed(2)}
+                    <p className="text-gray-600 text-sm">
+                      Shipping: {product.currency}{' '}
+                      {product.shippingCost.toFixed(2)}
                     </p>
                   </div>
                   <div className="mt-2 flex items-center justify-between">
-                    <span className="text-sm">
-                      Stock: {product.stock}
-                    </span>
+                    <span className="text-sm">Stock: {product.stock}</span>
                     <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-medium text-xs ${
                         product.listed
-                          ? "bg-green-100 text-green-800"
-                          : "bg-yellow-100 text-yellow-800"
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-yellow-100 text-yellow-800'
                       }`}
                     >
-                      {product.listed ? "Listed" : "Unlisted"}
+                      {product.listed ? 'Listed' : 'Unlisted'}
                     </span>
                   </div>
                 </div>
@@ -429,11 +430,11 @@ export function ProductsClient({
           })}
 
           {filteredProducts.length === 0 && (
-            <div className="col-span-full text-center text-sm text-gray-500">
+            <div className="col-span-full text-center text-gray-500 text-sm">
               No products found.
             </div>
           )}
-          
+
           {/* Pagination Controls */}
           <div className="mt-4 flex items-center justify-center gap-2">
             <Button
@@ -444,7 +445,7 @@ export function ProductsClient({
             >
               Previous
             </Button>
-            <span className="text-sm text-muted-foreground">
+            <span className="text-muted-foreground text-sm">
               Page {currentPage} of {totalPages}
             </span>
             <Button

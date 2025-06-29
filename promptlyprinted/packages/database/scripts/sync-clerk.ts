@@ -12,16 +12,16 @@ const ADMIN_EMAILS = [
   'nathan@promptlyprinted.com',
   'kingfame@hotmail.co.uk',
   'flackomge@gmail.com',
-  'checastro@hotmail.co.uk'
+  'checastro@hotmail.co.uk',
 ];
 
 async function syncClerkUsers() {
   try {
     console.log('Starting Clerk users sync...');
-    
+
     // Get all users from Clerk
     const clerkUsers = await clerk.users.getUserList();
-    
+
     console.log(`Found ${clerkUsers.length} users in Clerk`);
 
     // Create or update each user in the database
@@ -46,7 +46,9 @@ async function syncClerkUsers() {
         },
       });
 
-      console.log(`Updated user ${email} with role: ${isAdmin ? 'ADMIN' : 'CUSTOMER'}`);
+      console.log(
+        `Updated user ${email} with role: ${isAdmin ? 'ADMIN' : 'CUSTOMER'}`
+      );
     }
 
     console.log('Successfully synced all users');
@@ -62,4 +64,4 @@ syncClerkUsers()
   .catch((error) => {
     console.error('Unhandled error:', error);
     process.exit(1);
-  }); 
+  });

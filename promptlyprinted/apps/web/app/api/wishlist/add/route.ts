@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { database } from '@repo/database';
-import { z, ZodError } from 'zod';
+import { type NextRequest, NextResponse } from 'next/server';
+import { ZodError, z } from 'zod';
 
 const WishlistSchema = z.object({
   productId: z.coerce.number().int(),
@@ -27,7 +27,9 @@ export async function POST(request: NextRequest) {
       }
       throw err;
     }
-    const dbUser = await database.user.findUnique({ where: { clerkId: session.userId } });
+    const dbUser = await database.user.findUnique({
+      where: { clerkId: session.userId },
+    });
     if (!dbUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
@@ -47,7 +49,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error adding to wishlist:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to add to wishlist' },
+      {
+        error:
+          error instanceof Error ? error.message : 'Failed to add to wishlist',
+      },
       { status: 500 }
     );
   }

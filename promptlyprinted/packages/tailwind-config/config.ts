@@ -84,7 +84,10 @@ export const config: Config = {
       fontFamily: {
         sans: ['var(--font-geist-sans)', ...defaultTheme.fontFamily.sans],
         mono: ['var(--font-geist-mono)', ...defaultTheme.fontFamily.mono],
-        'precious-sans': ['var(--font-precious-sans)', ...defaultTheme.fontFamily.sans],
+        'precious-sans': [
+          'var(--font-precious-sans)',
+          ...defaultTheme.fontFamily.sans,
+        ],
       },
       keyframes: {
         'accordion-down': {

@@ -1,24 +1,27 @@
-import { createMetadata } from '@repo/seo/metadata';
-import type { Metadata } from 'next';
-import { Package } from 'lucide-react';
 import { Button } from '@repo/design-system/components/ui/button';
 import { Input } from '@repo/design-system/components/ui/input';
+import { createMetadata } from '@repo/seo/metadata';
+import { Package } from 'lucide-react';
+import type { Metadata } from 'next';
 
 export const metadata: Metadata = createMetadata({
   title: 'Track Order | Promptly Printed',
-  description: 'Track your Promptly Printed order status and shipping information.',
+  description:
+    'Track your Promptly Printed order status and shipping information.',
 });
 
 export default function TrackOrderPage() {
   return (
     <div className="container mx-auto py-20">
-      <div className="max-w-xl mx-auto">
-        <div className="text-center mb-12">
-          <Package className="w-16 h-16 mx-auto mb-6 text-primary" />
-          <h1 className="text-4xl font-bold tracking-tight mb-4">Track Your Order</h1>
-          <p className="text-xl text-muted-foreground">
-            Enter your order number to check the status of your order
-            and view shipping information.
+      <div className="mx-auto max-w-xl">
+        <div className="mb-12 text-center">
+          <Package className="mx-auto mb-6 h-16 w-16 text-primary" />
+          <h1 className="mb-4 font-bold text-4xl tracking-tight">
+            Track Your Order
+          </h1>
+          <p className="text-muted-foreground text-xl">
+            Enter your order number to check the status of your order and view
+            shipping information.
           </p>
         </div>
 
@@ -26,7 +29,7 @@ export default function TrackOrderPage() {
           <div>
             <label
               htmlFor="orderNumber"
-              className="block text-sm font-medium text-foreground mb-2"
+              className="mb-2 block font-medium text-foreground text-sm"
             >
               Order Number
             </label>
@@ -42,7 +45,7 @@ export default function TrackOrderPage() {
           <div>
             <label
               htmlFor="email"
-              className="block text-sm font-medium text-foreground mb-2"
+              className="mb-2 block font-medium text-foreground text-sm"
             >
               Email Address
             </label>
@@ -60,19 +63,17 @@ export default function TrackOrderPage() {
           </Button>
         </form>
 
-        <div className="mt-12 bg-muted rounded-lg p-6">
-          <h2 className="text-lg font-semibold mb-4">Need Help?</h2>
-          <p className="text-muted-foreground mb-4">
-            Can't find your order number? Check your order confirmation email
-            or contact our customer support team for assistance.
+        <div className="mt-12 rounded-lg bg-muted p-6">
+          <h2 className="mb-4 font-semibold text-lg">Need Help?</h2>
+          <p className="mb-4 text-muted-foreground">
+            Can't find your order number? Check your order confirmation email or
+            contact our customer support team for assistance.
           </p>
           <Button variant="outline" className="w-full" asChild>
-            <a href="mailto:support@promptlyprinted.com">
-              Contact Support
-            </a>
+            <a href="mailto:support@promptlyprinted.com">Contact Support</a>
           </Button>
         </div>
       </div>
     </div>
   );
-} 
+}

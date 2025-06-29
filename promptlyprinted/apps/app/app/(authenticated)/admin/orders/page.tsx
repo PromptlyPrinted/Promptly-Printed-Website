@@ -1,8 +1,6 @@
-import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
-import Link from "next/link";
-import { database } from "@repo/database";
-import { Card } from "@repo/design-system/components/ui/card";
+import { auth } from '@clerk/nextjs/server';
+import { database } from '@repo/database';
+import { Card } from '@repo/design-system/components/ui/card';
 import {
   Table,
   TableBody,
@@ -10,12 +8,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@repo/design-system/components/ui/table";
-import { formatDistance } from "date-fns";
+} from '@repo/design-system/components/ui/table';
+import { formatDistance } from 'date-fns';
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
 
 async function getOrders() {
   const orders = await database.order.findMany({
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: 'desc' },
     include: {
       user: {
         select: {
@@ -31,7 +31,7 @@ async function getOrders() {
 export default async function AdminOrdersPage() {
   const { userId } = await auth();
   if (!userId) {
-    redirect("/sign-in");
+    redirect('/sign-in');
   }
 
   // Verify admin status
@@ -40,16 +40,16 @@ export default async function AdminOrdersPage() {
     select: { role: true },
   });
 
-  if (user?.role !== "ADMIN") {
-    redirect("/");
+  if (user?.role !== 'ADMIN') {
+    redirect('/');
   }
 
   const orders = await getOrders();
 
   return (
     <div className="space-y-6 p-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Orders</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="font-bold text-3xl">Orders</h1>
       </div>
 
       <Card>
@@ -68,7 +68,10 @@ export default async function AdminOrdersPage() {
             {orders.map((order) => (
               <TableRow key={order.id}>
                 <TableCell>
-                  <Link href={`/admin/orders/${order.id}`} className="text-blue-600 hover:underline">
+                  <Link
+                    href={`/admin/orders/${order.id}`}
+                    className="text-blue-600 hover:underline"
+                  >
                     #{order.id}
                   </Link>
                 </TableCell>
@@ -76,19 +79,21 @@ export default async function AdminOrdersPage() {
                 <TableCell>${order.totalPrice.toFixed(2)}</TableCell>
                 <TableCell>
                   <span
-                    className={`px-2 py-1 rounded-full text-xs ${
-                      order.status === "COMPLETED"
-                        ? "bg-green-100 text-green-800"
-                        : order.status === "PENDING"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : "bg-red-100 text-red-800"
+                    className={`rounded-full px-2 py-1 text-xs ${
+                      order.status === 'COMPLETED'
+                        ? 'bg-green-100 text-green-800'
+                        : order.status === 'PENDING'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-red-100 text-red-800'
                     }`}
                   >
                     {order.status}
                   </span>
                 </TableCell>
                 <TableCell>
-                  {formatDistance(order.createdAt, new Date(), { addSuffix: true })}
+                  {formatDistance(order.createdAt, new Date(), {
+                    addSuffix: true,
+                  })}
                 </TableCell>
                 <TableCell>
                   {order.prodigiOrderId ? (
@@ -101,7 +106,7 @@ export default async function AdminOrdersPage() {
                       View on Prodigi
                     </a>
                   ) : (
-                    "-"
+                    '-'
                   )}
                 </TableCell>
               </TableRow>
@@ -111,4 +116,4 @@ export default async function AdminOrdersPage() {
       </Card>
     </div>
   );
-} 
+}

@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
-import fetch from 'node-fetch';
 import * as dotenv from 'dotenv';
+import fetch from 'node-fetch';
 
 dotenv.config();
 
@@ -32,13 +32,11 @@ const SUPPORTED_COUNTRIES = [
 const hoodieGroups = {
   "Men's Hoodies": [
     //{ sku: "A-MH-JH050", price: "79.99" },  // Zip up
-    { sku: "A-MH-JH001", price: "79.99" },  // Pullover
+    { sku: 'A-MH-JH001', price: '79.99' }, // Pullover
   ],
-  "Women's Hoodies": [
-    { sku: "A-WH-JH001F", price: "75.99" },
-  ],
-  "Kids Hoodies": [
-    { sku: "HOOD-AWD-JH001B", price: "75.99" },  // Kids Hoodie
+  "Women's Hoodies": [{ sku: 'A-WH-JH001F', price: '75.99' }],
+  'Kids Hoodies': [
+    { sku: 'HOOD-AWD-JH001B', price: '75.99' }, // Kids Hoodie
   ],
 };
 
@@ -77,13 +75,15 @@ interface ExchangeRateResponse {
 }
 
 function delay(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function getExchangeRates(): Promise<Record<string, number>> {
   try {
-    const response = await fetch(`https://api.exchangerate-api.com/v4/latest/USD`);
-    const data = await response.json() as ExchangeRateResponse;
+    const response = await fetch(
+      `https://api.exchangerate-api.com/v4/latest/USD`
+    );
+    const data = (await response.json()) as ExchangeRateResponse;
     return data.rates;
   } catch (error) {
     console.error('Error fetching exchange rates:', error);
@@ -91,17 +91,23 @@ async function getExchangeRates(): Promise<Record<string, number>> {
   }
 }
 
-async function convertPrice(priceUSD: number, targetCurrency: string, rates: Record<string, number>): Promise<number> {
+async function convertPrice(
+  priceUSD: number,
+  targetCurrency: string,
+  rates: Record<string, number>
+): Promise<number> {
   if (targetCurrency === 'USD') return priceUSD;
-  
+
   const rate = rates[targetCurrency];
   if (!rate) {
-    console.warn(`No exchange rate found for ${targetCurrency}, using USD price`);
+    console.warn(
+      `No exchange rate found for ${targetCurrency}, using USD price`
+    );
     return priceUSD;
   }
 
   const converted = priceUSD * rate;
-  
+
   // Round to 2 decimal places for most currencies, except JPY and KRW
   if (targetCurrency === 'JPY' || targetCurrency === 'KRW') {
     return Math.round(converted);
@@ -113,12 +119,15 @@ async function getProdigiProduct(sku: string): Promise<ProdigiProduct | null> {
   try {
     await delay(1000); // Rate limiting
 
-    const response = await fetch(`https://api.prodigi.com/v4.0/products/${sku}`, {
-      headers: {
-        'X-API-Key': process.env.PRODIGI_API_KEY!,
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await fetch(
+      `https://api.prodigi.com/v4.0/products/${sku}`,
+      {
+        headers: {
+          'X-API-Key': process.env.PRODIGI_API_KEY!,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
 
     if (response.status === 429) {
       console.warn(`Rate limit hit for SKU ${sku}, waiting 30s...`);
@@ -130,7 +139,7 @@ async function getProdigiProduct(sku: string): Promise<ProdigiProduct | null> {
       throw new Error(`API error: ${response.status}`);
     }
 
-    const data = await response.json() as ProdigiResponse;
+    const data = (await response.json()) as ProdigiResponse;
     return data.product || null;
   } catch (error) {
     console.error(`Error fetching product ${sku}:`, error);
@@ -152,14 +161,14 @@ async function updateHoodie(
       return;
     }
 
-    const priceUSD = parseFloat(price);
+    const priceUSD = Number.parseFloat(price);
 
     // For each supported country that the product ships to
     for (const country of SUPPORTED_COUNTRIES) {
       const { code: countryCode, currency } = country;
 
       // Check if product ships to this country
-      const shipsToCountry = product.variants.some(v => 
+      const shipsToCountry = product.variants.some((v) =>
         v.shipsTo.includes(countryCode)
       );
 
@@ -190,9 +199,13 @@ async function updateHoodie(
         brand: product.attributes.brand?.[0] || '',
         edge: product.attributes.edge?.[0] || '',
         color: product.attributes.color || [],
-        gender: groupName.toLowerCase().includes('men') ? 'Male' : 
-               groupName.toLowerCase().includes('women') ? 'Female' : 
-               groupName.toLowerCase().includes('kids') ? 'Kids' : 'Unisex',
+        gender: groupName.toLowerCase().includes('men')
+          ? 'Male'
+          : groupName.toLowerCase().includes('women')
+            ? 'Female'
+            : groupName.toLowerCase().includes('kids')
+              ? 'Kids'
+              : 'Unisex',
         size: product.attributes.size || [],
         style: product.attributes.style?.[0] || '',
         countryCode,
@@ -217,7 +230,9 @@ async function updateHoodie(
         },
       });
 
-      console.log(`Updated ${productData.sku} for ${countryCode} (${currency} ${localPrice})`);
+      console.log(
+        `Updated ${productData.sku} for ${countryCode} (${currency} ${localPrice})`
+      );
     }
   } catch (error) {
     console.error(`Error processing ${sku}:`, error);
@@ -245,4 +260,4 @@ async function main() {
   }
 }
 
-main(); 
+main();

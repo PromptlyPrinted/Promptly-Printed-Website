@@ -1,8 +1,8 @@
+import { prisma } from '@repo/database';
+import { OrderStatus } from '@repo/database';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { prisma } from '@repo/database';
-import { OrderStatus } from '@repo/database';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-02-24.acacia',
@@ -27,26 +27,40 @@ export async function POST(req: Request) {
 
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;
-      
+
       if (!session.metadata?.orderId) {
         console.error('No orderId found in session metadata');
-        return NextResponse.json({ error: 'No orderId found' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'No orderId found' },
+          { status: 400 }
+        );
       }
 
-      const orderId = parseInt(session.metadata.orderId);
-      
+      const orderId = Number.parseInt(session.metadata.orderId);
+
       // Log the shipping information for debugging
       console.log('Stripe shipping information:', {
         name: session.customer_details?.name,
         address: session.customer_details?.address,
         phone: session.customer_details?.phone,
-        email: session.customer_details?.email
+        email: session.customer_details?.email,
       });
 
       // Ensure we have the required shipping information
-      if (!session.customer_details?.address?.line1 || !session.customer_details?.address?.city || !session.customer_details?.address?.postal_code || !session.customer_details?.address?.country) {
-        console.error('Missing required shipping information:', session.customer_details?.address);
-        return NextResponse.json({ error: 'Missing required shipping information' }, { status: 400 });
+      if (
+        !session.customer_details?.address?.line1 ||
+        !session.customer_details?.address?.city ||
+        !session.customer_details?.address?.postal_code ||
+        !session.customer_details?.address?.country
+      ) {
+        console.error(
+          'Missing required shipping information:',
+          session.customer_details?.address
+        );
+        return NextResponse.json(
+          { error: 'Missing required shipping information' },
+          { status: 400 }
+        );
       }
 
       // Update the recipient information with the shipping details from Stripe
@@ -64,20 +78,20 @@ export async function POST(req: Request) {
               state: session.customer_details.address.state || undefined,
               postalCode: session.customer_details.address.postal_code,
               countryCode: session.customer_details.address.country,
-            }
+            },
           },
-          status: OrderStatus.COMPLETED
+          status: OrderStatus.COMPLETED,
         },
         include: {
           recipient: true,
-          orderItems: true
-        }
+          orderItems: true,
+        },
       });
 
       console.log('Updated order with shipping information:', {
         orderId: updatedOrder.id,
         recipient: updatedOrder.recipient,
-        status: updatedOrder.status
+        status: updatedOrder.status,
       });
     }
 
@@ -89,4 +103,4 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
-} 
+}

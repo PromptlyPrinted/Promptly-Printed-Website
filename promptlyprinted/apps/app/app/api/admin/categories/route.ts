@@ -1,7 +1,6 @@
-import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-import { database } from "@repo/database";
-import { checkAdmin } from "@/lib/auth-utils";
+import { checkAdmin } from '@/lib/auth-utils';
+import { database } from '@repo/database';
+import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
@@ -16,14 +15,14 @@ export async function GET() {
         },
       },
       orderBy: {
-        name: "asc",
+        name: 'asc',
       },
     });
 
     return NextResponse.json(categories);
   } catch (error) {
-    console.error("Error fetching categories:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    console.error('Error fetching categories:', error);
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 }
 
@@ -40,7 +39,7 @@ export async function POST(request: Request) {
     });
 
     if (existingCategory) {
-      return new NextResponse("Category with this name already exists", {
+      return new NextResponse('Category with this name already exists', {
         status: 400,
       });
     }
@@ -61,7 +60,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(category);
   } catch (error) {
-    console.error("Error creating category:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    console.error('Error creating category:', error);
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
-} 
+}

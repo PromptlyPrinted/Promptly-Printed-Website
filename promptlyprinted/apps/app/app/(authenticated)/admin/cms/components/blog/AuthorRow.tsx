@@ -1,10 +1,16 @@
-"use client";
+'use client';
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@repo/design-system/components/ui/dialog";
-import { Button } from "@repo/design-system/components/ui/button";
-import { TableCell, TableRow } from "@repo/design-system/components/ui/table";
-import AuthorForm from "./AuthorForm";
-import type { Author } from "./BlogAuthors";
+import { Button } from '@repo/design-system/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@repo/design-system/components/ui/dialog';
+import { TableCell, TableRow } from '@repo/design-system/components/ui/table';
+import AuthorForm from './AuthorForm';
+import type { Author } from './BlogAuthors';
 
 interface AuthorRowProps {
   author: Author;
@@ -12,7 +18,11 @@ interface AuthorRowProps {
   onDelete: (id: string) => void;
 }
 
-export default function AuthorRow({ author, onSave, onDelete }: AuthorRowProps) {
+export default function AuthorRow({
+  author,
+  onSave,
+  onDelete,
+}: AuthorRowProps) {
   return (
     <TableRow>
       {/* Avatar */}
@@ -21,7 +31,7 @@ export default function AuthorRow({ author, onSave, onDelete }: AuthorRowProps) 
           <img
             src={author.avatar}
             alt={author.title}
-            className="w-10 h-10 rounded-full object-cover"
+            className="h-10 w-10 rounded-full object-cover"
           />
         )}
       </TableCell>
@@ -41,7 +51,7 @@ export default function AuthorRow({ author, onSave, onDelete }: AuthorRowProps) 
             {author.xUrl}
           </a>
         ) : (
-          "N/A"
+          'N/A'
         )}
       </TableCell>
 
@@ -75,4 +85,4 @@ export default function AuthorRow({ author, onSave, onDelete }: AuthorRowProps) 
       </TableCell>
     </TableRow>
   );
-} 
+}

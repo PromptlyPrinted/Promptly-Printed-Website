@@ -1,14 +1,25 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@repo/design-system/components/ui/card';
-import { Button } from '@repo/design-system/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@repo/design-system/components/ui/select';
-import { Label } from '@repo/design-system/components/ui/label';
-import { format } from 'date-fns';
-import { useToast } from '@repo/design-system/components/ui/use-toast';
 import { useUser } from '@clerk/nextjs';
+import { Button } from '@repo/design-system/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@repo/design-system/components/ui/card';
+import { Label } from '@repo/design-system/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@repo/design-system/components/ui/select';
+import { useToast } from '@repo/design-system/components/ui/use-toast';
+import { format } from 'date-fns';
+import { useParams, useRouter } from 'next/navigation';
+import { useState } from 'react';
 import useSWR from 'swr';
 
 type User = {
@@ -48,13 +59,22 @@ export default function UserDetailPage() {
   const router = useRouter();
   const { user: currentUser, isLoaded } = useUser();
   const params = useParams();
-  const id = typeof params.id === 'string' ? params.id : Array.isArray(params.id) ? params.id[0] : undefined;
+  const id =
+    typeof params.id === 'string'
+      ? params.id
+      : Array.isArray(params.id)
+        ? params.id[0]
+        : undefined;
   const { toast } = useToast();
 
   // Use the ID from useParams() in your SWR call
-  const { data: user, isLoading, error, mutate } = useSWR<User>(
-    isLoaded && id ? `/api/admin/users/${id}` : null,
-    () => id ? getUser(id) : Promise.reject('No ID provided')
+  const {
+    data: user,
+    isLoading,
+    error,
+    mutate,
+  } = useSWR<User>(isLoaded && id ? `/api/admin/users/${id}` : null, () =>
+    id ? getUser(id) : Promise.reject('No ID provided')
   );
 
   const [isUpdating, setIsUpdating] = useState(false);
@@ -100,14 +120,10 @@ export default function UserDetailPage() {
 
   return (
     <div className="container mx-auto py-10">
-      <Button
-        variant="ghost"
-        onClick={() => router.back()}
-        className="mb-4"
-      >
+      <Button variant="ghost" onClick={() => router.back()} className="mb-4">
         ← Back to Users
       </Button>
-      
+
       <Card>
         <CardHeader>
           <CardTitle>User Details</CardTitle>
@@ -128,7 +144,9 @@ export default function UserDetailPage() {
             </div>
             <div>
               <Label>Created At</Label>
-              <div className="mt-1">{format(new Date(user.createdAt), 'PPP')}</div>
+              <div className="mt-1">
+                {format(new Date(user.createdAt), 'PPP')}
+              </div>
             </div>
             <div>
               <Label>Role</Label>

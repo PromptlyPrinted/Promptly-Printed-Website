@@ -1,7 +1,16 @@
 'use client';
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { Button } from '@repo/design-system/components/ui/button';
+import { Card } from '@repo/design-system/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@repo/design-system/components/ui/dialog';
+import { Input } from '@repo/design-system/components/ui/input';
+import { Label } from '@repo/design-system/components/ui/label';
 import {
   Table,
   TableBody,
@@ -9,20 +18,11 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@repo/design-system/components/ui/table";
-import { Card } from "@repo/design-system/components/ui/card";
-import { Button } from "@repo/design-system/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@repo/design-system/components/ui/dialog";
-import { Input } from "@repo/design-system/components/ui/input";
-import { Label } from "@repo/design-system/components/ui/label";
-import { Toggle } from "@repo/design-system/components/ui/toggle";
-import { LayoutGrid, List } from "lucide-react";
+} from '@repo/design-system/components/ui/table';
+import { Toggle } from '@repo/design-system/components/ui/toggle';
+import { LayoutGrid, List } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 interface Category {
   id: string;
@@ -35,11 +35,11 @@ const useCategories = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch("/api/cms/blog/categories");
+      const response = await fetch('/api/cms/blog/categories');
       const data = await response.json();
       setCategories(data);
     } catch (error) {
-      console.error("Error fetching categories:", error);
+      console.error('Error fetching categories:', error);
     } finally {
       setLoading(false);
     }
@@ -53,20 +53,20 @@ const useCategories = () => {
 };
 
 export default function BlogCategories() {
-  const [view, setView] = useState<"table" | "gallery">("table");
+  const [view, setView] = useState<'table' | 'gallery'>('table');
   const router = useRouter();
 
   const { data: categories, mutate } = useCategories();
 
   const handleSave = async (category: Category) => {
-    const method = category.id ? "PUT" : "POST";
+    const method = category.id ? 'PUT' : 'POST';
     const url = category.id
       ? `/api/cms/blog/categories/${category.id}`
-      : "/api/cms/blog/categories";
+      : '/api/cms/blog/categories';
 
     await fetch(url, {
       method,
-      headers: { "Content-Type": "application/json" },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(category),
     });
 
@@ -75,7 +75,7 @@ export default function BlogCategories() {
   };
 
   const handleDelete = async (id: string) => {
-    await fetch(`/api/cms/blog/categories/${id}`, { method: "DELETE" });
+    await fetch(`/api/cms/blog/categories/${id}`, { method: 'DELETE' });
     mutate();
     router.refresh();
   };
@@ -84,18 +84,18 @@ export default function BlogCategories() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Blog Categories</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="font-bold text-2xl">Blog Categories</h2>
         <div className="flex gap-2">
           <Toggle
-            pressed={view === "table"}
-            onPressedChange={() => setView("table")}
+            pressed={view === 'table'}
+            onPressedChange={() => setView('table')}
           >
             <List className="h-4 w-4" />
           </Toggle>
           <Toggle
-            pressed={view === "gallery"}
-            onPressedChange={() => setView("gallery")}
+            pressed={view === 'gallery'}
+            onPressedChange={() => setView('gallery')}
           >
             <LayoutGrid className="h-4 w-4" />
           </Toggle>
@@ -109,8 +109,8 @@ export default function BlogCategories() {
               </DialogHeader>
               <CategoryForm
                 category={{
-                  id: "",
-                  title: "",
+                  id: '',
+                  title: '',
                 }}
                 onSave={handleSave}
               />
@@ -119,7 +119,7 @@ export default function BlogCategories() {
         </div>
       </div>
 
-      {view === "table" ? (
+      {view === 'table' ? (
         <Table>
           <TableHeader>
             <TableRow>
@@ -143,10 +143,7 @@ export default function BlogCategories() {
                         <DialogHeader>
                           <DialogTitle>Edit Category</DialogTitle>
                         </DialogHeader>
-                        <CategoryForm
-                          category={category}
-                          onSave={handleSave}
-                        />
+                        <CategoryForm category={category} onSave={handleSave} />
                       </DialogContent>
                     </Dialog>
                     <Button
@@ -163,13 +160,13 @@ export default function BlogCategories() {
           </TableBody>
         </Table>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-4">
           {categories.map((category: Category) => (
             <Card key={category.id} className="p-4">
-              <h3 className="font-semibold text-center mb-4">
+              <h3 className="mb-4 text-center font-semibold">
                 {category.title}
               </h3>
-              <div className="flex gap-2 justify-center">
+              <div className="flex justify-center gap-2">
                 <Dialog>
                   <DialogTrigger asChild>
                     <Button variant="outline" size="sm">
@@ -180,10 +177,7 @@ export default function BlogCategories() {
                     <DialogHeader>
                       <DialogTitle>Edit Category</DialogTitle>
                     </DialogHeader>
-                    <CategoryForm
-                      category={category}
-                      onSave={handleSave}
-                    />
+                    <CategoryForm category={category} onSave={handleSave} />
                   </DialogContent>
                 </Dialog>
                 <Button
@@ -222,13 +216,11 @@ function CategoryForm({ category, onSave }: CategoryFormProps) {
         <Input
           id="title"
           value={formData.title}
-          onChange={(e) =>
-            setFormData({ ...formData, title: e.target.value })
-          }
+          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
         />
       </div>
 
       <Button type="submit">Save</Button>
     </form>
   );
-} 
+}

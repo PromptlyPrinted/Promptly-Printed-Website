@@ -1,12 +1,23 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@repo/design-system/components/ui/card';
 import { DataTable } from '@/components/ui/data-table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@repo/design-system/components/ui/select';
-import { ColumnDef } from '@tanstack/react-table';
-import { useRouter } from 'next/navigation';
-import { format } from 'date-fns';
 import { useUser } from '@clerk/nextjs';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@repo/design-system/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@repo/design-system/components/ui/select';
+import type { ColumnDef } from '@tanstack/react-table';
+import { format } from 'date-fns';
+import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { useUserFilterStore } from '../../components/sidebar';
 
@@ -31,10 +42,11 @@ export default function UsersPage() {
   const router = useRouter();
   const { user: currentUser, isLoaded } = useUser();
   const { roleFilter, setRoleFilter } = useUserFilterStore();
-  const { data: users, isLoading, error } = useSWR<User[]>(
-    isLoaded ? '/api/admin/users' : null,
-    getUsers
-  );
+  const {
+    data: users,
+    isLoading,
+    error,
+  } = useSWR<User[]>(isLoaded ? '/api/admin/users' : null, getUsers);
 
   // Redirect if not admin
   if (isLoaded && !currentUser) {
@@ -66,9 +78,10 @@ export default function UsersPage() {
     },
   ];
 
-  const filteredUsers = users?.filter(user => 
-    roleFilter === 'ALL' ? true : user.role === roleFilter
-  ) ?? [];
+  const filteredUsers =
+    users?.filter((user) =>
+      roleFilter === 'ALL' ? true : user.role === roleFilter
+    ) ?? [];
 
   if (!isLoaded || isLoading) return <div>Loading...</div>;
   if (error) return <div>Error loading users</div>;
@@ -79,10 +92,7 @@ export default function UsersPage() {
         <CardHeader>
           <CardTitle>Users</CardTitle>
           <div className="flex items-center space-x-4">
-            <Select
-              value={roleFilter}
-              onValueChange={setRoleFilter}
-            >
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Filter by role" />
               </SelectTrigger>
@@ -104,4 +114,4 @@ export default function UsersPage() {
       </Card>
     </div>
   );
-} 
+}

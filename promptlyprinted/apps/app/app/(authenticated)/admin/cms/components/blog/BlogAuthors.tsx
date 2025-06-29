@@ -1,22 +1,34 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@repo/design-system/components/ui/dialog";
-import { Button } from "@repo/design-system/components/ui/button";
-import { Card } from "@repo/design-system/components/ui/card";
-import { Toggle } from "@repo/design-system/components/ui/toggle";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@repo/design-system/components/ui/table";
-import { LayoutGrid, List } from "lucide-react";
+import { Button } from '@repo/design-system/components/ui/button';
+import { Card } from '@repo/design-system/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@repo/design-system/components/ui/dialog';
+import {
+  Table,
+  TableBody,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@repo/design-system/components/ui/table';
+import { Toggle } from '@repo/design-system/components/ui/toggle';
+import { LayoutGrid, List } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
-import AuthorForm from "./AuthorForm";
-import AuthorRow from "./AuthorRow";
+import AuthorForm from './AuthorForm';
+import AuthorRow from './AuthorRow';
 
 // --------------------------------------------------
 // Author interface
 // --------------------------------------------------
 export interface Author {
-  id: string;       // Must be unique in your DB
+  id: string; // Must be unique in your DB
   title: string;
   avatar: string;
   xUrl: string;
@@ -34,20 +46,20 @@ function useAuthors() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch("/api/cms/blog/authors");
+      const response = await fetch('/api/cms/blog/authors');
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to fetch authors");
+        throw new Error(errorData.error || 'Failed to fetch authors');
       }
       const data = await response.json();
-      console.log("Authors data:", data);
+      console.log('Authors data:', data);
       if (!Array.isArray(data)) {
-        throw new Error("Invalid response format for authors");
+        throw new Error('Invalid response format for authors');
       }
       setAuthors(data);
     } catch (err) {
-      console.error("Error fetching authors:", err);
-      setError(err instanceof Error ? err.message : "An error occurred");
+      console.error('Error fetching authors:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred');
       setAuthors([]); // Reset authors on error
     } finally {
       setLoading(false);
@@ -65,7 +77,7 @@ function useAuthors() {
 // Main BlogAuthors component
 // --------------------------------------------------
 export default function BlogAuthors() {
-  const [view, setView] = useState<"table" | "gallery">("table");
+  const [view, setView] = useState<'table' | 'gallery'>('table');
   const router = useRouter();
   const { data: authors, loading, error, mutate } = useAuthors();
 
@@ -87,27 +99,30 @@ export default function BlogAuthors() {
   // --------------------------------------------------
   const handleSave = async (author: Author) => {
     try {
-      const method = author.id ? "PUT" : "POST";
+      const method = author.id ? 'PUT' : 'POST';
       const url = author.id
         ? `/api/cms/blog/authors/${author.id}`
-        : "/api/cms/blog/authors";
+        : '/api/cms/blog/authors';
 
       const response = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(author),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to ${author.id ? "update" : "create"} author`);
+        throw new Error(
+          errorData.error ||
+            `Failed to ${author.id ? 'update' : 'create'} author`
+        );
       }
 
       // Refresh data
       mutate();
       router.refresh(); // For SSR/ISR revalidation if needed
     } catch (err) {
-      console.error("Error saving author:", err);
+      console.error('Error saving author:', err);
       // Optional: show toast / user feedback
     }
   };
@@ -115,18 +130,18 @@ export default function BlogAuthors() {
   const handleDelete = async (id: string) => {
     try {
       const response = await fetch(`/api/cms/blog/authors/${id}`, {
-        method: "DELETE",
+        method: 'DELETE',
       });
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to delete author");
+        throw new Error(errorData.error || 'Failed to delete author');
       }
 
       // Refresh data
       mutate();
       router.refresh();
     } catch (err) {
-      console.error("Error deleting author:", err);
+      console.error('Error deleting author:', err);
       // Optional: show toast / user feedback
     }
   };
@@ -137,18 +152,18 @@ export default function BlogAuthors() {
   return (
     <div className="space-y-4">
       {/* Header section with toggles and "New Author" button */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Blog Authors</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="font-bold text-2xl">Blog Authors</h2>
         <div className="flex gap-2">
           <Toggle
-            pressed={view === "table"}
-            onPressedChange={() => setView("table")}
+            pressed={view === 'table'}
+            onPressedChange={() => setView('table')}
           >
             <List className="h-4 w-4" />
           </Toggle>
           <Toggle
-            pressed={view === "gallery"}
-            onPressedChange={() => setView("gallery")}
+            pressed={view === 'gallery'}
+            onPressedChange={() => setView('gallery')}
           >
             <LayoutGrid className="h-4 w-4" />
           </Toggle>
@@ -164,10 +179,10 @@ export default function BlogAuthors() {
               </DialogHeader>
               <AuthorForm
                 author={{
-                  id: "",
-                  title: "",
-                  avatar: "",
-                  xUrl: "",
+                  id: '',
+                  title: '',
+                  avatar: '',
+                  xUrl: '',
                 }}
                 onSave={handleSave}
               />
@@ -177,7 +192,7 @@ export default function BlogAuthors() {
       </div>
 
       {/* Toggle between table view and gallery view */}
-      {view === "table" ? (
+      {view === 'table' ? (
         <Table>
           <TableHeader>
             <TableRow>
@@ -200,32 +215,30 @@ export default function BlogAuthors() {
         </Table>
       ) : (
         // Gallery (cards) view
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-4">
           {authors.map((author) => (
             <Card key={author.id} className="p-4">
               {author.avatar && (
                 <img
                   src={author.avatar}
                   alt={author.title}
-                  className="w-24 h-24 rounded-full object-cover mx-auto mb-4"
+                  className="mx-auto mb-4 h-24 w-24 rounded-full object-cover"
                 />
               )}
-              <h3 className="font-semibold text-center mb-2">
-                {author.title}
-              </h3>
+              <h3 className="mb-2 text-center font-semibold">{author.title}</h3>
               {author.xUrl ? (
                 <a
                   href={author.xUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-500 hover:underline text-sm text-center block mb-4"
+                  className="mb-4 block text-center text-blue-500 text-sm hover:underline"
                 >
                   {author.xUrl}
                 </a>
               ) : (
-                <p className="text-sm text-center">No X profile</p>
+                <p className="text-center text-sm">No X profile</p>
               )}
-              <div className="flex gap-2 justify-center">
+              <div className="flex justify-center gap-2">
                 <Dialog>
                   <DialogTrigger asChild>
                     <Button variant="outline" size="sm">
@@ -253,4 +266,4 @@ export default function BlogAuthors() {
       )}
     </div>
   );
-} 
+}

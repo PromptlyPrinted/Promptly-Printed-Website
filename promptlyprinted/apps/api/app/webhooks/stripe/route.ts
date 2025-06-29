@@ -114,7 +114,10 @@ export const POST = async (request: Request): Promise<Response> => {
 };
 
 export const GET = async () => {
-  return new Response('Stripe webhook endpoint is working! This endpoint is designed to receive POST requests from Stripe.', {
-    status: 200,
-  });
+  return new Response(
+    'Stripe webhook endpoint is working! This endpoint is designed to receive POST requests from Stripe.',
+    {
+      status: 200,
+    }
+  );
 };

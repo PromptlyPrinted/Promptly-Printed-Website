@@ -1,7 +1,16 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Card } from "@repo/design-system/components/ui/card";
+import type { Log } from '@prisma/client';
+import { Button } from '@repo/design-system/components/ui/button';
+import { Card } from '@repo/design-system/components/ui/card';
+import { Input } from '@repo/design-system/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@repo/design-system/components/ui/select';
 import {
   Table,
   TableBody,
@@ -9,19 +18,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@repo/design-system/components/ui/table";
-import { Input } from "@repo/design-system/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@repo/design-system/components/ui/select";
-import { Button } from "@repo/design-system/components/ui/button";
-import { ExternalLinkIcon } from "lucide-react";
-import { formatDistance } from "date-fns";
-import type { Log } from "@prisma/client";
+} from '@repo/design-system/components/ui/table';
+import { formatDistance } from 'date-fns';
+import { ExternalLinkIcon } from 'lucide-react';
+import { useState } from 'react';
 
 interface LogsClientProps {
   initialLogs: Log[];
@@ -29,34 +29,40 @@ interface LogsClientProps {
 
 export default function LogsClient({ initialLogs }: LogsClientProps) {
   const [logs, setLogs] = useState<Log[]>(initialLogs);
-  const [level, setLevel] = useState("");
-  const [search, setSearch] = useState("");
+  const [level, setLevel] = useState('');
+  const [search, setSearch] = useState('');
 
   // Client-side filtering
   const filteredLogs = logs.filter((log) => {
     if (level && log.level !== level) return false;
-    if (search && !log.message.toLowerCase().includes(search.toLowerCase()) && 
-        !log.level.toLowerCase().includes(search.toLowerCase())) return false;
+    if (
+      search &&
+      !log.message.toLowerCase().includes(search.toLowerCase()) &&
+      !log.level.toLowerCase().includes(search.toLowerCase())
+    )
+      return false;
     return true;
   });
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">System Logs</h1>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="font-bold text-2xl">System Logs</h1>
         {process.env.NEXT_PUBLIC_BETTERSTACK_API_KEY && (
           <Button
             variant="outline"
-            onClick={() => window.open("https://logs.betterstack.com", "_blank")}
+            onClick={() =>
+              window.open('https://logs.betterstack.com', '_blank')
+            }
           >
-            <ExternalLinkIcon className="w-4 h-4 mr-2" />
+            <ExternalLinkIcon className="mr-2 h-4 w-4" />
             View in BetterStack
           </Button>
         )}
       </div>
 
       <Card className="mb-6">
-        <div className="p-4 flex gap-4">
+        <div className="flex gap-4 p-4">
           <Select value={level} onValueChange={setLevel}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filter by level" />
@@ -92,10 +98,10 @@ export default function LogsClient({ initialLogs }: LogsClientProps) {
               <TableRow key={log.id}>
                 <TableCell>
                   <span
-                    className={`px-2 py-1 rounded-full text-xs ${
-                      log.level === "error"
-                        ? "bg-red-100 text-red-800"
-                        : "bg-blue-100 text-blue-800"
+                    className={`rounded-full px-2 py-1 text-xs ${
+                      log.level === 'error'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-blue-100 text-blue-800'
                     }`}
                   >
                     {log.level}
@@ -103,7 +109,7 @@ export default function LogsClient({ initialLogs }: LogsClientProps) {
                 </TableCell>
                 <TableCell>{log.message}</TableCell>
                 <TableCell>
-                  <pre className="text-xs whitespace-pre-wrap">
+                  <pre className="whitespace-pre-wrap text-xs">
                     {JSON.stringify(log.metadata, null, 2)}
                   </pre>
                 </TableCell>
@@ -119,4 +125,4 @@ export default function LogsClient({ initialLogs }: LogsClientProps) {
       </Card>
     </div>
   );
-} 
+}

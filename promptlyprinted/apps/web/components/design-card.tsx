@@ -1,6 +1,5 @@
-import Image from "next/image";
-import { format } from "date-fns";
-import { Button } from "@repo/design-system/components/ui/button";
+import type { DesignResponse } from '@/types/design';
+import { Button } from '@repo/design-system/components/ui/button';
 import {
   Card,
   CardContent,
@@ -8,8 +7,9 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@repo/design-system/components/ui/card";
-import { type DesignResponse } from "@/types/design";
+} from '@repo/design-system/components/ui/card';
+import { format } from 'date-fns';
+import Image from 'next/image';
 
 interface DesignCardProps {
   design: DesignResponse;
@@ -17,8 +17,12 @@ interface DesignCardProps {
   selectable?: boolean;
 }
 
-export function DesignCard({ design, onSelect, selectable = false }: DesignCardProps) {
-  const formattedDate = format(new Date(design.createdAt), "MMM d, yyyy");
+export function DesignCard({
+  design,
+  onSelect,
+  selectable = false,
+}: DesignCardProps) {
+  const formattedDate = format(new Date(design.createdAt), 'MMM d, yyyy');
 
   return (
     <Card className="overflow-hidden">
@@ -27,7 +31,10 @@ export function DesignCard({ design, onSelect, selectable = false }: DesignCardP
         <CardDescription>
           Created {formattedDate}
           {design.product && (
-            <> • {design.product.name} ({design.product.color.join(", ")})</>
+            <>
+              {' '}
+              • {design.product.name} ({design.product.color.join(', ')})
+            </>
           )}
         </CardDescription>
       </CardHeader>

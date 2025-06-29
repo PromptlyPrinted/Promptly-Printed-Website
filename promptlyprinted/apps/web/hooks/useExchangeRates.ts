@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 interface ExchangeRates {
   [key: string]: number;
@@ -13,9 +13,11 @@ export function useExchangeRates() {
     const fetchRates = async () => {
       try {
         // You'll need to sign up for an API key at exchangerate-api.com or similar service
-        const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+        const response = await fetch(
+          'https://api.exchangerate-api.com/v4/latest/USD'
+        );
         const data = await response.json();
-        
+
         if (data.rates) {
           setRates(data.rates);
           setError(null);
@@ -39,7 +41,7 @@ export function useExchangeRates() {
           KRW: 1331.89,
           JPY: 150.41,
           SGD: 1.34,
-          CNY: 7.19
+          CNY: 7.19,
         });
       } finally {
         setLoading(false);
@@ -47,18 +49,22 @@ export function useExchangeRates() {
     };
 
     fetchRates();
-    
+
     // Refresh rates every hour
     const interval = setInterval(fetchRates, 3600000);
-    
+
     return () => clearInterval(interval);
   }, []);
 
-  const convertPrice = (amount: number, fromCurrency: string, toCurrency: string): number => {
+  const convertPrice = (
+    amount: number,
+    fromCurrency: string,
+    toCurrency: string
+  ): number => {
     if (!rates[fromCurrency] || !rates[toCurrency]) {
       return amount;
     }
-    
+
     const inUSD = amount / rates[fromCurrency];
     return inUSD * rates[toCurrency];
   };
@@ -67,6 +73,6 @@ export function useExchangeRates() {
     rates,
     loading,
     error,
-    convertPrice
+    convertPrice,
   };
-} 
+}

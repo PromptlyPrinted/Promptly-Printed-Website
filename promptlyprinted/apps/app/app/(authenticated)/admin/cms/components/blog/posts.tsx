@@ -1,7 +1,16 @@
 'use client';
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { Button } from '@repo/design-system/components/ui/button';
+import { Card } from '@repo/design-system/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@repo/design-system/components/ui/dialog';
+import { Input } from '@repo/design-system/components/ui/input';
+import { Label } from '@repo/design-system/components/ui/label';
 import {
   Table,
   TableBody,
@@ -9,22 +18,13 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@repo/design-system/components/ui/table";
-import { Card } from "@repo/design-system/components/ui/card";
-import { Button } from "@repo/design-system/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@repo/design-system/components/ui/dialog";
-import { Input } from "@repo/design-system/components/ui/input";
-import { Textarea } from "@repo/design-system/components/ui/textarea";
-import { Label } from "@repo/design-system/components/ui/label";
-import { Toggle } from "@repo/design-system/components/ui/toggle";
-import { format } from "date-fns";
-import { LayoutGrid, List } from "lucide-react";
+} from '@repo/design-system/components/ui/table';
+import { Textarea } from '@repo/design-system/components/ui/textarea';
+import { Toggle } from '@repo/design-system/components/ui/toggle';
+import { format } from 'date-fns';
+import { LayoutGrid, List } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 interface Author {
   id: string;
@@ -56,7 +56,7 @@ const usePosts = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch("/api/cms/blog/posts");
+      const response = await fetch('/api/cms/blog/posts');
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to fetch posts');
@@ -68,7 +68,7 @@ const usePosts = () => {
       }
       setPosts(data);
     } catch (error) {
-      console.error("Error fetching posts:", error);
+      console.error('Error fetching posts:', error);
       setError(error instanceof Error ? error.message : 'An error occurred');
       setPosts([]); // Reset posts on error
     } finally {
@@ -92,7 +92,7 @@ const useAuthors = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch("/api/cms/blog/authors");
+      const response = await fetch('/api/cms/blog/authors');
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to fetch authors');
@@ -104,7 +104,7 @@ const useAuthors = () => {
       }
       setAuthors(data);
     } catch (error) {
-      console.error("Error fetching authors:", error);
+      console.error('Error fetching authors:', error);
       setError(error instanceof Error ? error.message : 'An error occurred');
       setAuthors([]); // Reset authors on error
     } finally {
@@ -128,7 +128,7 @@ const useCategories = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch("/api/cms/blog/categories");
+      const response = await fetch('/api/cms/blog/categories');
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to fetch categories');
@@ -140,7 +140,7 @@ const useCategories = () => {
       }
       setCategories(data);
     } catch (error) {
-      console.error("Error fetching categories:", error);
+      console.error('Error fetching categories:', error);
       setError(error instanceof Error ? error.message : 'An error occurred');
       setCategories([]); // Reset categories on error
     } finally {
@@ -156,7 +156,7 @@ const useCategories = () => {
 };
 
 export default function BlogPosts() {
-  const [view, setView] = useState<"table" | "gallery">("table");
+  const [view, setView] = useState<'table' | 'gallery'>('table');
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const router = useRouter();
 
@@ -171,15 +171,23 @@ export default function BlogPosts() {
 
   // Show error states
   if (postsError) {
-    return <div className="text-red-500">Error loading posts: {postsError}</div>;
+    return (
+      <div className="text-red-500">Error loading posts: {postsError}</div>
+    );
   }
 
   if (authorsError) {
-    return <div className="text-red-500">Error loading authors: {authorsError}</div>;
+    return (
+      <div className="text-red-500">Error loading authors: {authorsError}</div>
+    );
   }
 
   if (categoriesError) {
-    return <div className="text-red-500">Error loading categories: {categoriesError}</div>;
+    return (
+      <div className="text-red-500">
+        Error loading categories: {categoriesError}
+      </div>
+    );
   }
 
   // Ensure we have the required data
@@ -189,34 +197,38 @@ export default function BlogPosts() {
 
   const handleSave = async (post: Post) => {
     try {
-      const method = post.id ? "PUT" : "POST";
+      const method = post.id ? 'PUT' : 'POST';
       const url = post.id
         ? `/api/cms/blog/posts/${post.id}`
-        : "/api/cms/blog/posts";
+        : '/api/cms/blog/posts';
 
       const response = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(post),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to ${post.id ? 'update' : 'create'} post`);
+        throw new Error(
+          errorData.error || `Failed to ${post.id ? 'update' : 'create'} post`
+        );
       }
 
       mutate();
       setEditingPost(null);
       router.refresh();
     } catch (error) {
-      console.error("Error saving post:", error);
+      console.error('Error saving post:', error);
       // You might want to show an error toast or message here
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch(`/api/cms/blog/posts/${id}`, { method: "DELETE" });
+      const response = await fetch(`/api/cms/blog/posts/${id}`, {
+        method: 'DELETE',
+      });
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to delete post');
@@ -224,25 +236,25 @@ export default function BlogPosts() {
       mutate();
       router.refresh();
     } catch (error) {
-      console.error("Error deleting post:", error);
+      console.error('Error deleting post:', error);
       // You might want to show an error toast or message here
     }
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Blog Posts</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="font-bold text-2xl">Blog Posts</h2>
         <div className="flex gap-2">
           <Toggle
-            pressed={view === "table"}
-            onPressedChange={() => setView("table")}
+            pressed={view === 'table'}
+            onPressedChange={() => setView('table')}
           >
             <List className="h-4 w-4" />
           </Toggle>
           <Toggle
-            pressed={view === "gallery"}
-            onPressedChange={() => setView("gallery")}
+            pressed={view === 'gallery'}
+            onPressedChange={() => setView('gallery')}
           >
             <LayoutGrid className="h-4 w-4" />
           </Toggle>
@@ -256,14 +268,14 @@ export default function BlogPosts() {
               </DialogHeader>
               <PostForm
                 post={{
-                  id: "",
-                  title: "",
-                  description: "",
+                  id: '',
+                  title: '',
+                  description: '',
                   date: new Date().toISOString(),
-                  image: "",
+                  image: '',
                   authors: [],
                   categories: [],
-                  body: "",
+                  body: '',
                 }}
                 authors={authors || []}
                 categories={categories || []}
@@ -274,7 +286,7 @@ export default function BlogPosts() {
         </div>
       </div>
 
-      {view === "table" ? (
+      {view === 'table' ? (
         <Table>
           <TableHeader>
             <TableRow>
@@ -289,29 +301,36 @@ export default function BlogPosts() {
             {posts.map((post: Post) => (
               <TableRow key={post.id}>
                 <TableCell key={`${post.id}-title`}>{post.title}</TableCell>
-                <TableCell key={`${post.id}-date`}>{format(new Date(post.date), "PP")}</TableCell>
+                <TableCell key={`${post.id}-date`}>
+                  {format(new Date(post.date), 'PP')}
+                </TableCell>
                 <TableCell key={`${post.id}-authors`}>
                   {post.authors.length > 0
                     ? post.authors.map((author: Author, index: number) => (
                         <span key={`${post.id}-author-${author.id}`}>
                           {author.title}
-                          {index < post.authors.length - 1 ? ", " : ""}
+                          {index < post.authors.length - 1 ? ', ' : ''}
                         </span>
                       ))
-                    : "-"}
+                    : '-'}
                 </TableCell>
                 <TableCell key={`${post.id}-categories`}>
                   {post.categories.length > 0
-                    ? post.categories.map((category: Category, index: number) => (
-                        <span key={`${post.id}-category-${category.id}`}>
-                          {category.title}
-                          {index < post.categories.length - 1 ? ", " : ""}
-                        </span>
-                      ))
-                    : "-"}
+                    ? post.categories.map(
+                        (category: Category, index: number) => (
+                          <span key={`${post.id}-category-${category.id}`}>
+                            {category.title}
+                            {index < post.categories.length - 1 ? ', ' : ''}
+                          </span>
+                        )
+                      )
+                    : '-'}
                 </TableCell>
                 <TableCell key={`${post.id}-actions`}>
-                  <div key={`${post.id}-actions-container`} className="flex gap-2">
+                  <div
+                    key={`${post.id}-actions-container`}
+                    className="flex gap-2"
+                  >
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button variant="outline" size="sm">
@@ -344,7 +363,7 @@ export default function BlogPosts() {
           </TableBody>
         </Table>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {posts.map((post: Post) => (
             <Card key={post.id} className="p-4">
               {post.image && (
@@ -352,16 +371,24 @@ export default function BlogPosts() {
                   key={`${post.id}-image`}
                   src={post.image}
                   alt={post.title}
-                  className="w-full h-48 object-cover rounded-md mb-4"
+                  className="mb-4 h-48 w-full rounded-md object-cover"
                 />
               )}
-              <h3 key={`${post.id}-title`} className="font-semibold mb-2">{post.title}</h3>
-              <p key={`${post.id}-description`} className="text-sm text-muted-foreground mb-4">
+              <h3 key={`${post.id}-title`} className="mb-2 font-semibold">
+                {post.title}
+              </h3>
+              <p
+                key={`${post.id}-description`}
+                className="mb-4 text-muted-foreground text-sm"
+              >
                 {post.description}
               </p>
-              <div key={`${post.id}-footer`} className="flex justify-between items-center">
+              <div
+                key={`${post.id}-footer`}
+                className="flex items-center justify-between"
+              >
                 <span key={`${post.id}-date`} className="text-sm">
-                  {format(new Date(post.date), "PP")}
+                  {format(new Date(post.date), 'PP')}
                 </span>
                 <div key={`${post.id}-actions`} className="flex gap-2">
                   <Dialog>
@@ -421,9 +448,7 @@ function PostForm({ post, authors, categories, onSave }: PostFormProps) {
         <Input
           id="title"
           value={formData.title}
-          onChange={(e) =>
-            setFormData({ ...formData, title: e.target.value })
-          }
+          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
         />
       </div>
 
@@ -443,9 +468,12 @@ function PostForm({ post, authors, categories, onSave }: PostFormProps) {
         <Input
           id="date"
           type="date"
-          value={format(new Date(formData.date), "yyyy-MM-dd")}
+          value={format(new Date(formData.date), 'yyyy-MM-dd')}
           onChange={(e) =>
-            setFormData({ ...formData, date: new Date(e.target.value).toISOString() })
+            setFormData({
+              ...formData,
+              date: new Date(e.target.value).toISOString(),
+            })
           }
         />
       </div>
@@ -455,9 +483,7 @@ function PostForm({ post, authors, categories, onSave }: PostFormProps) {
         <Input
           id="image"
           value={formData.image}
-          onChange={(e) =>
-            setFormData({ ...formData, image: e.target.value })
-          }
+          onChange={(e) => setFormData({ ...formData, image: e.target.value })}
         />
       </div>
 
@@ -466,9 +492,7 @@ function PostForm({ post, authors, categories, onSave }: PostFormProps) {
         <Textarea
           id="body"
           value={formData.body}
-          onChange={(e) =>
-            setFormData({ ...formData, body: e.target.value })
-          }
+          onChange={(e) => setFormData({ ...formData, body: e.target.value })}
           className="min-h-[200px]"
         />
       </div>
@@ -476,4 +500,4 @@ function PostForm({ post, authors, categories, onSave }: PostFormProps) {
       <Button type="submit">Save</Button>
     </form>
   );
-} 
+}

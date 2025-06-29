@@ -46,7 +46,19 @@ const prisma = new PrismaClient({
 // Define all shipping zones and countries
 const shippingZones = {
   EU: {
-    countries: ['DE', 'FR', 'IT', 'ES', 'NL', 'BE', 'IE', 'AT', 'PT', 'FI', 'GR'],
+    countries: [
+      'DE',
+      'FR',
+      'IT',
+      'ES',
+      'NL',
+      'BE',
+      'IE',
+      'AT',
+      'PT',
+      'FI',
+      'GR',
+    ],
     currency: 'EUR',
   },
   UK: {
@@ -81,9 +93,9 @@ async function main() {
     const categories = [
       "Men's T-shirts",
       "Women's T-shirts",
-      "Baby Clothing",
+      'Baby Clothing',
       "Kids' T-shirts",
-      "Kids' Sweatshirts"
+      "Kids' Sweatshirts",
     ];
 
     for (const categoryName of categories) {
@@ -92,14 +104,14 @@ async function main() {
         update: {},
         create: {
           name: categoryName,
-          description: `Category for ${categoryName}`
-        }
+          description: `Category for ${categoryName}`,
+        },
       });
     }
 
     // Get all categories for reference
     const categoryMap = await prisma.category.findMany();
-    const categoryIdMap = new Map(categoryMap.map(cat => [cat.name, cat.id]));
+    const categoryIdMap = new Map(categoryMap.map((cat) => [cat.name, cat.id]));
 
     // Insert all t-shirts
     for (const [sku, details] of Object.entries(tshirtDetails)) {
@@ -114,15 +126,17 @@ async function main() {
         // Find the preferred currency for this country
         const currency = countryCurrencyMap[countryCode];
         // Find the price in that currency, fallback to USD if not found
-        const priceObj = details.pricing.find(p => p.currency === currency) || details.pricing[0];
+        const priceObj =
+          details.pricing.find((p) => p.currency === currency) ||
+          details.pricing[0];
 
         // Create base product
         const product = await prisma.product.upsert({
-          where: { 
+          where: {
             sku_countryCode: {
               sku: sku,
-              countryCode: countryCode
-            }
+              countryCode: countryCode,
+            },
           },
           update: {
             name: details.name,
@@ -133,10 +147,13 @@ async function main() {
             categoryId: categoryId,
             productType: details.productType,
             brand: details.brand.name,
-            color: details.colorOptions.map(opt => opt.name),
+            color: details.colorOptions.map((opt) => opt.name),
             countryCode: countryCode,
-            gender: details.category.includes("Men's") ? 'M' : 
-                    details.category.includes("Women's") ? 'F' : 'U',
+            gender: details.category.includes("Men's")
+              ? 'M'
+              : details.category.includes("Women's")
+                ? 'F'
+                : 'U',
             height: details.dimensions.height,
             width: details.dimensions.width,
             units: details.dimensions.units,
@@ -151,7 +168,7 @@ async function main() {
               materials: details.materials,
               ecoProperties: details.ecoProperties,
               careInstructions: details.careInstructions,
-              manufacturingLocation: details.manufacturingLocation
+              manufacturingLocation: details.manufacturingLocation,
             },
             prodigiDescription: details.shortDescription,
             prodigiVariants: {
@@ -159,8 +176,8 @@ async function main() {
               shippingZones: details.shippingZones,
               customsDutyInfo: details.customsDutyInfo,
               restrictions: details.restrictions,
-              imageUrls: details.imageUrls
-            }
+              imageUrls: details.imageUrls,
+            },
           },
           create: {
             name: details.name,
@@ -172,10 +189,13 @@ async function main() {
             categoryId: categoryId,
             productType: details.productType,
             brand: details.brand.name,
-            color: details.colorOptions.map(opt => opt.name),
+            color: details.colorOptions.map((opt) => opt.name),
             countryCode: countryCode,
-            gender: details.category.includes("Men's") ? 'M' : 
-                    details.category.includes("Women's") ? 'F' : 'U',
+            gender: details.category.includes("Men's")
+              ? 'M'
+              : details.category.includes("Women's")
+                ? 'F'
+                : 'U',
             height: details.dimensions.height,
             width: details.dimensions.width,
             units: details.dimensions.units,
@@ -190,7 +210,7 @@ async function main() {
               materials: details.materials,
               ecoProperties: details.ecoProperties,
               careInstructions: details.careInstructions,
-              manufacturingLocation: details.manufacturingLocation
+              manufacturingLocation: details.manufacturingLocation,
             },
             prodigiDescription: details.shortDescription,
             prodigiVariants: {
@@ -198,11 +218,13 @@ async function main() {
               shippingZones: details.shippingZones,
               customsDutyInfo: details.customsDutyInfo,
               restrictions: details.restrictions,
-              imageUrls: details.imageUrls
-            }
-          }
+              imageUrls: details.imageUrls,
+            },
+          },
         });
-        console.log(`Created/Updated product: ${sku} for country: ${countryCode}`);
+        console.log(
+          `Created/Updated product: ${sku} for country: ${countryCode}`
+        );
       }
       // --- End country loop ---
     }
@@ -221,4 +243,4 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
-  }); 
+  });

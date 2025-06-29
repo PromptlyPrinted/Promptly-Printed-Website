@@ -1,11 +1,12 @@
-import { NextResponse } from 'next/server';
 import { getProdigiQuote } from '@repo/database/utils/getProdigiQuote';
 import { saveProdigiQuote } from '@repo/database/utils/saveProdigiQuote';
+import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { shippingMethod, destinationCountryCode, currencyCode, items } = body;
+    const { shippingMethod, destinationCountryCode, currencyCode, items } =
+      body;
 
     // Get quote from Prodigi
     const quoteResponse = await getProdigiQuote({
@@ -26,4 +27,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-} 
+}

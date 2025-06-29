@@ -1,12 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import type { Category, Product } from '@repo/database';
 import { Button } from '@repo/design-system/components/ui/button';
 import { Input } from '@repo/design-system/components/ui/input';
-import { Label } from '@repo/design-system/components/ui/label';
-import { Slider } from '@repo/design-system/components/ui/slider';
-import { Checkbox } from '@repo/design-system/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -14,10 +10,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@repo/design-system/components/ui/select';
-import { ScrollArea } from '@repo/design-system/components/ui/scroll-area';
-import { Card } from '@repo/design-system/components/ui/card';
-import Image from 'next/image';
-import type { Product, Category } from '@repo/database';
+import { Slider } from '@repo/design-system/components/ui/slider';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useState } from 'react';
 import { ProductCard } from './ProductCard';
 
 // Supported countries with their currencies
@@ -64,7 +59,7 @@ export function ProductList({
 }: ProductListProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+
   // Initialize filters from URL parameters
   const [filters, setFilters] = useState({
     search: searchParams.get('search') || '',
@@ -74,15 +69,20 @@ export function ProductList({
     colors: (searchParams.get('colors')?.split(',') || []).filter(Boolean),
     styles: (searchParams.get('styles')?.split(',') || []).filter(Boolean),
     brands: (searchParams.get('brands')?.split(',') || []).filter(Boolean),
-    productTypes: (searchParams.get('productTypes')?.split(',') || []).filter(Boolean),
+    productTypes: (searchParams.get('productTypes')?.split(',') || []).filter(
+      Boolean
+    ),
     country: searchParams.get('country') || 'US',
     fulfillmentCountry: searchParams.get('fulfillmentCountry') || 'all',
     category: categoryId?.toString() || 'all',
   });
 
-  const updateURLFilters = (updatedFilters: typeof filters, resetPage = true) => {
+  const updateURLFilters = (
+    updatedFilters: typeof filters,
+    resetPage = true
+  ) => {
     const params = new URLSearchParams(searchParams.toString());
-    
+
     // Update search params
     Object.entries(updatedFilters).forEach(([key, value]) => {
       if (Array.isArray(value)) {
@@ -121,7 +121,7 @@ export function ProductList({
     const updatedValues = currentValues.includes(value)
       ? currentValues.filter((v) => v !== value)
       : [...currentValues, value];
-    
+
     const updatedFilters = { ...filters, [filterKey]: updatedValues };
     setFilters(updatedFilters);
     updateURLFilters(updatedFilters);
@@ -135,43 +135,41 @@ export function ProductList({
 
   // Extract filter options from the product list
   const allSizes = Array.from(
-    new Set(
-      products.flatMap(p => p.size || [])
-    )
+    new Set(products.flatMap((p) => p.size || []))
   ).filter(Boolean);
 
   const allColors = Array.from(
-    new Set(
-      products.flatMap(p => p.color || [])
-    )
+    new Set(products.flatMap((p) => p.color || []))
   ).filter(Boolean);
 
   const allStyles = Array.from(
-    new Set(products.map(p => p.style).filter(Boolean))
+    new Set(products.map((p) => p.style).filter(Boolean))
   );
 
   const allBrands = Array.from(
-    new Set(products.map(p => p.brand).filter(Boolean))
+    new Set(products.map((p) => p.brand).filter(Boolean))
   );
 
   const allProductTypes = Array.from(
-    new Set(products.map(p => p.productType).filter(Boolean))
+    new Set(products.map((p) => p.productType).filter(Boolean))
   );
 
   // Get all unique fulfillment countries
   const allFulfillmentCountries = Array.from(
-    new Set(products.map(p => p.fulfillmentCountryCode || '').filter(Boolean))
+    new Set(products.map((p) => p.fulfillmentCountryCode || '').filter(Boolean))
   );
 
   // Get currency for selected country
-  const selectedCurrency = SUPPORTED_COUNTRIES.find(c => c.code === filters.country)?.currency || 'USD';
+  const selectedCurrency =
+    SUPPORTED_COUNTRIES.find((c) => c.code === filters.country)?.currency ||
+    'USD';
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-8">
+    <div className="grid grid-cols-1 gap-8 md:grid-cols-[300px_1fr]">
       {/* Filters Panel */}
       <div className="space-y-6">
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Search</h3>
+          <h3 className="font-semibold text-lg">Search</h3>
           <Input
             placeholder="Search products..."
             value={filters.search}
@@ -180,7 +178,7 @@ export function ProductList({
         </div>
 
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Price Range</h3>
+          <h3 className="font-semibold text-lg">Price Range</h3>
           <div className="space-y-4">
             <Slider
               min={0}
@@ -200,7 +198,7 @@ export function ProductList({
         </div>
 
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Country</h3>
+          <h3 className="font-semibold text-lg">Country</h3>
           <Select
             value={filters.country}
             onValueChange={(value) => handleInputChange('country', value)}
@@ -219,7 +217,7 @@ export function ProductList({
         </div>
 
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Category</h3>
+          <h3 className="font-semibold text-lg">Category</h3>
           <Select
             value={filters.category}
             onValueChange={(value) => handleInputChange('category', value)}
@@ -241,7 +239,7 @@ export function ProductList({
 
       {/* Products Grid */}
       <div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {products.map((product) => (
             <ProductCard
               key={product.id}
@@ -256,7 +254,7 @@ export function ProductList({
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex justify-center gap-2 mt-8">
+          <div className="mt-8 flex justify-center gap-2">
             <Button
               variant="outline"
               onClick={() => handlePageChange(currentPage - 1)}

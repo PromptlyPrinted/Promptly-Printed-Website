@@ -1,11 +1,7 @@
-import { Sidebar } from '@/components/sidebar';
 import { ArrowLeftIcon } from '@radix-ui/react-icons';
 import { blog } from '@repo/cms';
 import { Body } from '@repo/cms/components/body';
-import { Feed } from '@repo/cms/components/feed';
 import { Image } from '@repo/cms/components/image';
-import { TableOfContents } from '@repo/cms/components/toc';
-import { env } from '@repo/env';
 import { JsonLd } from '@repo/seo/json-ld';
 import { createMetadata } from '@repo/seo/metadata';
 import type { Metadata } from 'next';
@@ -54,11 +50,14 @@ const BlogPost = async ({ params }: BlogPostProperties) => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <Link href="/blog" className="mb-8 inline-flex items-center text-gray-600 hover:text-gray-800">
+      <Link
+        href="/blog"
+        className="mb-8 inline-flex items-center text-gray-600 hover:text-gray-800"
+      >
         <ArrowLeftIcon className="mr-2" /> Back to Blog
       </Link>
       <article className="prose prose-lg mx-auto">
-        <h1 className="mb-4 text-4xl font-bold">
+        <h1 className="mb-4 font-bold text-4xl">
           <Balancer>{post._title}</Balancer>
         </h1>
         {post.image && (

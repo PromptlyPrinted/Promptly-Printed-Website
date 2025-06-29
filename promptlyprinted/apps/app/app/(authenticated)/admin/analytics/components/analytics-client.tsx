@@ -1,19 +1,19 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { format } from "date-fns";
-import { Analytics } from "@prisma/client";
-import { DataTable } from "@/components/ui/data-table";
-import { DateRange } from "react-day-picker";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { DataTable } from '@/components/ui/data-table';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import Script from "next/script";
+} from '@/components/ui/select';
+import type { Analytics } from '@prisma/client';
+import { format } from 'date-fns';
+import Script from 'next/script';
+import { useEffect, useState } from 'react';
+import type { DateRange } from 'react-day-picker';
 
 declare global {
   interface Window {
@@ -34,7 +34,7 @@ interface AnalyticsClientProps {
   uniqueEventNames: string[];
 }
 
-export default function AnalyticsClient({ 
+export default function AnalyticsClient({
   initialData,
   uniqueEventNames,
 }: AnalyticsClientProps) {
@@ -81,27 +81,30 @@ export default function AnalyticsClient({
 
   const columns = [
     {
-      accessorKey: "eventName",
-      header: "Event Name",
+      accessorKey: 'eventName',
+      header: 'Event Name',
     },
     {
-      accessorKey: "userId",
-      header: "User ID",
+      accessorKey: 'userId',
+      header: 'User ID',
     },
     {
-      accessorKey: "createdAt",
-      header: "Created At",
-      cell: ({ row }: { row: any }) => format(new Date(row.original.createdAt), "PPpp"),
+      accessorKey: 'createdAt',
+      header: 'Created At',
+      cell: ({ row }: { row: any }) =>
+        format(new Date(row.original.createdAt), 'PPpp'),
     },
   ];
 
   useEffect(() => {
     const filtered = initialData.filter((item) => {
       const matchesEvent = !selectedEvent || item.eventName === selectedEvent;
-      const matchesDateRange = !dateRange?.from || !dateRange?.to || 
-        (new Date(item.createdAt) >= dateRange.from && 
-         new Date(item.createdAt) <= dateRange.to);
-      
+      const matchesDateRange =
+        !dateRange?.from ||
+        !dateRange?.to ||
+        (new Date(item.createdAt) >= dateRange.from &&
+          new Date(item.createdAt) <= dateRange.to);
+
       return matchesEvent && matchesDateRange;
     });
     setFilteredData(filtered);
@@ -115,10 +118,12 @@ export default function AnalyticsClient({
           value: filtered.length,
           total_records: initialData.length,
           filter_event: selectedEvent,
-          date_range: dateRange ? {
-            from: dateRange.from?.toISOString(),
-            to: dateRange.to?.toISOString(),
-          } : null,
+          date_range: dateRange
+            ? {
+                from: dateRange.from?.toISOString(),
+                to: dateRange.to?.toISOString(),
+              }
+            : null,
         });
       }
 
@@ -126,12 +131,15 @@ export default function AnalyticsClient({
         window.posthog.capture('filter_results', {
           filtered_count: filtered.length,
           total_count: initialData.length,
-          reduction_percentage: ((initialData.length - filtered.length) / initialData.length) * 100,
+          reduction_percentage:
+            ((initialData.length - filtered.length) / initialData.length) * 100,
           selected_event: selectedEvent,
-          date_range: dateRange ? {
-            from: dateRange.from?.toISOString(),
-            to: dateRange.to?.toISOString(),
-          } : null,
+          date_range: dateRange
+            ? {
+                from: dateRange.from?.toISOString(),
+                to: dateRange.to?.toISOString(),
+              }
+            : null,
         });
       }
     }
@@ -139,8 +147,8 @@ export default function AnalyticsClient({
 
   return (
     <div className="container mx-auto py-10">
-      <h1 className="text-2xl font-bold mb-8">Analytics Dashboard</h1>
-      
+      <h1 className="mb-8 font-bold text-2xl">Analytics Dashboard</h1>
+
       {/* External Analytics Scripts */}
       {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
         <>
@@ -165,7 +173,7 @@ export default function AnalyticsClient({
           </Script>
         </>
       )}
-      
+
       {process.env.NEXT_PUBLIC_POSTHOG_KEY && (
         <Script id="posthog-script" strategy="afterInteractive">
           {`
@@ -180,7 +188,7 @@ export default function AnalyticsClient({
         </Script>
       )}
 
-      <div className="flex gap-4 mb-6">
+      <div className="mb-6 flex gap-4">
         <div className="w-64">
           <Select
             value={selectedEvent || undefined}
@@ -204,18 +212,20 @@ export default function AnalyticsClient({
         <DateRangePicker
           onChange={(range) => {
             setDateRange(range);
-            trackFilterChange('date_range', range ? {
-              from: range.from?.toISOString(),
-              to: range.to?.toISOString(),
-            } : null);
+            trackFilterChange(
+              'date_range',
+              range
+                ? {
+                    from: range.from?.toISOString(),
+                    to: range.to?.toISOString(),
+                  }
+                : null
+            );
           }}
         />
       </div>
 
-      <DataTable
-        columns={columns}
-        data={filteredData}
-      />
+      <DataTable columns={columns} data={filteredData} />
     </div>
   );
-} 
+}

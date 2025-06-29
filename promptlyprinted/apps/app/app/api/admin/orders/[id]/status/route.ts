@@ -1,7 +1,7 @@
-import { auth } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
-import { database } from "@repo/database";
-import { getProdigiProduct } from "@/lib/prodigi";
+import { getProdigiProduct } from '@/lib/prodigi';
+import { auth } from '@clerk/nextjs/server';
+import { database } from '@repo/database';
+import { NextResponse } from 'next/server';
 
 export async function PATCH(
   request: Request,
@@ -10,7 +10,7 @@ export async function PATCH(
   try {
     const { userId } = await auth();
     if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return new NextResponse('Unauthorized', { status: 401 });
     }
 
     // Verify admin status
@@ -19,20 +19,20 @@ export async function PATCH(
       select: { role: true },
     });
 
-    if (user?.role !== "ADMIN") {
-      return new NextResponse("Unauthorized", { status: 401 });
+    if (user?.role !== 'ADMIN') {
+      return new NextResponse('Unauthorized', { status: 401 });
     }
 
     const body = await request.json();
     const { status } = body;
 
-    if (!status || !["PENDING", "COMPLETED", "CANCELED"].includes(status)) {
-      return new NextResponse("Invalid status", { status: 400 });
+    if (!status || !['PENDING', 'COMPLETED', 'CANCELED'].includes(status)) {
+      return new NextResponse('Invalid status', { status: 400 });
     }
 
-    const orderId = parseInt(params.id);
+    const orderId = Number.parseInt(params.id);
     if (isNaN(orderId)) {
-      return new NextResponse("Invalid order ID", { status: 400 });
+      return new NextResponse('Invalid order ID', { status: 400 });
     }
 
     const order = await database.order.findUnique({
@@ -40,13 +40,13 @@ export async function PATCH(
     });
 
     if (!order) {
-      return new NextResponse("Order not found", { status: 404 });
+      return new NextResponse('Order not found', { status: 404 });
     }
 
     // Validate SKU with Prodigi
     const prodigiProduct = await getProdigiProduct(order.prodigiSku);
     if (!prodigiProduct) {
-      return new NextResponse("Invalid Prodigi SKU", { status: 400 });
+      return new NextResponse('Invalid Prodigi SKU', { status: 400 });
     }
 
     // If Prodigi API key is set and order has a Prodigi order ID, update status in Prodigi
@@ -61,7 +61,7 @@ export async function PATCH(
 
     return NextResponse.json(updatedOrder);
   } catch (error) {
-    console.error("[ORDER_STATUS_UPDATE]", error);
-    return new NextResponse("Internal error", { status: 500 });
+    console.error('[ORDER_STATUS_UPDATE]', error);
+    return new NextResponse('Internal error', { status: 500 });
   }
-} 
+}
