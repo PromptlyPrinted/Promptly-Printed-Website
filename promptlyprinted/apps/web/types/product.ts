@@ -2,9 +2,14 @@ export interface Product {
   id: string;
   name: string;
   description: string;
-  price: number;
+  pricing: Array<{ amount: number; currency: string }>;
+  price?: number;
   shippingCost: number;
-  imageUrl: string;
+  imageUrls: {
+    base: string;
+    cover: string;
+    sizeChart: string;
+  };
   imageUrlMap?: Record<string, string>;
   images?: string[];
   sku?: string;

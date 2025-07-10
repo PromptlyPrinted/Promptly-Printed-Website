@@ -17,6 +17,7 @@
     "@storybook/addon-interactions": "^8.0.0",
     "@storybook/addon-links": "^8.0.0",
     "@storybook/addon-onboarding": "^8.0.0",
+    "@storybook/addon-themes": "^8.0.0",
     "@storybook/blocks": "^8.0.0",
     "@storybook/cli": "^8.6.12",
     "@storybook/nextjs": "^8.0.0",

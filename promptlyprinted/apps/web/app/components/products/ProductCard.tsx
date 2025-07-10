@@ -1,36 +1,38 @@
-import { Card } from '@repo/design-system/components/ui/card';
+'use client';
+
+import type { Product } from '@/types/product';
 import Image from 'next/image';
 import Link from 'next/link';
 
 interface ProductCardProps {
-  id: number;
-  name: string;
-  price: number;
-  imageUrl: string;
-  description: string;
+  product: Product;
 }
 
-export function ProductCard({
-  id,
-  name,
-  price,
-  imageUrl,
-  description,
-}: ProductCardProps) {
+export function ProductCard({ product }: ProductCardProps) {
+  const productUrl = `/products/${product.category.toLowerCase().replace(/ /g, '-')}/${product.name.toLowerCase().replace(/ /g, '-')}`;
+
   return (
-    <Link href={`/product/${id.toString()}`} className="block">
-      <Card className="h-full overflow-hidden transition-transform hover:scale-[1.02]">
-        <div className="relative aspect-square">
-          <Image src={imageUrl} alt={name} fill className="object-cover" />
+    <Link href={productUrl}>
+      <div className="group relative">
+        <div className="aspect-h-1 aspect-w-1 w-full overflow-hidden rounded-md bg-gray-200 lg:aspect-none group-hover:opacity-75 lg:h-80">
+          <Image
+            src={product.imageUrls.cover}
+            alt={product.name}
+            width={500}
+            height={500}
+            className="h-full w-full object-cover object-center lg:h-full lg:w-full"
+          />
         </div>
-        <div className="p-4">
-          <h3 className="font-semibold text-lg">{name}</h3>
-          <p className="mt-1 line-clamp-2 text-gray-500 text-sm">
-            {description}
-          </p>
-          <p className="mt-2 font-bold">${price}</p>
+        <div className="mt-4 flex justify-between">
+          <div>
+            <h3 className="text-sm text-gray-700">
+              <span aria-hidden="true" className="absolute inset-0" />
+              {product.name}
+            </h3>
+          </div>
+          <p className="text-sm font-medium text-gray-900">${(product.price || 0).toFixed(2)}</p>
         </div>
-      </Card>
+      </div>
     </Link>
   );
 }

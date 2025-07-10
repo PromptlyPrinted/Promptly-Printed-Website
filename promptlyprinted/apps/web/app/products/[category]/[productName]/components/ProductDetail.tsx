@@ -57,7 +57,7 @@ import { useCartStore } from '@/lib/cart-store';
 import { toast } from '@repo/design-system/components/ui/use-toast';
 import Image from 'next/image';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { LORAS, type Lora } from '../../../../data/textModel';
+import { LORAS, type Lora } from '../../../../../data/textModel';
 
 interface CheckoutImage {
   url: string;
@@ -86,31 +86,102 @@ const getDominantColor = async (imageUrl: string): Promise<string> => {
     const img = new window.Image();
     img.crossOrigin = 'Anonymous';
     img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return resolve('#FFFFFF');
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return resolve('#FFFFFF');
 
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
 
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
 
-      const centerX = Math.floor(canvas.width / 2);
-      const centerY = Math.floor(canvas.height / 2);
-      const pixelIndex = (centerY * canvas.width + centerX) * 4;
-
-      const r = data[pixelIndex];
-      const g = data[pixelIndex + 1];
-      const b = data[pixelIndex + 2];
-
-      resolve(`rgb(${r}, ${g}, ${b})`);
+        // Get multiple sample points to find dominant color
+        const samples = [];
+        const sampleSize = 10;
+        for (let i = 0; i < sampleSize; i++) {
+          const x = Math.floor((img.width / sampleSize) * i);
+          const y = Math.floor(img.height / 2);
+          const pixelIndex = (y * canvas.width + x) * 4;
+          
+          const r = data[pixelIndex];
+          const g = data[pixelIndex + 1];
+          const b = data[pixelIndex + 2];
+          const a = data[pixelIndex + 3];
+          
+          // Skip transparent pixels
+          if (a > 0) {
+            samples.push({ r, g, b });
+          }
+        }
+        
+        if (samples.length === 0) {
+          resolve('#FFFFFF');
+          return;
+        }
+        
+        // Average the samples
+        const avgR = Math.floor(samples.reduce((sum, s) => sum + s.r, 0) / samples.length);
+        const avgG = Math.floor(samples.reduce((sum, s) => sum + s.g, 0) / samples.length);
+        const avgB = Math.floor(samples.reduce((sum, s) => sum + s.b, 0) / samples.length);
+        
+        resolve(`rgb(${avgR}, ${avgG}, ${avgB})`);
+      } catch (error) {
+        console.error('Error extracting color:', error);
+        resolve('#FFFFFF');
+      }
     };
-    img.onerror = () => resolve('#FFFFFF');
+    img.onerror = (error) => {
+      console.error('Image load error:', error);
+      resolve('#FFFFFF');
+    };
     img.src = imageUrl;
   });
 };
+
+// Fallback color mapping for common T-shirt colors
+const getColorFallback = (colorName: string): string => {
+  const fallbackColors: Record<string, string> = {
+    'white': '#FFFFFF',
+    'black': '#000000',
+    'navy': '#000080',
+    'red': '#FF0000',
+    'blue': '#0000FF',
+    'green': '#008000',
+    'yellow': '#FFFF00',
+    'orange': '#FFA500',
+    'purple': '#800080',
+    'pink': '#FFC0CB',
+    'brown': '#A52A2A',
+    'gray': '#808080',
+    'grey': '#808080',
+    'light-blue': '#ADD8E6',
+    'dark-blue': '#00008B',
+    'light-green': '#90EE90',
+    'dark-green': '#006400',
+    'maroon': '#800000',
+    'olive': '#808000',
+    'lime': '#00FF00',
+    'aqua': '#00FFFF',
+    'teal': '#008080',
+    'silver': '#C0C0C0',
+    'fuchsia': '#FF00FF',
+  };
+  
+  const colorKey = toKebabCase(colorName);
+  return fallbackColors[colorKey] || '#FFFFFF';
+};
+
+// Helper function to convert color name to kebab case
+function toKebabCase(str?: string) {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
 
 interface ProductDetailProps {
   product: Product;
@@ -162,14 +233,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
     convertPrice,
   } = useExchangeRates();
 
-  // Utility: consistent kebab-case for color keys
-  function toKebabCase(str?: string) {
-    if (!str) return '';
-    return str
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-  }
+  // Utility: consistent kebab-case for color keys (moved above)
 
   // Memoized color and size lists
   const colorList = useMemo(
@@ -202,15 +266,34 @@ export function ProductDetail({ product }: ProductDetailProps) {
       product.prodigiVariants?.colorOptions
     );
     console.log('colorList:', colorList);
-    if (!colorList.length || !product.prodigiVariants?.imageUrls?.base) return;
+    if (!colorList.length) return;
+    
     const loadColors = async () => {
       const newColorMap: Record<string, string> = {};
       for (const color of colorList) {
         const colorValue = toKebabCase(color);
-        const imgUrl = `../${product.prodigiVariants.imageUrls.base}/${colorValue}.png`;
-        // Optionally: check if file exists, but for now just try to extract
-        const domColor = await getDominantColor(imgUrl);
-        newColorMap[colorValue] = domColor;
+        
+        // Try to extract from image if base URL exists
+        if (product.prodigiVariants?.imageUrls?.base) {
+          const imgUrl = `${product.prodigiVariants.imageUrls.base}/${colorValue}.png`;
+          console.log(`Attempting to extract color from: ${imgUrl}`);
+          try {
+            const domColor = await getDominantColor(imgUrl);
+            // Only use extracted color if it's not white (indicating successful extraction)
+            if (domColor !== 'rgb(255, 255, 255)') {
+              newColorMap[colorValue] = domColor;
+              console.log(`Color extracted for ${color}: ${domColor}`);
+              continue;
+            }
+          } catch (error) {
+            console.error(`Failed to extract color for ${color}:`, error);
+          }
+        }
+        
+        // Use fallback color if extraction failed or no base URL
+        const fallbackColor = getColorFallback(color);
+        newColorMap[colorValue] = fallbackColor;
+        console.log(`Using fallback color for ${color}: ${fallbackColor}`);
       }
       setColorMap(newColorMap);
     };
@@ -682,16 +765,25 @@ export function ProductDetail({ product }: ProductDetailProps) {
       quantity: quantity,
       size: selectedSize,
       color: selectedColor,
-      imageUrl: generatedImage || product.imageUrl,
+      imageUrl: generatedImage || product.imageUrls.cover,
       assets: [],
     };
     addItem(itemToAdd);
 
     const allItems = [...cartItems, itemToAdd];
     const allItemsAsCheckoutItems = allItems.map(item => ({
-      ...item,
-      images: [{ url: item.imageUrl }],
+      productId: item.productId,
+      name: item.name,
+      price: item.price,
       copies: item.quantity,
+      color: item.color,
+      size: item.size,
+      images: [{ url: item.imageUrl }],
+      customization: item.customization,
+      recipientCostAmount: item.price,
+      currency: 'USD',
+      merchantReference: `item_${item.productId}`,
+      sku: item.productId,
     }));
     initiateCheckout(allItemsAsCheckoutItems);
   };
@@ -752,7 +844,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
                   (product.specifications?.color?.[0]
                     ? toKebabCase(product.specifications.color[0])
                     : 'black');
-                const imageUrl = `../${product.prodigiVariants?.imageUrls?.base}/${colorValue}.png`;
+                const imageUrl = `${product.prodigiVariants?.imageUrls?.base}/${colorValue}.png`;
                 console.log('Using direct path:', {
                   imageUrl: imageUrl,
                   colorValue: colorValue,
@@ -802,7 +894,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
 
           {/* AI Prompt */}
           <div className="space-y-4 rounded-lg border border-teal-200 p-6">
-            <h2 className="mb-2 font-semibold text-teal-700 text-xl">
+            <h2 className="font-semibold text-teal-700 text-xl">
               Customize with AI
             </h2>
             <div className="space-y-4">
@@ -1009,7 +1101,8 @@ export function ProductDetail({ product }: ProductDetailProps) {
                       if (value === 'base') {
                         setIsBaseModel(true);
                         setSelectedModels([]);
-                      } else {
+                      }
+                      else {
                         setIsBaseModel(false);
                         setSelectedModels([Number(value)]);
                         setModelWeights({ [value]: 1.0 });
@@ -1043,8 +1136,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
                             selectedModels.includes(model.id)
                               ? 'ring-2 ring-teal-500'
                               : 'hover:ring-2 hover:ring-teal-200'
-                          }
-                          `}
+                          }`}
                           onClick={() => {
                             if (selectedModels[0] === model.id) return;
                             setSelectedModels([model.id]);
@@ -1167,7 +1259,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
                   quantity: quantity,
                   size: selectedSize,
                   color: selectedColor,
-                  imageUrl: generatedImage || product.imageUrl,
+                  imageUrl: generatedImage || product.imageUrls.cover,
                   assets: [],
                 };
                 addItem(itemToAdd);

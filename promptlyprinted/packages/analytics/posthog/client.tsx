@@ -8,7 +8,7 @@ import type { ReactNode } from 'react';
 
 let analytics: PostHog | null = null;
 
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && env.NEXT_PUBLIC_POSTHOG_KEY) {
   analytics = posthogRaw.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
     api_host: '/ingest',
     ui_host: env.NEXT_PUBLIC_POSTHOG_HOST,
@@ -24,6 +24,13 @@ type PostHogProviderProps = {
 
 export const PostHogProvider = (
   properties: Omit<PostHogProviderProps, 'client'>
-) => <PostHogProviderRaw client={analytics} {...properties} />;
+) => {
+  // Only render the provider if analytics is initialized
+  if (!analytics) {
+    return <>{properties.children}</>;
+  }
+  
+  return <PostHogProviderRaw client={analytics} {...properties} />;
+};
 
 export { analytics };
