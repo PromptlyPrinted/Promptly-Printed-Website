@@ -8,8 +8,20 @@ interface ProductCardProps {
   product: Product;
 }
 
+// Utility function for consistent URL generation
+function createSlug(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/'/g, '') // Remove apostrophes
+    .replace(/[^a-z0-9]/g, '-') // Replace non-alphanumeric with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with single
+    .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+}
+
 export function ProductCard({ product }: ProductCardProps) {
-  const productUrl = `/products/${product.category.toLowerCase().replace(/ /g, '-')}/${product.name.toLowerCase().replace(/ /g, '-')}`;
+  const categorySlug = createSlug(product.category);
+  const productSlug = createSlug(product.name);
+  const productUrl = `/products/${categorySlug}/${productSlug}`;
 
   return (
     <Link href={productUrl}>

@@ -99,7 +99,7 @@ export function ProductsDropdown({
             <ul className="mt-4 space-y-4">
               <li>
                 <Link
-                  href="/products/all"
+                  href="/products/"
                   className="flex items-center gap-2 rounded px-3 py-2 text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
                 >
                   <Shirt className="h-5 w-5" />

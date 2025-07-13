@@ -516,7 +516,9 @@ export const Header = () => {
               <Image
                 src={PromptlyLogo}
                 alt="Promptly Logo"
-                className="h-28 w-28"
+                width={128}
+                height={128}
+                className="h-32 w-32"
               />
             </Link>
           </div>
@@ -789,6 +791,7 @@ export const Header = () => {
                     </li>
                   );
                 }
+                if (!item.href) return null;
                 return (
                   <li key={item.name}>
                     <Link
