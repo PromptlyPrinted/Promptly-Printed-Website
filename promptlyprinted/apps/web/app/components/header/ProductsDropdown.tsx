@@ -83,7 +83,7 @@ export function ProductsDropdown({
               Discover unique products that spark creativity and imagination.
             </p>
             <Link
-              href="/products/all"
+              href="/products"
               className="mt-4 inline-flex items-center gap-2 font-medium text-gray-900 text-sm transition-colors duration-200 hover:text-gray-700"
             >
               <Shirt className="h-5 w-5" />
@@ -99,7 +99,7 @@ export function ProductsDropdown({
             <ul className="mt-4 space-y-4">
               <li>
                 <Link
-                  href="/products/"
+                  href="/products"
                   className="flex items-center gap-2 rounded px-3 py-2 text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
                 >
                   <Shirt className="h-5 w-5" />
@@ -108,7 +108,7 @@ export function ProductsDropdown({
               </li>
               <li>
                 <Link
-                  href="/products/mens"
+                  href="/products?category=mens"
                   className="flex items-center gap-2 rounded px-3 py-2 text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
                 >
                   <User className="h-5 w-5" />
@@ -117,7 +117,7 @@ export function ProductsDropdown({
               </li>
               <li>
                 <Link
-                  href="/products/womens"
+                  href="/products?category=womens"
                   className="flex items-center gap-2 rounded px-3 py-2 text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
                 >
                   <User className="h-5 w-5" />
@@ -126,7 +126,7 @@ export function ProductsDropdown({
               </li>
               <li>
                 <Link
-                  href="/products/kids+babies"
+                  href="/products?category=kids"
                   className="flex items-center gap-2 rounded px-3 py-2 text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
                 >
                   <Baby className="h-5 w-5" />
@@ -144,7 +144,7 @@ export function ProductsDropdown({
             <ul className="mt-4 space-y-4">
               <li>
                 <Link
-                  href="/products/mats-sleeves"
+                  href="/products?category=accessories"
                   className="flex items-center gap-2 rounded px-3 py-2 text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
                 >
                   <Ruler className="h-5 w-5" />
@@ -153,7 +153,7 @@ export function ProductsDropdown({
               </li>
               <li>
                 <Link
-                  href="/products/socks-flipflops"
+                  href="/products?category=accessories"
                   className="flex items-center gap-2 rounded px-3 py-2 text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
                 >
                   {/* Using an arbitrary icon for Socks & Flip-flops */}
@@ -163,7 +163,7 @@ export function ProductsDropdown({
               </li>
               <li>
                 <Link
-                  href="/products/pendants-keyrings"
+                  href="/products?category=accessories"
                   className="flex items-center gap-2 rounded px-3 py-2 text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
                 >
                   <Key className="h-5 w-5" />
@@ -172,7 +172,7 @@ export function ProductsDropdown({
               </li>
               <li>
                 <Link
-                  href="/products/bags"
+                  href="/products?category=accessories"
                   className="flex items-center gap-2 rounded px-3 py-2 text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
                 >
                   <ShoppingBag className="h-5 w-5" />
@@ -181,7 +181,7 @@ export function ProductsDropdown({
               </li>
               <li>
                 <Link
-                  href="/products/watch-straps"
+                  href="/products?category=accessories"
                   className="flex items-center gap-2 rounded px-3 py-2 text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
                 >
                   <Watch className="h-5 w-5" />
@@ -199,7 +199,7 @@ export function ProductsDropdown({
             <ul className="mt-4 space-y-4">
               <li>
                 <Link
-                  href="/products/cushions"
+                  href="/products?category=home"
                   className="flex items-center gap-2 rounded px-3 py-2 text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
                 >
                   <Square className="h-5 w-5" />
@@ -208,7 +208,7 @@ export function ProductsDropdown({
               </li>
               <li>
                 <Link
-                  href="/products/gallery-boards"
+                  href="/products?category=home"
                   className="flex items-center gap-2 rounded px-3 py-2 text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
                 >
                   <ImageIcon className="h-5 w-5" />
@@ -217,7 +217,7 @@ export function ProductsDropdown({
               </li>
               <li>
                 <Link
-                  href="/products/acrylic-prisms"
+                  href="/products?category=home"
                   className="flex items-center gap-2 rounded px-3 py-2 text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
                 >
                   <Triangle className="h-5 w-5" />
@@ -226,7 +226,7 @@ export function ProductsDropdown({
               </li>
               <li>
                 <Link
-                  href="/products/prints-posters"
+                  href="/products?category=home"
                   className="flex items-center gap-2 rounded px-3 py-2 text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
                 >
                   <FileText className="h-5 w-5" />
@@ -244,7 +244,7 @@ export function ProductsDropdown({
             <ul className="mt-4 space-y-4">
               <li>
                 <Link
-                  href="/products/games"
+                  href="/products?category=others"
                   className="flex items-center gap-2 rounded px-3 py-2 text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
                 >
                   <Gamepad2 className="h-5 w-5" />
@@ -253,7 +253,7 @@ export function ProductsDropdown({
               </li>
               <li>
                 <Link
-                  href="/products/books"
+                  href="/products?category=others"
                   className="flex items-center gap-2 rounded px-3 py-2 text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
                 >
                   <BookOpen className="h-5 w-5" />
@@ -262,7 +262,7 @@ export function ProductsDropdown({
               </li>
               <li>
                 <Link
-                  href="/products/notebooks"
+                  href="/products?category=others"
                   className="flex items-center gap-2 rounded px-3 py-2 text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
                 >
                   <Book className="h-10 w-10" />
@@ -271,7 +271,7 @@ export function ProductsDropdown({
               </li>
               <li>
                 <Link
-                  href="/products/stickers"
+                  href="/products?category=others"
                   className="flex items-center gap-2 rounded px-3 py-2 text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
                 >
                   <Sticker className="h-5 w-5" />
@@ -280,7 +280,7 @@ export function ProductsDropdown({
               </li>
               <li>
                 <Link
-                  href="/products/tattoos"
+                  href="/products?category=others"
                   className="flex items-center gap-2 rounded px-3 py-2 text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
                 >
                   <PenTool className="h-5 w-5" />

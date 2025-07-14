@@ -9,14 +9,14 @@ import {
   Star,
   Heart,
   Eye,
-  ShoppingCart,
   Grid3X3,
   List,
   SlidersHorizontal
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@repo/design-system/components/ui/button';
 import { Input } from '@repo/design-system/components/ui/input';
 import { Checkbox } from '@repo/design-system/components/ui/checkbox';
@@ -80,11 +80,23 @@ const sortOptions = [
 ];
 
 export default function ProductsPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  
+  // Initialize state from URL parameters
+  const getInitialCategory = () => {
+    const category = searchParams.get('category');
+    if (category) {
+      return [category];
+    }
+    return ['all'];
+  };
+
   // State management
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(['all']);
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(getInitialCategory);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState([0, 200]);
   const [minRating, setMinRating] = useState(0);
@@ -105,8 +117,8 @@ export default function ProductsPage() {
       shippingCost: 0,
       imageUrls: product.imageUrls,
       sku: product.sku,
-      specifications: product.specifications || undefined,
-      prodigiVariants: product.prodigiVariants || undefined,
+      specifications: 'specifications' in product ? product.specifications : undefined,
+      prodigiVariants: 'prodigiVariants' in product ? product.prodigiVariants : undefined,
       savedImages: [],
       wishedBy: [],
       badge: index % 5 === 0 ? 'bestseller' : index % 7 === 0 ? 'new' : index % 3 === 0 ? 'sale' : undefined,
@@ -211,6 +223,80 @@ export default function ProductsPage() {
     return count;
   }, [selectedCategories, selectedBrands, priceRange, minRating, inStockOnly, onSaleOnly]);
 
+  // Update URL with current filters
+  const updateURL = useCallback((filters: {
+    categories?: string[];
+    search?: string;
+    brands?: string[];
+    priceMin?: number;
+    priceMax?: number;
+    rating?: number;
+    inStock?: boolean;
+    onSale?: boolean;
+    sort?: string;
+  }) => {
+    const params = new URLSearchParams(searchParams);
+    
+    // Update category
+    if (filters.categories && !filters.categories.includes('all')) {
+      params.set('category', filters.categories[0]);
+    } else {
+      params.delete('category');
+    }
+    
+    // Update search
+    if (filters.search) {
+      params.set('search', filters.search);
+    } else {
+      params.delete('search');
+    }
+    
+    // Update other filters
+    if (filters.brands && filters.brands.length > 0) {
+      params.set('brands', filters.brands.join(','));
+    } else {
+      params.delete('brands');
+    }
+    
+    if (filters.priceMin !== undefined && filters.priceMin > 0) {
+      params.set('priceMin', filters.priceMin.toString());
+    } else {
+      params.delete('priceMin');
+    }
+    
+    if (filters.priceMax !== undefined && filters.priceMax < 200) {
+      params.set('priceMax', filters.priceMax.toString());
+    } else {
+      params.delete('priceMax');
+    }
+    
+    if (filters.rating && filters.rating > 0) {
+      params.set('rating', filters.rating.toString());
+    } else {
+      params.delete('rating');
+    }
+    
+    if (filters.inStock) {
+      params.set('inStock', 'true');
+    } else {
+      params.delete('inStock');
+    }
+    
+    if (filters.onSale) {
+      params.set('onSale', 'true');
+    } else {
+      params.delete('onSale');
+    }
+    
+    if (filters.sort && filters.sort !== 'relevance') {
+      params.set('sort', filters.sort);
+    } else {
+      params.delete('sort');
+    }
+    
+    router.push(`/products?${params.toString()}`, { scroll: false });
+  }, [searchParams, router]);
+
   // Clear all filters
   const clearAllFilters = useCallback(() => {
     setSelectedCategories(['all']);
@@ -220,33 +306,52 @@ export default function ProductsPage() {
     setInStockOnly(false);
     setOnSaleOnly(false);
     setSearchTerm('');
-  }, []);
+    router.push('/products', { scroll: false });
+  }, [router]);
 
   // Toggle category
   const toggleCategory = useCallback((categoryId: string) => {
+    let newCategories: string[];
     if (categoryId === 'all') {
-      setSelectedCategories(['all']);
+      newCategories = ['all'];
     } else {
-      setSelectedCategories(prev => {
-        const newCategories = prev.filter(c => c !== 'all');
-        if (newCategories.includes(categoryId)) {
-          const filtered = newCategories.filter(c => c !== categoryId);
-          return filtered.length === 0 ? ['all'] : filtered;
-        } else {
-          return [...newCategories, categoryId];
-        }
-      });
+      const currentCategories = selectedCategories.filter(c => c !== 'all');
+      if (currentCategories.includes(categoryId)) {
+        const filtered = currentCategories.filter(c => c !== categoryId);
+        newCategories = filtered.length === 0 ? ['all'] : filtered;
+      } else {
+        newCategories = [...currentCategories, categoryId];
+      }
     }
-  }, []);
+    setSelectedCategories(newCategories);
+    updateURL({ categories: newCategories });
+  }, [selectedCategories, updateURL]);
 
   // Toggle brand
   const toggleBrand = useCallback((brand: string) => {
-    setSelectedBrands(prev =>
-      prev.includes(brand)
-        ? prev.filter(b => b !== brand)
-        : [...prev, brand]
-    );
-  }, []);
+    const newBrands = selectedBrands.includes(brand)
+      ? selectedBrands.filter(b => b !== brand)
+      : [...selectedBrands, brand];
+    setSelectedBrands(newBrands);
+    updateURL({ brands: newBrands });
+  }, [selectedBrands, updateURL]);
+
+  // Add effect to sync URL changes with state
+  useEffect(() => {
+    const category = searchParams.get('category');
+    const search = searchParams.get('search');
+    const sort = searchParams.get('sort');
+    
+    if (category && !selectedCategories.includes(category)) {
+      setSelectedCategories([category]);
+    }
+    if (search && search !== searchTerm) {
+      setSearchTerm(search);
+    }
+    if (sort && sort !== sortBy) {
+      setSortBy(sort);
+    }
+  }, [searchParams, selectedCategories, searchTerm, sortBy]);
 
   return (
     <div className="min-h-screen bg-gray-50" style={{ backgroundColor: COLORS.gray50 }}>
@@ -300,13 +405,16 @@ export default function ProductsPage() {
               <Input
                 placeholder="Search products..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  updateURL({ search: e.target.value });
+                }}
                 className="pl-10"
               />
             </div>
             
             <div className="flex items-center gap-4">
-              <Select value={sortBy} onValueChange={setSortBy}>
+              <Select value={sortBy} onValueChange={(value) => { setSortBy(value); updateURL({ sort: value }); }}>
                 <SelectTrigger className="w-48">
                   <SelectValue />
                 </SelectTrigger>
@@ -727,13 +835,14 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
                   <Eye className="h-4 w-4 mr-1" />
                   Quick View
                 </Button>
-                <Button 
-                  size="sm"
-                  style={{ backgroundColor: colors.primary, color: colors.white }}
-                >
-                  <ShoppingCart className="h-4 w-4 mr-1" />
-                  Add to Cart
-                </Button>
+                <Link href={productUrl}>
+                  <Button 
+                    size="sm"
+                    style={{ backgroundColor: colors.primary, color: colors.white }}
+                  >
+                    Design Now
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>
@@ -799,14 +908,16 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
           </div>
           
           <div className="absolute bottom-3 left-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <Button 
-              className="w-full"
-              style={{ backgroundColor: colors.primary, color: colors.white }}
-              disabled={product.stock === 0}
-            >
-              <Eye className="h-4 w-4 mr-2" />
-              Quick View
-            </Button>
+            <Link href={productUrl}>
+              <Button 
+                className="w-full"
+                style={{ backgroundColor: colors.primary, color: colors.white }}
+                disabled={product.stock === 0}
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                {product.stock === 0 ? 'Out of Stock' : 'Design Now'}
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
@@ -850,16 +961,17 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
           </div>
         </div>
 
-        {/* Add to Cart Button */}
-        <Button 
-          className="w-full mt-3"
-          size="sm"
-          style={{ backgroundColor: colors.primary, color: colors.white }}
-          disabled={product.stock === 0}
-        >
-          <ShoppingCart className="h-4 w-4 mr-2" />
-          {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
-        </Button>
+        {/* Design Now Button */}
+        <Link href={productUrl}>
+          <Button 
+            className="w-full mt-3"
+            size="sm"
+            style={{ backgroundColor: colors.primary, color: colors.white }}
+            disabled={product.stock === 0}
+          >
+            {product.stock === 0 ? 'Out of Stock' : 'Design Now'}
+          </Button>
+        </Link>
       </div>
     </div>
   );
