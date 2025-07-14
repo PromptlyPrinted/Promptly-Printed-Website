@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@repo/design-system/components/ui/button';
 import { Input } from '@repo/design-system/components/ui/input';
@@ -69,6 +69,84 @@ const categories = [
   { id: 'others', name: 'Others', count: 0 },
 ];
 
+const subcategories = {
+  mens: [
+    { id: 'mens-classic-tee', name: 'Classic T-Shirt', count: 0 },
+    { id: 'mens-vneck-tee', name: 'V-Neck T-Shirt', count: 0 },
+    { id: 'mens-triblend-tee', name: 'Triblend T-Shirt', count: 0 },
+    { id: 'mens-tank-top', name: 'Tank Top', count: 0 },
+    { id: 'mens-long-sleeve', name: 'Long Sleeve', count: 0 },
+  ],
+  womens: [
+    { id: 'womens-classic-tee', name: 'Classic T-Shirt', count: 0 },
+    { id: 'womens-vneck-tee', name: 'V-Neck T-Shirt', count: 0 },
+    { id: 'womens-fitted-tee', name: 'Fitted T-Shirt', count: 0 },
+  ],
+  kids: [
+    { id: 'kids-tee', name: 'Kids T-Shirt', count: 0 },
+    { id: 'baby-bodysuit', name: 'Baby Bodysuit', count: 0 },
+    { id: 'baby-tee', name: 'Baby T-Shirt', count: 0 },
+    { id: 'kids-sweatshirt', name: 'Kids Sweatshirt', count: 0 },
+  ],
+  accessories: [
+    { id: 'bags', name: 'Bags', count: 0 },
+    { id: 'watch-straps', name: 'Watch Straps', count: 0 },
+    { id: 'mats-sleeves', name: 'Mats & Sleeves', count: 0 },
+    { id: 'socks-flipflops', name: 'Socks & Flip-flops', count: 0 },
+    { id: 'pendants-keyrings', name: 'Pendants & Keyrings', count: 0 },
+  ],
+  home: [
+    { id: 'cushions', name: 'Cushions', count: 0 },
+    { id: 'gallery-boards', name: 'Gallery Boards', count: 0 },
+    { id: 'acrylic-prisms', name: 'Acrylic Prisms', count: 0 },
+    { id: 'prints-posters', name: 'Prints & Posters', count: 0 },
+  ],
+  others: [
+    { id: 'games', name: 'Games', count: 0 },
+    { id: 'books', name: 'Books', count: 0 },
+    { id: 'notebooks', name: 'Notebooks', count: 0 },
+    { id: 'stickers', name: 'Stickers', count: 0 },
+    { id: 'tattoos', name: 'Tattoos', count: 0 },
+  ],
+};
+
+const colors = [
+  { id: 'white', name: 'White', hex: '#FFFFFF' },
+  { id: 'black', name: 'Black', hex: '#000000' },
+  { id: 'red', name: 'Red', hex: '#FF0000' },
+  { id: 'navy', name: 'Navy', hex: '#000080' },
+  { id: 'kelly-green', name: 'Kelly Green', hex: '#4CBB17' },
+  { id: 'sun-yellow', name: 'Sun Yellow', hex: '#FFD700' },
+  { id: 'royal-blue', name: 'Royal Blue', hex: '#4169E1' },
+  { id: 'burgundy', name: 'Burgundy', hex: '#800020' },
+  { id: 'sport-grey', name: 'Sport Grey', hex: '#808080' },
+  { id: 'light-pink', name: 'Light Pink', hex: '#FFB6C1' },
+  { id: 'vintage-white', name: 'Vintage White', hex: '#F5F5DC' },
+  { id: 'french-navy', name: 'French Navy', hex: '#002654' },
+  { id: 'bright-blue', name: 'Bright Blue', hex: '#0047AB' },
+  { id: 'cotton-pink', name: 'Cotton Pink', hex: '#FFB3BA' },
+  { id: 'glazed-green', name: 'Glazed Green', hex: '#8FBC8F' },
+  { id: 'khaki', name: 'Khaki', hex: '#F0E68C' },
+  { id: 'desert-dust', name: 'Desert Dust', hex: '#EDC9AF' },
+  { id: 'ochre', name: 'Ochre', hex: '#CC7722' },
+  { id: 'spectra-yellow', name: 'Spectra Yellow', hex: '#FFFF00' },
+  { id: 'anthracite', name: 'Anthracite', hex: '#36454F' },
+  { id: 'dark-heather-grey', name: 'Dark Heather Grey', hex: '#616161' },
+  { id: 'india-ink-grey', name: 'India Ink Grey', hex: '#414A4C' },
+  { id: 'stargazer', name: 'Stargazer', hex: '#4B0082' },
+  { id: 'heather-mauve', name: 'Heather Mauve', hex: '#998FC7' },
+  { id: 'military-green-triblend', name: 'Military Green Triblend', hex: '#4B5320' },
+  { id: 'vintage-royal-triblend', name: 'Vintage Royal Triblend', hex: '#002FA7' },
+  { id: 'light-blue', name: 'Light Blue', hex: '#ADD8E6' },
+  { id: 'arctic-white', name: 'Arctic White', hex: '#F0F8FF' },
+  { id: 'jet-black', name: 'Jet Black', hex: '#0A0A0A' },
+  { id: 'charcoal', name: 'Charcoal', hex: '#36454F' },
+  { id: 'heather-grey', name: 'Heather Grey', hex: '#D3D3D3' },
+  { id: 'oxford-navy', name: 'Oxford Navy', hex: '#14213D' },
+  { id: 'sky-blue', name: 'Sky Blue', hex: '#87CEEB' },
+  { id: 'bottle-green', name: 'Bottle Green', hex: '#006A4E' },
+];
+
 const brands = ['Promptly Printed', 'Premium Collection', 'Eco-Friendly Line'];
 const sortOptions = [
   { value: 'relevance', label: 'Relevance' },
@@ -97,8 +175,12 @@ export default function ProductsPage() {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
   const [selectedCategories, setSelectedCategories] = useState<string[]>(getInitialCategory);
+  const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([]);
+  const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [showAllColors, setShowAllColors] = useState(false);
   const [priceRange, setPriceRange] = useState([0, 200]);
+  const priceInitialized = useRef(false);
   const [minRating, setMinRating] = useState(0);
   const [inStockOnly, setInStockOnly] = useState(false);
   const [onSaleOnly, setOnSaleOnly] = useState(false);
@@ -115,10 +197,14 @@ export default function ProductsPage() {
       price: product.pricing.find(p => p.currency === 'USD')?.amount || 0,
       pricing: product.pricing,
       shippingCost: 0,
-      imageUrls: product.imageUrls,
+      imageUrls: {
+        base: product.imageUrls.base || '',
+        cover: (product.imageUrls as any).front || product.imageUrls.base || '',
+        sizeChart: ''
+      },
       sku: product.sku,
-      specifications: 'specifications' in product ? product.specifications : undefined,
-      prodigiVariants: 'prodigiVariants' in product ? product.prodigiVariants : undefined,
+      specifications: undefined,
+      prodigiVariants: undefined,
       savedImages: [],
       wishedBy: [],
       badge: index % 5 === 0 ? 'bestseller' : index % 7 === 0 ? 'new' : index % 3 === 0 ? 'sale' : undefined,
@@ -130,6 +216,26 @@ export default function ProductsPage() {
     }));
   }, []);
 
+  // Calculate dynamic price range from products
+  const { minPrice, maxPrice } = useMemo(() => {
+    const prices = rawProducts.map(p => p.price || 0).filter(p => p > 0);
+    if (prices.length === 0) {
+      return { minPrice: 0, maxPrice: 200 };
+    }
+    return {
+      minPrice: Math.floor(Math.min(...prices)),
+      maxPrice: Math.ceil(Math.max(...prices))
+    };
+  }, [rawProducts]);
+
+  // Initialize price range state with dynamic values
+  useEffect(() => {
+    if (!priceInitialized.current && minPrice >= 0 && maxPrice > minPrice) {
+      setPriceRange([minPrice, maxPrice]);
+      priceInitialized.current = true;
+    }
+  }, [minPrice, maxPrice]);
+
   // Filter and sort products
   const filteredProducts = useMemo(() => {
     let filtered = rawProducts;
@@ -137,19 +243,70 @@ export default function ProductsPage() {
     // Category filter
     if (!selectedCategories.includes('all')) {
       filtered = filtered.filter(product => {
-        const category = product.category?.name?.toLowerCase() || '';
+        const categoryName = product.category?.name?.toLowerCase() || '';
         return selectedCategories.some(cat => {
           switch (cat) {
-            case 'mens': return category.includes('men');
-            case 'womens': return category.includes('women');
-            case 'kids': return category.includes('kids') || category.includes('baby');
-            case 'accessories': return category.includes('accessories');
-            case 'home': return category.includes('home');
-            case 'others': return !category.includes('men') && !category.includes('women') && 
-                                !category.includes('kids') && !category.includes('baby') &&
-                                !category.includes('accessories') && !category.includes('home');
+            case 'mens': return (categoryName.includes('men') && !categoryName.includes('women')) || categoryName.includes("men's");
+            case 'womens': return categoryName.includes('women') || categoryName.includes("women's");
+            case 'kids': return categoryName.includes('kids') || categoryName.includes('baby') || categoryName.includes('kid');
+            case 'accessories': return categoryName.includes('accessories');
+            case 'home': return categoryName.includes('home');
+            case 'others': return !categoryName.includes('men') && !categoryName.includes('women') && 
+                                !categoryName.includes('kids') && !categoryName.includes('baby') &&
+                                !categoryName.includes('accessories') && !categoryName.includes('home') &&
+                                !categoryName.includes('kid');
             default: return true;
           }
+        });
+      });
+    }
+
+    // Subcategory filter
+    if (selectedSubcategories.length > 0) {
+      filtered = filtered.filter(product => {
+        const productType = product.id.toLowerCase();
+        const productName = product.name.toLowerCase();
+        return selectedSubcategories.some(subcat => {
+          switch (subcat) {
+            case 'mens-classic-tee': 
+            case 'womens-classic-tee': 
+              return productType.includes('tee') && !productName.includes('v-neck') && !productName.includes('triblend');
+            case 'mens-vneck-tee':
+            case 'womens-vneck-tee': 
+              return productName.includes('v-neck');
+            case 'mens-triblend-tee': 
+              return productName.includes('triblend');
+            case 'mens-tank-top': 
+              return productName.includes('tank');
+            case 'mens-long-sleeve': 
+              return productName.includes('long sleeve');
+            case 'womens-fitted-tee': 
+              return productName.includes('fitted');
+            case 'kids-tee': 
+              return productName.includes('kids') && productName.includes('t-shirt');
+            case 'baby-bodysuit': 
+              return productName.includes('bodysuit');
+            case 'baby-tee': 
+              return productName.includes('baby') && productName.includes('t-shirt');
+            case 'kids-sweatshirt': 
+              return productName.includes('kids') && productName.includes('sweatshirt');
+            default: return true;
+          }
+        });
+      });
+    }
+
+    // Color filter
+    if (selectedColors.length > 0) {
+      filtered = filtered.filter(product => {
+        // Check if any of the product's available colors match the selected colors
+        const productColors = Object.values(tshirtDetails).find(p => p.sku === product.sku)?.colorOptions || [];
+        return selectedColors.some(selectedColor => {
+          const colorName = colors.find(c => c.id === selectedColor)?.name || '';
+          return productColors.some(productColor => 
+            productColor.name.toLowerCase().includes(colorName.toLowerCase()) ||
+            colorName.toLowerCase().includes(productColor.name.toLowerCase())
+          );
         });
       });
     }
@@ -209,19 +366,21 @@ export default function ProductsPage() {
     });
 
     return filtered;
-  }, [rawProducts, selectedCategories, searchTerm, selectedBrands, priceRange, minRating, inStockOnly, onSaleOnly, sortBy]);
+  }, [rawProducts, selectedCategories, selectedSubcategories, selectedColors, searchTerm, selectedBrands, priceRange, minRating, inStockOnly, onSaleOnly, sortBy]);
 
   // Active filters count
   const activeFiltersCount = useMemo(() => {
     let count = 0;
     if (!selectedCategories.includes('all')) count++;
+    if (selectedSubcategories.length > 0) count++;
+    if (selectedColors.length > 0) count++;
     if (selectedBrands.length > 0) count++;
-    if (priceRange[0] > 0 || priceRange[1] < 200) count++;
+    if (priceRange[0] > minPrice || priceRange[1] < maxPrice) count++;
     if (minRating > 0) count++;
     if (inStockOnly) count++;
     if (onSaleOnly) count++;
     return count;
-  }, [selectedCategories, selectedBrands, priceRange, minRating, inStockOnly, onSaleOnly]);
+  }, [selectedCategories, selectedSubcategories, selectedColors, selectedBrands, priceRange, minRating, inStockOnly, onSaleOnly, minPrice, maxPrice]);
 
   // Update URL with current filters
   const updateURL = useCallback((filters: {
@@ -258,13 +417,13 @@ export default function ProductsPage() {
       params.delete('brands');
     }
     
-    if (filters.priceMin !== undefined && filters.priceMin > 0) {
+    if (filters.priceMin !== undefined && filters.priceMin > minPrice) {
       params.set('priceMin', filters.priceMin.toString());
     } else {
       params.delete('priceMin');
     }
     
-    if (filters.priceMax !== undefined && filters.priceMax < 200) {
+    if (filters.priceMax !== undefined && filters.priceMax < maxPrice) {
       params.set('priceMax', filters.priceMax.toString());
     } else {
       params.delete('priceMax');
@@ -295,19 +454,23 @@ export default function ProductsPage() {
     }
     
     router.push(`/products?${params.toString()}`, { scroll: false });
-  }, [searchParams, router]);
+  }, [searchParams, router, minPrice, maxPrice]);
 
   // Clear all filters
   const clearAllFilters = useCallback(() => {
     setSelectedCategories(['all']);
+    setSelectedSubcategories([]);
+    setSelectedColors([]);
+    setShowAllColors(false);
     setSelectedBrands([]);
-    setPriceRange([0, 200]);
+    setPriceRange([minPrice, maxPrice]);
+    priceInitialized.current = true;
     setMinRating(0);
     setInStockOnly(false);
     setOnSaleOnly(false);
     setSearchTerm('');
     router.push('/products', { scroll: false });
-  }, [router]);
+  }, [router, minPrice, maxPrice]);
 
   // Toggle category
   const toggleCategory = useCallback((categoryId: string) => {
@@ -335,6 +498,24 @@ export default function ProductsPage() {
     setSelectedBrands(newBrands);
     updateURL({ brands: newBrands });
   }, [selectedBrands, updateURL]);
+
+  // Toggle subcategory
+  const toggleSubcategory = useCallback((subcategory: string) => {
+    const newSubcategories = selectedSubcategories.includes(subcategory)
+      ? selectedSubcategories.filter(s => s !== subcategory)
+      : [...selectedSubcategories, subcategory];
+    setSelectedSubcategories(newSubcategories);
+    // Note: URL update could be added here if needed
+  }, [selectedSubcategories]);
+
+  // Toggle color
+  const toggleColor = useCallback((color: string) => {
+    const newColors = selectedColors.includes(color)
+      ? selectedColors.filter(c => c !== color)
+      : [...selectedColors, color];
+    setSelectedColors(newColors);
+    // Note: URL update could be added here if needed
+  }, [selectedColors]);
 
   // Add effect to sync URL changes with state
   useEffect(() => {
@@ -490,6 +671,38 @@ export default function ProductsPage() {
                   </span>
                 ))}
 
+                {selectedSubcategories.map(subcat => (
+                  <span
+                    key={subcat}
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
+                    style={{ 
+                      backgroundColor: COLORS.lightMint, 
+                      color: COLORS.dark 
+                    }}
+                  >
+                    {Object.values(subcategories).flat().find(s => s.id === subcat)?.name}
+                    <button onClick={() => toggleSubcategory(subcat)}>
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+
+                {selectedColors.map(colorId => (
+                  <span
+                    key={colorId}
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
+                    style={{ 
+                      backgroundColor: COLORS.lightMint, 
+                      color: COLORS.dark 
+                    }}
+                  >
+                    {colors.find(c => c.id === colorId)?.name}
+                    <button onClick={() => toggleColor(colorId)}>
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+
                 {selectedBrands.map(brand => (
                   <span
                     key={brand}
@@ -546,29 +759,40 @@ export default function ProductsPage() {
                     <div className="space-y-3">
                       <Slider
                         value={priceRange}
-                        onValueChange={setPriceRange}
-                        max={200}
-                        min={0}
-                        step={5}
+                        onValueChange={(value) => {
+                          setPriceRange(value);
+                          updateURL({ priceMin: value[0], priceMax: value[1] });
+                        }}
+                        max={maxPrice}
+                        min={minPrice}
+                        step={1}
                         className="w-full"
                       />
                       <div className="flex items-center gap-2">
                         <Input
                           type="number"
                           value={priceRange[0]}
-                          onChange={(e) => setPriceRange([Number(e.target.value), priceRange[1]])}
+                          onChange={(e) => {
+                            const newRange = [Number(e.target.value), priceRange[1]];
+                            setPriceRange(newRange);
+                            updateURL({ priceMin: newRange[0], priceMax: newRange[1] });
+                          }}
                           className="w-20 text-xs"
-                          min="0"
-                          max="200"
+                          min={minPrice.toString()}
+                          max={maxPrice.toString()}
                         />
                         <span style={{ color: COLORS.gray400 }}>-</span>
                         <Input
                           type="number"
                           value={priceRange[1]}
-                          onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
+                          onChange={(e) => {
+                            const newRange = [priceRange[0], Number(e.target.value)];
+                            setPriceRange(newRange);
+                            updateURL({ priceMin: newRange[0], priceMax: newRange[1] });
+                          }}
                           className="w-20 text-xs"
-                          min="0"
-                          max="200"
+                          min={minPrice.toString()}
+                          max={maxPrice.toString()}
                         />
                       </div>
                     </div>
@@ -597,6 +821,73 @@ export default function ProductsPage() {
                         </div>
                       ))}
                     </div>
+                  </div>
+
+                  {/* Subcategories */}
+                  {selectedCategories.some(cat => cat !== 'all' && subcategories[cat as keyof typeof subcategories]) && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-3" style={{ color: COLORS.dark }}>
+                        Product Types
+                      </h4>
+                      <div className="space-y-2">
+                        {selectedCategories.filter(cat => cat !== 'all').map(cat => 
+                          subcategories[cat as keyof typeof subcategories] || []
+                        ).flat().map((subcategory) => (
+                          <div key={subcategory.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={subcategory.id}
+                              checked={selectedSubcategories.includes(subcategory.id)}
+                              onCheckedChange={() => toggleSubcategory(subcategory.id)}
+                            />
+                            <label
+                              htmlFor={subcategory.id}
+                              className="text-sm cursor-pointer"
+                              style={{ color: COLORS.gray700 }}
+                            >
+                              {subcategory.name}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Colors */}
+                  <div>
+                    <h4 className="text-sm font-medium mb-3" style={{ color: COLORS.dark }}>
+                      Colors
+                    </h4>
+                    <div className="grid grid-cols-4 gap-2">
+                      {(showAllColors ? colors : colors.slice(0, 16)).map((color) => (
+                        <button
+                          key={color.id}
+                          onClick={() => toggleColor(color.id)}
+                          className={`w-8 h-8 rounded-full border-2 transition-all ${
+                            selectedColors.includes(color.id) 
+                              ? 'ring-2 ring-offset-2 ring-primary' 
+                              : 'hover:scale-110'
+                          }`}
+                          style={{ 
+                            backgroundColor: color.hex,
+                            borderColor: selectedColors.includes(color.id) ? COLORS.primary : COLORS.gray300
+                          }}
+                          title={color.name}
+                        />
+                      ))}
+                    </div>
+                    {colors.length > 16 && (
+                      <div className="mt-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs"
+                          style={{ color: COLORS.gray500 }}
+                          onClick={() => setShowAllColors(!showAllColors)}
+                        >
+                          {showAllColors ? 'Show fewer colors' : `Show all colors (${colors.length})`}
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Brands */}
@@ -633,7 +924,11 @@ export default function ProductsPage() {
                       {[4, 3, 2, 1].map((rating) => (
                         <button
                           key={rating}
-                          onClick={() => setMinRating(minRating === rating ? 0 : rating)}
+                          onClick={() => {
+                            const newRating = minRating === rating ? 0 : rating;
+                            setMinRating(newRating);
+                            updateURL({ rating: newRating });
+                          }}
                           className={`flex items-center gap-2 w-full p-2 rounded transition-colors ${
                             minRating === rating 
                               ? 'bg-primary bg-opacity-10' 
@@ -673,7 +968,11 @@ export default function ProductsPage() {
                         <Checkbox
                           id="in-stock"
                           checked={inStockOnly}
-                          onCheckedChange={(checked) => setInStockOnly(checked === true)}
+                          onCheckedChange={(checked) => {
+                            const newValue = checked === true;
+                            setInStockOnly(newValue);
+                            updateURL({ inStock: newValue });
+                          }}
                         />
                         <label
                           htmlFor="in-stock"
@@ -687,7 +986,11 @@ export default function ProductsPage() {
                         <Checkbox
                           id="on-sale"
                           checked={onSaleOnly}
-                          onCheckedChange={(checked) => setOnSaleOnly(checked === true)}
+                          onCheckedChange={(checked) => {
+                            const newValue = checked === true;
+                            setOnSaleOnly(newValue);
+                            updateURL({ onSale: newValue });
+                          }}
                         />
                         <label
                           htmlFor="on-sale"
