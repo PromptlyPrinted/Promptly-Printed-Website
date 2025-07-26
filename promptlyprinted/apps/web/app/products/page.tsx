@@ -1139,18 +1139,17 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
 
   if (viewMode === 'list') {
     return (
-      <div 
-        className="bg-white rounded-lg border p-6 hover:shadow-lg transition-all duration-300"
-        onMouseLeave={() => setShowColorOptions(false)}
-      >
-        <div className="flex gap-6">
+      <div className="bg-white rounded-lg border hover:shadow-lg transition-all duration-300">
+        <div className="flex gap-6 p-6">
           <div className="relative w-32 h-32 flex-shrink-0">
-            <Image
-              src={getCurrentImage()}
-              alt={product.name}
-              fill
-              className="object-cover rounded-lg transition-all duration-300"
-            />
+            <Link href={selectedColor ? `${productUrl}?color=${encodeURIComponent(selectedColor)}` : productUrl}>
+              <Image
+                src={getCurrentImage()}
+                alt={product.name}
+                fill
+                className="object-cover rounded-lg group-hover:scale-[1.03] transition-all duration-300"
+              />
+            </Link>
             {product.badge && (
               <span 
                 className="absolute top-2 left-2 px-2 py-1 text-xs font-medium rounded-full"
@@ -1164,18 +1163,15 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
               </span>
             )}
             
-            {/* Color options button for list view */}
-            {colorOptions.length > 1 && (
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setShowColorOptions(!showColorOptions);
-                }}
-                className="absolute top-2 right-2 bg-black bg-opacity-75 text-white px-2 py-1 rounded text-xs hover:bg-opacity-90 transition-all"
-              >
-                {colorOptions.length} colors
-              </button>
+            {/* Design icon on hover for list view */}
+            {isHovered && (
+              <div className="absolute top-2 right-2 z-20">
+                <div className="bg-white bg-opacity-75 rounded-full p-1.5 shadow-sm">
+                  <svg className="h-3 w-3 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </div>
+              </div>
             )}
           </div>
           
@@ -1221,57 +1217,74 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
               </div>
               
               <div className="flex items-center gap-2">
-                <Link href={productUrl}>
-                  <Button 
-                    size="sm"
-                    style={{ backgroundColor: colors.primary, color: colors.white }}
+                <Link href={selectedColor ? `${productUrl}?color=${encodeURIComponent(selectedColor)}` : productUrl}>
+                  <button
+                    className="py-2 px-4 rounded-full font-medium text-white transition-all duration-200 hover:shadow-lg hover:scale-[1.02]"
+                    style={{ 
+                      backgroundColor: colors.accent,
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                    }}
                   >
-                    Design Now
-                  </Button>
+                    {selectedColor 
+                      ? `Design in ${selectedColor.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`
+                      : 'Design Now'
+                    }
+                  </button>
                 </Link>
               </div>
             </div>
           </div>
         </div>
-        
-        {/* Color Options Overlay for List View */}
-        {showColorOptions && colorOptions.length > 1 && (
-          <div className="absolute inset-0 bg-black bg-opacity-90 flex flex-col justify-center items-center z-20 rounded-lg">
-            <div className="text-white text-sm mb-2 font-medium">Select Color</div>
-            <div className="grid grid-cols-4 gap-2 max-w-40">
-              {colorOptions.slice(0, 12).map((colorOption) => (
-                <button
-                  key={colorOption.name}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleColorSelect(colorOption.name);
-                  }}
-                  className={`w-6 h-6 rounded border transition-all hover:scale-110 ${
-                    selectedColor === colorOption.name 
-                      ? 'border-white ring-1 ring-white' 
-                      : 'border-gray-400 hover:border-white'
-                  }`}
-                  style={{ 
-                    backgroundColor: getColorHex(colorOption.name) || '#ccc'
-                  }}
-                  title={colorOption.name}
-                />
-              ))}
+
+        {/* Color swatches positioned outside content for list view */}
+        {colorOptions.length > 0 && (
+          <div className="px-6 pb-4">
+            <div className="flex flex-wrap items-center gap-2">
+              {colorOptions.map((colorOption, index) => {
+                const colorHex = getColorHex(colorOption.name) || '#CCCCCC';
+                const isSelected = selectedColor === colorOption.name || (!selectedColor && index === currentColorIndex);
+                
+                return (
+                  <button
+                    key={colorOption.name}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleColorSelect(colorOption.name);
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                    className={`relative w-6 h-6 rounded-full transition-all duration-200 min-w-[40px] min-h-[40px] flex items-center justify-center ${
+                      isSelected 
+                        ? 'scale-110 shadow-md' 
+                        : 'hover:shadow-sm'
+                    }`}
+                    style={{ 
+                      transform: isSelected ? 'scale(1.1) translateY(-1px)' : 'scale(1)'
+                    }}
+                    aria-label={`Select ${colorOption.name.replace(/-/g, ' ')}`}
+                    title={colorOption.name.replace(/-/g, ' ')}
+                  >
+                    {/* Full-filled color circle with contrasting ring */}
+                    <div 
+                      className={`w-6 h-6 rounded-full border-2 transition-all duration-200 ${
+                        isSelected 
+                          ? 'border-gray-800' 
+                          : 'border-white hover:border-gray-200'
+                      }`}
+                      style={{ 
+                        backgroundColor: colorHex,
+                        boxShadow: '0 0 0 1px rgba(0,0,0,0.1)'
+                      }}
+                    />
+                  </button>
+                );
+              })}
             </div>
-            {colorOptions.length > 12 && (
-              <div className="text-white text-xs mt-2">+{colorOptions.length - 12} more</div>
-            )}
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setShowColorOptions(false);
-              }}
-              className="mt-2 text-white text-xs underline hover:no-underline"
-            >
-              Close
-            </button>
           </div>
         )}
       </div>
