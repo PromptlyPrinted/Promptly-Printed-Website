@@ -57,6 +57,7 @@ import { useCartStore } from '@/lib/cart-store';
 import { toast } from '@repo/design-system/components/ui/use-toast';
 import Image from 'next/image';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { LORAS, type Lora } from '../../../../../data/textModel';
 
 interface CheckoutImage {
@@ -188,11 +189,14 @@ interface ProductDetailProps {
 }
 
 export function ProductDetail({ product }: ProductDetailProps) {
+  const searchParams = useSearchParams();
+  const colorFromUrl = searchParams.get('color');
+  
   const [selectedSize, setSelectedSize] = useState<string | undefined>(
     undefined
   );
   const [selectedColor, setSelectedColor] = useState<string | undefined>(
-    undefined
+    colorFromUrl || undefined
   );
   const [promptText, setPromptText] = useState('');
   const [selectedModels, setSelectedModels] = useState<(number | string)[]>([
@@ -301,10 +305,10 @@ export function ProductDetail({ product }: ProductDetailProps) {
   }, [product, colorList]);
 
   useEffect(() => {
-    if (colorList.length > 0) {
+    if (colorList.length > 0 && !selectedColor) {
       setSelectedColor(toKebabCase(colorList[0]));
     }
-  }, [colorList]);
+  }, [colorList, selectedColor]);
 
   useEffect(() => {
     if (sizeList.length > 0) {

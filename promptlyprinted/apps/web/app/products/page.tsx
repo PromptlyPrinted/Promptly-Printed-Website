@@ -11,7 +11,9 @@ import {
   Eye,
   Grid3X3,
   List,
-  SlidersHorizontal
+  SlidersHorizontal,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -199,7 +201,7 @@ export default function ProductsPage() {
       shippingCost: 0,
       imageUrls: {
         base: product.imageUrls.base || '',
-        cover: (product.imageUrls as any).front || product.imageUrls.base || '',
+        cover: `${product.imageUrls.base}/cover.png` || '',
         sizeChart: ''
       },
       sku: product.sku,
@@ -1064,22 +1066,90 @@ interface ProductCardProps {
 
 function ProductCard({ product, viewMode, colors }: ProductCardProps) {
   const [isWishlisted, setIsWishlisted] = useState(product.isWishlisted);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [showColorOptions, setShowColorOptions] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [currentColorIndex, setCurrentColorIndex] = useState(0);
 
+  // Get color options from the original tshirt details
+  const originalProduct = Object.values(tshirtDetails).find(p => p.sku === product.sku);
+  const colorOptions = originalProduct?.colorOptions || [];
+  
   // Create product URL using the same logic as the existing ProductCard
   const categorySlug = createSlug(product.category?.name || 'all');
   const productSlug = createSlug(product.name);
   const productUrl = `/products/${categorySlug}/${productSlug}`;
+  
+  // Get current image based on selected color or current index
+  const getCurrentImage = () => {
+    if (!isHovered && !selectedColor) {
+      return product.imageUrls.cover;
+    }
+    
+    if (selectedColor && originalProduct) {
+      const colorOption = colorOptions.find(c => c.name === selectedColor);
+      if (colorOption) {
+        return `${originalProduct.imageUrls.base}/${colorOption.filename}`;
+      }
+    }
+    
+    // Fallback to current color index when navigating with arrows
+    if (colorOptions.length > 0 && originalProduct) {
+      const currentColorOption = colorOptions[currentColorIndex];
+      if (currentColorOption) {
+        return `${originalProduct.imageUrls.base}/${currentColorOption.filename}`;
+      }
+    }
+    
+    return product.imageUrls.cover;
+  };
+  
+  // Handle color selection
+  const handleColorSelect = (colorName: string) => {
+    setSelectedColor(selectedColor === colorName ? null : colorName);
+    // Update the current color index to match the selected color
+    const colorIndex = colorOptions.findIndex(c => c.name === colorName);
+    if (colorIndex !== -1) {
+      setCurrentColorIndex(colorIndex);
+    }
+  };
+
+  // Navigation functions
+  const handlePrevColor = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const newIndex = currentColorIndex === 0 ? colorOptions.length - 1 : currentColorIndex - 1;
+    setCurrentColorIndex(newIndex);
+    // Set the selected color to the new current color
+    if (colorOptions[newIndex]) {
+      setSelectedColor(colorOptions[newIndex].name);
+    }
+  };
+
+  const handleNextColor = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const newIndex = currentColorIndex === colorOptions.length - 1 ? 0 : currentColorIndex + 1;
+    setCurrentColorIndex(newIndex);
+    // Set the selected color to the new current color
+    if (colorOptions[newIndex]) {
+      setSelectedColor(colorOptions[newIndex].name);
+    }
+  };
 
   if (viewMode === 'list') {
     return (
-      <div className="bg-white rounded-lg border p-6 hover:shadow-lg transition-all duration-300">
+      <div 
+        className="bg-white rounded-lg border p-6 hover:shadow-lg transition-all duration-300"
+        onMouseLeave={() => setShowColorOptions(false)}
+      >
         <div className="flex gap-6">
           <div className="relative w-32 h-32 flex-shrink-0">
             <Image
-              src={product.imageUrls.cover}
+              src={getCurrentImage()}
               alt={product.name}
               fill
-              className="object-cover rounded-lg"
+              className="object-cover rounded-lg transition-all duration-300"
             />
             {product.badge && (
               <span 
@@ -1093,14 +1163,31 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
                 {product.badge.toUpperCase()}
               </span>
             )}
+            
+            {/* Color options button for list view */}
+            {colorOptions.length > 1 && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowColorOptions(!showColorOptions);
+                }}
+                className="absolute top-2 right-2 bg-black bg-opacity-75 text-white px-2 py-1 rounded text-xs hover:bg-opacity-90 transition-all"
+              >
+                {colorOptions.length} colors
+              </button>
+            )}
           </div>
           
           <div className="flex-1">
-            <Link href={productUrl}>
+            <Link href={selectedColor ? `${productUrl}?color=${encodeURIComponent(selectedColor)}` : productUrl}>
               <h3 className="text-lg font-medium hover:underline" style={{ color: colors.dark }}>
                 {product.name}
               </h3>
             </Link>
+            {selectedColor && (
+              <p className="text-sm text-gray-500 mt-1">Color: {selectedColor}</p>
+            )}
             <p className="text-sm mt-1 line-clamp-2" style={{ color: colors.gray600 }}>
               {product.description}
             </p>
@@ -1134,10 +1221,6 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
               </div>
               
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm">
-                  <Eye className="h-4 w-4 mr-1" />
-                  Quick View
-                </Button>
                 <Link href={productUrl}>
                   <Button 
                     size="sm"
@@ -1150,20 +1233,70 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
             </div>
           </div>
         </div>
+        
+        {/* Color Options Overlay for List View */}
+        {showColorOptions && colorOptions.length > 1 && (
+          <div className="absolute inset-0 bg-black bg-opacity-90 flex flex-col justify-center items-center z-20 rounded-lg">
+            <div className="text-white text-sm mb-2 font-medium">Select Color</div>
+            <div className="grid grid-cols-4 gap-2 max-w-40">
+              {colorOptions.slice(0, 12).map((colorOption) => (
+                <button
+                  key={colorOption.name}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleColorSelect(colorOption.name);
+                  }}
+                  className={`w-6 h-6 rounded border transition-all hover:scale-110 ${
+                    selectedColor === colorOption.name 
+                      ? 'border-white ring-1 ring-white' 
+                      : 'border-gray-400 hover:border-white'
+                  }`}
+                  style={{ 
+                    backgroundColor: getColorHex(colorOption.name) || '#ccc'
+                  }}
+                  title={colorOption.name}
+                />
+              ))}
+            </div>
+            {colorOptions.length > 12 && (
+              <div className="text-white text-xs mt-2">+{colorOptions.length - 12} more</div>
+            )}
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowColorOptions(false);
+              }}
+              className="mt-2 text-white text-xs underline hover:no-underline"
+            >
+              Close
+            </button>
+          </div>
+        )}
       </div>
     );
   }
 
   return (
-    <div className="group relative bg-white rounded-lg border overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+    <div 
+      className="group relative bg-white rounded-lg border overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-1"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        setShowColorOptions(false);
+        setSelectedColor(null);
+        setCurrentColorIndex(0);
+      }}
+    >
       {/* Image Container */}
       <div className="relative aspect-square overflow-hidden">
-        <Link href={productUrl}>
+        <Link href={selectedColor ? `${productUrl}?color=${encodeURIComponent(selectedColor)}` : productUrl}>
           <Image
-            src={product.imageUrls.cover}
+            src={getCurrentImage()}
             alt={product.name}
             fill
-            className="object-cover group-hover:scale-105 transition-transform duration-300"
+            className="object-cover group-hover:scale-[1.03] transition-all duration-300"
           />
         </Link>
         
@@ -1197,41 +1330,99 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
           </div>
         )}
 
-        {/* Hover Actions */}
-        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300">
-          <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <button
-              onClick={() => setIsWishlisted(!isWishlisted)}
-              className="p-2 bg-white rounded-full shadow-md hover:shadow-lg transition-all"
-            >
-              <Heart 
-                className={`h-4 w-4 ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-gray-400'}`}
-              />
-            </button>
+        {/* Design icon on hover */}
+        {isHovered && (
+          <div className="absolute top-3 right-3 z-20">
+            <div className="bg-white bg-opacity-75 rounded-full p-2 shadow-sm">
+              <svg className="h-4 w-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </div>
           </div>
-          
-          <div className="absolute bottom-3 left-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <Link href={productUrl}>
-              <Button 
-                className="w-full"
-                style={{ backgroundColor: colors.primary, color: colors.white }}
-                disabled={product.stock === 0}
-              >
-                <Eye className="h-4 w-4 mr-2" />
-                {product.stock === 0 ? 'Out of Stock' : 'Design Now'}
-              </Button>
-            </Link>
+        )}
+
+        {/* Wishlist button */}
+        <div className="absolute top-3 left-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsWishlisted(!isWishlisted);
+            }}
+            className="p-2 bg-white bg-opacity-75 rounded-full shadow-sm hover:shadow-md transition-all"
+          >
+            <Heart 
+              className={`h-4 w-4 ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-gray-400'}`}
+            />
+          </button>
+        </div>
+        
+      </div>
+
+      {/* Color swatches positioned completely outside the image */}
+      {colorOptions.length > 0 && (
+        <div className="px-4 pt-2 pb-1">
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {colorOptions.map((colorOption, index) => {
+                  const colorHex = getColorHex(colorOption.name) || '#CCCCCC';
+                  const isSelected = selectedColor === colorOption.name || (!selectedColor && index === currentColorIndex);
+                  
+              return (
+                <button
+                  key={colorOption.name}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleColorSelect(colorOption.name);
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                  className={`relative w-6 h-6 rounded-full transition-all duration-200 min-w-[40px] min-h-[40px] flex items-center justify-center ${
+                    isSelected 
+                      ? 'scale-110 shadow-md' 
+                      : 'hover:shadow-sm'
+                  }`}
+                  style={{ 
+                    transform: isSelected ? 'scale(1.1) translateY(-1px)' : 'scale(1)'
+                  }}
+                  aria-label={`Select ${colorOption.name.replace(/-/g, ' ')}`}
+                  title={colorOption.name.replace(/-/g, ' ')}
+                >
+                  {/* Full-filled color circle with contrasting ring */}
+                  <div 
+                    className={`w-6 h-6 rounded-full border-2 transition-all duration-200 ${
+                      isSelected 
+                        ? 'border-gray-800' 
+                        : 'border-white hover:border-gray-200'
+                    }`}
+                    style={{ 
+                      backgroundColor: colorHex,
+                      boxShadow: '0 0 0 1px rgba(0,0,0,0.1)'
+                    }}
+                  />
+                </button>
+              );
+            })}
           </div>
         </div>
-      </div>
+      )}
 
       {/* Product Info */}
       <div className="p-4">
-        <Link href={productUrl}>
+        <Link href={selectedColor ? `${productUrl}?color=${encodeURIComponent(selectedColor)}` : productUrl}>
           <h3 className="font-medium text-sm line-clamp-2 hover:underline" style={{ color: colors.dark }}>
             {product.name}
           </h3>
         </Link>
+        {selectedColor && (
+          <p className="text-xs text-gray-500 mt-1">
+            Color: {selectedColor}
+          </p>
+        )}
 
         {/* Rating */}
         <div className="flex items-center gap-1 mt-2">
@@ -1265,15 +1456,22 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
         </div>
 
         {/* Design Now Button */}
-        <Link href={productUrl}>
-          <Button 
-            className="w-full mt-3"
-            size="sm"
-            style={{ backgroundColor: colors.primary, color: colors.white }}
+        <Link href={selectedColor ? `${productUrl}?color=${encodeURIComponent(selectedColor)}` : productUrl}>
+          <button
+            className="w-full mt-4 py-3 px-6 rounded-full font-medium text-white transition-all duration-200 hover:shadow-lg hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ 
+              backgroundColor: product.stock === 0 ? colors.gray400 : colors.accent,
+              boxShadow: product.stock === 0 ? 'none' : '0 4px 12px rgba(0,0,0,0.15)'
+            }}
             disabled={product.stock === 0}
           >
-            {product.stock === 0 ? 'Out of Stock' : 'Design Now'}
-          </Button>
+            {product.stock === 0 
+              ? 'Out of Stock' 
+              : selectedColor 
+                ? `Design in ${selectedColor.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`
+                : 'Design Now'
+            }
+          </button>
         </Link>
       </div>
     </div>
@@ -1288,4 +1486,47 @@ function createSlug(text: string): string {
     .replace(/[^a-z0-9]/g, '-') // Replace non-alphanumeric with hyphens
     .replace(/-+/g, '-') // Replace multiple hyphens with single
     .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+}
+
+// Function to get hex color from color name
+function getColorHex(colorName: string): string | null {
+  const colorMap: Record<string, string> = {
+    'white': '#FFFFFF',
+    'vintage white': '#F5F5DC',
+    'off white': '#FAF0E6',
+    'black': '#000000',
+    'jet black': '#0A0A0A',
+    'anthracite': '#36454F',
+    'dark heather grey': '#616161',
+    'heather grey': '#D3D3D3',
+    'india ink grey': '#414A4C',
+    'charcoal': '#36454F',
+    'sport grey': '#808080',
+    'french navy': '#002654',
+    'navy': '#000080',
+    'oxford navy': '#14213D',
+    'bright blue': '#0047AB',
+    'royal blue': '#4169E1',
+    'sky blue': '#87CEEB',
+    'stargazer': '#4B0082',
+    'red': '#FF0000',
+    'burgundy': '#800020',
+    'cotton pink': '#FFB3BA',
+    'light pink': '#FFB6C1',
+    'heather mauve': '#998FC7',
+    'glazed green': '#8FBC8F',
+    'kelly green': '#4CBB17',
+    'bottle green': '#006A4E',
+    'khaki': '#F0E68C',
+    'desert dust': '#EDC9AF',
+    'ochre': '#CC7722',
+    'spectra yellow': '#FFFF00',
+    'sun yellow': '#FFD700',
+    'military green triblend': '#4B5320',
+    'vintage royal triblend': '#002FA7',
+    'light blue': '#ADD8E6',
+    'arctic white': '#F0F8FF',
+  };
+  
+  return colorMap[colorName.toLowerCase()] || null;
 }

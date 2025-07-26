@@ -91,7 +91,7 @@ export function ProductsDropdown({
                   className="flex items-center gap-2 rounded px-3 py-2 text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
                 >
                   <Shirt className="h-5 w-5" />
-                  All Apparel
+                  All
                 </Link>
               </li>
               <li>
@@ -100,14 +100,8 @@ export function ProductsDropdown({
                   className="flex items-center gap-2 rounded px-3 py-2 text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
                 >
                   <User className="h-5 w-5" />
-                  Men's T-Shirts
+                  Men
                 </Link>
-              </li>
-              <li>
-                <div className="pl-7 space-y-1">
-                  <div className="text-xs text-gray-500 font-medium">Types:</div>
-                  <div className="text-xs text-gray-600">Classic • V-Neck • Triblend • Tank Top</div>
-                </div>
               </li>
               <li>
                 <Link
@@ -115,14 +109,8 @@ export function ProductsDropdown({
                   className="flex items-center gap-2 rounded px-3 py-2 text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
                 >
                   <User className="h-5 w-5" />
-                  Women's T-Shirts
+                  Women
                 </Link>
-              </li>
-              <li>
-                <div className="pl-7 space-y-1">
-                  <div className="text-xs text-gray-500 font-medium">Types:</div>
-                  <div className="text-xs text-gray-600">Classic • V-Neck • Fitted</div>
-                </div>
               </li>
               <li>
                 <Link
@@ -132,12 +120,6 @@ export function ProductsDropdown({
                   <Baby className="h-5 w-5" />
                   Kids &amp; Babies
                 </Link>
-              </li>
-              <li>
-                <div className="pl-7 space-y-1">
-                  <div className="text-xs text-gray-500 font-medium">Types:</div>
-                  <div className="text-xs text-gray-600">Kids T-Shirts • Baby Bodysuits • Sweatshirts</div>
-                </div>
               </li>
             </ul>
           </div>
@@ -158,11 +140,22 @@ export function ProductsDropdown({
                 </Link>
               </li>
               <li>
-                <div className="pl-7 space-y-1">
-                  <div className="text-xs text-gray-500 font-medium">Available:</div>
-                  <div className="text-xs text-gray-600">Bags • Watch Straps • Mats & Sleeves</div>
-                  <div className="text-xs text-gray-600">Socks & Flip-flops • Pendants & Keyrings</div>
-                </div>
+                <Link
+                  href="/products?category=accessories&subcategory=bags"
+                  className="flex items-center gap-2 rounded px-3 py-2 text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
+                >
+                  <ShoppingBag className="h-5 w-5" />
+                  Bags
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/products?category=accessories&subcategory=watch-straps"
+                  className="flex items-center gap-2 rounded px-3 py-2 text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
+                >
+                  <ShoppingBag className="h-5 w-5" />
+                  Watch Straps
+                </Link>
               </li>
             </ul>
           </div>
@@ -183,11 +176,22 @@ export function ProductsDropdown({
                 </Link>
               </li>
               <li>
-                <div className="pl-7 space-y-1">
-                  <div className="text-xs text-gray-500 font-medium">Available:</div>
-                  <div className="text-xs text-gray-600">Cushions • Gallery Boards</div>
-                  <div className="text-xs text-gray-600">Acrylic Prisms • Prints & Posters</div>
-                </div>
+                <Link
+                  href="/products?category=home&subcategory=cushions"
+                  className="flex items-center gap-2 rounded px-3 py-2 text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
+                >
+                  <Home className="h-5 w-5" />
+                  Cushions
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/products?category=home&subcategory=gallery-boards"
+                  className="flex items-center gap-2 rounded px-3 py-2 text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
+                >
+                  <Home className="h-5 w-5" />
+                  Gallery Boards
+                </Link>
               </li>
             </ul>
           </div>
@@ -208,11 +212,22 @@ export function ProductsDropdown({
                 </Link>
               </li>
               <li>
-                <div className="pl-7 space-y-1">
-                  <div className="text-xs text-gray-500 font-medium">Popular:</div>
-                  <div className="text-xs text-gray-600">Stickers • Tattoos</div>
-                  <div className="text-xs text-gray-600">Games • Books • Notebooks</div>
-                </div>
+                <Link
+                  href="/products?category=others&subcategory=stickers"
+                  className="flex items-center gap-2 rounded px-3 py-2 text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
+                >
+                  <MoreHorizontal className="h-5 w-5" />
+                  Stickers
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/products?category=others&subcategory=games"
+                  className="flex items-center gap-2 rounded px-3 py-2 text-gray-600 transition-colors duration-200 hover:bg-gray-50 hover:text-gray-900"
+                >
+                  <MoreHorizontal className="h-5 w-5" />
+                  Games
+                </Link>
               </li>
             </ul>
           </div>
