@@ -20,48 +20,117 @@ function createSlug(text: string): string {
     .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
 }
 
-// Color hex mapping for T-shirt colors
+// Format color name for URL (convert spaces to hyphens)
+const formatColorForUrl = (colorName: string) => {
+  return colorName.replace(/\s+/g, '-').toLowerCase();
+};
+
+// Comprehensive color hex mapping for all T-shirt colors found in product data
 const colorHexMap: Record<string, string> = {
+  // Whites
+  'white': '#FFFFFF',
+  'vintage-white': '#F5F5DC',
+  'off-white': '#FAF0E6',
+  'arctic-white': '#FFFFFF',
+  
+  // Blacks
+  'black': '#000000',
+  'jet-black': '#0A0A0A',
+  
+  // Greys
+  'anthracite': '#36454F',
+  'charcoal': '#36454F',
+  'dark-heather-grey': '#616161',
+  'india-ink-grey': '#414A4C',
+  'heather-grey': '#999999',
+  'dark-grey': '#696969',
+  'sport-grey': '#9E9E9E',
+  'sports-grey': '#9E9E9E',
+  'heather': '#999999',
+  'dark-heather': '#6B6B6B',
+  'athletic-heather': '#D3D3D3',
+  
+  // Blues
+  'navy': '#000080',
+  'french-navy': '#002654',
+  'oxford-navy': '#14213D',
+  'bright-blue': '#0047AB',
+  'light-blue': '#87CEEB',
+  'royal-blue': '#4169E1',
+  'sky-blue': '#87CEEB',
+  'royal': '#4169E1',
+  'true-royal': '#002FA7',
+  'blue': '#0066CC',
+  
+  // Purples
+  'stargazer': '#4B0082',
+  'purple': '#800080',
+  'heather-purple': '#9370DB',
+  
+  // Reds
+  'red': '#DC143C',
+  'burgundy': '#800020',
+  
+  // Pinks
+  'cotton-pink': '#FFB3BA',
+  'pink': '#FF69B4',
+  
+  // Greens
+  'glazed-green': '#8FBC8F',
+  'irish-green': '#009A49',
+  'bottle-green': '#006A4E',
+  'kelly-green': '#4CBB17',
+  'military-green-triblend': '#4B5320',
+  'apple': '#8DB600',
+  
+  // Yellows
+  'khaki': '#F0E68C',
+  'desert-dust': '#EDC9AF',
+  'ochre': '#CC7722',
+  'spectra-yellow': '#FFFF00',
+  'sun-yellow': '#FFD700',
+  'butter': '#FFDB58',
+  'daisy': '#FFFF31',
+  
+  // Special colors
+  'azalea': '#F56FA1',
+  'cornsilk': '#FFF8DC',
+  'vintage-royal-triblend': '#002FA7',
+  
+  // Legacy/additional colors
   'army-green': '#4B5320',
   'ash': '#B2BEB5',
   'asphalt': '#36454F',
-  'athletic-heather': '#D3D3D3',
   'baby-blue': '#89CFF0',
-  'black': '#000000',
-  'blue': '#0000FF',
-  'bottle-green': '#006A4E',
-  'brown': '#A52A2A',
-  'burgundy': '#800020',
+  'brown': '#8B4513',
   'burnt-orange': '#CC5500',
   'cardinal': '#C41E3A',
-  'charcoal': '#36454F',
-  'chocolate': '#D2691E',
+  'chocolate': '#7B3F00',
   'cranberry': '#DC143C',
-  'dark-grey': '#A9A9A9',
   'forest': '#228B22',
-  'gold': '#FFD700',
+  'gold': '#DAA520',
   'heather-blue': '#4682B4',
-  'heather-grey': '#999999',
   'heather-prism-lilac': '#C8A2C8',
   'heather-prism-mint': '#98FB98',
   'heather-prism-peach': '#FFCBA4',
-  'irish-green': '#009A49',
   'kiwi': '#8EE53F',
-  'light-blue': '#ADD8E6',
   'light-pink': '#FFB6C1',
   'maroon': '#800000',
   'natural': '#F5F5DC',
-  'navy': '#000080',
-  'orange': '#FFA500',
-  'pink': '#FFC0CB',
-  'purple': '#800080',
-  'red': '#FF0000',
-  'royal': '#4169E1',
+  'orange': '#FF8C00',
   'slate': '#708090',
-  'sport-grey': '#9E9E9E',
   'tan': '#D2B48C',
-  'white': '#FFFFFF',
-  'yellow': '#FFFF00'
+  'yellow': '#FFD700',
+  'coral': '#FF7F50',
+  'mint': '#98FB98',
+  'sage': '#87AE73',
+  'steel': '#71797E',
+  'cream': '#F5F5DC',
+  'indigo': '#4B0082',
+  'lavender': '#E6E6FA',
+  'peach': '#FFCBA4',
+  'turquoise': '#40E0D0',
+  'violet': '#8A2BE2'
 };
 
 export function ProductCard({ product }: ProductCardProps) {
@@ -88,14 +157,14 @@ export function ProductCard({ product }: ProductCardProps) {
         option => option.name.toLowerCase() === selectedColor.toLowerCase()
       );
       if (colorOption && product.prodigiVariants.imageUrls?.base) {
-        return `${product.prodigiVariants.imageUrls.base}/${colorOption.filename}`;
+        return `${product.prodigiVariants.imageUrls.base}/${formatColorForUrl(colorOption.name)}.png`;
       }
     }
     
     // Fallback to base image with current color index
     if (colors.length > 0 && product.prodigiVariants?.imageUrls?.base) {
       const currentColor = colors[currentColorIndex];
-      return `${product.prodigiVariants.imageUrls.base}/${currentColor}.png`;
+      return `${product.prodigiVariants.imageUrls.base}/${formatColorForUrl(currentColor)}.png`;
     }
     
     return product.imageUrls.cover;
@@ -138,7 +207,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const finalProductUrl = useMemo(() => {
     const baseUrl = productUrl;
     if (selectedColor) {
-      return `${baseUrl}?color=${encodeURIComponent(selectedColor)}`;
+      return `${baseUrl}?color=${encodeURIComponent(formatColorForUrl(selectedColor))}`;
     }
     return baseUrl;
   }, [productUrl, selectedColor]);
@@ -181,7 +250,8 @@ export function ProductCard({ product }: ProductCardProps) {
           <div className="px-4 pt-2 pb-1">
             <div className="flex flex-wrap items-center justify-center gap-2">
               {colors.map((color, index) => {
-                    const colorHex = colorHexMap[color.toLowerCase()] || '#CCCCCC';
+                    const colorKey = formatColorForUrl(color);
+                    const colorHex = colorHexMap[colorKey] || '#CCCCCC';
                     const isSelected = selectedColor === color || (!selectedColor && index === currentColorIndex);
                     
                 return (
@@ -194,7 +264,7 @@ export function ProductCard({ product }: ProductCardProps) {
                     onMouseLeave={(e) => {
                       e.currentTarget.style.transform = 'translateY(0)';
                     }}
-                    className={`relative w-6 h-6 rounded-full transition-all duration-200 min-w-[40px] min-h-[40px] flex items-center justify-center ${
+                    className={`relative w-6 h-6 rounded-full transition-all duration-200 flex items-center justify-center ${
                       isSelected 
                         ? 'scale-110 shadow-md' 
                         : 'hover:shadow-sm'

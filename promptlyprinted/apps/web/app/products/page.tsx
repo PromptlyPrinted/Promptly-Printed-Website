@@ -1070,7 +1070,6 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
   const [showColorOptions, setShowColorOptions] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [currentColorIndex, setCurrentColorIndex] = useState(0);
-
   // Get color options from the original tshirt details
   const originalProduct = Object.values(tshirtDetails).find(p => p.sku === product.sku);
   const colorOptions = originalProduct?.colorOptions || [];
@@ -1087,7 +1086,8 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
     }
     
     if (selectedColor && originalProduct) {
-      const colorOption = colorOptions.find(c => c.name === selectedColor);
+      // Find color option by matching formatted names
+      const colorOption = colorOptions.find(c => formatColorForUrl(c.name) === selectedColor);
       if (colorOption) {
         return `${originalProduct.imageUrls.base}/${colorOption.filename}`;
       }
@@ -1104,11 +1104,18 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
     return product.imageUrls.cover;
   };
   
+  // Function to convert color name to URL-safe format
+  const formatColorForUrl = (colorName: string) => {
+    return colorName.replace(/\s+/g, '-').toLowerCase();
+  };
+
   // Handle color selection
   const handleColorSelect = (colorName: string) => {
-    setSelectedColor(selectedColor === colorName ? null : colorName);
+    // Store the formatted color name
+    const formattedColorName = formatColorForUrl(colorName);
+    setSelectedColor(selectedColor === formattedColorName ? null : formattedColorName);
     // Update the current color index to match the selected color
-    const colorIndex = colorOptions.findIndex(c => c.name === colorName);
+    const colorIndex = colorOptions.findIndex(c => formatColorForUrl(c.name) === formattedColorName);
     if (colorIndex !== -1) {
       setCurrentColorIndex(colorIndex);
     }
@@ -1120,9 +1127,9 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
     e.stopPropagation();
     const newIndex = currentColorIndex === 0 ? colorOptions.length - 1 : currentColorIndex - 1;
     setCurrentColorIndex(newIndex);
-    // Set the selected color to the new current color
+    // Set the selected color to the new current color (formatted)
     if (colorOptions[newIndex]) {
-      setSelectedColor(colorOptions[newIndex].name);
+      setSelectedColor(formatColorForUrl(colorOptions[newIndex].name));
     }
   };
 
@@ -1131,9 +1138,9 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
     e.stopPropagation();
     const newIndex = currentColorIndex === colorOptions.length - 1 ? 0 : currentColorIndex + 1;
     setCurrentColorIndex(newIndex);
-    // Set the selected color to the new current color
+    // Set the selected color to the new current color (formatted)
     if (colorOptions[newIndex]) {
-      setSelectedColor(colorOptions[newIndex].name);
+      setSelectedColor(formatColorForUrl(colorOptions[newIndex].name));
     }
   };
 
@@ -1241,6 +1248,7 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
           <div className="px-6 pb-4">
             <div className="flex flex-wrap items-center gap-2">
               {colorOptions.map((colorOption, index) => {
+                const colorKey = formatColorForUrl(colorOption.name);
                 const colorHex = getColorHex(colorOption.name) || '#CCCCCC';
                 const isSelected = selectedColor === colorOption.name || (!selectedColor && index === currentColorIndex);
                 
@@ -1258,7 +1266,7 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
                     onMouseLeave={(e) => {
                       e.currentTarget.style.transform = 'translateY(0)';
                     }}
-                    className={`relative w-6 h-6 rounded-full transition-all duration-200 min-w-[40px] min-h-[40px] flex items-center justify-center ${
+                    className={`relative w-6 h-6 rounded-full transition-all duration-200 flex items-center justify-center ${
                       isSelected 
                         ? 'scale-110 shadow-md' 
                         : 'hover:shadow-sm'
@@ -1377,6 +1385,7 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
         <div className="px-4 pt-2 pb-1">
           <div className="flex flex-wrap items-center justify-center gap-2">
             {colorOptions.map((colorOption, index) => {
+                  const colorKey = formatColorForUrl(colorOption.name);
                   const colorHex = getColorHex(colorOption.name) || '#CCCCCC';
                   const isSelected = selectedColor === colorOption.name || (!selectedColor && index === currentColorIndex);
                   
@@ -1394,7 +1403,7 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = 'translateY(0)';
                   }}
-                  className={`relative w-6 h-6 rounded-full transition-all duration-200 min-w-[40px] min-h-[40px] flex items-center justify-center ${
+                  className={`relative w-6 h-6 rounded-full transition-all duration-200 flex items-center justify-center ${
                     isSelected 
                       ? 'scale-110 shadow-md' 
                       : 'hover:shadow-sm'
@@ -1504,41 +1513,113 @@ function createSlug(text: string): string {
 // Function to get hex color from color name
 function getColorHex(colorName: string): string | null {
   const colorMap: Record<string, string> = {
+    // Whites
     'white': '#FFFFFF',
     'vintage white': '#F5F5DC',
     'off white': '#FAF0E6',
+    'arctic white': '#F0F8FF',
+    
+    // Blacks
     'black': '#000000',
     'jet black': '#0A0A0A',
+    
+    // Greys
     'anthracite': '#36454F',
-    'dark heather grey': '#616161',
-    'heather grey': '#D3D3D3',
-    'india ink grey': '#414A4C',
     'charcoal': '#36454F',
-    'sport grey': '#808080',
-    'french navy': '#002654',
+    'dark heather grey': '#616161',
+    'india ink grey': '#414A4C',
+    'heather grey': '#999999',
+    'dark grey': '#696969',
+    'sport grey': '#9E9E9E',
+    'sports grey': '#9E9E9E',
+    'heather': '#999999',
+    'dark heather': '#6B6B6B',
+    'athletic heather': '#D3D3D3',
+    
+    // Blues
     'navy': '#000080',
+    'french navy': '#002654',
     'oxford navy': '#14213D',
     'bright blue': '#0047AB',
+    'light blue': '#87CEEB',
     'royal blue': '#4169E1',
     'sky blue': '#87CEEB',
+    'royal': '#4169E1',
+    'true royal': '#002FA7',
+    'blue': '#0066CC',
+    
+    // Purples
     'stargazer': '#4B0082',
-    'red': '#FF0000',
+    'purple': '#800080',
+    'heather purple': '#9370DB',
+    
+    // Reds
+    'red': '#DC143C',
     'burgundy': '#800020',
+    
+    // Pinks
     'cotton pink': '#FFB3BA',
-    'light pink': '#FFB6C1',
-    'heather mauve': '#998FC7',
+    'pink': '#FF69B4',
+    
+    // Greens
     'glazed green': '#8FBC8F',
-    'kelly green': '#4CBB17',
+    'irish green': '#009A49',
     'bottle green': '#006A4E',
+    'kelly green': '#4CBB17',
+    'military green triblend': '#4B5320',
+    'apple': '#8DB600',
+    
+    // Yellows
     'khaki': '#F0E68C',
     'desert dust': '#EDC9AF',
     'ochre': '#CC7722',
     'spectra yellow': '#FFFF00',
     'sun yellow': '#FFD700',
-    'military green triblend': '#4B5320',
+    'butter': '#FFDB58',
+    'daisy': '#FFFF31',
+    
+    // Special colors
+    'azalea': '#F56FA1',
+    'cornsilk': '#FFF8DC',
     'vintage royal triblend': '#002FA7',
-    'light blue': '#ADD8E6',
-    'arctic white': '#F0F8FF',
+    
+    // Legacy/additional colors
+    'army green': '#4B5320',
+    'ash': '#B2BEB5',
+    'asphalt': '#36454F',
+    'baby blue': '#89CFF0',
+    'brown': '#8B4513',
+    'burnt orange': '#CC5500',
+    'cardinal': '#C41E3A',
+    'chocolate': '#7B3F00',
+    'cranberry': '#DC143C',
+    'forest': '#228B22',
+    'gold': '#DAA520',
+    'heather blue': '#4682B4',
+    'heather prism lilac': '#C8A2C8',
+    'heather prism mint': '#98FB98',
+    'heather prism peach': '#FFCBA4',
+    'kiwi': '#8EE53F',
+    'light pink': '#FFB6C1',
+    'maroon': '#800000',
+    'natural': '#F5F5DC',
+    'orange': '#FF8C00',
+    'slate': '#708090',
+    'tan': '#D2B48C',
+    'yellow': '#FFD700',
+    'coral': '#FF7F50',
+    'mint': '#98FB98',
+    'sage': '#87AE73',
+    'steel': '#71797E',
+    'cream': '#F5F5DC',
+    'indigo': '#4B0082',
+    'lavender': '#E6E6FA',
+    'peach': '#FFCBA4',
+    'turquoise': '#40E0D0',
+    'violet': '#8A2BE2',
+    'green': '#228B22',
+    'grey': '#808080',
+    'gray': '#808080'
   };
   
   return colorMap[colorName.toLowerCase()] || null;

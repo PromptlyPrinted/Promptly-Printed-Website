@@ -60,6 +60,114 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { LORAS, type Lora } from '../../../../../data/textModel';
 
+// Comprehensive color hex mapping for all T-shirt colors found in product data
+const colorHexMap: Record<string, string> = {
+  // Whites
+  'white': '#FFFFFF',
+  'vintage-white': '#F5F5DC',
+  'off-white': '#FAF0E6',
+  'arctic-white': '#F0F8FF',
+  
+  // Blacks
+  'black': '#000000',
+  'jet-black': '#0A0A0A',
+  
+  // Greys
+  'anthracite': '#36454F',
+  'charcoal': '#36454F',
+  'dark-heather-grey': '#616161',
+  'india-ink-grey': '#414A4C',
+  'heather-grey': '#999999',
+  'dark-grey': '#696969',
+  'sport-grey': '#9E9E9E',
+  'sports-grey': '#9E9E9E',
+  'heather': '#999999',
+  'dark-heather': '#6B6B6B',
+  'athletic-heather': '#D3D3D3',
+  
+  // Blues
+  'navy': '#000080',
+  'french-navy': '#002654',
+  'oxford-navy': '#14213D',
+  'bright-blue': '#0047AB',
+  'light-blue': '#87CEEB',
+  'royal-blue': '#4169E1',
+  'sky-blue': '#87CEEB',
+  'royal': '#4169E1',
+  'true-royal': '#002FA7',
+  'blue': '#0066CC',
+  
+  // Purples
+  'stargazer': '#4B0082',
+  'purple': '#800080',
+  'heather-purple': '#9370DB',
+  
+  // Reds
+  'red': '#DC143C',
+  'burgundy': '#800020',
+  
+  // Pinks
+  'cotton-pink': '#FFB3BA',
+  'pink': '#FF69B4',
+  
+  // Greens
+  'glazed-green': '#8FBC8F',
+  'irish-green': '#009A49',
+  'bottle-green': '#006A4E',
+  'kelly-green': '#4CBB17',
+  'military-green-triblend': '#4B5320',
+  'apple': '#8DB600',
+  
+  // Yellows
+  'khaki': '#F0E68C',
+  'desert-dust': '#EDC9AF',
+  'ochre': '#CC7722',
+  'spectra-yellow': '#FFFF00',
+  'sun-yellow': '#FFD700',
+  'butter': '#FFDB58',
+  'daisy': '#FFFF31',
+  
+  // Special colors
+  'azalea': '#F56FA1',
+  'cornsilk': '#FFF8DC',
+  'vintage-royal-triblend': '#002FA7',
+  
+  // Legacy/additional colors
+  'army-green': '#4B5320',
+  'ash': '#B2BEB5',
+  'asphalt': '#36454F',
+  'baby-blue': '#89CFF0',
+  'brown': '#8B4513',
+  'burnt-orange': '#CC5500',
+  'cardinal': '#C41E3A',
+  'chocolate': '#7B3F00',
+  'cranberry': '#DC143C',
+  'forest': '#228B22',
+  'gold': '#DAA520',
+  'heather-blue': '#4682B4',
+  'heather-prism-lilac': '#C8A2C8',
+  'heather-prism-mint': '#98FB98',
+  'heather-prism-peach': '#FFCBA4',
+  'kiwi': '#8EE53F',
+  'light-pink': '#FFB6C1',
+  'maroon': '#800000',
+  'natural': '#F5F5DC',
+  'orange': '#FF8C00',
+  'slate': '#708090',
+  'tan': '#D2B48C',
+  'yellow': '#FFD700',
+  'coral': '#FF7F50',
+  'mint': '#98FB98',
+  'sage': '#87AE73',
+  'steel': '#71797E',
+  'cream': '#F5F5DC',
+  'indigo': '#4B0082',
+  'lavender': '#E6E6FA',
+  'peach': '#FFCBA4',
+  'turquoise': '#40E0D0',
+  'violet': '#8A2BE2'
+};
+
 interface CheckoutImage {
   url: string;
   dpi?: number;
@@ -351,10 +459,10 @@ export function ProductDetail({ product }: ProductDetailProps) {
     };
   };
 
-  // --- Utility function to get color swatch (always use extracted color) ---
+  // --- Utility function to get color swatch using colorHexMap ---
   const getColorSwatch = (colorName: string): { color: string } => {
     const colorValue = toKebabCase(colorName);
-    return { color: colorMap[colorValue] || '#FFFFFF' };
+    return { color: colorHexMap[colorValue] || '#CCCCCC' };
   };
 
   // ---- Generate Image ----
