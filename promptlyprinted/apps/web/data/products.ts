@@ -497,7 +497,7 @@ export const tshirtDetails = {
   // Women's T-shirts
   'A-WT-GD64000L': {
     sku: 'A-WT-GD64000L',
-    name: "Women's Classic T-Shirt ",
+    name: "Women's Classic T-Shirt",
     shortDescription:
       "Ultra-soft 100% cotton women's t-shirt with flattering semi-fitted silhouette. Perfect blend of comfort and style for everyday wear. Available in multiple fashion-forward colors.",
     features: [
