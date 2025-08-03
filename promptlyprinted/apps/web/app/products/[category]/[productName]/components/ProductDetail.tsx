@@ -292,6 +292,75 @@ function toKebabCase(str?: string) {
     .replace(/^-+|-+$/g, '');
 }
 
+// Background removal using @imgly/background-removal
+const removeImageBackground = async (imageUrl: string): Promise<string> => {
+  console.log('removeImageBackground called with URL:', imageUrl);
+  
+  try {
+    // Dynamic import to avoid SSR issues
+    const { removeBackground } = await import('@imgly/background-removal');
+    
+    console.log('Starting background removal with @imgly/background-removal...');
+    
+    // First, convert the image URL to a proper image element or blob
+    let imageInput: string | Blob | HTMLImageElement;
+    
+    if (imageUrl.startsWith('data:')) {
+      // If it's a data URL, use it directly
+      console.log('Using data URL directly');
+      imageInput = imageUrl;
+    } else {
+      // If it's a regular URL, fetch it as a blob first to avoid CORS issues
+      console.log('Fetching image as blob to avoid CORS issues...');
+      try {
+        const response = await fetch(imageUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+        }
+        
+        const contentType = response.headers.get('content-type');
+        console.log('Image content type:', contentType);
+        
+        if (!contentType || !contentType.startsWith('image/')) {
+          throw new Error(`Invalid content type: ${contentType}. Expected image/*`);
+        }
+        
+        imageInput = await response.blob();
+        console.log('Image fetched as blob successfully');
+      } catch (fetchError) {
+        console.error('Failed to fetch image, trying direct URL:', fetchError);
+        // Fallback to direct URL if fetch fails
+        imageInput = imageUrl;
+      }
+    }
+    
+    // Remove background using the library
+    console.log('Processing with @imgly/background-removal...');
+    const resultBlob = await removeBackground(imageInput);
+    
+    console.log('Background removal completed, converting to data URL...');
+    
+    // Convert blob to data URL
+    const reader = new FileReader();
+    return new Promise((resolve, reject) => {
+      reader.onload = () => {
+        const result = reader.result as string;
+        console.log('Background removal successful');
+        resolve(result);
+      };
+      reader.onerror = () => {
+        console.error('Failed to convert blob to data URL');
+        reject(new Error('Failed to convert result'));
+      };
+      reader.readAsDataURL(resultBlob);
+    });
+    
+  } catch (error) {
+    console.error('Background removal failed:', error);
+    throw new Error(`Background removal failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+};
+
 interface ProductDetailProps {
   product: Product;
 }
@@ -333,6 +402,9 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const { initiateCheckout, isLoading: isCheckingOut } = useCheckout();
   const { getToken } = useAuth();
   const [isBaseModel, setIsBaseModel] = useState(false);
+  const [removeBackground, setRemoveBackground] = useState(false);
+  const [isProcessingBackground, setIsProcessingBackground] = useState(false);
+  const [processedImage, setProcessedImage] = useState<string>('');
 
   // Refs
   const tshirtImageRef = useRef<HTMLImageElement>(null);
@@ -428,6 +500,8 @@ export function ProductDetail({ product }: ProductDetailProps) {
     if (generatedImage) {
       const img = document.createElement('img');
       img.src = generatedImage;
+      // Reset processed image when new image is generated
+      setProcessedImage('');
     }
   }, [generatedImage]);
 
@@ -464,6 +538,65 @@ export function ProductDetail({ product }: ProductDetailProps) {
     const colorValue = toKebabCase(colorName);
     return { color: colorHexMap[colorValue] || '#CCCCCC' };
   };
+
+  // Handle background removal toggle
+  const handleBackgroundRemoval = async () => {
+    console.log('handleBackgroundRemoval called:', {
+      generatedImage: !!generatedImage,
+      removeBackground,
+      processedImage: !!processedImage
+    });
+
+    if (!generatedImage) {
+      console.log('No generated image found');
+      toast({
+        title: 'Error',
+        description: 'Please generate a design first',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (removeBackground && !processedImage) {
+      console.log('Starting background processing...');
+      setIsProcessingBackground(true);
+      try {
+        console.log('Calling removeImageBackground with:', generatedImage);
+        const processedImageUrl = await removeImageBackground(generatedImage);
+        console.log('Background removal successful, result:', processedImageUrl);
+        setProcessedImage(processedImageUrl);
+        toast({
+          title: 'Success',
+          description: 'Background removed successfully!',
+          variant: 'default',
+        });
+      } catch (error) {
+        console.error('Error removing background:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to remove background. Please try again.',
+          variant: 'destructive',
+        });
+        setRemoveBackground(false);
+      } finally {
+        setIsProcessingBackground(false);
+      }
+    }
+  };
+
+  // Effect to handle background removal when checkbox is toggled
+  useEffect(() => {
+    console.log('Background removal useEffect triggered:', {
+      removeBackground,
+      hasGeneratedImage: !!generatedImage,
+      hasProcessedImage: !!processedImage
+    });
+    
+    if (removeBackground && generatedImage && !processedImage) {
+      console.log('Starting background removal...');
+      handleBackgroundRemoval();
+    }
+  }, [removeBackground, generatedImage, processedImage]);
 
   // ---- Generate Image ----
   const handleImageGeneration = async () => {
@@ -643,7 +776,9 @@ export function ProductDetail({ product }: ProductDetailProps) {
 
   // ---- Download Image ----
   const handleDownloadImage = async () => {
-    if (!generatedImage) {
+    const imageToDownload = removeBackground && processedImage ? processedImage : generatedImage;
+    
+    if (!imageToDownload) {
       toast({
         title: 'Error',
         description: 'Please generate a design first',
@@ -673,10 +808,10 @@ export function ProductDetail({ product }: ProductDetailProps) {
         designImage.onerror = () =>
           reject(new Error('Failed to load design image'));
 
-        if (generatedImage.startsWith('data:')) {
-          designImage.src = generatedImage;
+        if (imageToDownload.startsWith('data:')) {
+          designImage.src = imageToDownload;
         } else {
-          fetch(generatedImage)
+          fetch(imageToDownload)
             .then((res) => res.blob())
             .then((blob) => {
               designImage.src = URL.createObjectURL(blob);
@@ -691,8 +826,11 @@ export function ProductDetail({ product }: ProductDetailProps) {
 
       const dataUrl = canvas.toDataURL('image/png');
       const link = document.createElement('a');
+      const filename = removeBackground ? 
+        `${product.name.replace(/\s+/g, '-').toLowerCase()}-design-no-bg.png` :
+        `${product.name.replace(/\s+/g, '-').toLowerCase()}-design-only.png`;
       link.href = dataUrl;
-      link.download = `${product.name.replace(/\s+/g, '-').toLowerCase()}-design-only.png`;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -719,8 +857,11 @@ export function ProductDetail({ product }: ProductDetailProps) {
           variant: 'default',
         });
         const link = document.createElement('a');
-        link.href = generatedImage;
-        link.download = `${product.name.replace(/\s+/g, '-').toLowerCase()}-design-only.png`;
+        link.href = imageToDownload;
+        const filename = removeBackground ? 
+          `${product.name.replace(/\s+/g, '-').toLowerCase()}-design-no-bg.png` :
+          `${product.name.replace(/\s+/g, '-').toLowerCase()}-design-only.png`;
+        link.download = filename;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -734,7 +875,9 @@ export function ProductDetail({ product }: ProductDetailProps) {
 
   // ---- Save Image ----
   const handleSaveImage = async () => {
-    if (!generatedImage) {
+    const imageToSave = removeBackground && processedImage ? processedImage : generatedImage;
+    
+    if (!imageToSave) {
       toast({
         title: 'Error',
         description: 'Please generate a design first',
@@ -749,7 +892,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          url: generatedImage,
+          url: imageToSave,
           isPublic: true,
         }),
       });
@@ -992,7 +1135,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
                   style={{ width: '35%', height: '40%', overflow: 'hidden' }}
                 >
                   <Image
-                    src={generatedImage}
+                    src={removeBackground && processedImage ? processedImage : generatedImage}
                     alt="Generated design"
                     fill
                     className="object-contain"
@@ -1316,8 +1459,31 @@ export function ProductDetail({ product }: ProductDetailProps) {
                 )}
               </div>
             )}
+            
             {generatedImage && (
-              <div className="space-y-2">
+              <div className="space-y-3">
+                {/* Background Removal Option */}
+                <div className="flex items-center space-x-2 rounded-lg border border-teal-200 p-3">
+                  <Checkbox
+                    id="remove-background"
+                    checked={removeBackground}
+                    onCheckedChange={(checked) => {
+                      setRemoveBackground(checked as boolean);
+                      if (!checked) {
+                        setProcessedImage('');
+                      }
+                    }}
+                    disabled={isProcessingBackground}
+                    className="border-teal-500 data-[state=checked]:bg-teal-500"
+                  />
+                  <Label 
+                    htmlFor="remove-background" 
+                    className="text-sm text-teal-700 cursor-pointer"
+                  >
+                    {isProcessingBackground ? 'Removing background...' : 'Remove background'}
+                  </Label>
+                </div>
+
                 <Button
                   className="w-full bg-teal-600 text-white hover:bg-teal-700"
                   variant="outline"
