@@ -1132,7 +1132,36 @@ export function ProductDetail({ product }: ProductDetailProps) {
               <div className="absolute inset-0 flex items-center justify-center">
                 <div
                   className="relative"
-                  style={{ width: '35%', height: '40%', overflow: 'hidden' }}
+                  style={(() => {
+                    const productCode = product.specifications?.style || product.sku || product.id.toString();
+                    const productType = product.productType;
+                    const productName = product.name;
+                    
+                    // Check by product type and name for more reliable matching
+                    if (productType === 'BABY_BODYSUIT' || productName.includes("Baby's Bodysuit")) {
+                      return { width: '35%', height: '28%', overflow: 'hidden' };
+                    }
+                    
+                    if (productType === 'BABY_T_SHIRT' || productName.includes("Baby's T-Shirt")) {
+                      return { width: '35%', height: '30%', overflow: 'hidden', marginTop: '5%' };
+                    }
+                    
+                    if (productName.includes("Triblend") || productCode === 'GLOBAL-TEE-BC-3413') {
+                      console.log('Applying Men\'s Triblend sizing');
+                      return { width: '35%', height: '30%', overflow: 'hidden' };
+                    }
+                    
+                    if (productType === 'TANK_TOP' || productName.includes("Tank Top")) {
+                      return { width: '35%', height: '33%', overflow: 'hidden', marginTop: '5%' };
+                    }
+                    
+                    if (productType === 'KIDS_T_SHIRT' || productName.includes("Kids' T-Shirt")) {
+                      return { width: '35%', height: '40%', overflow: 'hidden', marginTop: '5%' };
+                    }
+                    
+                    // Default sizing for all other products
+                    return { width: '35%', height: '40%', overflow: 'hidden'};
+                  })()}
                 >
                   <Image
                     src={removeBackground && processedImage ? processedImage : generatedImage}
