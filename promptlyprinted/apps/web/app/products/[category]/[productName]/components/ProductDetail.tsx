@@ -1176,6 +1176,30 @@ export function ProductDetail({ product }: ProductDetailProps) {
             )}
           </div>
 
+          {/* Background Removal Option */}
+          {generatedImage && (
+            <div className="flex items-center justify-center space-x-2">
+              <Checkbox
+                id="remove-background"
+                checked={removeBackground}
+                onCheckedChange={(checked) => {
+                  setRemoveBackground(checked as boolean);
+                  if (!checked) {
+                    setProcessedImage('');
+                  }
+                }}
+                disabled={isProcessingBackground}
+                className="border-teal-500 data-[state=checked]:bg-teal-500"
+              />
+              <Label 
+                htmlFor="remove-background" 
+                className="text-sm text-teal-700 cursor-pointer"
+              >
+                {isProcessingBackground ? 'Removing background...' : 'Remove background'}
+              </Label>
+            </div>
+          )}
+
           {/* AI Prompt */}
           <div className="space-y-3 rounded-lg border border-teal-200 p-4">
             <h2 className="font-semibold text-teal-700 text-lg">
@@ -1491,28 +1515,6 @@ export function ProductDetail({ product }: ProductDetailProps) {
             
             {generatedImage && (
               <div className="space-y-3">
-                {/* Background Removal Option */}
-                <div className="flex items-center space-x-2 rounded-lg border border-teal-200 p-3">
-                  <Checkbox
-                    id="remove-background"
-                    checked={removeBackground}
-                    onCheckedChange={(checked) => {
-                      setRemoveBackground(checked as boolean);
-                      if (!checked) {
-                        setProcessedImage('');
-                      }
-                    }}
-                    disabled={isProcessingBackground}
-                    className="border-teal-500 data-[state=checked]:bg-teal-500"
-                  />
-                  <Label 
-                    htmlFor="remove-background" 
-                    className="text-sm text-teal-700 cursor-pointer"
-                  >
-                    {isProcessingBackground ? 'Removing background...' : 'Remove background'}
-                  </Label>
-                </div>
-
                 <Button
                   className="w-full bg-teal-600 text-white hover:bg-teal-700"
                   variant="outline"
