@@ -1,5 +1,7 @@
 'use client';
 
+import '../product-detail-background.css';
+
 /**
  * Updated Product Detail Component with default `copies = 1`.
  *
@@ -598,6 +600,32 @@ export function ProductDetail({ product }: ProductDetailProps) {
     }
   }, [removeBackground, generatedImage, processedImage]);
 
+  // Helper function to upload image to permanent storage
+  const uploadImageToPermanentStorage = async (imageUrl: string): Promise<string> => {
+    try {
+      const response = await fetch('/api/upload-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageUrl,
+          name: `Generated Image - ${product.name}`,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to upload image: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log('Image uploaded to permanent storage:', result);
+      return result.url; // Return the permanent URL
+    } catch (error) {
+      console.error('Failed to upload image:', error);
+      // Return original URL as fallback
+      return imageUrl;
+    }
+  };
+
   // ---- Generate Image ----
   const handleImageGeneration = async () => {
     if (!promptText.trim()) {
@@ -654,19 +682,19 @@ export function ProductDetail({ product }: ProductDetailProps) {
           body: JSON.stringify(payload),
         });
 
-        const data = await response.json();
-        console.log('Base model response:', JSON.stringify(data, null, 2));
-
         if (!response.ok) {
-          console.error('Base model error response:', {
-            status: response.status,
-            statusText: response.statusText,
-            data: data,
-          });
-          const errorMessage =
-            data.details || data.error || 'Failed to generate image';
+          let errorMessage = 'Failed to generate image';
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.details || errorData.error || errorMessage;
+          } catch {
+            errorMessage = `${response.status}: ${response.statusText}`;
+          }
           throw new Error(errorMessage);
         }
+
+        const data = await response.json();
+        console.log('Base model response:', JSON.stringify(data, null, 2));
 
         if (data.data?.[0]?.url) {
           // Changed to match API response format
@@ -694,7 +722,9 @@ export function ProductDetail({ product }: ProductDetailProps) {
           const permanentUrl = `/api/save-temp-image?id=${saveData.id}`;
           console.log('Using permanent URL:', permanentUrl);
 
-          setGeneratedImage(permanentUrl);
+          // Upload to permanent storage
+          const uploadedUrl = await uploadImageToPermanentStorage(data.data[0].url);
+          setGeneratedImage(uploadedUrl);
           toast({
             title: 'Success',
             description: 'Image generated and saved successfully!',
@@ -743,15 +773,23 @@ export function ProductDetail({ product }: ProductDetailProps) {
           }),
         });
 
-        const data = await response.json();
         if (!response.ok) {
-          const errorMessage =
-            data.details || data.error || 'Failed to generate image';
+          let errorMessage = 'Failed to generate image';
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.details || errorData.error || errorMessage;
+          } catch {
+            // If JSON parsing fails, use response status text
+            errorMessage = `${response.status}: ${response.statusText}`;
+          }
           throw new Error(errorMessage);
         }
+
+        const data = await response.json();
         if (data.data?.[0]?.url) {
-          const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(data.data[0].url)}`;
-          setGeneratedImage(proxyUrl);
+          // Upload to permanent storage instead of using proxy
+          const uploadedUrl = await uploadImageToPermanentStorage(data.data[0].url);
+          setGeneratedImage(uploadedUrl);
           toast({
             title: 'Success',
             description: 'Image generated successfully!',
@@ -887,35 +925,34 @@ export function ProductDetail({ product }: ProductDetailProps) {
     }
     setIsSaving(true);
     try {
-      // First, save the image to temporary storage to get a permanent URL
-      const tempRes = await fetch('/api/save-temp-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          url: imageToSave,
-          isPublic: true,
-        }),
-      });
-
-      if (!tempRes.ok) {
-        throw new Error('Failed to save image temporarily');
+      // Check if image is already a permanent URL (starts with /uploads/)
+      let permanentUrl = imageToSave;
+      
+      if (!imageToSave.startsWith('/uploads/')) {
+        // Upload to permanent storage if not already permanent
+        console.log('Uploading image to permanent storage for saving...');
+        permanentUrl = await uploadImageToPermanentStorage(imageToSave);
+      } else {
+        console.log('Image already in permanent storage:', imageToSave);
       }
 
-      const { id: tempId } = await tempRes.json();
-      const permanentUrl = `/api/save-temp-image?id=${tempId}`;
-
-      // Then, save the design to the database with the permanent URL
+      // Save the design to the database with the permanent URL and context
       const res = await fetch('/api/designs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: `${product.name} Design`,
+          name: `${product.name} - ${selectedColor || 'No Color'} - ${selectedSize}`,
           imageUrl: permanentUrl,
           productId: Number(product.id),
         }),
       });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to save design');
+      }
+      
       const saved = await res.json();
-      if (!res.ok) throw new Error(saved.error || 'Failed to save design');
 
       setSavedImageId(saved.id);
       setGeneratedImage(permanentUrl); // Update the generated image with the permanent URL
@@ -1056,12 +1093,13 @@ export function ProductDetail({ product }: ProductDetailProps) {
   };
 
   return (
-    <div className="mx-auto max-w-[1440px] px-3 py-8 lg:px-6 lg:py-12">
-      <div className="grid grid-cols-1 gap-x-6 gap-y-6 lg:grid-cols-2">
+    <div className="product-detail-background min-h-screen">
+      <div className="mx-auto max-w-[1440px] px-3 py-8 lg:px-6 lg:py-12 product-detail-container">
+        <div className="grid grid-cols-1 gap-x-6 gap-y-6 lg:grid-cols-2">
         {/* LEFT PANEL: T-shirt Preview + AI Prompt */}
         <div className="space-y-4">
           {/* T-shirt & Generated Design */}
-          <div className="relative mx-auto aspect-square w-full max-w-sm overflow-hidden rounded-lg border-2 border-teal-500 bg-teal-600">
+          <div className="product-mockup-area relative mx-auto aspect-square w-full max-w-sm overflow-hidden rounded-lg border-2 border-teal-500 bg-teal-600">
             {(() => {
               console.log('Product data:', {
                 imageUrlMap: product.imageUrlMap,
@@ -1129,7 +1167,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
             })()}
 
             {generatedImage && (
-              <div className="absolute inset-0 flex items-center justify-center">
+              <div className="generated-image-container absolute inset-0 flex items-center justify-center">
                 <div
                   className="relative"
                   style={(() => {
@@ -1139,28 +1177,63 @@ export function ProductDetail({ product }: ProductDetailProps) {
                     
                     // Check by product type and name for more reliable matching
                     if (productType === 'BABY_BODYSUIT' || productName.includes("Baby's Bodysuit")) {
-                      return { width: '35%', height: '28%', overflow: 'hidden' };
+                      return { width: '25%', height: '20%', overflow: 'hidden', marginTop: '33%' };
                     }
                     
                     if (productType === 'BABY_T_SHIRT' || productName.includes("Baby's T-Shirt")) {
-                      return { width: '35%', height: '30%', overflow: 'hidden', marginTop: '5%' };
+                      return { width: '30%', height: '25%', overflow: 'hidden', marginTop: '35%' };
                     }
                     
                     if (productName.includes("Triblend") || productCode === 'GLOBAL-TEE-BC-3413') {
-                      console.log('Applying Men\'s Triblend sizing');
-                      return { width: '35%', height: '30%', overflow: 'hidden' };
+                      return { width: '25%', height: '30%', overflow: 'hidden', marginTop: '35%' };
                     }
                     
                     if (productType === 'TANK_TOP' || productName.includes("Tank Top")) {
-                      return { width: '35%', height: '33%', overflow: 'hidden', marginTop: '5%' };
+                      return { width: '30%', height: '33%', overflow: 'hidden', marginTop: '35%' };
                     }
                     
                     if (productType === 'KIDS_T_SHIRT' || productName.includes("Kids' T-Shirt")) {
-                      return { width: '35%', height: '40%', overflow: 'hidden', marginTop: '5%' };
+                      return { width: '33%', height: '15%', overflow: 'hidden', marginTop: '33%' };
+                    }
+                    
+                    // Men's T-shirts with default values
+                    if (productName.includes("Men's Classic T-Shirt") || productCode === 'TEE-SS-STTU755') {
+                      return { width: '40%', height: '100%', overflow: 'hidden', marginTop: '30%' };
+                    }
+                    
+                    if (productName.includes("Men's V-Neck T-Shirt") || productCode === 'GLOBAL-TEE-GIL-64V00') {
+                      return { width: '30%', height: '45%', overflow: 'hidden', marginTop: '35%' };
+                    }
+                    
+                    if (productType === 'LONG_SLEEVE_T_SHIRT' || productName.includes("Men's Long Sleeve T-Shirt") || productCode === 'A-ML-GD2400') {
+                      return { width: '38%', height: '100%', overflow: 'hidden', marginTop: '25%' };
+                    }
+                    
+                    // Women's T-shirts with color-specific sizing
+                    if (productName.includes("Women's Classic T-Shirt") || productCode === 'A-WT-GD64000L') {
+                      if (selectedColor === 'cornsilk') {
+                        return { width: '25%', height: '35%', overflow: 'hidden', marginTop: '30%' };
+                      }
+                      if (selectedColor === 'daisy') {
+                        return { width: '30%', height: '100%', overflow: 'hidden', marginTop: '25%', marginRight: '3%' };
+                      }
+                      return { width: '30%', height: '45%', overflow: 'hidden', marginTop: '35%' };
+                    }
+                    
+                    if (productName.includes("Women's V-Neck T-Shirt") || productCode === 'GLOBAL-TEE-BC-6035') {
+                      console.log('Applying Womens V-Neck T-Shirt sizing');
+                      return { width: '30%', height: '45%', overflow: 'hidden', marginTop: '35%' };
+                    }
+                    
+                    // Kids' Sweatshirt with default values
+                    if (productType === 'KIDS_SWEATSHIRT' || productName.includes("Kids' Sweatshirt") || productCode === 'SWEAT-AWD-JH030B') {
+                      console.log('Applying Kids Sweatshirt sizing');
+                      return { width: '37%', height: '100%', overflow: 'hidden', marginTop: '25%' };
                     }
                     
                     // Default sizing for all other products
-                    return { width: '35%', height: '40%', overflow: 'hidden'};
+                    console.log('Applying Default sizing for product:', productName, 'Type:', productType, 'Code:', productCode);
+                    return { width: '30%', height: '45%', overflow: 'hidden', marginTop: '35%'};
                   })()}
                 >
                   <Image
@@ -1201,7 +1274,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
           )}
 
           {/* AI Prompt */}
-          <div className="space-y-3 rounded-lg border border-teal-200 p-4">
+          <div className="ai-controls-panel space-y-3 rounded-lg border border-teal-200 p-4">
             <h2 className="font-semibold text-teal-700 text-lg">
               Customize with AI
             </h2>
@@ -1234,11 +1307,14 @@ export function ProductDetail({ product }: ProductDetailProps) {
               <Button onClick={handleUploadClick} size="sm">Upload Image</Button>
               <DesignPicker
                 productId={Number(product.id)}
-                onDesignSelect={(design) => {
-                  setImageUrl(design.url);
-                  if (design.url) {
-                    generatePreview(design.url);
-                  }
+                onDesignSelect={(image) => {
+                  // Set the selected image as the generated image
+                  setGeneratedImage(image.url);
+                  setImageUrl(image.url);
+                  // Clear any background removal processing since this is an existing image
+                  setRemoveBackground(false);
+                  setProcessedImage(null);
+                  console.log('Selected existing image:', image.url);
                 }}
               />
             </div>
@@ -1246,7 +1322,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
         </div>
 
         {/* RIGHT PANEL: Product Info, AI Settings, Checkout */}
-        <div className="space-y-4 lg:sticky lg:top-4">
+        <div className="product-config-sidebar space-y-4 lg:sticky lg:top-4">
           {/* Product Info */}
           <div className="space-y-1">
             <h1 className="font-bold text-2xl text-teal-900 tracking-tight">
@@ -1370,7 +1446,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
           )}
 
           {/* AI Settings */}
-          <div className="space-y-3 rounded-lg border border-teal-200 p-4">
+          <div className="ai-controls-panel space-y-3 rounded-lg border border-teal-200 p-4">
             <h2 className="font-semibold text-teal-700 text-lg">AI Settings</h2>
 
             {/* Generation Mode Buttons */}
@@ -1745,6 +1821,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
           </Tabs>
         </div>
       </div>
+    </div>
     </div>
   );
 }

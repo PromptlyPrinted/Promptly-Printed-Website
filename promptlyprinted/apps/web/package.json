@@ -31,6 +31,7 @@
     "@repo/seo": "workspace:*",
     "@repo/tailwind-config": "workspace:*",
     "@sentry/nextjs": "^8.43.0",
+    "@types/uuid": "^10.0.0",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.0.6",
     "fs": "0.0.1-security",
@@ -57,6 +58,7 @@
     "sqip-plugin-svgo": "1.0.0-alpha.54",
     "stripe": "^17.4.0",
     "together-ai": "^0.13.0",
+    "uuid": "^11.1.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {

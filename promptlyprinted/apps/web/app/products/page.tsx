@@ -1,5 +1,6 @@
 'use client';
 
+import './products-background.css';
 import { tshirtDetails } from '@/data/products';
 import type { Product } from '@/types/product';
 import { 
@@ -537,7 +538,7 @@ export default function ProductsPage() {
   }, [searchParams, selectedCategories, searchTerm, sortBy]);
 
   return (
-    <div className="min-h-screen bg-gray-50" style={{ backgroundColor: COLORS.gray50 }}>
+    <div className="min-h-screen product-grid-background">
       {/* Mobile Filters Overlay */}
       {mobileFiltersOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
@@ -557,7 +558,7 @@ export default function ProductsPage() {
       )}
 
       {/* Main Container */}
-      <div className="mx-auto max-w-7xl px-4 py-6">
+      <div className="mx-auto max-w-7xl px-4 py-6 product-grid-container">
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">

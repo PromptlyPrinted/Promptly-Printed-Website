@@ -15,7 +15,11 @@ export default async function MyImagesPage() {
     return <div className="container mx-auto p-4">User not found</div>;
   }
   const images = await database.savedImage.findMany({
-    where: { userId: dbUser.id },
+    where: { 
+      userId: dbUser.id,
+      productId: null // Only show images that were not saved as designs (no product context)
+    },
+    orderBy: { createdAt: 'desc' },
   });
 
   return (

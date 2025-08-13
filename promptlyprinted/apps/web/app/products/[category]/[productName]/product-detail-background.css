@@ -1,0 +1,193 @@
+/* Seamless AI apparel customization background - Standard CSS */
+.product-detail-background {
+  background: 
+    linear-gradient(135deg, rgba(22, 193, 168, 0.08) 0%, transparent 40%),
+    linear-gradient(225deg, rgba(255, 138, 38, 0.08) 0%, transparent 40%),
+    linear-gradient(45deg, rgba(255, 138, 38, 0.06) 0%, transparent 38%),
+    linear-gradient(315deg, rgba(22, 193, 168, 0.06) 0%, transparent 38%),
+    linear-gradient(270deg, rgba(22, 193, 168, 0.04) 0%, transparent 25%),
+    linear-gradient(270deg, rgba(255, 138, 38, 0.03) 0%, transparent 30%),
+    radial-gradient(ellipse at 50% 50%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.7) 35%, transparent 65%),
+    linear-gradient(135deg, 
+      rgba(252, 254, 255, 1) 0%, 
+      rgba(255, 255, 255, 1) 20%, 
+      rgba(248, 252, 255, 1) 40%, 
+      rgba(255, 255, 255, 1) 60%, 
+      rgba(250, 255, 252, 1) 80%,
+      rgba(248, 254, 250, 1) 100%
+    );
+  
+  min-height: 100vh;
+  width: 100vw;
+  position: relative;
+  background-attachment: fixed;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+
+/* Enhanced apparel display background */
+.product-detail-container .product-mockup-area {
+  background: 
+    radial-gradient(ellipse at 50% 40%, rgba(248, 250, 252, 0.95) 0%, rgba(243, 247, 251, 0.9) 100%),
+    linear-gradient(135deg, rgba(22, 193, 168, 0.02) 0%, rgba(255, 138, 38, 0.02) 100%),
+    #fafbfc;
+  backdrop-filter: blur(12px);
+  border-radius: 20px;
+  border: 2px solid rgba(243, 247, 251, 0.8);
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.08),
+    0 4px 16px rgba(22, 193, 168, 0.03),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.02);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.product-detail-container .product-mockup-area::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 25% 25%, rgba(22, 193, 168, 0.015) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(255, 138, 38, 0.015) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.01) 1px, transparent 1px);
+  background-size: 200px 200px, 180px 180px, 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.product-detail-container .product-mockup-area > * {
+  position: relative;
+  z-index: 1;
+}
+
+.product-detail-container .product-mockup-area:hover {
+  background: 
+    radial-gradient(ellipse at 50% 40%, rgba(250, 252, 254, 0.97) 0%, rgba(245, 249, 253, 0.92) 100%),
+    linear-gradient(135deg, rgba(22, 193, 168, 0.03) 0%, rgba(255, 138, 38, 0.03) 100%),
+    #fbfcfd;
+  border-color: rgba(22, 193, 168, 0.15);
+  box-shadow: 
+    0 16px 50px rgba(0, 0, 0, 0.12),
+    0 6px 24px rgba(22, 193, 168, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.03);
+  transform: translateY(-2px);
+}
+
+/* AI control panels */
+.product-detail-container .ai-controls-panel {
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(16px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 
+    0 4px 24px rgba(0, 0, 0, 0.08),
+    0 2px 8px rgba(22, 193, 168, 0.03),
+    0 1px 4px rgba(255, 138, 38, 0.02);
+  transition: all 0.3s ease;
+}
+
+.product-detail-container .ai-controls-panel:focus-within {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(22, 193, 168, 0.3);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    0 4px 16px rgba(22, 193, 168, 0.12),
+    0 0 0 2px rgba(22, 193, 168, 0.08);
+}
+
+/* Generated image container - transparent overlay that preserves T-shirt visibility */
+.generated-image-container {
+  background: transparent;
+  backdrop-filter: none;
+  border: none;
+  box-shadow: none;
+}
+
+.generated-image-container > div {
+  background: transparent;
+  position: relative;
+}
+
+.generated-image-container > div::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 85%;
+  height: 85%;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  z-index: 1;
+  backdrop-filter: blur(2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.generated-image-container img {
+  position: relative !important;
+  z-index: 2;
+  border-radius: 6px;
+  filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.3)) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.2));
+  opacity: 1 !important;
+  display: block !important;
+  visibility: visible !important;
+}
+
+.generated-image-container img[data-nimg] {
+  position: relative !important;
+  object-fit: contain !important;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* Product configuration sidebar */
+.product-detail-container .product-config-sidebar {
+  background: rgba(255, 255, 255, 0.93);
+  backdrop-filter: blur(16px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 
+    0 10px 50px rgba(0, 0, 0, 0.12),
+    0 6px 20px rgba(22, 193, 168, 0.06),
+    0 3px 12px rgba(255, 138, 38, 0.05),
+    inset 0 1px 2px rgba(255, 255, 255, 0.6);
+  padding: 1.5rem;
+  position: relative;
+}
+
+/* Focus states for better UX with brand colors */
+.product-detail-container input:focus,
+.product-detail-container textarea:focus,
+.product-detail-container select:focus {
+  outline: none;
+  box-shadow: 
+    0 0 0 2px rgba(22, 193, 168, 0.15), 
+    0 0 0 4px rgba(22, 193, 168, 0.08),
+    0 4px 12px rgba(22, 193, 168, 0.1);
+  border-color: rgba(22, 193, 168, 0.4);
+}
+
+/* Enhanced button styling with stronger brand presence */
+.product-detail-container .btn-primary {
+  background: linear-gradient(135deg, #16C1A8 0%, #FF8A26 100%);
+  border: none;
+  box-shadow: 
+    0 6px 20px rgba(22, 193, 168, 0.25),
+    0 2px 8px rgba(255, 138, 38, 0.15);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.product-detail-container .btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 8px 28px rgba(22, 193, 168, 0.35),
+    0 4px 12px rgba(255, 138, 38, 0.25);
+}

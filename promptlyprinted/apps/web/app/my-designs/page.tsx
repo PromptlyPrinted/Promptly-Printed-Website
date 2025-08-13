@@ -15,9 +15,20 @@ export default async function MyDesignsPage() {
   if (!dbUser) {
     return <div className="container mx-auto p-4">User not found</div>;
   }
-  const designs = await database.design.findMany({
-    where: { userId: dbUser.id },
-    include: { savedImage: true },
+  const designs = await database.savedImage.findMany({
+    where: { 
+      userId: dbUser.id,
+      productId: { not: null } // Only show images that were saved as designs (with product context)
+    },
+    include: { 
+      product: {
+        select: {
+          name: true,
+          sku: true,
+          color: true,
+        }
+      }
+    },
     orderBy: { createdAt: 'desc' },
   });
 
@@ -28,25 +39,27 @@ export default async function MyDesignsPage() {
         <p>You have no saved designs.</p>
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-          {designs.map((design) => {
-            const { savedImage } = design;
-            return (
-              <Link
-                key={design.id}
-                href={`/product/${design.productId}`}
-                className="block overflow-hidden rounded border p-2 hover:shadow-lg"
-              >
-                <Image
-                  src={savedImage.url}
-                  alt={savedImage.name}
-                  width={200}
-                  height={200}
-                  className="h-48 w-full object-cover"
-                />
-                <p className="mt-2 text-center">{design.name}</p>
-              </Link>
-            );
-          })}
+          {designs.map((design) => (
+            <Link
+              key={design.id}
+              href={`/products/${design.product?.sku || design.productId}`}
+              className="block overflow-hidden rounded border p-2 hover:shadow-lg"
+            >
+              <Image
+                src={design.url}
+                alt={design.name}
+                width={200}
+                height={200}
+                className="h-48 w-full object-cover"
+              />
+              <p className="mt-2 text-center text-sm">{design.name}</p>
+              {design.product && (
+                <p className="text-xs text-gray-600 text-center">
+                  {design.product.name}
+                </p>
+              )}
+            </Link>
+          ))}
         </div>
       )}
     </div>

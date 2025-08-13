@@ -1,0 +1,109 @@
+/* Seamless ecommerce background for product grid pages */
+.product-grid-background {
+  background: 
+    radial-gradient(circle at 15% 85%, rgba(22, 193, 168, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 85% 15%, rgba(255, 138, 38, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 5% 20%, rgba(22, 193, 168, 0.02) 0%, transparent 40%),
+    radial-gradient(circle at 95% 80%, rgba(255, 138, 38, 0.02) 0%, transparent 40%),
+    linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(250, 252, 252, 1) 100%);
+  
+  min-height: 100vh;
+  position: relative;
+  
+  /* Ensures smooth rendering */
+  background-attachment: fixed;
+  background-size: 100% 100%;
+}
+
+/* For grid containers specifically */
+.product-grid-container {
+  background: inherit;
+  
+  /* Enhanced product cards with white clothing contrast */
+  .product-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 16px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    
+    /* Image container within product cards */
+    .aspect-square {
+      background: 
+        /* Light neutral background for white clothing contrast */
+        radial-gradient(ellipse at 50% 40%, rgba(248, 250, 252, 0.6) 0%, rgba(245, 248, 251, 0.4) 100%),
+        linear-gradient(135deg, rgba(22, 193, 168, 0.01) 0%, rgba(255, 138, 38, 0.01) 100%),
+        #fafbfc;
+      position: relative;
+      
+      /* Subtle texture for white clothing definition */
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: 
+          radial-gradient(circle at 30% 70%, rgba(22, 193, 168, 0.008) 0%, transparent 40%),
+          radial-gradient(circle at 70% 30%, rgba(255, 138, 38, 0.008) 0%, transparent 40%),
+          radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.005) 1px, transparent 1px);
+        background-size: 120px 120px, 100px 100px, 30px 30px;
+        pointer-events: none;
+        z-index: 1;
+        border-radius: inherit;
+      }
+      
+      /* Ensure images appear above texture */
+      img {
+        position: relative;
+        z-index: 2;
+      }
+    }
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.95);
+      transform: translateY(-4px);
+      box-shadow: 
+        0 12px 40px rgba(0, 0, 0, 0.15),
+        0 4px 16px rgba(22, 193, 168, 0.08);
+      border-color: rgba(22, 193, 168, 0.2);
+      
+      .aspect-square {
+        background: 
+          radial-gradient(ellipse at 50% 40%, rgba(250, 252, 254, 0.8) 0%, rgba(247, 250, 253, 0.6) 100%),
+          linear-gradient(135deg, rgba(22, 193, 168, 0.015) 0%, rgba(255, 138, 38, 0.015) 100%),
+          #fbfcfd;
+          
+        &::before {
+          background: 
+            radial-gradient(circle at 30% 70%, rgba(22, 193, 168, 0.012) 0%, transparent 40%),
+            radial-gradient(circle at 70% 30%, rgba(255, 138, 38, 0.012) 0%, transparent 40%),
+            radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.008) 1px, transparent 1px);
+          background-size: 100px 100px, 80px 80px, 25px 25px;
+        }
+      }
+    }
+  }
+
+  /* Alternative white clothing enhanced mode */
+  .product-card.white-contrast {
+    .aspect-square {
+      background: 
+        radial-gradient(ellipse at 50% 40%, rgba(240, 245, 250, 0.8) 0%, rgba(235, 242, 248, 0.6) 100%),
+        linear-gradient(135deg, rgba(22, 193, 168, 0.02) 0%, rgba(255, 138, 38, 0.02) 100%),
+        #f5f8fb;
+        
+      &::before {
+        background: 
+          linear-gradient(45deg, rgba(0, 0, 0, 0.008) 25%, transparent 25%),
+          linear-gradient(-45deg, rgba(0, 0, 0, 0.008) 25%, transparent 25%),
+          radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.01) 1px, transparent 1px);
+        background-size: 20px 20px, 20px 20px, 15px 15px;
+        background-position: 0 0, 0 10px, 0 0;
+      }
+    }
+  }
+}
