@@ -294,6 +294,110 @@ function toKebabCase(str?: string) {
     .replace(/^-+|-+$/g, '');
 }
 
+// Function to crop transparent areas and return a tightly fitted image
+const cropTransparentAreas = async (imageDataUrl: string): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Failed to get canvas context'));
+          return;
+        }
+
+        // Draw image to canvas to get pixel data
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        if (!tempCtx) {
+          reject(new Error('Failed to get temp canvas context'));
+          return;
+        }
+
+        tempCanvas.width = img.width;
+        tempCanvas.height = img.height;
+        tempCtx.drawImage(img, 0, 0);
+
+        const imageData = tempCtx.getImageData(0, 0, img.width, img.height);
+        const data = imageData.data;
+
+        // Find the bounding box of significantly non-transparent pixels
+        let minX = img.width, minY = img.height, maxX = 0, maxY = 0;
+        let hasContent = false;
+
+        // Use a higher threshold to ignore semi-transparent background artifacts
+        const alphaThreshold = 50; // Only consider pixels with alpha > 50 as "content"
+
+        for (let y = 0; y < img.height; y++) {
+          for (let x = 0; x < img.width; x++) {
+            const pixelIndex = (y * img.width + x) * 4;
+            const r = data[pixelIndex];
+            const g = data[pixelIndex + 1];
+            const b = data[pixelIndex + 2];
+            const alpha = data[pixelIndex + 3];
+            
+            // More aggressive filtering: ignore low-alpha pixels and near-white/gray pixels
+            if (alpha > alphaThreshold) {
+              // Also check if it's not a background-like color (grays, near-whites)
+              const isGrayish = Math.abs(r - g) < 30 && Math.abs(g - b) < 30 && Math.abs(r - b) < 30;
+              const isLight = (r + g + b) / 3 > 200;
+              
+              // Only count as content if it's either not grayish or not light
+              if (!isGrayish || !isLight || alpha > 200) {
+                hasContent = true;
+                minX = Math.min(minX, x);
+                minY = Math.min(minY, y);
+                maxX = Math.max(maxX, x);
+                maxY = Math.max(maxY, y);
+              }
+            }
+          }
+        }
+
+        if (!hasContent) {
+          // If no content found, return original
+          resolve(imageDataUrl);
+          return;
+        }
+
+        // Add minimal padding to avoid cutting too close
+        const padding = 0;
+        minX = Math.max(0, minX - padding);
+        minY = Math.max(0, minY - padding);
+        maxX = Math.min(img.width - 1, maxX + padding);
+        maxY = Math.min(img.height - 1, maxY + padding);
+
+        const width = maxX - minX + 1;
+        const height = maxY - minY + 1;
+
+        // Create cropped canvas
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw only the cropped area
+        ctx.drawImage(
+          img,
+          minX, minY, width, height, // Source coordinates and dimensions
+          0, 0, width, height        // Destination coordinates and dimensions
+        );
+
+        // Convert to data URL
+        const croppedDataUrl = canvas.toDataURL('image/png');
+        resolve(croppedDataUrl);
+      } catch (error) {
+        console.error('Error cropping transparent areas:', error);
+        reject(error);
+      }
+    };
+    img.onerror = (error) => {
+      console.error('Error loading image for cropping:', error);
+      reject(new Error('Failed to load image for cropping'));
+    };
+    img.src = imageDataUrl;
+  });
+};
+
 // Background removal using @imgly/background-removal
 const removeImageBackground = async (imageUrl: string): Promise<string> => {
   console.log('removeImageBackground called with URL:', imageUrl);
@@ -342,13 +446,22 @@ const removeImageBackground = async (imageUrl: string): Promise<string> => {
     
     console.log('Background removal completed, converting to data URL...');
     
-    // Convert blob to data URL
+    // Convert blob to data URL and crop transparent areas
     const reader = new FileReader();
     return new Promise((resolve, reject) => {
-      reader.onload = () => {
-        const result = reader.result as string;
-        console.log('Background removal successful');
-        resolve(result);
+      reader.onload = async () => {
+        try {
+          const result = reader.result as string;
+          console.log('Background removal completed, now cropping transparent areas...');
+          
+          // Crop the transparent areas to get a tightly fitted image
+          const croppedResult = await cropTransparentAreas(result);
+          console.log('Auto-crop successful');
+          resolve(croppedResult);
+        } catch (cropError) {
+          console.error('Auto-crop failed, using original result:', cropError);
+          resolve(reader.result as string);
+        }
       };
       reader.onerror = () => {
         console.error('Failed to convert blob to data URL');
