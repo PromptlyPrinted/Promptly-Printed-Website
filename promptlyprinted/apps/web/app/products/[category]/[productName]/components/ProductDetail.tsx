@@ -520,6 +520,13 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const [removeBackground, setRemoveBackground] = useState(false);
   const [isProcessingBackground, setIsProcessingBackground] = useState(false);
   const [processedImage, setProcessedImage] = useState<string>('');
+  
+  // Image-to-Image state
+  const [referenceImage, setReferenceImage] = useState<string>('');
+  const [useTshirtDesign, setUseTshirtDesign] = useState(false);
+  const [useReferenceImage, setUseReferenceImage] = useState(false);
+  const [subjectDescription, setSubjectDescription] = useState('');
+  const [isDragOver, setIsDragOver] = useState(false);
 
   // Refs
   const tshirtImageRef = useRef<HTMLImageElement>(null);
@@ -741,13 +748,44 @@ export function ProductDetail({ product }: ProductDetailProps) {
 
   // ---- Generate Image ----
   const handleImageGeneration = async () => {
-    if (!promptText.trim()) {
+    // Validation for Text-to-Image mode
+    if (generationMode === 'text' && !promptText.trim()) {
       toast({
         title: 'Error',
         description: 'Please enter a prompt for the image generation',
         variant: 'destructive',
       });
       return;
+    }
+    
+    // Validation for Image-to-Image mode
+    if (generationMode === 'image') {
+      if (!useTshirtDesign && !useReferenceImage) {
+        toast({
+          title: 'Error',
+          description: 'Please select a reference image or use the current T-shirt design',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      if (useReferenceImage && !referenceImage) {
+        toast({
+          title: 'Error',
+          description: 'Please upload a reference image',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      if (useTshirtDesign && !generatedImage) {
+        toast({
+          title: 'Error',
+          description: 'No current T-shirt design found to use as reference',
+          variant: 'destructive',
+        });
+        return;
+      }
     }
 
     if (!selectedSize) {
@@ -767,13 +805,27 @@ export function ProductDetail({ product }: ProductDetailProps) {
         productCode as keyof typeof PRODUCT_IMAGE_SIZES
       ] || { width: 4677, height: 5787 };
 
+      // Determine the reference image for Image-to-Image mode
+      let inputImage = null;
+      if (generationMode === 'image') {
+        if (useTshirtDesign && generatedImage) {
+          inputImage = generatedImage;
+        } else if (useReferenceImage && referenceImage) {
+          inputImage = referenceImage;
+        }
+      }
+
       if (isBaseModel) {
         // Use pure text-to-image model without LORAs
-        const payload = {
-          prompt: promptText,
+        const payload: any = {
+          prompt: generationMode === 'image' 
+            ? (promptText || subjectDescription || 'Transform this image')
+            : promptText,
           models: [
             {
-              model: 'black-forest-labs/FLUX.1-schnell-Free',
+              model: generationMode === 'image' 
+                ? 'black-forest-labs/FLUX.1-Kontext-dev'  // Use Kontext for Image-to-Image
+                : 'black-forest-labs/FLUX.1-schnell-Free', // Use Schnell for Text-to-Image
               type: 'base',
               weight: 1.0,
             },
@@ -781,8 +833,19 @@ export function ProductDetail({ product }: ProductDetailProps) {
           width: Math.min(imageSize.width, 1024), // Cap at 1024 as per API limits
           height: Math.min(imageSize.height, 1024),
           dpi: 300,
-          steps: 4,
+          steps: generationMode === 'image' ? 8 : 4, // More steps for Image-to-Image
         };
+
+        // Add image input for Image-to-Image mode
+        if (generationMode === 'image' && inputImage) {
+          payload.image = inputImage;
+          payload.mode = 'image-to-image';
+          
+          // Add subject description if provided
+          if (subjectDescription.trim()) {
+            payload.subject_description = subjectDescription;
+          }
+        }
 
         console.log(
           'Base model request payload:',
@@ -863,27 +926,46 @@ export function ProductDetail({ product }: ProductDetailProps) {
         };
         const allModelConfigs = [
           {
-            model: 'black-forest-labs/FLUX.1-dev-lora',
+            model: generationMode === 'image' 
+              ? 'black-forest-labs/FLUX.1-Kontext-dev'  // Use Kontext for Image-to-Image with LoRA
+              : 'black-forest-labs/FLUX.1-dev-lora',    // Use standard for Text-to-Image with LoRA
             type: 'base',
             weight: 1.0,
-            steps: 4,
+            steps: generationMode === 'image' ? 8 : 4,
           },
           modelConfig,
         ];
-        const enhancedPrompt = `${promptText}, high resolution, 300 dpi, detailed, clear image, suitable for t-shirt printing, centered composition, professional quality, sharp details`;
+        
+        const basePrompt = generationMode === 'image' 
+          ? (promptText || subjectDescription || 'Transform this image')
+          : promptText;
+        const enhancedPrompt = `${basePrompt}, high resolution, 300 dpi, detailed, clear image, suitable for t-shirt printing, centered composition, professional quality, sharp details`;
+
+        const apiPayload: any = {
+          prompt: enhancedPrompt,
+          models: allModelConfigs,
+          loraScale,
+          width: imageSize.width,
+          height: imageSize.height,
+          dpi: 300,
+          steps: generationMode === 'image' ? 8 : 4,
+        };
+
+        // Add image input for Image-to-Image mode with LoRA
+        if (generationMode === 'image' && inputImage) {
+          apiPayload.image = inputImage;
+          apiPayload.mode = 'image-to-image';
+          
+          // Add subject description if provided
+          if (subjectDescription.trim()) {
+            apiPayload.subject_description = subjectDescription;
+          }
+        }
 
         const response = await fetch('/api/generate-image', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: enhancedPrompt,
-            models: allModelConfigs,
-            loraScale,
-            width: imageSize.width,
-            height: imageSize.height,
-            dpi: 300,
-            steps: 4,
-          }),
+          body: JSON.stringify(apiPayload),
         });
 
         if (!response.ok) {
@@ -1201,6 +1283,120 @@ export function ProductDetail({ product }: ProductDetailProps) {
     // Add logic to handle upload click
   };
 
+  // ---- Image-to-Image Handlers ----
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    
+    const files = Array.from(e.dataTransfer.files);
+    const imageFile = files.find(file => file.type.startsWith('image/'));
+    
+    if (imageFile) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setReferenceImage(result);
+        setUseReferenceImage(true);
+        setUseTshirtDesign(false);
+      };
+      reader.readAsDataURL(imageFile);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setReferenceImage(result);
+        setUseReferenceImage(true);
+        setUseTshirtDesign(false);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleWebcamCapture = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      const video = document.createElement('video');
+      video.srcObject = stream;
+      video.play();
+      
+      video.addEventListener('loadedmetadata', () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        
+        setTimeout(() => {
+          if (ctx) {
+            ctx.drawImage(video, 0, 0);
+            const imageData = canvas.toDataURL('image/png');
+            setReferenceImage(imageData);
+            setUseReferenceImage(true);
+            setUseTshirtDesign(false);
+          }
+          
+          // Stop the camera
+          stream.getTracks().forEach(track => track.stop());
+        }, 3000); // Take photo after 3 seconds
+      });
+    } catch (error) {
+      console.error('Error accessing webcam:', error);
+      toast({
+        title: 'Camera Error',
+        description: 'Unable to access camera. Please try uploading an image instead.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handlePasteFromClipboard = async () => {
+    try {
+      const clipboardItems = await navigator.clipboard.read();
+      for (const clipboardItem of clipboardItems) {
+        for (const type of clipboardItem.types) {
+          if (type.startsWith('image/')) {
+            const blob = await clipboardItem.getType(type);
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const result = e.target?.result as string;
+              setReferenceImage(result);
+              setUseReferenceImage(true);
+              setUseTshirtDesign(false);
+            };
+            reader.readAsDataURL(blob);
+            return;
+          }
+        }
+      }
+      toast({
+        title: 'No Image Found',
+        description: 'No image found in clipboard. Please copy an image first.',
+        variant: 'destructive',
+      });
+    } catch (error) {
+      console.error('Error accessing clipboard:', error);
+      toast({
+        title: 'Clipboard Error',
+        description: 'Unable to access clipboard. Please try uploading an image instead.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const generatePreview = async (designUrl: string) => {
     // Add logic to generate preview
   };
@@ -1391,26 +1587,208 @@ export function ProductDetail({ product }: ProductDetailProps) {
             <h2 className="font-semibold text-teal-700 text-lg">
               Customize with AI
             </h2>
-            <div className="space-y-3">
-              <Label htmlFor="prompt" className="text-teal-600 text-sm">
-                Describe your design
-              </Label>
-              <Textarea
-                id="prompt"
-                placeholder="Enter your design description..."
-                value={promptText}
-                onChange={(e) => setPromptText(e.target.value)}
-                className="min-h-[60px]"
-              />
-              <Button
-                className="w-full bg-teal-600 text-white hover:bg-teal-700"
-                onClick={handleImageGeneration}
-                disabled={isGenerating || !promptText}
-                size="sm"
-              >
-                {isGenerating ? 'Generating...' : 'Generate Design'}
-              </Button>
-            </div>
+            
+            {/* Text-to-Image Mode */}
+            {generationMode === 'text' && (
+              <div className="space-y-3">
+                <Label htmlFor="prompt" className="text-teal-600 text-sm">
+                  Describe your design
+                </Label>
+                <Textarea
+                  id="prompt"
+                  placeholder="Enter your design description..."
+                  value={promptText}
+                  onChange={(e) => setPromptText(e.target.value)}
+                  className="min-h-[60px]"
+                />
+                <Button
+                  className="w-full bg-teal-600 text-white hover:bg-teal-700"
+                  onClick={handleImageGeneration}
+                  disabled={isGenerating || !promptText}
+                  size="sm"
+                >
+                  {isGenerating ? 'Generating...' : 'Generate Design'}
+                </Button>
+              </div>
+            )}
+            
+            {/* Image-to-Image Mode */}
+            {generationMode === 'image' && (
+              <div className="space-y-4">
+                <div className="space-y-3">
+                  <Label htmlFor="img2img-prompt" className="text-teal-600 text-sm">
+                    Describe your design (optional)
+                  </Label>
+                  <Textarea
+                    id="img2img-prompt"
+                    placeholder="Optional: Describe the changes you want to make..."
+                    value={promptText}
+                    onChange={(e) => setPromptText(e.target.value)}
+                    className="min-h-[50px]"
+                  />
+                </div>
+
+                {/* Image Upload Area */}
+                <div className="space-y-3">
+                  <Label className="text-teal-600 text-sm">Reference Image</Label>
+                  
+                  {/* Drag and Drop Zone */}
+                  <div
+                    className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                      isDragOver 
+                        ? 'border-teal-500 bg-teal-50' 
+                        : 'border-gray-300 hover:border-teal-400'
+                    } ${
+                      (useTshirtDesign && generatedImage) ? 'opacity-50 pointer-events-none' : ''
+                    }`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                  >
+                    {referenceImage && useReferenceImage ? (
+                      <div className="space-y-2">
+                        <img 
+                          src={referenceImage} 
+                          alt="Reference" 
+                          className="mx-auto max-h-32 rounded"
+                        />
+                        <p className="text-sm text-gray-600">Reference image uploaded</p>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            setReferenceImage('');
+                            setUseReferenceImage(false);
+                          }}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="text-gray-600">
+                          <p className="font-medium">Drop Image Here or Click to Upload</p>
+                          <p className="text-sm">PNG, JPG, WebP up to 10MB</p>
+                        </div>
+                        
+                        <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileSelect}
+                            className="hidden"
+                            id="image-upload"
+                            ref={(input) => {
+                              if (input) {
+                                (window as any).imageUploadInput = input;
+                              }
+                            }}
+                          />
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="cursor-pointer"
+                            onClick={() => {
+                              const input = document.getElementById('image-upload') as HTMLInputElement;
+                              input?.click();
+                            }}
+                          >
+                            📁 Choose File
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={handleWebcamCapture}
+                          >
+                            📷 Use Webcam
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={handlePasteFromClipboard}
+                          >
+                            📋 Paste Image
+                          </Button>
+                        </div>
+                        
+                        <div className="pt-2">
+                          <DesignPicker
+                            productId={Number(product.id)}
+                            onDesignSelect={(image) => {
+                              setReferenceImage(image.url);
+                              setUseReferenceImage(true);
+                              setUseTshirtDesign(false);
+                            }}
+                            trigger={
+                              <Button variant="outline" size="sm">
+                                🖼 Choose Existing Image
+                              </Button>
+                            }
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Toggle Options */}
+                {generatedImage && (
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="use-tshirt-design"
+                      checked={useTshirtDesign}
+                      onCheckedChange={(checked) => {
+                        setUseTshirtDesign(checked as boolean);
+                        if (checked) {
+                          setUseReferenceImage(false);
+                          setReferenceImage('');
+                        }
+                      }}
+                    />
+                    <Label htmlFor="use-tshirt-design" className="text-sm">
+                      Use current T-shirt design as reference
+                    </Label>
+                  </div>
+                )}
+
+                {referenceImage && (
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="use-reference-image"
+                      checked={useReferenceImage}
+                      onCheckedChange={(checked) => setUseReferenceImage(checked as boolean)}
+                    />
+                    <Label htmlFor="use-reference-image" className="text-sm">
+                      Use reference image
+                    </Label>
+                  </div>
+                )}
+
+                {/* Subject Description */}
+                <div className="space-y-2">
+                  <Label htmlFor="subject-description" className="text-teal-600 text-sm">
+                    Optional: Describe the person/subject for better accuracy
+                  </Label>
+                  <Textarea
+                    id="subject-description"
+                    placeholder="Example: Tall man with curly brown hair wearing sunglasses"
+                    value={subjectDescription}
+                    onChange={(e) => setSubjectDescription(e.target.value)}
+                    className="min-h-[40px]"
+                  />
+                </div>
+
+                {/* Generate Button */}
+                <Button
+                  className="w-full bg-teal-600 text-white hover:bg-teal-700"
+                  onClick={handleImageGeneration}
+                  disabled={isGenerating || (!useTshirtDesign && !useReferenceImage)}
+                  size="sm"
+                >
+                  {isGenerating ? 'Generating...' : 'Generate Design'}
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Design Picker / Upload */}
