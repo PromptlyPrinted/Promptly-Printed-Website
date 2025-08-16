@@ -6,19 +6,21 @@ import type { Metadata } from 'next';
 export async function generateMetadata({
   params,
 }: {
-  params: { category: string };
+  params: Promise<{ category: string }>;
 }): Promise<Metadata> {
-  const categoryName = params.category.replace(/-/g, ' ');
+  const { category } = await params;
+  const categoryName = category.replace(/-/g, ' ');
   return createMetadata({
     title: `${categoryName} | Products | Promptly Printed`,
     description: `Explore our range of ${categoryName}.`,
   });
 }
 
-export default function CategoryPage({ params }: { params: { category: string } }) {
+export default async function CategoryPage({ params }: { params: Promise<{ category: string }> }) {
+  const { category } = await params;
   const normalizeString = (str: string) => str.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-  const categoryName = params.category.replace(/-/g, ' ');
+  const categoryName = category.replace(/-/g, ' ');
   const normalizedCategoryName = normalizeString(categoryName);
 
   const products = Object.values(tshirtDetails)

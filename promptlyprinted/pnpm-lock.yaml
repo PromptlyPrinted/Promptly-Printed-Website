@@ -491,7 +491,7 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0
       framer-motion:
-        specifier: ^12.0.6
+        specifier: ^12.7.3
         version: 12.7.3(react-dom@19.0.0)(react@19.0.0)
       fs:
         specifier: 0.0.1-security
