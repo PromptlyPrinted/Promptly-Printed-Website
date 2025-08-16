@@ -60,7 +60,7 @@ import { toast } from '@repo/design-system/components/ui/use-toast';
 import Image from 'next/image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { LORAS, type Lora } from '../../../../../data/textModel';
+import { LORAS, KONTEXT_LORAS, type Lora, type KontextLora } from '../../../../../data/textModel';
 
 // Comprehensive color hex mapping for all T-shirt colors found in product data
 const colorHexMap: Record<string, string> = {
@@ -494,6 +494,9 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const [selectedModels, setSelectedModels] = useState<(number | string)[]>([
     LORAS[0].id,
   ]);
+  const [selectedKontextModels, setSelectedKontextModels] = useState<(number | string)[]>([
+    KONTEXT_LORAS[0].id,
+  ]);
   const [modelWeights, setModelWeights] = useState<
     Record<string | number, number>
   >({});
@@ -517,6 +520,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const { initiateCheckout, isLoading: isCheckingOut } = useCheckout();
   const { getToken } = useAuth();
   const [isBaseModel, setIsBaseModel] = useState(false);
+  const [selectedBaseModel, setSelectedBaseModel] = useState<string>('kontext-pro');
   const [removeBackground, setRemoveBackground] = useState(false);
   const [isProcessingBackground, setIsProcessingBackground] = useState(false);
   const [processedImage, setProcessedImage] = useState<string>('');
@@ -810,22 +814,43 @@ export function ProductDetail({ product }: ProductDetailProps) {
       if (generationMode === 'image') {
         if (useTshirtDesign && generatedImage) {
           inputImage = generatedImage;
+          console.log('Using T-shirt design as input:', inputImage);
         } else if (useReferenceImage && referenceImage) {
           inputImage = referenceImage;
+          console.log('Using reference image as input:', inputImage);
         }
+        
+        console.log('Image-to-Image Debug:', {
+          generationMode,
+          useTshirtDesign,
+          useReferenceImage,
+          hasGeneratedImage: !!generatedImage,
+          hasReferenceImage: !!referenceImage,
+          inputImage: !!inputImage
+        });
       }
 
       if (isBaseModel) {
         // Use pure text-to-image model without LORAs
+        let baseModelName = 'black-forest-labs/FLUX.1-schnell-Free';
+        if (generationMode === 'image') {
+          // Use the selected Kontext model
+          if (selectedBaseModel === 'kontext-pro') {
+            baseModelName = 'black-forest-labs/FLUX.1-Kontext-pro';
+          } else if (selectedBaseModel === 'kontext-max') {
+            baseModelName = 'black-forest-labs/FLUX.1-Kontext-max';
+          } else {
+            baseModelName = 'black-forest-labs/FLUX.1-Kontext-dev';
+          }
+        }
+
         const payload: any = {
           prompt: generationMode === 'image' 
             ? (promptText || subjectDescription || 'Transform this image')
             : promptText,
           models: [
             {
-              model: generationMode === 'image' 
-                ? 'black-forest-labs/FLUX.1-Kontext-dev'  // Use Kontext for Image-to-Image
-                : 'black-forest-labs/FLUX.1-schnell-Free', // Use Schnell for Text-to-Image
+              model: baseModelName,
               type: 'base',
               weight: 1.0,
             },
@@ -833,13 +858,15 @@ export function ProductDetail({ product }: ProductDetailProps) {
           width: Math.min(imageSize.width, 1024), // Cap at 1024 as per API limits
           height: Math.min(imageSize.height, 1024),
           dpi: 300,
-          steps: generationMode === 'image' ? 8 : 4, // More steps for Image-to-Image
+          steps: generationMode === 'image' ? 24 : 4, // More steps for Kontext models
         };
 
-        // Add image input for Image-to-Image mode
-        if (generationMode === 'image' && inputImage) {
-          payload.image = inputImage;
-          payload.mode = 'image-to-image';
+        // Add image input for Image-to-Image mode - required for all Kontext models
+        if (generationMode === 'image') {
+          if (!inputImage) {
+            throw new Error('Reference image is required for Image-to-Image mode');
+          }
+          payload.image_url = inputImage;
           
           // Add subject description if provided
           if (subjectDescription.trim()) {
@@ -912,14 +939,33 @@ export function ProductDetail({ product }: ProductDetailProps) {
         }
       } else {
         // Use LORA-based generation
-        const modelId = selectedModels[0];
-        const model = LORAS.find((m: Lora) => m.id === modelId);
+        let modelId: number | string;
+        let model: Lora | KontextLora | undefined;
+        
+        if (generationMode === 'image') {
+          // Image-to-Image mode with Kontext LoRAs
+          modelId = selectedKontextModels[0];
+          model = KONTEXT_LORAS.find((m: KontextLora) => m.id === modelId);
+        } else {
+          // Text-to-Image mode with regular LoRAs
+          modelId = selectedModels[0];
+          model = LORAS.find((m: Lora) => m.id === modelId);
+        }
+        
         if (!model) {
           throw new Error('Selected model not found');
         }
 
-        const modelConfig = {
-          model: model.path,
+        const modelConfig = generationMode === 'image' && 'safetensorFileName' in model ? {
+          // Kontext LoRA configuration
+          repo_id: 'Owen777/Kontext-Style-Loras',
+          filename: (model as KontextLora).safetensorFileName,
+          type: 'kontext-lora',
+          weight: modelWeights[modelId] || model.scale || 1.0,
+          steps: model.steps || 24,
+        } : {
+          // Regular LoRA configuration
+          model: (model as Lora).path,
           type: 'lora',
           weight: modelWeights[modelId] || model.scale || 1.0,
           steps: 4,
@@ -931,14 +977,22 @@ export function ProductDetail({ product }: ProductDetailProps) {
               : 'black-forest-labs/FLUX.1-dev-lora',    // Use standard for Text-to-Image with LoRA
             type: 'base',
             weight: 1.0,
-            steps: generationMode === 'image' ? 8 : 4,
+            steps: generationMode === 'image' ? 24 : 4,
           },
           modelConfig,
         ];
         
-        const basePrompt = generationMode === 'image' 
+        let basePrompt = generationMode === 'image' 
           ? (promptText || subjectDescription || 'Transform this image')
           : promptText;
+          
+        // Apply LoRA trigger if applicable
+        if (generationMode === 'image' && 'applyTrigger' in model) {
+          basePrompt = (model as KontextLora).applyTrigger(basePrompt);
+        } else if (generationMode === 'text' && 'applyTrigger' in model) {
+          basePrompt = (model as Lora).applyTrigger(basePrompt);
+        }
+        
         const enhancedPrompt = `${basePrompt}, high resolution, 300 dpi, detailed, clear image, suitable for t-shirt printing, centered composition, professional quality, sharp details`;
 
         const apiPayload: any = {
@@ -948,13 +1002,15 @@ export function ProductDetail({ product }: ProductDetailProps) {
           width: imageSize.width,
           height: imageSize.height,
           dpi: 300,
-          steps: generationMode === 'image' ? 8 : 4,
+          steps: generationMode === 'image' ? 24 : 4,
         };
 
-        // Add image input for Image-to-Image mode with LoRA
-        if (generationMode === 'image' && inputImage) {
-          apiPayload.image = inputImage;
-          apiPayload.mode = 'image-to-image';
+        // Add image input for Image-to-Image mode with LoRA - required for all Kontext models
+        if (generationMode === 'image') {
+          if (!inputImage) {
+            throw new Error('Reference image is required for Image-to-Image mode');
+          }
+          apiPayload.image_url = inputImage;
           
           // Add subject description if provided
           if (subjectDescription.trim()) {
@@ -1678,19 +1734,17 @@ export function ProductDetail({ product }: ProductDetailProps) {
                             onChange={handleFileSelect}
                             className="hidden"
                             id="image-upload"
-                            ref={(input) => {
-                              if (input) {
-                                (window as any).imageUploadInput = input;
-                              }
-                            }}
                           />
                           <Button 
                             variant="outline" 
                             size="sm" 
                             className="cursor-pointer"
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.preventDefault();
                               const input = document.getElementById('image-upload') as HTMLInputElement;
-                              input?.click();
+                              if (input) {
+                                input.click();
+                              }
                             }}
                           >
                             📁 Choose File
@@ -2067,6 +2121,109 @@ export function ProductDetail({ product }: ProductDetailProps) {
                                 }}
                                 min={0}
                                 max={1}
+                                step={0.1}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {generationMode === 'image' && (
+              <div>
+                <div className="mb-3">
+                  <Label className="mb-1 block text-teal-600 text-sm">
+                    Select Kontext Model
+                  </Label>
+                  <Select
+                    value={isBaseModel ? selectedBaseModel : selectedKontextModels[0]?.toString()}
+                    onValueChange={(value) => {
+                      if (value === 'kontext-pro' || value === 'kontext-max') {
+                        setIsBaseModel(true);
+                        setSelectedBaseModel(value);
+                        setSelectedKontextModels([]);
+                      } else {
+                        setIsBaseModel(false);
+                        setSelectedKontextModels([Number(value)]);
+                        setModelWeights({ [value]: 1.0 });
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select model" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="kontext-pro">Flux Kontext Pro</SelectItem>
+                      <SelectItem value="kontext-max">Flux Kontext Max</SelectItem>
+                      {KONTEXT_LORAS.map((lora) => (
+                        <SelectItem key={lora.id} value={lora.id.toString()}>
+                          {lora.name} LoRA
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {!isBaseModel && selectedKontextModels.length > 0 && (
+                  <>
+                    <div className="mb-3">
+                      <Label className="mb-1 block text-teal-600 text-sm">
+                        Kontext LoRA Scale
+                      </Label>
+                      <div className="flex items-center space-x-2">
+                        <Slider
+                          className="flex-1"
+                          value={[loraScale]}
+                          onValueChange={([value]) => setLoraScale(value)}
+                          min={0}
+                          max={2}
+                          step={0.1}
+                        />
+                        <span className="text-sm font-medium text-teal-600 w-10">
+                          {loraScale.toFixed(1)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      {KONTEXT_LORAS.map((lora) => (
+                        <div
+                          key={lora.id}
+                          className={`relative cursor-pointer overflow-hidden rounded border p-2 ${
+                            selectedKontextModels.includes(lora.id)
+                              ? 'ring-2 ring-teal-500'
+                              : 'hover:ring-2 hover:ring-teal-200'
+                          }`}
+                          onClick={() => {
+                            if (selectedKontextModels[0] === lora.id) return;
+                            setSelectedKontextModels([lora.id]);
+                            setModelWeights({ [lora.id]: lora.scale || 1.0 });
+                          }}
+                        >
+                          <div className="text-center">
+                            <div className="text-xs font-medium text-gray-900 mb-1">
+                              {lora.name}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {lora.description.substring(0, 50)}...
+                            </div>
+                          </div>
+                          {selectedKontextModels.includes(lora.id) && (
+                            <div className="absolute right-0 bottom-0 left-0 px-1 py-1">
+                              <Slider
+                                value={[
+                                  modelWeights[lora.id] || lora.scale || 1.0,
+                                ]}
+                                onValueChange={([value]) => {
+                                  setModelWeights({ [lora.id]: value });
+                                }}
+                                min={0}
+                                max={2}
                                 step={0.1}
                                 onClick={(e) => e.stopPropagation()}
                               />

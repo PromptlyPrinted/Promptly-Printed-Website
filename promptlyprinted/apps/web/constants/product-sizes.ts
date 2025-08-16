@@ -12,3 +12,5 @@ export const PRODUCT_IMAGE_SIZES = {
   'A-BB-LA4411': { width: 2124, height: 2124 },
   'GLOBAL-TEE-RS-3322': { width: 1770, height: 1770 },
 } as const;
+
+
