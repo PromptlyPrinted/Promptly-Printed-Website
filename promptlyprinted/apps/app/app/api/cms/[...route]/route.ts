@@ -471,7 +471,6 @@ const queries = {
         items: {
           _slug: true,
           _title: true,
-          avatar: imageFragment,
           xUrl: true,
         },
       },

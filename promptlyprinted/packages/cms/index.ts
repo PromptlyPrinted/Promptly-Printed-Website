@@ -11,25 +11,21 @@ const imageFragment = fragmentOn('BlockImage', {
 const postFragment = fragmentOn('PostsItem', {
   _slug: true,
   _title: true,
-  authors: {
-    _title: true,
-    avatar: imageFragment,
-    xUrl: true,
+  description: true,
+  date: true,
+  image: {
+    url: true,
+    alt: true,
   },
   body: {
     plainText: true,
-    json: {
-      content: true,
-      toc: true,
-    },
-    readingTime: true,
+  },
+  authors: {
+    _title: true,
   },
   categories: {
     _title: true,
   },
-  date: true,
-  description: true,
-  image: imageFragment,
 });
 
 const legalPostFragment = fragmentOn('LegalPagesItem', {
