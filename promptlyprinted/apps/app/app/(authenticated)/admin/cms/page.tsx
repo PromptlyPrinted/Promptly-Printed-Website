@@ -8,6 +8,7 @@ import {
   TabsTrigger,
 } from '@repo/design-system/components/ui/tabs';
 import { redirect } from 'next/navigation';
+import BaseHubIntegration from './basehub-integration';
 import BlogAuthors from './components/blog/BlogAuthors';
 import BlogCategories from './components/blog/categories';
 import BlogPosts from './components/blog/posts';
@@ -29,17 +30,18 @@ export default async function CMSPage() {
 
   return (
     <div className="container mx-auto space-y-8 p-6">
-      <div className="flex items-center justify-between">
-        <h1 className="font-bold text-3xl">CMS Dashboard</h1>
-      </div>
-
-      <Tabs defaultValue="blog" className="space-y-4">
+      <Tabs defaultValue="dashboard" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="blog">Blog</TabsTrigger>
+          <TabsTrigger value="dashboard">BaseHub Dashboard</TabsTrigger>
+          <TabsTrigger value="content">Content Overview</TabsTrigger>
           <TabsTrigger value="legal">Legal Pages</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="blog" className="space-y-4">
+        <TabsContent value="dashboard">
+          <BaseHubIntegration />
+        </TabsContent>
+
+        <TabsContent value="content" className="space-y-4">
           <Tabs defaultValue="posts">
             <TabsList>
               <TabsTrigger value="posts">Posts</TabsTrigger>

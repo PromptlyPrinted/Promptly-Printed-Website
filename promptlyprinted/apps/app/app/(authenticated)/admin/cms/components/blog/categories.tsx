@@ -3,15 +3,6 @@
 import { Button } from '@repo/design-system/components/ui/button';
 import { Card } from '@repo/design-system/components/ui/card';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@repo/design-system/components/ui/dialog';
-import { Input } from '@repo/design-system/components/ui/input';
-import { Label } from '@repo/design-system/components/ui/label';
-import {
   Table,
   TableBody,
   TableCell,
@@ -20,8 +11,7 @@ import {
   TableRow,
 } from '@repo/design-system/components/ui/table';
 import { Toggle } from '@repo/design-system/components/ui/toggle';
-import { LayoutGrid, List } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { LayoutGrid, List, ExternalLink } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface Category {
@@ -36,8 +26,10 @@ const useCategories = () => {
   const fetchCategories = async () => {
     try {
       const response = await fetch('/api/cms/blog/categories');
-      const data = await response.json();
-      setCategories(data);
+      if (response.ok) {
+        const data = await response.json();
+        setCategories(data);
+      }
     } catch (error) {
       console.error('Error fetching categories:', error);
     } finally {
@@ -49,73 +41,52 @@ const useCategories = () => {
     fetchCategories();
   }, []);
 
-  return { data: categories, loading, mutate: fetchCategories };
+  return { categories, loading, refetch: fetchCategories };
 };
 
-export default function BlogCategories() {
+const BlogCategories = () => {
   const [view, setView] = useState<'table' | 'gallery'>('table');
-  const router = useRouter();
+  const { categories, loading } = useCategories();
 
-  const { data: categories, mutate } = useCategories();
-
-  const handleSave = async (category: Category) => {
-    const method = category.id ? 'PUT' : 'POST';
-    const url = category.id
-      ? `/api/cms/blog/categories/${category.id}`
-      : '/api/cms/blog/categories';
-
-    await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(category),
-    });
-
-    mutate();
-    router.refresh();
-  };
-
-  const handleDelete = async (id: string) => {
-    await fetch(`/api/cms/blog/categories/${id}`, { method: 'DELETE' });
-    mutate();
-    router.refresh();
-  };
-
-  if (!categories) return <div>Loading...</div>;
+  if (loading) {
+    return <div>Loading categories...</div>;
+  }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-bold text-2xl">Blog Categories</h2>
-        <div className="flex gap-2">
+        <div>
+          <h2 className="font-semibold text-2xl">Categories</h2>
+          <p className="text-gray-600">
+            Manage categories in BaseHub dashboard. Changes will appear here after publishing.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
           <Toggle
             pressed={view === 'table'}
             onPressedChange={() => setView('table')}
+            aria-label="Table view"
           >
             <List className="h-4 w-4" />
           </Toggle>
           <Toggle
             pressed={view === 'gallery'}
             onPressedChange={() => setView('gallery')}
+            aria-label="Gallery view"
           >
             <LayoutGrid className="h-4 w-4" />
           </Toggle>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button>New Category</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create New Category</DialogTitle>
-              </DialogHeader>
-              <CategoryForm
-                category={{
-                  id: '',
-                  title: '',
-                }}
-                onSave={handleSave}
-              />
-            </DialogContent>
-          </Dialog>
+          <Button asChild>
+            <a
+              href="https://basehub.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center"
+            >
+              Manage in BaseHub
+              <ExternalLink className="ml-2 h-4 w-4" />
+            </a>
+          </Button>
         </div>
       </div>
 
@@ -124,103 +95,52 @@ export default function BlogCategories() {
           <TableHeader>
             <TableRow>
               <TableHead>Title</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead>ID</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {categories.map((category: Category) => (
-              <TableRow key={category.id}>
+            {categories.map((category: Category, index: number) => (
+              <TableRow key={category.id || `category-${index}`}>
                 <TableCell>{category.title}</TableCell>
-                <TableCell>
-                  <div className="flex gap-2">
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm">
-                          Edit
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Edit Category</DialogTitle>
-                        </DialogHeader>
-                        <CategoryForm category={category} onSave={handleSave} />
-                      </DialogContent>
-                    </Dialog>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDelete(category.id)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </TableCell>
+                <TableCell className="text-gray-500 font-mono text-sm">{category.id}</TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-4">
-          {categories.map((category: Category) => (
-            <Card key={category.id} className="p-4">
+          {categories.map((category: Category, index: number) => (
+            <Card key={category.id || `category-card-${index}`} className="p-4">
               <h3 className="mb-4 text-center font-semibold">
                 {category.title}
               </h3>
-              <div className="flex justify-center gap-2">
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      Edit
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Edit Category</DialogTitle>
-                    </DialogHeader>
-                    <CategoryForm category={category} onSave={handleSave} />
-                  </DialogContent>
-                </Dialog>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => handleDelete(category.id)}
-                >
-                  Delete
-                </Button>
+              <div className="text-center text-sm text-gray-500 font-mono">
+                {category.id}
               </div>
             </Card>
           ))}
         </div>
       )}
+
+      {categories.length === 0 && (
+        <Card className="p-8 text-center">
+          <h3 className="mb-2 font-semibold">No categories found</h3>
+          <p className="text-gray-600 mb-4">
+            Create your first category in the BaseHub dashboard.
+          </p>
+          <Button asChild>
+            <a
+              href="https://basehub.com"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Open BaseHub Dashboard
+            </a>
+          </Button>
+        </Card>
+      )}
     </div>
   );
-}
+};
 
-interface CategoryFormProps {
-  category: Category;
-  onSave: (category: Category) => void;
-}
-
-function CategoryForm({ category, onSave }: CategoryFormProps) {
-  const [formData, setFormData] = useState<Category>(category);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave(formData);
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <Label htmlFor="title">Title</Label>
-        <Input
-          id="title"
-          value={formData.title}
-          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-        />
-      </div>
-
-      <Button type="submit">Save</Button>
-    </form>
-  );
-}
+export default BlogCategories;

@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
+    "@basehub/mutation-api-helpers": "^2.1.7",
     "@clerk/nextjs": "6.9.6",
     "@hookform/resolvers": "^3.9.1",
     "@prisma/client": "6.0.1",

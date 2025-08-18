@@ -9,8 +9,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@repo/design-system/components/ui/dialog';
-import { Input } from '@repo/design-system/components/ui/input';
-import { Label } from '@repo/design-system/components/ui/label';
 import {
   Table,
   TableBody,
@@ -19,12 +17,12 @@ import {
   TableHeader,
   TableRow,
 } from '@repo/design-system/components/ui/table';
-import { Textarea } from '@repo/design-system/components/ui/textarea';
 import { Toggle } from '@repo/design-system/components/ui/toggle';
 import { format } from 'date-fns';
-import { LayoutGrid, List } from 'lucide-react';
+import { LayoutGrid, List, Plus, Edit, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import PostForm, { type Post } from './PostForm';
 
 interface Author {
   id: string;
@@ -36,17 +34,6 @@ interface Category {
   title: string;
 }
 
-interface Post {
-  id: string;
-  title: string;
-  description: string;
-  date: string;
-  image: string;
-  authors: Author[];
-  categories: Category[];
-  body: string;
-}
-
 const usePosts = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,23 +41,23 @@ const usePosts = () => {
 
   const fetchPosts = async () => {
     try {
-      setLoading(true);
-      setError(null);
-      const response = await fetch('/api/cms/blog/posts');
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch posts');
+      // Add cache-busting and fresh data fetch
+      const response = await fetch(`/api/cms/blog/posts?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        console.log('BlogPosts: Fetched posts:', data.length, 'posts');
+        setPosts(data);
+      } else {
+        setError('Failed to load posts from BaseHub');
       }
-      const data = await response.json();
-      console.log('Posts data:', data); // Debug log
-      if (!Array.isArray(data)) {
-        throw new Error('Invalid response format');
-      }
-      setPosts(data);
     } catch (error) {
       console.error('Error fetching posts:', error);
-      setError(error instanceof Error ? error.message : 'An error occurred');
-      setPosts([]); // Reset posts on error
+      setError('Error connecting to BaseHub');
     } finally {
       setLoading(false);
     }
@@ -80,127 +67,24 @@ const usePosts = () => {
     fetchPosts();
   }, []);
 
-  return { data: posts, loading, error, mutate: fetchPosts };
+  return { posts, loading, error, refetch: fetchPosts };
 };
 
-const useAuthors = () => {
-  const [authors, setAuthors] = useState<Author[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const fetchAuthors = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await fetch('/api/cms/blog/authors');
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch authors');
-      }
-      const data = await response.json();
-      console.log('Authors data:', data); // Debug log
-      if (!Array.isArray(data)) {
-        throw new Error('Invalid authors response format');
-      }
-      setAuthors(data);
-    } catch (error) {
-      console.error('Error fetching authors:', error);
-      setError(error instanceof Error ? error.message : 'An error occurred');
-      setAuthors([]); // Reset authors on error
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchAuthors();
-  }, []);
-
-  return { data: authors, loading, error, mutate: fetchAuthors };
-};
-
-const useCategories = () => {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  const fetchCategories = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await fetch('/api/cms/blog/categories');
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch categories');
-      }
-      const data = await response.json();
-      console.log('Categories data:', data); // Debug log
-      if (!Array.isArray(data)) {
-        throw new Error('Invalid categories response format');
-      }
-      setCategories(data);
-    } catch (error) {
-      console.error('Error fetching categories:', error);
-      setError(error instanceof Error ? error.message : 'An error occurred');
-      setCategories([]); // Reset categories on error
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  return { data: categories, loading, error, mutate: fetchCategories };
-};
-
-export default function BlogPosts() {
-  const [view, setView] = useState<'table' | 'gallery'>('table');
-  const [editingPost, setEditingPost] = useState<Post | null>(null);
+const BlogPosts = () => {
+  const [view, setView] = useState<'table' | 'grid'>('table');
+  const { posts, loading, error, refetch } = usePosts();
   const router = useRouter();
 
-  const { data: posts, loading, error: postsError, mutate } = usePosts();
-  const { data: authors, error: authorsError } = useAuthors();
-  const { data: categories, error: categoriesError } = useCategories();
-
-  // Show loading state
-  if (loading) {
-    return <div>Loading posts...</div>;
-  }
-
-  // Show error states
-  if (postsError) {
-    return (
-      <div className="text-red-500">Error loading posts: {postsError}</div>
-    );
-  }
-
-  if (authorsError) {
-    return (
-      <div className="text-red-500">Error loading authors: {authorsError}</div>
-    );
-  }
-
-  if (categoriesError) {
-    return (
-      <div className="text-red-500">
-        Error loading categories: {categoriesError}
-      </div>
-    );
-  }
-
-  // Ensure we have the required data
-  if (!posts || !authors || !categories) {
-    return <div>Loading data...</div>;
-  }
-
   const handleSave = async (post: Post) => {
+    console.log('BlogPosts: Starting save operation for post:', post);
+    
     try {
-      const method = post.id ? 'PUT' : 'POST';
-      const url = post.id
+      const method = post.id && post.id !== '' ? 'PUT' : 'POST';
+      const url = post.id && post.id !== ''
         ? `/api/cms/blog/posts/${post.id}`
         : '/api/cms/blog/posts';
+
+      console.log('BlogPosts: Making API request:', { method, url, post });
 
       const response = await fetch(url, {
         method,
@@ -208,78 +92,133 @@ export default function BlogPosts() {
         body: JSON.stringify(post),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.error || `Failed to ${post.id ? 'update' : 'create'} post`
-        );
-      }
+      console.log('BlogPosts: API response:', { status: response.status, ok: response.ok });
 
-      mutate();
-      setEditingPost(null);
-      router.refresh();
+      const result = await response.json();
+      console.log('BlogPosts: API response result:', result);
+
+      if (response.ok && result.success) {
+        console.log('BlogPosts: Save successful, result:', result);
+        
+        // Give BaseHub a moment to process the new content
+        setTimeout(async () => {
+          await refetch();
+          router.refresh();
+          console.log('BlogPosts: Refreshed posts list after creation');
+        }, 1000);
+        
+        alert('Post saved successfully!');
+      } else {
+        console.error('BlogPosts: Save failed:', result);
+        const errorMessage = result.error || 'Unknown error occurred';
+        alert('Failed to save post: ' + errorMessage);
+        throw new Error(errorMessage);
+      }
     } catch (error) {
-      console.error('Error saving post:', error);
-      // You might want to show an error toast or message here
+      console.error('BlogPosts: Save error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save post. Please try again.';
+      alert(errorMessage);
+      throw error; // Re-throw so PostForm can handle it
     }
   };
 
   const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this post?')) {
+      return;
+    }
+
     try {
-      const response = await fetch(`/api/cms/blog/posts/${id}`, {
-        method: 'DELETE',
+      const response = await fetch(`/api/cms/blog/posts/${id}`, { 
+        method: 'DELETE' 
       });
-      if (!response.ok) {
+
+      if (response.ok) {
+        refetch();
+        router.refresh();
+      } else {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete post');
+        console.error('Delete error:', errorData);
+        alert('Failed to delete post: ' + (errorData.error || 'Unknown error'));
       }
-      mutate();
-      router.refresh();
     } catch (error) {
-      console.error('Error deleting post:', error);
-      // You might want to show an error toast or message here
+      console.error('Delete error:', error);
+      alert('Failed to delete post. Please try again.');
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p>Loading posts from BaseHub...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="p-8 text-center">
+        <h3 className="mb-2 font-semibold text-red-600">Unable to load posts</h3>
+        <p className="text-gray-600 mb-4">{error}</p>
+        <Button asChild>
+          <a
+            href="https://basehub.com"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Open BaseHub Dashboard
+          </a>
+        </Button>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-bold text-2xl">Blog Posts</h2>
-        <div className="flex gap-2">
+        <div>
+          <h2 className="font-semibold text-2xl">Blog Posts</h2>
+          <p className="text-gray-600">
+            Manage blog posts. Changes are automatically committed to BaseHub.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
           <Toggle
             pressed={view === 'table'}
             onPressedChange={() => setView('table')}
+            aria-label="Table view"
           >
             <List className="h-4 w-4" />
           </Toggle>
           <Toggle
-            pressed={view === 'gallery'}
-            onPressedChange={() => setView('gallery')}
+            pressed={view === 'grid'}
+            onPressedChange={() => setView('grid')}
+            aria-label="Grid view"
           >
             <LayoutGrid className="h-4 w-4" />
           </Toggle>
           <Dialog>
             <DialogTrigger asChild>
-              <Button>New Post</Button>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Post
+              </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Create New Post</DialogTitle>
+                <DialogTitle>Add New Post</DialogTitle>
               </DialogHeader>
-              <PostForm
-                post={{
-                  id: '',
-                  title: '',
-                  description: '',
-                  date: new Date().toISOString(),
-                  image: '',
-                  authors: [],
-                  categories: [],
-                  body: '',
-                }}
-                authors={authors || []}
-                categories={categories || []}
-                onSave={handleSave}
+              <PostForm 
+                post={{ 
+                  id: '', 
+                  title: '', 
+                  description: '', 
+                  body: '', 
+                  date: new Date().toISOString().split('T')[0] 
+                }} 
+                onSave={handleSave} 
               />
             </DialogContent>
           </Dialog>
@@ -290,63 +229,51 @@ export default function BlogPosts() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead key="title">Title</TableHead>
-              <TableHead key="date">Date</TableHead>
-              <TableHead key="authors">Authors</TableHead>
-              <TableHead key="categories">Categories</TableHead>
-              <TableHead key="actions">Actions</TableHead>
+              <TableHead>Title</TableHead>
+              <TableHead>Content</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody key="posts-table-body">
-            {posts.map((post: Post) => (
-              <TableRow key={post.id}>
-                <TableCell key={`${post.id}-title`}>{post.title}</TableCell>
-                <TableCell key={`${post.id}-date`}>
-                  {format(new Date(post.date), 'PP')}
+          <TableBody>
+            {posts.map((post, index) => (
+              <TableRow key={post.id || `post-${index}`}>
+                <TableCell>
+                  <div>
+                    <div className="font-medium">{post.title}</div>
+                    <div className="text-sm text-gray-500">
+                      {post.description?.substring(0, 100)}...
+                    </div>
+                  </div>
                 </TableCell>
-                <TableCell key={`${post.id}-authors`}>
-                  {post.authors.length > 0
-                    ? post.authors.map((author: Author, index: number) => (
-                        <span key={`${post.id}-author-${author.id}`}>
-                          {author.title}
-                          {index < post.authors.length - 1 ? ', ' : ''}
-                        </span>
-                      ))
-                    : '-'}
+                <TableCell>
+                  <span className="text-sm">Content available</span>
                 </TableCell>
-                <TableCell key={`${post.id}-categories`}>
-                  {post.categories.length > 0
-                    ? post.categories.map(
-                        (category: Category, index: number) => (
-                          <span key={`${post.id}-category-${category.id}`}>
-                            {category.title}
-                            {index < post.categories.length - 1 ? ', ' : ''}
-                          </span>
-                        )
-                      )
-                    : '-'}
+                <TableCell>
+                  {post.date ? format(new Date(post.date), 'MMM dd, yyyy') : 'No date'}
                 </TableCell>
-                <TableCell key={`${post.id}-actions`}>
-                  <div
-                    key={`${post.id}-actions-container`}
-                    className="flex gap-2"
-                  >
+                <TableCell>
+                  <div className="flex gap-2">
+                    <Button asChild variant="outline" size="sm">
+                      <a
+                        href={`/blog/${post.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        View
+                      </a>
+                    </Button>
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button variant="outline" size="sm">
-                          Edit
+                          <Edit className="h-3 w-3" />
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="max-w-2xl">
                         <DialogHeader>
                           <DialogTitle>Edit Post</DialogTitle>
                         </DialogHeader>
-                        <PostForm
-                          post={post}
-                          authors={authors || []}
-                          categories={categories || []}
-                          onSave={handleSave}
-                        />
+                        <PostForm post={post} onSave={handleSave} />
                       </DialogContent>
                     </Dialog>
                     <Button
@@ -354,7 +281,7 @@ export default function BlogPosts() {
                       size="sm"
                       onClick={() => handleDelete(post.id)}
                     >
-                      Delete
+                      <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
                 </TableCell>
@@ -364,140 +291,91 @@ export default function BlogPosts() {
         </Table>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {posts.map((post: Post) => (
-            <Card key={post.id} className="p-4">
+          {posts.map((post, index) => (
+            <Card key={post.id || `post-card-${index}`} className="p-4">
               {post.image && (
                 <img
-                  key={`${post.id}-image`}
                   src={post.image}
                   alt={post.title}
-                  className="mb-4 h-48 w-full rounded-md object-cover"
+                  className="mb-4 h-48 w-full rounded-lg object-cover"
                 />
               )}
-              <h3 key={`${post.id}-title`} className="mb-2 font-semibold">
-                {post.title}
-              </h3>
-              <p
-                key={`${post.id}-description`}
-                className="mb-4 text-muted-foreground text-sm"
-              >
-                {post.description}
+              <h3 className="mb-2 font-semibold">{post.title}</h3>
+              <p className="mb-4 text-sm text-gray-600">
+                {post.description?.substring(0, 150)}...
               </p>
-              <div
-                key={`${post.id}-footer`}
-                className="flex items-center justify-between"
-              >
-                <span key={`${post.id}-date`} className="text-sm">
-                  {format(new Date(post.date), 'PP')}
-                </span>
-                <div key={`${post.id}-actions`} className="flex gap-2">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        Edit
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl">
-                      <DialogHeader>
-                        <DialogTitle>Edit Post</DialogTitle>
-                      </DialogHeader>
-                      <PostForm
-                        post={post}
-                        authors={authors || []}
-                        categories={categories || []}
-                        onSave={handleSave}
-                      />
-                    </DialogContent>
-                  </Dialog>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDelete(post.id)}
+              <div className="mb-4 text-xs text-gray-500">
+                <div>Date: {post.date ? format(new Date(post.date), 'MMM dd, yyyy') : 'No date'}</div>
+              </div>
+              <div className="flex gap-2">
+                <Button asChild variant="outline" size="sm" className="flex-1">
+                  <a
+                    href={`/blog/${post.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
-                    Delete
-                  </Button>
-                </div>
+                    View
+                  </a>
+                </Button>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Edit Post</DialogTitle>
+                    </DialogHeader>
+                    <PostForm post={post} onSave={handleSave} />
+                  </DialogContent>
+                </Dialog>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => handleDelete(post.id)}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
               </div>
             </Card>
           ))}
         </div>
       )}
+
+      {posts.length === 0 && (
+        <Card className="p-8 text-center">
+          <h3 className="mb-2 font-semibold">No posts found</h3>
+          <p className="text-gray-600 mb-4">
+            Create your first blog post to get started.
+          </p>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Create First Post
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Create New Post</DialogTitle>
+              </DialogHeader>
+              <PostForm 
+                post={{ 
+                  id: '', 
+                  title: '', 
+                  description: '', 
+                  body: '', 
+                  date: new Date().toISOString().split('T')[0] 
+                }} 
+                onSave={handleSave} 
+              />
+            </DialogContent>
+          </Dialog>
+        </Card>
+      )}
     </div>
   );
-}
+};
 
-interface PostFormProps {
-  post: Post;
-  authors: Author[];
-  categories: Category[];
-  onSave: (post: Post) => void;
-}
-
-function PostForm({ post, authors, categories, onSave }: PostFormProps) {
-  const [formData, setFormData] = useState<Post>(post);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave(formData);
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <Label htmlFor="title">Title</Label>
-        <Input
-          id="title"
-          value={formData.title}
-          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="description">Description</Label>
-        <Textarea
-          id="description"
-          value={formData.description}
-          onChange={(e) =>
-            setFormData({ ...formData, description: e.target.value })
-          }
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="date">Date</Label>
-        <Input
-          id="date"
-          type="date"
-          value={format(new Date(formData.date), 'yyyy-MM-dd')}
-          onChange={(e) =>
-            setFormData({
-              ...formData,
-              date: new Date(e.target.value).toISOString(),
-            })
-          }
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="image">Image URL</Label>
-        <Input
-          id="image"
-          value={formData.image}
-          onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="body">Body</Label>
-        <Textarea
-          id="body"
-          value={formData.body}
-          onChange={(e) => setFormData({ ...formData, body: e.target.value })}
-          className="min-h-[200px]"
-        />
-      </div>
-
-      <Button type="submit">Save</Button>
-    </form>
-  );
-}
+export default BlogPosts;

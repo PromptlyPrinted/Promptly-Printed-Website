@@ -12,55 +12,42 @@ import {
 import {
   Table,
   TableBody,
+  TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from '@repo/design-system/components/ui/table';
 import { Toggle } from '@repo/design-system/components/ui/toggle';
-import { LayoutGrid, List } from 'lucide-react';
+import { LayoutGrid, List, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-
 import AuthorForm from './AuthorForm';
 import AuthorRow from './AuthorRow';
 
-// --------------------------------------------------
-// Author interface
-// --------------------------------------------------
 export interface Author {
-  id: string; // Must be unique in your DB
+  id: string;
   title: string;
-  avatar: string;
-  xUrl: string;
+  avatar?: string;
+  xUrl?: string;
 }
 
-// --------------------------------------------------
-// Hook to fetch authors
-// --------------------------------------------------
-function useAuthors() {
+const useAuthors = () => {
   const [authors, setAuthors] = useState<Author[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchAuthors = async () => {
     try {
-      setLoading(true);
-      setError(null);
       const response = await fetch('/api/cms/blog/authors');
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to fetch authors');
+      if (response.ok) {
+        const data = await response.json();
+        setAuthors(data);
+      } else {
+        setError('Failed to load authors from BaseHub');
       }
-      const data = await response.json();
-      console.log('Authors data:', data);
-      if (!Array.isArray(data)) {
-        throw new Error('Invalid response format for authors');
-      }
-      setAuthors(data);
-    } catch (err) {
-      console.error('Error fetching authors:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      setAuthors([]); // Reset authors on error
+    } catch (error) {
+      console.error('Error fetching authors:', error);
+      setError('Error connecting to BaseHub');
     } finally {
       setLoading(false);
     }
@@ -70,37 +57,18 @@ function useAuthors() {
     fetchAuthors();
   }, []);
 
-  return { data: authors, loading, error, mutate: fetchAuthors };
-}
+  return { authors, loading, error, refetch: fetchAuthors };
+};
 
-// --------------------------------------------------
-// Main BlogAuthors component
-// --------------------------------------------------
-export default function BlogAuthors() {
+const BlogAuthors = () => {
   const [view, setView] = useState<'table' | 'gallery'>('table');
+  const { authors, loading, error, refetch } = useAuthors();
   const router = useRouter();
-  const { data: authors, loading, error, mutate } = useAuthors();
 
-  // Loading
-  if (loading) {
-    return <div>Loading authors...</div>;
-  }
-  // Error
-  if (error) {
-    return <div className="text-red-500">Error loading authors: {error}</div>;
-  }
-  // No authors
-  if (!authors) {
-    return <div>No authors found.</div>;
-  }
-
-  // --------------------------------------------------
-  // CRUD Handlers
-  // --------------------------------------------------
   const handleSave = async (author: Author) => {
     try {
-      const method = author.id ? 'PUT' : 'POST';
-      const url = author.id
+      const method = author.id && author.id !== '' ? 'PUT' : 'POST';
+      const url = author.id && author.id !== ''
         ? `/api/cms/blog/authors/${author.id}`
         : '/api/cms/blog/authors';
 
@@ -110,88 +78,111 @@ export default function BlogAuthors() {
         body: JSON.stringify(author),
       });
 
-      if (!response.ok) {
+      if (response.ok) {
+        refetch();
+        router.refresh();
+      } else {
         const errorData = await response.json();
-        throw new Error(
-          errorData.error ||
-            `Failed to ${author.id ? 'update' : 'create'} author`
-        );
+        console.error('Save error:', errorData);
+        alert('Failed to save author: ' + (errorData.error || 'Unknown error'));
       }
-
-      // Refresh data
-      mutate();
-      router.refresh(); // For SSR/ISR revalidation if needed
-    } catch (err) {
-      console.error('Error saving author:', err);
-      // Optional: show toast / user feedback
+    } catch (error) {
+      console.error('Save error:', error);
+      alert('Failed to save author. Please try again.');
     }
   };
 
   const handleDelete = async (id: string) => {
-    try {
-      const response = await fetch(`/api/cms/blog/authors/${id}`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete author');
-      }
+    if (!confirm('Are you sure you want to delete this author?')) {
+      return;
+    }
 
-      // Refresh data
-      mutate();
-      router.refresh();
-    } catch (err) {
-      console.error('Error deleting author:', err);
-      // Optional: show toast / user feedback
+    try {
+      const response = await fetch(`/api/cms/blog/authors/${id}`, { 
+        method: 'DELETE' 
+      });
+
+      if (response.ok) {
+        refetch();
+        router.refresh();
+      } else {
+        const errorData = await response.json();
+        console.error('Delete error:', errorData);
+        alert('Failed to delete author: ' + (errorData.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Failed to delete author. Please try again.');
     }
   };
 
-  // --------------------------------------------------
-  // Render
-  // --------------------------------------------------
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p>Loading authors from BaseHub...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="p-8 text-center">
+        <h3 className="mb-2 font-semibold text-red-600">Unable to load authors</h3>
+        <p className="text-gray-600 mb-4">{error}</p>
+        <Button onClick={() => refetch()}>
+          Try Again
+        </Button>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-4">
-      {/* Header section with toggles and "New Author" button */}
       <div className="flex items-center justify-between">
-        <h2 className="font-bold text-2xl">Blog Authors</h2>
-        <div className="flex gap-2">
+        <div>
+          <h2 className="font-semibold text-2xl">Authors</h2>
+          <p className="text-gray-600">
+            Manage blog authors. Changes are automatically committed to BaseHub.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
           <Toggle
             pressed={view === 'table'}
             onPressedChange={() => setView('table')}
+            aria-label="Table view"
           >
             <List className="h-4 w-4" />
           </Toggle>
           <Toggle
             pressed={view === 'gallery'}
             onPressedChange={() => setView('gallery')}
+            aria-label="Gallery view"
           >
             <LayoutGrid className="h-4 w-4" />
           </Toggle>
-
-          {/* "New Author" Dialog */}
           <Dialog>
             <DialogTrigger asChild>
-              <Button>New Author</Button>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Author
+              </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Create New Author</DialogTitle>
+                <DialogTitle>Add New Author</DialogTitle>
               </DialogHeader>
-              <AuthorForm
-                author={{
-                  id: '',
-                  title: '',
-                  avatar: '',
-                  xUrl: '',
-                }}
-                onSave={handleSave}
+              <AuthorForm 
+                author={{ id: '', title: '', avatar: '', xUrl: '' }} 
+                onSave={handleSave} 
               />
             </DialogContent>
           </Dialog>
         </div>
       </div>
 
-      {/* Toggle between table view and gallery view */}
       {view === 'table' ? (
         <Table>
           <TableHeader>
@@ -203,9 +194,9 @@ export default function BlogAuthors() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {authors.map((author) => (
+            {authors.map((author, index) => (
               <AuthorRow
-                key={author.id}
+                key={author.id || `author-${index}`}
                 author={author}
                 onSave={handleSave}
                 onDelete={handleDelete}
@@ -214,10 +205,9 @@ export default function BlogAuthors() {
           </TableBody>
         </Table>
       ) : (
-        // Gallery (cards) view
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-4">
-          {authors.map((author) => (
-            <Card key={author.id} className="p-4">
+          {authors.map((author, index) => (
+            <Card key={author.id || `author-card-${index}`} className="p-4">
               {author.avatar && (
                 <img
                   src={author.avatar}
@@ -227,21 +217,23 @@ export default function BlogAuthors() {
               )}
               <h3 className="mb-2 text-center font-semibold">{author.title}</h3>
               {author.xUrl ? (
-                <a
-                  href={author.xUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mb-4 block text-center text-blue-500 text-sm hover:underline"
-                >
-                  {author.xUrl}
-                </a>
+                <div className="text-center">
+                  <a
+                    href={author.xUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 text-sm"
+                  >
+                    View X Profile
+                  </a>
+                </div>
               ) : (
-                <p className="text-center text-sm">No X profile</p>
+                <div className="text-center text-gray-400 text-sm">No X Profile</div>
               )}
-              <div className="flex justify-center gap-2">
+              <div className="mt-4 flex gap-2">
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" className="flex-1">
                       Edit
                     </Button>
                   </DialogTrigger>
@@ -256,6 +248,7 @@ export default function BlogAuthors() {
                   variant="destructive"
                   size="sm"
                   onClick={() => handleDelete(author.id)}
+                  className="flex-1"
                 >
                   Delete
                 </Button>
@@ -264,6 +257,34 @@ export default function BlogAuthors() {
           ))}
         </div>
       )}
+
+      {authors.length === 0 && (
+        <Card className="p-8 text-center">
+          <h3 className="mb-2 font-semibold">No authors found</h3>
+          <p className="text-gray-600 mb-4">
+            Create your first author to get started.
+          </p>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Add First Author
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add New Author</DialogTitle>
+              </DialogHeader>
+              <AuthorForm 
+                author={{ id: '', title: '', avatar: '', xUrl: '' }} 
+                onSave={handleSave} 
+              />
+            </DialogContent>
+          </Dialog>
+        </Card>
+      )}
     </div>
   );
-}
+};
+
+export default BlogAuthors;
