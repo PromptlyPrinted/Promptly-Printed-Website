@@ -1,8 +1,9 @@
 'use client';
 
 import { env } from '@repo/env';
+import Image from 'next/image';
 import Link from 'next/link';
-import PromptlyLogoUrl from './PromptlyLogo.svg';
+import PromptlyLogo from './header/PromptlyLogo.svg';
 import { Facebook, Instagram, Twitter, Youtube, Mail, ShieldCheck, Globe, CreditCard } from 'lucide-react';
 
 const COLORS = {
@@ -60,8 +61,13 @@ export const Footer = () => {
             {/* Brand + value + status */}
             <div className="flex flex-col items-start gap-6">
               <div className="flex flex-col gap-3">
-                {/* Next/Image is fine too; keeping <img> since you already import the svg path */}
-                <img src={PromptlyLogoUrl as unknown as string} className="h-12 w-auto" alt="Promptly Printed logo" />
+                <Image
+                  src={PromptlyLogo}
+                  alt="Promptly Printed logo"
+                  width={256}
+                  height={256}
+                  className="h-80 w-80"
+                />
                 <p className="max-w-lg text-left text-white/80 text-lg leading-relaxed tracking-tight">
                   Creativity Promptly Delivered.
                 </p>
