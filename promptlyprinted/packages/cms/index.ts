@@ -19,6 +19,9 @@ const postFragment = fragmentOn('PostsItem', {
   },
   body: {
     plainText: true,
+    json: {
+      content: true,
+    },
   },
   authors: {
     _title: true,

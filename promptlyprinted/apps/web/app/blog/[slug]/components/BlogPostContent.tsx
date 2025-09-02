@@ -8,7 +8,7 @@ import { Share2, Linkedin, Facebook, Mail, Star, List, Clock, User } from 'lucid
 import { Button } from '@repo/design-system/components/ui/button';
 import { Input } from '@repo/design-system/components/ui/input';
 import { motion } from 'framer-motion';
-import { MDXContent, renderMarkdownContent } from './MDXContent';
+import { Body } from '@repo/cms/components/body';
 import { generateTableOfContents, calculateReadingTime, type TOCItem } from '../utils/generateTOC';
 
 const COLORS = {
@@ -19,12 +19,12 @@ const COLORS = {
 };
 
 interface BlogPost {
-  _slug: string;
-  _title: string;
+  slug: string;
+  title: string;
   description: string;
   image?: { url: string; alt: string | null; width?: number; height?: number };
   date?: string;
-  body?: { plainText: string };
+  plainTextContent?: string;
   readTime?: string;
   tags?: string[];
   author?: string;
@@ -32,9 +32,10 @@ interface BlogPost {
 
 interface BlogPostContentProps {
   post: BlogPost;
+  richContent?: any;
 }
 
-export default function BlogPostContent({ post }: BlogPostContentProps) {
+export default function BlogPostContent({ post, richContent }: BlogPostContentProps) {
   const [email, setEmail] = useState('');
   const [tableOfContents, setTableOfContents] = useState<TOCItem[]>([]);
   const [activeHeading, setActiveHeading] = useState('');
@@ -42,7 +43,7 @@ export default function BlogPostContent({ post }: BlogPostContentProps) {
 
   // Generate table of contents and reading time from content
   useEffect(() => {
-    const content = post.body?.plainText || post.description || '';
+    const content = post.plainTextContent || post.description || '';
     const toc = generateTableOfContents(content);
     const time = post.readTime || calculateReadingTime(content);
     
@@ -58,7 +59,7 @@ export default function BlogPostContent({ post }: BlogPostContentProps) {
 
   const shareOnSocial = (platform: string) => {
     const url = window.location.href;
-    const title = post._title;
+    const title = post.title;
     const text = post.description || '';
     
     switch (platform) {
@@ -150,7 +151,7 @@ export default function BlogPostContent({ post }: BlogPostContentProps) {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8, delay: 0.2 }}
                 >
-                  <Balancer>{post._title}</Balancer>
+                  <Balancer>{post.title}</Balancer>
                 </motion.h1>
                 
                 <motion.p 
@@ -194,7 +195,7 @@ export default function BlogPostContent({ post }: BlogPostContentProps) {
                   >
                     <img 
                       src={post.image.url} 
-                      alt={post.image.alt || post._title} 
+                      alt={post.image.alt || post.title} 
                       className="w-full max-w-4xl mx-auto h-60 sm:h-96 object-cover rounded-2xl shadow-2xl"
                       width={post.image.width || 800}
                       height={post.image.height || 400}
@@ -328,186 +329,19 @@ export default function BlogPostContent({ post }: BlogPostContentProps) {
             <div className="lg:col-span-3">
               <article className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="p-8 sm:p-12">
-                  <MDXContent>
-                    {(() => {
-                      // Safe content rendering with type checking
-                      if (post.body?.plainText && typeof post.body.plainText === 'string' && post.body.plainText.trim().length > 0) {
-                        return (
-                          <div 
-                            className="text-gray-700 leading-relaxed space-y-6"
-                            dangerouslySetInnerHTML={{ __html: renderMarkdownContent(post.body.plainText) }}
-                          />
-                        );
-                      } else if (post.description && typeof post.description === 'string') {
-                        return (
-                          <div 
-                            className="text-gray-700 leading-relaxed space-y-6"
-                            dangerouslySetInnerHTML={{ __html: renderMarkdownContent(post.description) }}
-                          />
-                        );
-                      } else {
-                        // Demo content with proper styling
-                        return (
-                          <div className="space-y-8">
-                            <div id="rewind-to-the-year-2000">
-                              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6 mt-12 leading-tight scroll-mt-24">Rewind to the year 2000</h2>
-                              
-                              <p className="text-lg leading-relaxed mb-6 text-gray-700">
-                                My school computer lab just upgraded to Windows 98. You dial up a travel agent to book your summer vacation. Finance teams are running on spreadsheets.
-                              </p>
-                              
-                              <p className="text-lg leading-relaxed mb-6 text-gray-700">
-                                Fast-forward to today. The same lab has kids writing software with AI agents. I can book a vacation with a few taps on my phone. Most finance teams? Still running on spreadsheets.
-                              </p>
-                              
-                              <p className="text-lg leading-relaxed mb-8 text-gray-700">
-                                So, what's the big rush? Well, how does any industry change?
-                              </p>
-                              
-                              <blockquote className="border-l-4 pl-6 py-4 mb-8 italic text-gray-600 text-lg leading-relaxed bg-gray-50 rounded-r-lg" style={{ borderColor: '#16C1A8' }}>
-                                <em>Gradually, then suddenly.</em>
-                              </blockquote>
-                              
-                              <p className="text-lg leading-relaxed mb-6 text-gray-700">
-                                Decades where nothing happens; months where decades happen.
-                              </p>
-                              
-                              <p className="text-lg leading-relaxed mb-8 text-gray-700">
-                                Three weeks ago we <a href="#" className="text-blue-600 underline hover:text-blue-800 transition-colors duration-200 font-medium">launched our first AI design agents</a>. Design teams at top companies have them working round the clock: creating variations, optimizing layouts, and generating custom apparel designs at scale.
-                              </p>
-                              
-                              <p className="text-lg leading-relaxed mb-6 text-gray-700">
-                                We used to train people to think like software. Now it's time for software to think like people: your most creative designers, brand strategists, and production experts.
-                              </p>
-                              
-                              <p className="text-lg leading-relaxed mb-8 text-gray-700">
-                                So, why are we expanding our AI capabilities so rapidly?
-                              </p>
-                              
-                              <p className="text-lg leading-relaxed text-gray-700">
-                                Because we're at a unique moment in custom design and manufacturing.
-                              </p>
-                            </div>
-
-                            <div className="bg-teal-50 rounded-xl p-8 my-12" id="autonomous-design-is-being-built-right-now">
-                              <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 mt-10 leading-tight scroll-mt-24">Autonomous design is being built right now</h3>
-                              <p className="text-lg leading-relaxed mb-6 text-gray-700">
-                                The way custom apparel businesses manage design, production, and fulfillment will continue to shift towards AI automation over the next few years.
-                              </p>
-                              
-                              <div className="space-y-4 text-lg mt-6">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-2 h-2 rounded-full bg-teal-500"></div>
-                                  <span className="font-semibold">Manual Design</span>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                  <div className="w-2 h-2 rounded-full bg-gray-400"></div>
-                                  <span>AI-Assisted Design</span>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                  <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                                  <span>Fully Autonomous Creation</span>
-                                </div>
-                              </div>
-                            </div>
-
-                            <div id="by-2026-agents-take-over-the-busywork">
-                              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6 mt-12 leading-tight scroll-mt-24">By 2026: AI agents take over the design busywork</h2>
-                              
-                              <p className="text-lg leading-relaxed mb-6 text-gray-700">
-                                Picture the most routine design task in your business: a customer wants a custom logo on a t-shirt for their company event.
-                              </p>
-                              
-                              <ol className="space-y-4 mb-8 text-lg pl-6">
-                                <li className="flex gap-4">
-                                  <span className="font-bold text-teal-600">1.</span>
-                                  <div className="text-gray-700">Customer describes their vision and uploads their logo: <strong>5 minutes</strong></div>
-                                </li>
-                                <li className="flex gap-4">
-                                  <span className="font-bold text-teal-600">2.</span>
-                                  <div className="text-gray-700">Designer reviews requirements and creates mockups: <strong>45 minutes</strong></div>
-                                </li>
-                                <li className="flex gap-4">
-                                  <span className="font-bold text-teal-600">3.</span>
-                                  <div className="text-gray-700">Back-and-forth revisions and file preparation: <strong>another 30 minutes</strong></div>
-                                </li>
-                              </ol>
-                              
-                              <p className="text-lg leading-relaxed mb-6 text-gray-700">
-                                That's 80 minutes and $150 in design costs for a simple logo placement. Scale that across hundreds of custom orders and your design team is overwhelmed.
-                              </p>
-                              
-                              <p className="text-lg leading-relaxed mb-8 text-gray-700">
-                                With Promptly Printed's AI design agents, all you have to do is describe your vision and our agent immediately starts creating professional designs, suggesting improvements, and preparing print-ready files.
-                              </p>
-                              
-                              <p className="text-lg leading-relaxed mb-6 text-gray-700">
-                                If you're using <a href="#" className="text-blue-600 underline hover:text-blue-800 transition-colors duration-200 font-medium">our AI design platform</a>, here's what you're already seeing:
-                              </p>
-                              
-                              <ul className="space-y-3 mb-8 text-lg pl-6">
-                                <li className="flex items-center gap-3">
-                                  <div className="w-2 h-2 rounded-full bg-teal-500"></div>
-                                  <span className="text-gray-700">Design teams? Creating 10x more custom designs per day</span>
-                                </li>
-                                <li className="flex items-center gap-3">
-                                  <div className="w-2 h-2 rounded-full bg-teal-500"></div>
-                                  <span className="text-gray-700">Our AI agents? Generating 50+ design variations in seconds</span>
-                                </li>
-                                <li className="flex items-center gap-3">
-                                  <div className="w-2 h-2 rounded-full bg-teal-500"></div>
-                                  <span className="text-gray-700">Your customers? Getting professional results without the wait</span>
-                                </li>
-                              </ul>
-                              
-                              <p className="text-lg leading-relaxed text-gray-700">
-                                This is the first of a suite of AI design agents coming in the next year.
-                              </p>
-                            </div>
-
-                            <div id="by-2027-design-starts-running-in-parallel" className="mt-16">
-                              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6 mt-12 leading-tight scroll-mt-24">By 2027: design starts running in parallel</h2>
-                              
-                              <p className="text-lg leading-relaxed mb-6 text-gray-700">
-                                Today, custom design runs in 'series'. You're so used to it, you hardly notice.
-                              </p>
-                              
-                              <p className="text-lg leading-relaxed mb-6 text-gray-700">
-                                Take something simple: creating a custom t-shirt design.
-                              </p>
-                              
-                              <ul className="space-y-4 mb-8 text-lg pl-6">
-                                <li className="flex gap-4">
-                                  <div className="w-2 h-2 rounded-full bg-gray-400 mt-3"></div>
-                                  <span className="text-gray-700">If you have an idea, then you sketch it out</span>
-                                </li>
-                                <li className="flex gap-4">
-                                  <div className="w-2 h-2 rounded-full bg-gray-400 mt-3"></div>
-                                  <span className="text-gray-700">If the sketch looks good, then you digitize it</span>
-                                </li>
-                                <li className="flex gap-4">
-                                  <div className="w-2 h-2 rounded-full bg-gray-400 mt-3"></div>
-                                  <span className="text-gray-700">If digital looks right, then you adjust colors and fonts</span>
-                                </li>
-                                <li className="flex gap-4">
-                                  <div className="w-2 h-2 rounded-full bg-gray-400 mt-3"></div>
-                                  <span className="text-gray-700">If colors work, then you prepare files for printing</span>
-                                </li>
-                              </ul>
-                              
-                              <p className="text-lg leading-relaxed mb-6 text-gray-700">
-                                It's a relay. Nothing moves until the previous step is completed. For as long as humans are doing the work this makes sense. Designers aren't going to waste time on printing prep until the design is approved.
-                              </p>
-                              
-                              <p className="text-lg leading-relaxed text-gray-700">
-                                But what if it's not humans doing the work? What if AI agents can work on all steps simultaneously, creating multiple variations and preparing them for production in real-time?
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      }
-                    })()}
-                  </MDXContent>
+                  <div className="prose prose-lg max-w-none">
+                    {richContent ? (
+                      <Body content={richContent} />
+                    ) : post.plainTextContent ? (
+                      <div className="text-gray-700 leading-relaxed space-y-6 whitespace-pre-line">
+                        {post.plainTextContent}
+                      </div>
+                    ) : (
+                      <div className="text-gray-600 text-center py-8">
+                        No content available.
+                      </div>
+                    )}
+                  </div>
                 </div>
               </article>
             </div>
