@@ -2,8 +2,7 @@
 
 import { cn } from '@repo/design-system/lib/utils';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { CalendarIcon, UserIcon, ArrowTrendingUpIcon, SparklesIcon } from '@heroicons/react/24/outline';
 import ThreeBackground from './ThreeBackground';
 import MostPopularPosts from './MostPopularPosts';
@@ -19,7 +18,6 @@ const COLORS = {
   white: '#FFFFFF',
 };
 
-const categories = ['All', 'Design', 'AI', 'Trends', 'Technology', 'Sustainability'];
 
 interface BlogPost {
   _slug: string;
@@ -37,26 +35,6 @@ interface AnimatedBlogContentProps {
   posts: BlogPost[];
 }
 
-const TagPill = ({ tag, isActive, onClick }: { tag: string; isActive: boolean; onClick: () => void }) => (
-  <motion.button
-    whileHover={{ scale: 1.05 }}
-    whileTap={{ scale: 0.95 }}
-    onClick={onClick}
-    className={cn(
-      'px-4 py-2 rounded-full text-sm font-semibold transition-all duration-300',
-      'border-2 backdrop-blur-sm',
-      isActive 
-        ? 'bg-gradient-to-r from-teal-500 to-orange-500 text-white border-transparent shadow-lg' 
-        : 'bg-white/80 text-navy-800 border-gray-200 hover:border-teal-300 hover:bg-teal-50'
-    )}
-    style={{
-      color: isActive ? COLORS.white : COLORS.navy,
-      borderColor: isActive ? 'transparent' : '#e5e7eb'
-    }}
-  >
-    {tag}
-  </motion.button>
-);
 
 const BlogCard = ({ post, index, featured = false }: { post: BlogPost; index: number; featured?: boolean }) => (
   <motion.div
@@ -189,16 +167,7 @@ const BlogCard = ({ post, index, featured = false }: { post: BlogPost; index: nu
 );
 
 export default function AnimatedBlogContent({ posts }: AnimatedBlogContentProps) {
-  const [activeCategory, setActiveCategory] = useState('All');
-  const [filteredPosts, setFilteredPosts] = useState(posts);
 
-  useEffect(() => {
-    if (activeCategory === 'All') {
-      setFilteredPosts(posts);
-    } else {
-      setFilteredPosts(posts.filter(post => post.tags?.includes(activeCategory)));
-    }
-  }, [activeCategory, posts]);
 
   return (
     <>
@@ -281,21 +250,6 @@ export default function AnimatedBlogContent({ posts }: AnimatedBlogContentProps)
               <span className="text-teal-400 font-semibold">Creativity Promptly Delivered.</span>
             </motion.p>
 
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.6 }}
-              className="flex flex-wrap justify-center gap-4"
-            >
-              {categories.map((category) => (
-                <TagPill
-                  key={category}
-                  tag={category}
-                  isActive={activeCategory === category}
-                  onClick={() => setActiveCategory(category)}
-                />
-              ))}
-            </motion.div>
           </motion.div>
         </div>
 
@@ -344,25 +298,21 @@ export default function AnimatedBlogContent({ posts }: AnimatedBlogContentProps)
           </motion.div>
 
           {/* Posts Grid */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeCategory}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5 }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
-            >
-              {filteredPosts.map((post, index) => (
-                <BlogCard
-                  key={post._slug}
-                  post={post}
-                  index={index}
-                  featured={false}
-                />
-              ))}
-            </motion.div>
-          </AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+          >
+            {posts.map((post, index) => (
+              <BlogCard
+                key={post._slug}
+                post={post}
+                index={index}
+                featured={false}
+              />
+            ))}
+          </motion.div>
 
           {/* View All Articles Link */}
           <motion.div
