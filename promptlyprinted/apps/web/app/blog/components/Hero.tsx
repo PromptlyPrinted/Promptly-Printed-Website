@@ -138,13 +138,18 @@ export default function Hero({
   imgAlt = "Custom AI-generated apparel mockup"
 }: HeroProps) {
   const [imageError, setImageError] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
   return (
     <section 
       aria-label="Blog hero" 
       className="relative w-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-900 overflow-hidden"
     >
       {/* Three.js Background */}
-      <ThreeBackground />
+      {isMounted && <ThreeBackground />}
       
       {/* Subtle radial overlay */}
       <div className="absolute inset-0 bg-radial-gradient from-slate-800/20 via-transparent to-transparent opacity-50" />
@@ -211,6 +216,19 @@ export default function Hero({
               className="pt-4"
             >
               <motion.button
+                onClick={() => {
+                  if (!isMounted || typeof window === 'undefined') return;
+                  
+                  const trendingSection = document.getElementById('trending-articles');
+                  if (trendingSection) {
+                    const rect = trendingSection.getBoundingClientRect();
+                    const offsetTop = window.pageYOffset + rect.top - 80; // Account for padding
+                    window.scrollTo({
+                      top: offsetTop,
+                      behavior: 'smooth'
+                    });
+                  }
+                }}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-teal-500 to-orange-500 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-teal-400/50 focus:ring-offset-2 focus:ring-offset-slate-900"
                 type="button"
                 aria-label="Explore blog posts"
@@ -267,7 +285,7 @@ export default function Hero({
                 ease: "easeInOut"
               }}
             >
-              {!imageError ? (
+              {isMounted && !imageError ? (
                 <motion.div
                   whileHover={{ 
                     rotateY: 5,
@@ -286,10 +304,14 @@ export default function Hero({
                     loading="eager"
                     priority
                     sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 40vw"
-                    onError={() => setImageError(true)}
+                    onError={() => {
+                      if (isMounted) {
+                        setImageError(true);
+                      }
+                    }}
                   />
                 </motion.div>
-              ) : (
+              ) : isMounted && imageError ? (
                 <motion.div 
                   className="w-full h-96 bg-gradient-to-br from-slate-800 to-slate-700 rounded-2xl flex items-center justify-center shadow-2xl shadow-slate-900/50 border border-slate-600/50"
                   whileHover={{ 
@@ -324,6 +346,16 @@ export default function Hero({
                     </motion.p>
                   </div>
                 </motion.div>
+              ) : (
+                // Fallback for SSR
+                <div className="w-full h-96 bg-gradient-to-br from-slate-800 to-slate-700 rounded-2xl flex items-center justify-center shadow-2xl shadow-slate-900/50 border border-slate-600/50">
+                  <div className="text-slate-400 text-center">
+                    <svg className="w-16 h-16 mx-auto mb-4 opacity-50" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+                    </svg>
+                    <p className="text-sm">Hero Image Placeholder</p>
+                  </div>
+                </div>
               )}
             </motion.div>
           </motion.div>

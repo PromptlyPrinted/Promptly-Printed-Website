@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import Link from 'next/link';
 import ThreeHero from './ThreeHero';
 import Toolbar from './Toolbar';
 import ArticleGrid from './ArticleGrid';
@@ -116,6 +117,26 @@ export default function AllArticlesContent({ articles, categories }: AllArticles
         title="All Articles"
         subtitle="Explore our latest insights on AI design, apparel trends, sustainable printing, and more."
       />
+
+      {/* Back Button */}
+      <div className="bg-white border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-4">
+          <Link 
+            href="/blog"
+            className="inline-flex items-center gap-2 text-slate-600 hover:text-teal-600 transition-colors duration-200 group"
+          >
+            <motion.svg 
+              className="w-4 h-4 group-hover:-translate-x-1 transition-transform duration-200" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </motion.svg>
+            <span className="font-medium">Back to Blog</span>
+          </Link>
+        </div>
+      </div>
 
       {/* Toolbar */}
       <Toolbar 

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { CalendarIcon, UserIcon, ArrowTrendingUpIcon, SparklesIcon } from '@heroicons/react/24/outline';
 import ThreeBackground from './ThreeBackground';
-import Hero from './Hero';
+import ClientOnlyHero from './ClientOnlyHero';
 import MostPopularPosts from './MostPopularPosts';
 import ProductUpdatesSection from './ProductUpdatesSection';
 import NewsletterSection from './NewsletterSection';
@@ -176,7 +176,7 @@ export default function AnimatedBlogContent({ posts }: AnimatedBlogContentProps)
       <ThreeBackground />
       
       {/* Hero Section */}
-      <Hero />
+      <ClientOnlyHero />
 
       {/* Company Ethos Quote Section (short + impactful) */}
       <CompanyEthosSection />
@@ -188,7 +188,7 @@ export default function AnimatedBlogContent({ posts }: AnimatedBlogContentProps)
       <ProductUpdatesSection />
 
       {/* Latest Posts + View All */}
-      <div className="py-20 bg-gray-50">
+      <div id="latest-posts" className="py-20 bg-gray-50">
         <div className="container mx-auto px-6">
           {/* Section Header */}
           <motion.div
@@ -231,7 +231,7 @@ export default function AnimatedBlogContent({ posts }: AnimatedBlogContentProps)
             viewport={{ once: true }}
             className="text-center mt-16"
           >
-            <Link href="/blog/all">
+            <Link href="/blog/all-articles">
               <motion.div
                 className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-white text-lg shadow-lg transition-all duration-300 hover:shadow-xl"
                 style={{ background: `linear-gradient(135deg, ${COLORS.teal} 0%, ${COLORS.orange} 100%)` }}

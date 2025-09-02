@@ -14,7 +14,7 @@ const description = 'Browse every article on AI-powered design, apparel trends, 
 export const metadata: Metadata = createMetadata({ 
   title, 
   description,
-  canonical: '/blog/all'
+  canonical: '/blog/all-articles'
 });
 
 
@@ -50,7 +50,7 @@ export default async function AllArticlesPage() {
         '@type': 'ListItem',
         position: 3,
         name: 'All Articles',
-        item: 'https://promptlyprinted.com/blog/all'
+        item: 'https://promptlyprinted.com/blog/all-articles'
       }
     ]
   };
@@ -165,7 +165,7 @@ export default async function AllArticlesPage() {
               '@type': 'CollectionPage',
               name: 'All Articles - Promptly Printed Blog',
               description: 'Browse every article on AI-powered design, apparel trends, sustainable printing, and more.',
-              url: 'https://promptlyprinted.com/blog/all',
+              url: 'https://promptlyprinted.com/blog/all-articles',
               mainEntity: {
                 '@type': 'ItemList',
                 numberOfItems: articles.length,

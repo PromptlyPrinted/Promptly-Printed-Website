@@ -56,6 +56,7 @@ export default function MostPopularPosts({ posts }: MostPopularPostsProps) {
 
   return (
     <motion.section
+      id="trending-articles"
       ref={sectionRef}
       className="py-20 bg-gray-50 overflow-hidden"
     >
@@ -308,7 +309,7 @@ export default function MostPopularPosts({ posts }: MostPopularPostsProps) {
           transition={{ duration: 0.6, delay: 0.6 }}
           viewport={{ once: true }}
         >
-          <Link href="/blog/all">
+          <Link href="/blog/all-articles">
             <motion.div
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:shadow-lg"
               style={{
