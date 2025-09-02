@@ -315,22 +315,16 @@ export default function AnimatedBlogContent({ posts }: AnimatedBlogContentProps)
         </motion.div>
       </div>
 
-      {/* Most Popular Posts Section */}
-      <MostPopularPosts posts={posts} />
-
-      {/* Latest Product Updates Section */}
-      <ProductUpdatesSection />
-
-      {/* Company Ethos Quote Section */}
+      {/* Company Ethos Quote Section (short + impactful) */}
       <CompanyEthosSection />
 
-      {/* Newsletter Section */}
-      <NewsletterSection />
+      {/* Most Popular / Trending Articles */}
+      <MostPopularPosts posts={posts} />
 
-      {/* Start Designing CTA */}
-      <StartDesigningCTA />
+      {/* Latest Releases (Product Updates) */}
+      <ProductUpdatesSection />
 
-      {/* Blog Posts Grid */}
+      {/* Latest Posts + View All */}
       <div className="py-20 bg-gray-50">
         <div className="container mx-auto px-6">
           {/* Section Header */}
@@ -343,7 +337,7 @@ export default function AnimatedBlogContent({ posts }: AnimatedBlogContentProps)
           >
             <h2 className="text-4xl md:text-5xl font-black mb-4"
                 style={{ color: COLORS.navy }}>
-              All Articles
+              Latest Posts
             </h2>
             <div className="w-24 h-1 mx-auto rounded-full"
                  style={{ background: `linear-gradient(135deg, ${COLORS.teal} 0%, ${COLORS.orange} 100%)` }} />
@@ -397,6 +391,12 @@ export default function AnimatedBlogContent({ posts }: AnimatedBlogContentProps)
           </motion.div>
         </div>
       </div>
+
+      {/* Newsletter Signup */}
+      <NewsletterSection />
+
+      {/* Strong CTA: Start Designing */}
+      <StartDesigningCTA />
     </>
   );
 }
