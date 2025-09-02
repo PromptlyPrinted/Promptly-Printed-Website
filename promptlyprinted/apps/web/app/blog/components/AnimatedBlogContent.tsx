@@ -5,6 +5,12 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CalendarIcon, UserIcon, ArrowTrendingUpIcon, SparklesIcon } from '@heroicons/react/24/outline';
+import ThreeBackground from './ThreeBackground';
+import MostPopularPosts from './MostPopularPosts';
+import ProductUpdatesSection from './ProductUpdatesSection';
+import NewsletterSection from './NewsletterSection';
+import CompanyEthosSection from './CompanyEthosSection';
+import StartDesigningCTA from './StartDesigningCTA';
 
 const COLORS = {
   navy: '#0D2C45',
@@ -196,6 +202,9 @@ export default function AnimatedBlogContent({ posts }: AnimatedBlogContentProps)
 
   return (
     <>
+      {/* Three.js Background */}
+      <ThreeBackground />
+      
       {/* Hero Section */}
       <div className="relative min-h-screen flex items-center justify-center overflow-hidden"
            style={{ background: `linear-gradient(135deg, ${COLORS.navy} 0%, #1a4055 50%, ${COLORS.navy} 100%)` }}>
@@ -306,6 +315,21 @@ export default function AnimatedBlogContent({ posts }: AnimatedBlogContentProps)
         </motion.div>
       </div>
 
+      {/* Most Popular Posts Section */}
+      <MostPopularPosts posts={posts} />
+
+      {/* Latest Product Updates Section */}
+      <ProductUpdatesSection />
+
+      {/* Company Ethos Quote Section */}
+      <CompanyEthosSection />
+
+      {/* Newsletter Section */}
+      <NewsletterSection />
+
+      {/* Start Designing CTA */}
+      <StartDesigningCTA />
+
       {/* Blog Posts Grid */}
       <div className="py-20 bg-gray-50">
         <div className="container mx-auto px-6">
@@ -319,7 +343,7 @@ export default function AnimatedBlogContent({ posts }: AnimatedBlogContentProps)
           >
             <h2 className="text-4xl md:text-5xl font-black mb-4"
                 style={{ color: COLORS.navy }}>
-              Latest Articles
+              All Articles
             </h2>
             <div className="w-24 h-1 mx-auto rounded-full"
                  style={{ background: `linear-gradient(135deg, ${COLORS.teal} 0%, ${COLORS.orange} 100%)` }} />
@@ -340,13 +364,13 @@ export default function AnimatedBlogContent({ posts }: AnimatedBlogContentProps)
                   key={post._slug}
                   post={post}
                   index={index}
-                  featured={post.featured}
+                  featured={false}
                 />
               ))}
             </motion.div>
           </AnimatePresence>
 
-          {/* Load More Button */}
+          {/* View All Articles Link */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -354,14 +378,22 @@ export default function AnimatedBlogContent({ posts }: AnimatedBlogContentProps)
             viewport={{ once: true }}
             className="text-center mt-16"
           >
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="px-8 py-4 rounded-full font-bold text-white text-lg shadow-lg transition-all duration-300 hover:shadow-xl"
-              style={{ background: `linear-gradient(135deg, ${COLORS.teal} 0%, ${COLORS.orange} 100%)` }}
-            >
-              Load More Articles
-            </motion.button>
+            <Link href="/blog/all">
+              <motion.div
+                className="inline-flex items-center gap-2 px-8 py-4 rounded-xl font-bold text-white text-lg shadow-lg transition-all duration-300 hover:shadow-xl"
+                style={{ background: `linear-gradient(135deg, ${COLORS.teal} 0%, ${COLORS.orange} 100%)` }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <span>View All Articles</span>
+                <motion.div
+                  animate={{ x: [0, 5, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                >
+                  →
+                </motion.div>
+              </motion.div>
+            </Link>
           </motion.div>
         </div>
       </div>
