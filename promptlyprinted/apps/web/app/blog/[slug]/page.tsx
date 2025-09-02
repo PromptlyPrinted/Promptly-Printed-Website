@@ -59,6 +59,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             notFound();
           }
 
+
           // Process the post data safely
           const safePost = {
             id: post._id || slug,

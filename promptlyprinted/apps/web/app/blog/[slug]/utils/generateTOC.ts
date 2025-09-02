@@ -5,6 +5,60 @@ export interface TOCItem {
 }
 
 /**
+ * Generate table of contents from Basehub rich content structure
+ */
+export function generateTableOfContentsFromRichContent(richContent: any[]): TOCItem[] {
+  if (!richContent || !Array.isArray(richContent)) {
+    return [];
+  }
+
+  const toc: TOCItem[] = [];
+
+  richContent.forEach((block) => {
+    // Check if this is a heading block - try different possible properties
+    if (
+      (block._type === 'heading' || block.type === 'heading' || block._type === 'h1' || block._type === 'h2' || block._type === 'h3') &&
+      (block.text || block.children || block.content)
+    ) {
+      const text = extractTextFromRichText(block.text || block.children || block.content);
+      const level = block.level || block.tag?.replace('h', '') || 1;
+      const id = generateSlug(text);
+      
+      toc.push({
+        id,
+        text,
+        level: parseInt(level.toString())
+      });
+    }
+  });
+  return toc;
+}
+
+/**
+ * Extract plain text from rich text structure
+ */
+function extractTextFromRichText(richText: any): string {
+  if (typeof richText === 'string') {
+    return richText;
+  }
+  
+  if (Array.isArray(richText)) {
+    return richText.map(extractTextFromRichText).join('');
+  }
+  
+  if (richText && typeof richText === 'object') {
+    if (richText.text) {
+      return richText.text;
+    }
+    if (richText.children) {
+      return extractTextFromRichText(richText.children);
+    }
+  }
+  
+  return '';
+}
+
+/**
  * Generate table of contents from markdown/HTML content
  */
 export function generateTableOfContents(content: string): TOCItem[] {

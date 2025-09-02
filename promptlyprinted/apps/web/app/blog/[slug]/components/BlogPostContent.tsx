@@ -3,19 +3,54 @@
 import { ArrowLeftIcon } from '@radix-ui/react-icons';
 import Link from 'next/link';
 import Balancer from 'react-wrap-balancer';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Share2, Linkedin, Facebook, Mail, Star, List, Clock, User } from 'lucide-react';
 import { Button } from '@repo/design-system/components/ui/button';
 import { Input } from '@repo/design-system/components/ui/input';
 import { motion } from 'framer-motion';
 import { Body } from '@repo/cms/components/body';
-import { generateTableOfContents, calculateReadingTime, type TOCItem } from '../utils/generateTOC';
+import { generateTableOfContents, generateTableOfContentsFromRichContent, calculateReadingTime, type TOCItem } from '../utils/generateTOC';
 
 const COLORS = {
   navy: '#0D2C45',
   teal: '#16C1A8', 
   orange: '#FF8A26',
   white: '#FFFFFF',
+};
+
+// Generate URL-friendly slug from text
+function generateSlug(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '') // Remove special characters
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with single
+    .trim();
+}
+
+// Component that adds IDs to headings in the rendered content
+const BodyWithHeadingIds = ({ content }: { content: any }) => {
+  const bodyRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    if (!bodyRef.current) return;
+    
+    // Find all headings and add IDs
+    const headings = bodyRef.current.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    
+    headings.forEach((heading) => {
+      const text = heading.textContent || '';
+      const id = generateSlug(text);
+      heading.id = id;
+      heading.classList.add('scroll-mt-24');
+    });
+  }, [content]);
+
+  return (
+    <div ref={bodyRef}>
+      <Body content={content} />
+    </div>
+  );
 };
 
 interface BlogPost {
@@ -43,13 +78,28 @@ export default function BlogPostContent({ post, richContent }: BlogPostContentPr
 
   // Generate table of contents and reading time from content
   useEffect(() => {
-    const content = post.plainTextContent || post.description || '';
-    const toc = generateTableOfContents(content);
-    const time = post.readTime || calculateReadingTime(content);
-    
-    setTableOfContents(toc);
+    const time = post.readTime || calculateReadingTime(post.plainTextContent || '');
     setReadingTime(time);
-  }, [post]);
+    
+    // We'll generate the TOC after the content is rendered and headings have IDs
+    // This ensures the TOC order matches the rendered heading order
+    setTimeout(() => {
+      const headings = document.querySelectorAll('.lg\\:col-span-3 h1, .lg\\:col-span-3 h2, .lg\\:col-span-3 h3, .lg\\:col-span-3 h4, .lg\\:col-span-3 h5, .lg\\:col-span-3 h6');
+      const toc: TOCItem[] = Array.from(headings).map((heading) => {
+        const text = heading.textContent || '';
+        const id = heading.id || generateSlug(text);
+        const level = parseInt(heading.tagName.replace('H', ''));
+        
+        return {
+          id,
+          text,
+          level
+        };
+      });
+      
+      setTableOfContents(toc);
+    }, 100); // Small delay to ensure content is rendered
+  }, [post, richContent]);
 
   const handleEmailSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -278,13 +328,36 @@ export default function BlogPostContent({ post, richContent }: BlogPostContentPr
                         href={`#${item.id}`}
                         onClick={(e) => {
                           e.preventDefault();
-                          const element = document.getElementById(item.id);
-                          if (element) {
-                            element.scrollIntoView({
-                              behavior: 'smooth',
-                              block: 'start'
+                          // Find all headings in the content area
+                          const headings = document.querySelectorAll('.lg\\:col-span-3 h1, .lg\\:col-span-3 h2, .lg\\:col-span-3 h3, .lg\\:col-span-3 h4, .lg\\:col-span-3 h5, .lg\\:col-span-3 h6');
+                          // Find the index of this TOC item
+                          const tocIndex = tableOfContents.findIndex(tocItem => tocItem.id === item.id);
+                          // Use the TOC index to get the corresponding rendered heading
+                          const targetHeading = headings[tocIndex];
+                          
+                          console.log('TOC Click Debug:', {
+                            clickedItem: item.text,
+                            tocIndex,
+                            totalHeadings: headings.length,
+                            targetHeading: targetHeading?.textContent,
+                            targetHeadingTag: targetHeading?.tagName
+                          });
+                          
+                          if (targetHeading) {
+                            // Get the heading's position
+                            const rect = targetHeading.getBoundingClientRect();
+                            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                            const targetY = rect.top + scrollTop - 100; // 100px offset for better visibility
+                            
+                            // Smooth scroll to the heading
+                            window.scrollTo({
+                              top: targetY,
+                              behavior: 'smooth'
                             });
+                            
                             setActiveHeading(item.id);
+                          } else {
+                            console.log('No target heading found!');
                           }
                         }}
                         className={`block text-sm hover:text-teal-600 hover:bg-teal-50 rounded-md px-3 py-2 transition-all duration-200 ${
@@ -300,26 +373,9 @@ export default function BlogPostContent({ post, richContent }: BlogPostContentPr
                       </a>
                     ))
                   ) : (
-                    <>
-                      <a
-                        href="#introduction"
-                        className="block text-sm text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md px-3 py-2 transition-all duration-200"
-                      >
-                        Introduction
-                      </a>
-                      <a
-                        href="#by-2026"
-                        className="block text-sm text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md px-3 py-2 transition-all duration-200 pl-6"
-                      >
-                        By 2026: Agents take over the busywork
-                      </a>
-                      <a
-                        href="#by-2027"
-                        className="block text-sm text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-md px-3 py-2 transition-all duration-200 pl-6"
-                      >
-                        By 2027: Finance starts running in parallel
-                      </a>
-                    </>
+                    <div className="text-sm text-gray-500 px-3 py-2">
+                      No headings found in this article.
+                    </div>
                   )}
                 </nav>
               </div>
@@ -329,19 +385,32 @@ export default function BlogPostContent({ post, richContent }: BlogPostContentPr
             <div className="lg:col-span-3">
               <article className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="p-8 sm:p-12">
-                  <div className="prose prose-lg max-w-none">
-                    {richContent ? (
-                      <Body content={richContent} />
-                    ) : post.plainTextContent ? (
+                  {richContent ? (
+                    <div className="prose prose-lg prose-slate max-w-none
+                      prose-headings:text-gray-900 prose-headings:font-bold
+                      prose-p:text-gray-700 prose-p:leading-relaxed prose-p:mb-6
+                      prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-800
+                      prose-strong:text-gray-900 prose-strong:font-semibold
+                      prose-ul:my-6 prose-ol:my-6 prose-li:my-2
+                      prose-blockquote:border-l-4 prose-blockquote:border-teal-500 prose-blockquote:bg-teal-50 prose-blockquote:p-6 prose-blockquote:my-8
+                      prose-code:bg-slate-100 prose-code:text-slate-800 prose-code:px-2 prose-code:py-1 prose-code:rounded
+                      prose-pre:bg-slate-900 prose-pre:text-slate-100 prose-pre:p-6 prose-pre:rounded-xl
+                      prose-img:rounded-xl prose-img:shadow-lg prose-img:border prose-img:border-slate-200
+                      prose-hr:border-slate-200 prose-hr:my-12
+                    ">
+                      <BodyWithHeadingIds content={richContent} />
+                    </div>
+                  ) : post.plainTextContent ? (
+                    <div className="prose prose-lg prose-slate max-w-none">
                       <div className="text-gray-700 leading-relaxed space-y-6 whitespace-pre-line">
                         {post.plainTextContent}
                       </div>
-                    ) : (
-                      <div className="text-gray-600 text-center py-8">
-                        No content available.
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <div className="text-gray-600 text-center py-8">
+                      No content available.
+                    </div>
+                  )}
                 </div>
               </article>
             </div>
