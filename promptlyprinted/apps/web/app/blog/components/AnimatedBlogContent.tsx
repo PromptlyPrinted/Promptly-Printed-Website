@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { CalendarIcon, UserIcon, ArrowTrendingUpIcon, SparklesIcon } from '@heroicons/react/24/outline';
 import ThreeBackground from './ThreeBackground';
+import Hero from './Hero';
 import MostPopularPosts from './MostPopularPosts';
 import ProductUpdatesSection from './ProductUpdatesSection';
 import NewsletterSection from './NewsletterSection';
@@ -175,99 +176,7 @@ export default function AnimatedBlogContent({ posts }: AnimatedBlogContentProps)
       <ThreeBackground />
       
       {/* Hero Section */}
-      <div className="relative min-h-screen flex items-center justify-center overflow-hidden"
-           style={{ background: `linear-gradient(135deg, ${COLORS.navy} 0%, #1a4055 50%, ${COLORS.navy} 100%)` }}>
-        
-        {/* Animated Background */}
-        <div className="absolute inset-0">
-          <motion.div
-            animate={{ 
-              rotate: [0, 360],
-              scale: [1, 1.1, 1]
-            }}
-            transition={{ 
-              duration: 20,
-              repeat: Infinity,
-              ease: "linear"
-            }}
-            className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full opacity-10"
-            style={{ background: `radial-gradient(circle, ${COLORS.teal} 0%, transparent 70%)` }}
-          />
-          <motion.div
-            animate={{ 
-              rotate: [360, 0],
-              scale: [1, 0.8, 1]
-            }}
-            transition={{ 
-              duration: 25,
-              repeat: Infinity,
-              ease: "linear"
-            }}
-            className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full opacity-10"
-            style={{ background: `radial-gradient(circle, ${COLORS.orange} 0%, transparent 70%)` }}
-          />
-        </div>
-
-        <div className="container mx-auto px-6 text-center relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-          >
-            <motion.h1 
-              className="text-5xl md:text-7xl font-black mb-6 leading-tight"
-              style={{ color: COLORS.white }}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-            >
-              The{' '}
-              <motion.span
-                className="bg-gradient-to-r bg-clip-text text-transparent"
-                style={{ backgroundImage: `linear-gradient(135deg, ${COLORS.teal} 0%, ${COLORS.orange} 100%)` }}
-                animate={{ 
-                  backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"]
-                }}
-                transition={{ 
-                  duration: 3,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-              >
-                Promptly Printed
-              </motion.span>
-              {' '}Blog
-            </motion.h1>
-
-            <motion.p 
-              className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.4 }}
-            >
-              Discover the latest in AI-powered design, custom apparel trends, and innovative printing techniques.
-              <br />
-              <span className="text-teal-400 font-semibold">Creativity Promptly Delivered.</span>
-            </motion.p>
-
-          </motion.div>
-        </div>
-
-        {/* Scroll Indicator */}
-        <motion.div
-          animate={{ y: [0, 10, 0] }}
-          transition={{ duration: 2, repeat: Infinity }}
-          className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
-        >
-          <div className="w-6 h-10 border-2 border-teal-400 rounded-full flex justify-center">
-            <motion.div
-              animate={{ y: [0, 12, 0] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="w-1 h-3 bg-teal-400 rounded-full mt-2"
-            />
-          </div>
-        </motion.div>
-      </div>
+      <Hero />
 
       {/* Company Ethos Quote Section (short + impactful) */}
       <CompanyEthosSection />
