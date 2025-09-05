@@ -182,16 +182,50 @@ export default function BlogPostContent({ post, richContent }: BlogPostContentPr
 
   return (
     <div className="min-h-screen modern-blog">
-      {/* Reading Progress Bar - Client Only */}
+      {/* Enhanced Reading Progress Bar - Client Only */}
       <ClientOnly>
-        <div className="reading-progress">
+        <div 
+          className="fixed top-0 left-0 w-full h-1 z-50 bg-gradient-to-r from-transparent via-slate-800/20 to-transparent"
+          style={{
+            background: 'linear-gradient(90deg, rgba(22, 193, 168, 0.1), rgba(255, 138, 38, 0.1))'
+          }}
+        >
           <motion.div 
-            className="reading-progress-bar"
-            style={{ width: `${readingProgress}%` }}
+            className="h-full bg-gradient-to-r from-teal-400 via-orange-400 to-teal-500 relative overflow-hidden"
+            style={{ 
+              width: `${readingProgress}%`,
+              background: 'linear-gradient(90deg, #16C1A8, #FF8A26, #4ECDC4)',
+              boxShadow: '0 0 20px rgba(22, 193, 168, 0.4)'
+            }}
             initial={{ width: 0 }}
-            animate={{ width: `${readingProgress}%` }}
-            transition={{ duration: 0.3 }}
-          />
+            animate={{ 
+              width: `${readingProgress}%`,
+              boxShadow: [
+                '0 0 20px rgba(22, 193, 168, 0.4)',
+                '0 0 30px rgba(255, 138, 38, 0.6)',
+                '0 0 20px rgba(22, 193, 168, 0.4)'
+              ]
+            }}
+            transition={{ 
+              width: { duration: 0.3, ease: "easeOut" },
+              boxShadow: { duration: 2, repeat: Infinity, ease: "easeInOut" }
+            }}
+          >
+            {/* Animated shimmer effect */}
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+              style={{ transform: 'translateX(-100%)' }}
+              animate={{ 
+                transform: readingProgress > 0 ? 'translateX(400%)' : 'translateX(-100%)'
+              }}
+              transition={{ 
+                duration: 1.5, 
+                repeat: readingProgress > 0 ? Infinity : 0,
+                repeatDelay: 2,
+                ease: "easeInOut"
+              }}
+            />
+          </motion.div>
         </div>
       </ClientOnly>
       {/* Header Section with Navbar style from blog page */}
