@@ -535,6 +535,84 @@ export default function BlogPostContent({ post, richContent }: BlogPostContentPr
                   </nav>
                 </ClientOnly>
               </motion.div>
+
+              {/* Newsletter Subscription */}
+              <motion.div 
+                className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 shadow-lg border border-slate-700 hover:shadow-xl transition-all duration-300 relative overflow-hidden"
+                style={{ 
+                  background: `linear-gradient(135deg, ${COLORS.promptlyBlue} 0%, ${COLORS.darkNavy} 100%)`,
+                  boxShadow: `0 10px 40px rgba(22, 193, 168, 0.15)` 
+                }}
+                whileHover={{ scale: 1.02 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ type: "spring", stiffness: 300, delay: 0.4 }}
+              >
+                {/* Animated background accent */}
+                <motion.div 
+                  className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r"
+                  style={{ 
+                    background: `linear-gradient(90deg, ${COLORS.promptlyTeal}, ${COLORS.promptlyOrange})` 
+                  }}
+                  initial={{ scaleX: 0 }}
+                  animate={{ scaleX: 1 }}
+                  transition={{ duration: 1, delay: 0.6 }}
+                />
+
+                <div className="relative">
+                  <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                    <motion.div
+                      animate={{ rotate: [0, 360] }}
+                      transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                    >
+                      <Mail className="w-5 h-5" style={{ color: COLORS.promptlyTeal }} />
+                    </motion.div>
+                    Stay Updated
+                  </h3>
+                  
+                  <p className="text-gray-300 text-sm mb-4 leading-relaxed">
+                    Get the latest insights on business growth, marketing strategies, and industry trends delivered straight to your inbox.
+                  </p>
+                  
+                  <form onSubmit={handleEmailSubmit} className="space-y-3">
+                    <div className="relative">
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Enter your email address"
+                        className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200"
+                        required
+                      />
+                    </div>
+                    
+                    <motion.button
+                      type="submit"
+                      className="w-full py-3 px-4 bg-gradient-to-r font-semibold text-white rounded-lg shadow-lg transition-all duration-200 flex items-center justify-center gap-2"
+                      style={{ 
+                        background: `linear-gradient(135deg, ${COLORS.promptlyTeal} 0%, ${COLORS.promptlyOrange} 100%)` 
+                      }}
+                      whileHover={{ 
+                        scale: 1.02,
+                        boxShadow: `0 8px 25px rgba(22, 193, 168, 0.3)` 
+                      }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <span>Subscribe Now</span>
+                      <motion.div
+                        animate={{ x: [0, 4, 0] }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                      >
+                        →
+                      </motion.div>
+                    </motion.button>
+                  </form>
+                  
+                  <p className="text-xs text-gray-400 mt-3 text-center">
+                    No spam, unsubscribe at any time.
+                  </p>
+                </div>
+              </motion.div>
             </motion.div>
 
             {/* Main Content */}
