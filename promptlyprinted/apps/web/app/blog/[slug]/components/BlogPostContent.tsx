@@ -13,6 +13,15 @@ import { generateTableOfContents, generateTableOfContentsFromRichContent, calcul
 import ClientOnly from './ClientOnly';
 
 const COLORS = {
+  // Official Brand Colors from Logo
+  promptlyTeal: '#16C1A8',     // Primary vibrant cyan
+  promptlyOrange: '#FF8A26',   // Energetic secondary color  
+  promptlyBlue: '#0D2C45',     // Deep navy for high-contrast text
+  neutralWhite: '#FFFFFF',     // Clean white for emphasis
+  lightGray: '#E2E8F0',        // Soft off-white for body text
+  darkGray: '#334155',         // Background for code blocks
+  
+  // Legacy aliases for existing code
   navy: '#0D2C45',
   teal: '#16C1A8', 
   orange: '#FF8A26',
@@ -48,8 +57,7 @@ const BodyWithHeadingIds = ({ content }: { content: any }) => {
       // Set ID
       heading.id = id;
       
-      // Add scroll margin for better navigation
-      (heading as HTMLElement).style.scrollMarginTop = '100px';
+      // ID added for navigation - scroll offset handled in TOC onClick
     });
   }, [content]);
 
@@ -108,7 +116,7 @@ export default function BlogPostContent({ post, richContent }: BlogPostContentPr
       setTableOfContents(toc);
     }, 100);
 
-    // Reading progress tracker
+    // Reading progress tracker and active section detection
     const handleScroll = () => {
       const article = document.querySelector('article');
       if (!article) return;
@@ -120,6 +128,25 @@ export default function BlogPostContent({ post, richContent }: BlogPostContentPr
       const scrollPercentRounded = Math.round(scrollPercent * 100);
       
       setReadingProgress(Math.min(100, Math.max(0, scrollPercentRounded)));
+
+      // Update active heading based on scroll position
+      const headings = document.querySelectorAll('article h1, article h2, article h3, article h4, article h5, article h6');
+      let activeId = '';
+      
+      for (let i = headings.length - 1; i >= 0; i--) {
+        const heading = headings[i];
+        const rect = heading.getBoundingClientRect();
+        
+        // If heading is above the viewport center, it's the active one
+        if (rect.top <= 150) {
+          activeId = heading.id;
+          break;
+        }
+      }
+      
+      if (activeId && activeId !== activeHeading) {
+        setActiveHeading(activeId);
+      }
     };
 
     window.addEventListener('scroll', handleScroll);
@@ -358,7 +385,7 @@ export default function BlogPostContent({ post, richContent }: BlogPostContentPr
             >
               {/* Social Sharing */}
               <motion.div 
-                className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300"
+                className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300"
                 style={{ boxShadow: `0 10px 40px rgba(22, 193, 168, 0.1)` }}
                 whileHover={{ scale: 1.02 }}
                 transition={{ type: "spring", stiffness: 300 }}
@@ -413,7 +440,7 @@ export default function BlogPostContent({ post, richContent }: BlogPostContentPr
 
               {/* Table of Contents */}
               <motion.div 
-                className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300"
+                className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300"
                 style={{ boxShadow: `0 10px 40px rgba(255, 138, 38, 0.1)` }}
                 whileHover={{ scale: 1.02 }}
                 transition={{ type: "spring", stiffness: 300 }}
@@ -436,57 +463,22 @@ export default function BlogPostContent({ post, richContent }: BlogPostContentPr
                           onClick={(e) => {
                             e.preventDefault();
                             
-                            console.log('Clicking TOC item:', item.text, 'ID:', item.id);
-                            
-                            // Try to find the target element
+                            // Find the target element
                             const targetElement = document.getElementById(item.id);
-                            console.log('Found element:', targetElement);
                             
                             if (targetElement) {
-                              console.log('Element tag:', targetElement.tagName, 'Text:', targetElement.textContent);
-                              
                               // Get the element's position
                               const rect = targetElement.getBoundingClientRect();
                               const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-                              
-                              // Try different offset values to ensure the heading is visible
-                              const offset = 200; // Increased offset
-                              const targetY = rect.top + scrollTop - offset;
-                              
-                              console.log('Current scroll:', scrollTop, 'Target scroll:', targetY, 'Offset used:', offset);
+                              const targetY = rect.top + scrollTop - 170; // 170px offset for better visibility
                               
                               // Scroll to position with offset
                               window.scrollTo({
-                                top: Math.max(0, targetY), // Ensure we don't scroll to negative position
+                                top: Math.max(0, targetY),
                                 behavior: 'smooth'
                               });
                               
                               setActiveHeading(item.id);
-                            } else {
-                              // If getElementById fails, try finding by text content
-                              console.log('getElementById failed, trying alternative method');
-                              const allHeadings = document.querySelectorAll('article h1, article h2, article h3, article h4, article h5, article h6');
-                              console.log('Found headings:', allHeadings.length);
-                              
-                              const matchingHeading = Array.from(allHeadings).find(h => 
-                                h.textContent?.trim() === item.text.trim()
-                              );
-                              
-                              if (matchingHeading) {
-                                console.log('Found matching heading by text:', matchingHeading.textContent);
-                                const rect = matchingHeading.getBoundingClientRect();
-                                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-                                const targetY = rect.top + scrollTop - 200;
-                                
-                                window.scrollTo({
-                                  top: Math.max(0, targetY),
-                                  behavior: 'smooth'
-                                });
-                                
-                                setActiveHeading(item.id);
-                              } else {
-                                console.log('No matching heading found');
-                              }
                             }
                           }}
                           className={`block text-sm hover:text-teal-600 hover:bg-teal-50 rounded-md px-3 py-2 transition-all duration-200 ${
@@ -519,7 +511,7 @@ export default function BlogPostContent({ post, richContent }: BlogPostContentPr
               transition={{ duration: 0.8, delay: 1.4 }}
             >
               <motion.article 
-                className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-500"
+                className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-500"
                 style={{ boxShadow: `0 20px 60px rgba(13, 44, 69, 0.15)` }}
                 whileHover={{ y: -5 }}
                 transition={{ type: "spring", stiffness: 300 }}
@@ -542,21 +534,33 @@ export default function BlogPostContent({ post, richContent }: BlogPostContentPr
                         prose-hr:my-12 prose-hr:border-gray-200
                       "
                       style={{
-                        ['--tw-prose-headings' as any]: COLORS.navy,
-                        ['--tw-prose-h2-border-color' as any]: COLORS.teal,
-                        ['--tw-prose-links' as any]: COLORS.teal,
-                        ['--tw-prose-code' as any]: COLORS.navy,
-                        ['--tw-prose-code-bg' as any]: `${COLORS.teal}15`,
-                        ['--tw-prose-pre-bg' as any]: COLORS.navy,
-                        ['--tw-prose-pre-code' as any]: COLORS.white,
-                        ['--tw-prose-blockquotes' as any]: COLORS.navy,
-                        ['--tw-prose-quote-borders' as any]: COLORS.orange,
+                        // Official Brand Colors CSS Custom Properties
+                        ['--tw-prose-headings' as any]: COLORS.promptlyTeal,
+                        ['--tw-prose-links' as any]: COLORS.promptlyTeal,
+                        ['--tw-prose-body' as any]: COLORS.lightGray,
+                        ['--tw-prose-bold' as any]: COLORS.neutralWhite,
+                        
+                        // Code styling - fix the white text issue
+                        ['--tw-prose-code' as any]: COLORS.promptlyOrange,
+                        ['--tw-prose-pre-code' as any]: COLORS.promptlyBlue,
+                        ['--tw-prose-pre-bg' as any]: COLORS.darkGray,
+                        
+                        // Other elements
+                        ['--tw-prose-blockquotes' as any]: COLORS.lightGray,
+                        ['--tw-prose-quote-borders' as any]: COLORS.promptlyTeal,
+                        ['--tw-prose-hr' as any]: COLORS.promptlyOrange,
+                        
+                        // List markers
+                        ['--tw-prose-bullets' as any]: COLORS.promptlyTeal,
+                        ['--tw-prose-counters' as any]: COLORS.promptlyTeal,
                       } as React.CSSProperties}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ duration: 1, delay: 1.8 }}
                     >
-                      <BodyWithHeadingIds content={richContent} />
+                      <ClientOnly>
+                        <BodyWithHeadingIds content={richContent} />
+                      </ClientOnly>
                     </motion.div>
                   ) : post.plainTextContent ? (
                     <div className="prose prose-lg prose-slate max-w-none">

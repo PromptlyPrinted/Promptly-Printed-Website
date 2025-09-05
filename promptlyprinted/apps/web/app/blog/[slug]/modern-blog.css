@@ -42,16 +42,40 @@
   outline-offset: 2px;
 }
 
-/* Better font smoothing */
+/* Better font smoothing and CSS custom properties */
 .modern-blog {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 
-/* Enhanced prose styles for better readability */
+/* Override Tailwind Prose CSS Custom Properties with Brand Colors */
+.prose {
+  --tw-prose-body: #E2E8F0;           /* Light Gray for body text */
+  --tw-prose-headings: #16C1A8;       /* Promptly Teal for headings */
+  --tw-prose-links: #16C1A8;          /* Promptly Teal for links */
+  --tw-prose-bold: #FFFFFF;           /* Neutral White for bold */
+  --tw-prose-counters: #16C1A8;       /* Promptly Teal for list numbers */
+  --tw-prose-bullets: #16C1A8;        /* Promptly Teal for bullet points */
+  --tw-prose-hr: #FF8A26;             /* Promptly Orange for horizontal rules */
+  --tw-prose-quotes: #E2E8F0;         /* Light Gray for quote text */
+  --tw-prose-quote-borders: #16C1A8;  /* Promptly Teal for quote borders */
+  --tw-prose-captions: #E2E8F0;       /* Light Gray for captions */
+  --tw-prose-kbd: #FFFFFF;            /* White for keyboard keys */
+  --tw-prose-kbd-shadows: #0D2C45;    /* Navy for kbd shadows */
+  --tw-prose-code: #FF8A26;           /* Promptly Orange for inline code */
+  --tw-prose-pre-code: #0D2C45;       /* Navy Blue for code block text */
+  --tw-prose-pre-bg: #334155;         /* Dark Gray for code block background */
+  --tw-prose-th-borders: #16C1A8;     /* Promptly Teal for table header borders */
+  --tw-prose-td-borders: rgba(22, 193, 168, 0.2); /* Light teal for table borders */
+  
+  /* Inline code background - ensure it's always visible */
+  --tw-prose-code-bg: #334155;        /* Dark Gray background for inline code */
+}
+
+/* Official Brand Color Markdown Hierarchy */
 .prose h1 {
-  color: #16C1A8 !important;
+  color: #16C1A8 !important; /* Promptly Teal for primary headings */
   font-weight: 900 !important;
   line-height: 1.1 !important;
   letter-spacing: -0.03em !important;
@@ -61,7 +85,7 @@
 }
 
 .prose h2 {
-  color: #0D2C45 !important;
+  color: #FF8A26 !important; /* Promptly Orange for subheadings */
   font-weight: 800 !important;
   line-height: 1.2 !important;
   letter-spacing: -0.025em !important;
@@ -76,7 +100,7 @@
 }
 
 .prose h3 {
-  color: #16C1A8 !important;
+  color: #FFFFFF !important; /* Neutral White for tertiary headings */
   font-weight: 700 !important;
   line-height: 1.3 !important;
   letter-spacing: -0.02em !important;
@@ -86,7 +110,7 @@
 }
 
 .prose h4 {
-  color: #0D2C45 !important;
+  color: #E2E8F0 !important; /* Light Gray for quaternary headings */
   font-weight: 600 !important;
   line-height: 1.3 !important;
   font-size: 1.25rem !important;
@@ -95,7 +119,7 @@
 }
 
 .prose h5 {
-  color: #16C1A8 !important;
+  color: #E2E8F0 !important; /* Light Gray, smaller size */
   font-weight: 600 !important;
   line-height: 1.3 !important;
   font-size: 1.125rem !important;
@@ -104,7 +128,7 @@
 }
 
 .prose h6 {
-  color: #0D2C45 !important;
+  color: #E2E8F0 !important; /* Light Gray, smallest size */
   font-weight: 600 !important;
   line-height: 1.3 !important;
   font-size: 1rem !important;
@@ -112,8 +136,9 @@
   margin-bottom: 0.5rem !important;
 }
 
+/* Links - Promptly Teal */
 .prose a {
-  color: #16C1A8 !important;
+  color: #16C1A8 !important; /* Promptly Teal for links */
   text-decoration: underline !important;
   text-underline-offset: 0.25rem !important;
   font-weight: 600 !important;
@@ -121,39 +146,56 @@
 }
 
 .prose a:hover {
-  color: #0D2C45 !important;
+  color: #4ECDC4 !important; /* Lighter teal on hover */
   text-decoration: none !important;
   background: linear-gradient(90deg, rgba(22, 193, 168, 0.1) 0%, rgba(255, 138, 38, 0.05) 100%) !important;
   padding: 0.125rem 0.25rem !important;
   border-radius: 0.25rem !important;
 }
 
+/* Paragraphs - Light Gray for readability */
 .prose p {
   font-size: 1.125rem !important;
   line-height: 1.8 !important;
-  color: #374151 !important;
+  color: #E2E8F0 !important; /* Light Gray for body text */
   margin-bottom: 1.5rem !important;
 }
 
+/* Emphasis Styles */
 .prose strong {
-  color: #0D2C45 !important;
+  color: #FFFFFF !important; /* Neutral White for bold text */
   font-weight: 700 !important;
 }
 
 .prose em {
-  color: #FF8A26 !important;
+  color: #E2E8F0 !important; /* Inherits surrounding color, italic style */
   font-style: italic !important;
 }
 
+/* Bold and Italic Combined */
+.prose strong em,
+.prose em strong {
+  color: #FFFFFF !important; /* Neutral White */
+  font-weight: 700 !important;
+  font-style: italic !important;
+}
+
+/* Blockquotes - Promptly Teal border */
 .prose blockquote {
-  border-left: 4px solid #FF8A26 !important;
-  background: linear-gradient(90deg, rgba(255, 138, 38, 0.05) 0%, transparent 100%) !important;
+  border-left: 4px solid #16C1A8 !important; /* Promptly Teal left border */
+  background: linear-gradient(90deg, rgba(22, 193, 168, 0.05) 0%, transparent 100%) !important;
   padding: 1.5rem !important;
   margin: 2rem 0 !important;
   font-style: italic !important;
-  color: #0D2C45 !important;
+  color: #E2E8F0 !important; /* Light Gray text inside blockquote */
   border-radius: 0 0.75rem 0.75rem 0 !important;
   position: relative !important;
+}
+
+/* Nested Blockquotes - Promptly Orange border */
+.prose blockquote blockquote {
+  border-left: 4px solid #FF8A26 !important; /* Promptly Orange for nested */
+  background: linear-gradient(90deg, rgba(255, 138, 38, 0.05) 0%, transparent 100%) !important;
 }
 
 .prose blockquote::before {
@@ -162,16 +204,16 @@
   top: -0.5rem !important;
   left: 1rem !important;
   font-size: 4rem !important;
-  color: #FF8A26 !important;
+  color: #16C1A8 !important; /* Promptly Teal for quote mark */
   font-family: serif !important;
   opacity: 0.3 !important;
 }
 
+/* Lists */
 .prose ul, .prose ol {
   margin: 1.5rem 0 !important;
-  padding-left: 1.5rem !important;
-  border-left: 2px solid rgba(22, 193, 168, 0.2) !important;
   padding-left: 2rem !important;
+  border-left: 2px solid rgba(22, 193, 168, 0.2) !important;
   background: rgba(22, 193, 168, 0.02) !important;
   border-radius: 0 0.5rem 0.5rem 0 !important;
   padding-top: 0.5rem !important;
@@ -182,18 +224,27 @@
   font-size: 1.125rem !important;
   line-height: 1.8 !important;
   margin: 0.5rem 0 !important;
-  color: #374151 !important;
+  color: #E2E8F0 !important; /* Light Gray for list text */
   position: relative !important;
 }
 
+/* List Markers */
 .prose ul li::marker {
-  color: #16C1A8 !important;
+  color: #16C1A8 !important; /* Promptly Teal for bullet points */
   font-weight: bold !important;
 }
 
 .prose ol li::marker {
-  color: #FF8A26 !important;
+  color: #16C1A8 !important; /* Promptly Teal for numbers */
   font-weight: bold !important;
+}
+
+/* Nested Lists - Orange markers for hierarchy */
+.prose ul ul li::marker,
+.prose ol ol li::marker,
+.prose ul ol li::marker,
+.prose ol ul li::marker {
+  color: #FF8A26 !important; /* Promptly Orange for nested lists */
 }
 
 .prose img {
@@ -209,26 +260,32 @@
   box-shadow: 0 25px 50px rgba(13, 44, 69, 0.2) !important;
 }
 
+/* Inline Code - Promptly Orange text on Dark Gray background */
 .prose code {
-  background: rgba(22, 193, 168, 0.15) !important;
-  color: #0D2C45 !important;
+  background: #334155 !important; /* Dark Gray background */
+  color: #FF8A26 !important; /* Promptly Orange text */
   padding: 0.3rem 0.6rem !important;
-  border-radius: 0.375rem !important;
+  border-radius: 0.375rem !important; /* Soft "pill" shape */
   font-size: 0.875rem !important;
   font-weight: 600 !important;
-  border: 1px solid rgba(22, 193, 168, 0.3) !important;
+  border: 1px solid rgba(255, 138, 38, 0.3) !important;
   font-family: 'Fira Code', 'Monaco', 'Consolas', monospace !important;
+  /* Ensure it doesn't inherit any conflicting styles */
+  text-shadow: none !important;
+  box-decoration-break: clone !important;
+  -webkit-box-decoration-break: clone !important;
 }
 
+/* Code Blocks - Dark Gray background with brand syntax highlighting */
 .prose pre {
-  background: #0D2C45 !important;
-  color: #FFFFFF !important;
+  background: #334155 !important; /* Dark Gray background */
+  color: #E2E8F0 !important; /* Light Gray default text */
   padding: 1.5rem !important;
   border-radius: 0.75rem !important;
   overflow-x: auto !important;
   margin: 2rem 0 !important;
-  border: 2px solid #16C1A8 !important;
-  box-shadow: 0 10px 30px rgba(13, 44, 69, 0.3) !important;
+  border: 2px solid #16C1A8 !important; /* Promptly Teal border */
+  box-shadow: 0 10px 30px rgba(51, 65, 85, 0.3) !important;
   position: relative !important;
 }
 
@@ -239,53 +296,108 @@
   left: 0 !important;
   right: 0 !important;
   height: 3px !important;
-  background: linear-gradient(90deg, #16C1A8, #FF8A26) !important;
+  background: linear-gradient(90deg, #16C1A8, #FF8A26) !important; /* Brand gradient */
   border-radius: 0.75rem 0.75rem 0 0 !important;
 }
 
 .prose pre code {
   background: none !important;
-  color: #FFFFFF !important;
+  color: #0D2C45 !important; /* Navy Blue for default code text */
   padding: 0 !important;
   border-radius: 0 !important;
   font-size: 0.875rem !important;
   border: none !important;
   font-family: 'Fira Code', 'Monaco', 'Consolas', monospace !important;
+  /* Override any inherited white color */
+  text-shadow: none !important;
 }
 
-/* Syntax highlighting within code blocks */
-.prose pre code .keyword {
-  color: #16C1A8 !important;
+/* Force inline code to never be white on white */
+.prose :not(pre) > code {
+  background: #334155 !important; /* Dark Gray background - always visible */
+  color: #FF8A26 !important; /* Promptly Orange text - never white */
+  padding: 0.3rem 0.6rem !important;
+  border-radius: 0.375rem !important;
+  font-weight: 600 !important;
+  border: 1px solid rgba(255, 138, 38, 0.3) !important;
+  font-family: 'Fira Code', 'Monaco', 'Consolas', monospace !important;
 }
 
-.prose pre code .string {
+/* Override any CSS that might make code white */
+.prose code:not(pre code) {
+  background: #334155 !important;
   color: #FF8A26 !important;
 }
 
-.prose pre code .comment {
-  color: #9CA3AF !important;
+/* High specificity override for any framework conflicts */
+article .prose code:not(pre code),
+.prose-lg code:not(pre code),
+.prose-slate code:not(pre code) {
+  background: #334155 !important;
+  color: #FF8A26 !important;
+}
+
+/* Ensure code blocks maintain proper contrast */
+.prose pre {
+  background: #334155 !important;
+}
+
+.prose pre code {
+  background: transparent !important;
+  color: #0D2C45 !important;
+}
+
+/* Brand Color Syntax Highlighting */
+.prose pre code .keyword,
+.prose pre code .token.keyword,
+.prose pre code .token.boolean,
+.prose pre code .token.function-name {
+  color: #16C1A8 !important; /* Promptly Teal for keywords */
+}
+
+.prose pre code .string,
+.prose pre code .token.string,
+.prose pre code .token.attr-value {
+  color: #FF8A26 !important; /* Promptly Orange for strings */
+}
+
+.prose pre code .number,
+.prose pre code .token.number,
+.prose pre code .token.boolean {
+  color: #FFA366 !important; /* Lighter orange for numbers */
+}
+
+.prose pre code .comment,
+.prose pre code .token.comment,
+.prose pre code .token.prolog,
+.prose pre code .token.doctype,
+.prose pre code .token.cdata {
+  color: #94A3B8 !important; /* Muted gray for comments */
   font-style: italic !important;
 }
 
-.prose pre code .number {
-  color: #FBBF24 !important;
+.prose pre code .function,
+.prose pre code .token.function {
+  color: #E2E8F0 !important; /* Light Gray for functions */
 }
 
-.prose pre code .function {
-  color: #60A5FA !important;
+.prose pre code .variable,
+.prose pre code .token.variable {
+  color: #E2E8F0 !important; /* Light Gray for variables */
 }
 
+/* Horizontal Rule - Promptly Orange */
 .prose hr {
   border: none !important;
-  height: 3px !important;
-  background: linear-gradient(90deg, #16C1A8, #FF8A26) !important;
+  height: 2px !important;
+  background: #FF8A26 !important; /* Promptly Orange horizontal rule */
   margin: 3rem 0 !important;
-  border-radius: 2px !important;
+  border-radius: 1px !important;
   opacity: 0.8 !important;
-  box-shadow: 0 2px 8px rgba(22, 193, 168, 0.2) !important;
+  box-shadow: 0 2px 8px rgba(255, 138, 38, 0.2) !important;
 }
 
-/* Table styles */
+/* Table styles - Brand color headers */
 .prose table {
   width: 100% !important;
   border-collapse: separate !important;
@@ -293,17 +405,17 @@
   margin: 2rem 0 !important;
   border-radius: 0.75rem !important;
   overflow: hidden !important;
-  box-shadow: 0 10px 25px rgba(13, 44, 69, 0.1) !important;
+  box-shadow: 0 10px 25px rgba(51, 65, 85, 0.1) !important;
   border: 1px solid rgba(22, 193, 168, 0.2) !important;
 }
 
 .prose table thead {
-  background: linear-gradient(135deg, #16C1A8, #4ECDC4) !important;
+  background: linear-gradient(135deg, #FF8A26, #FFA366) !important; /* Promptly Orange headers */
 }
 
 .prose table th {
   background: transparent !important;
-  color: #FFFFFF !important;
+  color: #FFFFFF !important; /* White text on orange background */
   font-weight: 700 !important;
   padding: 1rem 1.5rem !important;
   text-align: left !important;
@@ -322,13 +434,13 @@
 
 .prose table td {
   padding: 1rem 1.5rem !important;
-  color: #374151 !important;
+  color: #E2E8F0 !important; /* Light Gray for cell text */
   font-size: 0.9375rem !important;
   line-height: 1.6 !important;
 }
 
 .prose table tbody tr:nth-child(even) {
-  background: rgba(248, 250, 252, 0.5) !important;
+  background: rgba(226, 232, 240, 0.05) !important; /* Subtle alternating rows */
 }
 
 /* Keyboard key styles */
