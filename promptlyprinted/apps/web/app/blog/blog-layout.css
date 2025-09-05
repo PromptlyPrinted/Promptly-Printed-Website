@@ -1,0 +1,45 @@
+/* Modern Blog Layout Overrides */
+
+/* Full viewport blog layout */
+.modern-blog {
+  position: relative;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  min-height: 100vh;
+}
+
+/* Hero section takes full viewport */
+.blog-hero {
+  width: 100%;
+  position: relative;
+  z-index: 10;
+}
+
+/* Ensure proper spacing and positioning */
+.modern-blog .container {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+/* Override any inherited main styling */
+main:has(.modern-blog) {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Smooth scrolling for blog navigation */
+html:has(.modern-blog) {
+  scroll-behavior: smooth;
+}
+
+/* Text selection styling */
+.modern-blog ::selection {
+  background-color: #00F5D4;
+  color: #0A0A0A;
+}
+
+.modern-blog ::-moz-selection {
+  background-color: #00F5D4;
+  color: #0A0A0A;
+}

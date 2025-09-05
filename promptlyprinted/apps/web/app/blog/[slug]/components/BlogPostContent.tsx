@@ -10,12 +10,15 @@ import { Input } from '@repo/design-system/components/ui/input';
 import { motion } from 'framer-motion';
 import { Body } from '@repo/cms/components/body';
 import { generateTableOfContents, generateTableOfContentsFromRichContent, calculateReadingTime, type TOCItem } from '../utils/generateTOC';
+import ClientOnly from './ClientOnly';
 
 const COLORS = {
   navy: '#0D2C45',
   teal: '#16C1A8', 
   orange: '#FF8A26',
   white: '#FFFFFF',
+  lightTeal: '#4ECDC4',
+  darkNavy: '#0A1B2E',
 };
 
 // Generate URL-friendly slug from text
@@ -41,8 +44,12 @@ const BodyWithHeadingIds = ({ content }: { content: any }) => {
     headings.forEach((heading) => {
       const text = heading.textContent || '';
       const id = generateSlug(text);
+      
+      // Set ID
       heading.id = id;
-      heading.classList.add('scroll-mt-24');
+      
+      // Add scroll margin for better navigation
+      (heading as HTMLElement).style.scrollMarginTop = '100px';
     });
   }, [content]);
 
@@ -75,16 +82,17 @@ export default function BlogPostContent({ post, richContent }: BlogPostContentPr
   const [tableOfContents, setTableOfContents] = useState<TOCItem[]>([]);
   const [activeHeading, setActiveHeading] = useState('');
   const [readingTime, setReadingTime] = useState('');
+  const [readingProgress, setReadingProgress] = useState(0);
 
   // Generate table of contents and reading time from content
   useEffect(() => {
     const time = post.readTime || calculateReadingTime(post.plainTextContent || '');
     setReadingTime(time);
     
-    // We'll generate the TOC after the content is rendered and headings have IDs
-    // This ensures the TOC order matches the rendered heading order
+    // Generate TOC after content is rendered
     setTimeout(() => {
-      const headings = document.querySelectorAll('.lg\\:col-span-3 h1, .lg\\:col-span-3 h2, .lg\\:col-span-3 h3, .lg\\:col-span-3 h4, .lg\\:col-span-3 h5, .lg\\:col-span-3 h6');
+      const headings = document.querySelectorAll('article h1, article h2, article h3, article h4, article h5, article h6');
+      
       const toc: TOCItem[] = Array.from(headings).map((heading) => {
         const text = heading.textContent || '';
         const id = heading.id || generateSlug(text);
@@ -92,13 +100,30 @@ export default function BlogPostContent({ post, richContent }: BlogPostContentPr
         
         return {
           id,
-          text,
+          text: text.trim(),
           level
         };
       });
       
       setTableOfContents(toc);
-    }, 100); // Small delay to ensure content is rendered
+    }, 100);
+
+    // Reading progress tracker
+    const handleScroll = () => {
+      const article = document.querySelector('article');
+      if (!article) return;
+
+      const scrollTop = window.pageYOffset;
+      const docHeight = article.offsetHeight;
+      const winHeight = window.innerHeight;
+      const scrollPercent = scrollTop / (docHeight - winHeight);
+      const scrollPercentRounded = Math.round(scrollPercent * 100);
+      
+      setReadingProgress(Math.min(100, Math.max(0, scrollPercentRounded)));
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, [post, richContent]);
 
   const handleEmailSubmit = (e: React.FormEvent) => {
@@ -129,37 +154,92 @@ export default function BlogPostContent({ post, richContent }: BlogPostContentPr
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen modern-blog">
+      {/* Reading Progress Bar - Client Only */}
+      <ClientOnly>
+        <div className="reading-progress">
+          <motion.div 
+            className="reading-progress-bar"
+            style={{ width: `${readingProgress}%` }}
+            initial={{ width: 0 }}
+            animate={{ width: `${readingProgress}%` }}
+            transition={{ duration: 0.3 }}
+          />
+        </div>
+      </ClientOnly>
       {/* Header Section with Navbar style from blog page */}
-      <div className="relative overflow-hidden -mt-[1px]" style={{ background: `linear-gradient(135deg, ${COLORS.navy} 0%, #1a4055 100%)` }}>
+      <div className="relative overflow-hidden -mt-[1px]" style={{ background: `linear-gradient(135deg, ${COLORS.navy} 0%, ${COLORS.darkNavy} 100%)` }}>
         {/* Animated Background */}
         <div className="absolute inset-0">
+          {/* Floating geometric shapes */}
           <motion.div
             animate={{ 
               rotate: [0, 360],
-              scale: [1, 1.1, 1]
+              scale: [1, 1.2, 1],
+              x: [0, 50, 0],
+              y: [0, -30, 0]
             }}
             transition={{ 
               duration: 20,
               repeat: Infinity,
               ease: "linear"
             }}
-            className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full opacity-10"
+            className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full opacity-20"
             style={{ background: `radial-gradient(circle, ${COLORS.teal} 0%, transparent 70%)` }}
           />
           <motion.div
             animate={{ 
               rotate: [360, 0],
-              scale: [1, 0.8, 1]
+              scale: [1, 0.8, 1.1, 1],
+              x: [0, -40, 0],
+              y: [0, 60, 0]
             }}
             transition={{ 
               duration: 25,
               repeat: Infinity,
               ease: "linear"
             }}
-            className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full opacity-10"
+            className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full opacity-15"
             style={{ background: `radial-gradient(circle, ${COLORS.orange} 0%, transparent 70%)` }}
           />
+          <motion.div
+            animate={{ 
+              rotate: [0, -180, 0],
+              scale: [0.8, 1.3, 0.8],
+              x: [0, 80, 0],
+              y: [0, -50, 0]
+            }}
+            transition={{ 
+              duration: 30,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+            className="absolute top-1/2 right-1/3 w-64 h-64 rounded-full opacity-10"
+            style={{ background: `radial-gradient(circle, ${COLORS.lightTeal} 0%, transparent 60%)` }}
+          />
+          {/* Floating particles */}
+          {[...Array(8)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-3 h-3 rounded-full opacity-30"
+              style={{ 
+                background: i % 2 === 0 ? COLORS.teal : COLORS.orange,
+                left: `${20 + i * 10}%`,
+                top: `${30 + (i * 15) % 40}%`
+              }}
+              animate={{
+                y: [0, -30, 0],
+                opacity: [0.3, 0.8, 0.3],
+                scale: [0.8, 1.2, 0.8]
+              }}
+              transition={{
+                duration: 3 + i * 0.5,
+                repeat: Infinity,
+                delay: i * 0.3,
+                ease: "easeInOut"
+              }}
+            />
+          ))}
         </div>
 
         <div className="relative z-10">
@@ -224,15 +304,22 @@ export default function BlogPostContent({ post, richContent }: BlogPostContentPr
                     <User className="w-4 h-4" />
                     <span>{post.author || 'Promptly Printed Team'}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    <span>{new Date(post.date || new Date()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                  </div>
-                  {readingTime && (
+                  <ClientOnly fallback={
                     <div className="flex items-center gap-2">
-                      <span>{readingTime} read</span>
+                      <Clock className="w-4 h-4" />
+                      <span>Loading...</span>
                     </div>
-                  )}
+                  }>
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      <span>{new Date(post.date || new Date()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    </div>
+                    {readingTime && (
+                      <div className="flex items-center gap-2">
+                        <span>{readingTime} read</span>
+                      </div>
+                    )}
+                  </ClientOnly>
                 </motion.div>
 
                 {/* Hero Image */}
@@ -259,13 +346,23 @@ export default function BlogPostContent({ post, richContent }: BlogPostContentPr
       </div>
 
       {/* Main Content Area */}
-      <div className="bg-gray-50 min-h-screen">
+      <div className="min-h-screen" style={{ background: `linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)` }}>
         <div className="max-w-7xl mx-auto px-6 py-12">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
             {/* Left Sidebar */}
-            <div className="lg:col-span-1 space-y-8 lg:sticky lg:top-8 lg:self-start">
+            <motion.div 
+              className="lg:col-span-1 space-y-8 lg:sticky lg:top-8 lg:self-start"
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 1.2 }}
+            >
               {/* Social Sharing */}
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+              <motion.div 
+                className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300"
+                style={{ boxShadow: `0 10px 40px rgba(22, 193, 168, 0.1)` }}
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
                 <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                   <Share2 className="w-5 h-5" style={{ color: COLORS.teal }} />
                   Share this article
@@ -312,94 +409,155 @@ export default function BlogPostContent({ post, richContent }: BlogPostContentPr
                     Copy
                   </Button>
                 </div>
-              </div>
+              </motion.div>
 
               {/* Table of Contents */}
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+              <motion.div 
+                className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300"
+                style={{ boxShadow: `0 10px 40px rgba(255, 138, 38, 0.1)` }}
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
                 <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
                   <List className="w-5 h-5" style={{ color: COLORS.teal }} />
                   Contents
                 </h3>
-                <nav className="space-y-2">
-                  {tableOfContents.length > 0 ? (
-                    tableOfContents.map((item) => (
-                      <a
-                        key={item.id}
-                        href={`#${item.id}`}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          // Find all headings in the content area
-                          const headings = document.querySelectorAll('.lg\\:col-span-3 h1, .lg\\:col-span-3 h2, .lg\\:col-span-3 h3, .lg\\:col-span-3 h4, .lg\\:col-span-3 h5, .lg\\:col-span-3 h6');
-                          // Find the index of this TOC item
-                          const tocIndex = tableOfContents.findIndex(tocItem => tocItem.id === item.id);
-                          // Use the TOC index to get the corresponding rendered heading
-                          const targetHeading = headings[tocIndex];
-                          
-                          console.log('TOC Click Debug:', {
-                            clickedItem: item.text,
-                            tocIndex,
-                            totalHeadings: headings.length,
-                            targetHeading: targetHeading?.textContent,
-                            targetHeadingTag: targetHeading?.tagName
-                          });
-                          
-                          if (targetHeading) {
-                            // Get the heading's position
-                            const rect = targetHeading.getBoundingClientRect();
-                            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-                            const targetY = rect.top + scrollTop - 100; // 100px offset for better visibility
+                <ClientOnly fallback={
+                  <div className="text-sm text-gray-500 px-3 py-2">
+                    Loading contents...
+                  </div>
+                }>
+                  <nav className="space-y-2">
+                    {tableOfContents.length > 0 ? (
+                      tableOfContents.map((item) => (
+                        <a
+                          key={item.id}
+                          href={`#${item.id}`}
+                          onClick={(e) => {
+                            e.preventDefault();
                             
-                            // Smooth scroll to the heading
-                            window.scrollTo({
-                              top: targetY,
-                              behavior: 'smooth'
-                            });
+                            console.log('Clicking TOC item:', item.text, 'ID:', item.id);
                             
-                            setActiveHeading(item.id);
-                          } else {
-                            console.log('No target heading found!');
-                          }
-                        }}
-                        className={`block text-sm hover:text-teal-600 hover:bg-teal-50 rounded-md px-3 py-2 transition-all duration-200 ${
-                          activeHeading === item.id ? 'text-teal-600 bg-teal-50 font-medium' : 'text-gray-600'
-                        } ${
-                          item.level === 1 ? '' : 
-                          item.level === 2 ? 'pl-6' : 
-                          item.level === 3 ? 'pl-9' :
-                          'pl-12'
-                        }`}
-                      >
-                        {item.text}
-                      </a>
-                    ))
-                  ) : (
-                    <div className="text-sm text-gray-500 px-3 py-2">
-                      No headings found in this article.
-                    </div>
-                  )}
-                </nav>
-              </div>
-            </div>
+                            // Try to find the target element
+                            const targetElement = document.getElementById(item.id);
+                            console.log('Found element:', targetElement);
+                            
+                            if (targetElement) {
+                              console.log('Element tag:', targetElement.tagName, 'Text:', targetElement.textContent);
+                              
+                              // Get the element's position
+                              const rect = targetElement.getBoundingClientRect();
+                              const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                              
+                              // Try different offset values to ensure the heading is visible
+                              const offset = 200; // Increased offset
+                              const targetY = rect.top + scrollTop - offset;
+                              
+                              console.log('Current scroll:', scrollTop, 'Target scroll:', targetY, 'Offset used:', offset);
+                              
+                              // Scroll to position with offset
+                              window.scrollTo({
+                                top: Math.max(0, targetY), // Ensure we don't scroll to negative position
+                                behavior: 'smooth'
+                              });
+                              
+                              setActiveHeading(item.id);
+                            } else {
+                              // If getElementById fails, try finding by text content
+                              console.log('getElementById failed, trying alternative method');
+                              const allHeadings = document.querySelectorAll('article h1, article h2, article h3, article h4, article h5, article h6');
+                              console.log('Found headings:', allHeadings.length);
+                              
+                              const matchingHeading = Array.from(allHeadings).find(h => 
+                                h.textContent?.trim() === item.text.trim()
+                              );
+                              
+                              if (matchingHeading) {
+                                console.log('Found matching heading by text:', matchingHeading.textContent);
+                                const rect = matchingHeading.getBoundingClientRect();
+                                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                                const targetY = rect.top + scrollTop - 200;
+                                
+                                window.scrollTo({
+                                  top: Math.max(0, targetY),
+                                  behavior: 'smooth'
+                                });
+                                
+                                setActiveHeading(item.id);
+                              } else {
+                                console.log('No matching heading found');
+                              }
+                            }
+                          }}
+                          className={`block text-sm hover:text-teal-600 hover:bg-teal-50 rounded-md px-3 py-2 transition-all duration-200 ${
+                            activeHeading === item.id ? 'text-teal-600 bg-teal-50 font-medium' : 'text-gray-600'
+                          } ${
+                            item.level === 1 ? '' : 
+                            item.level === 2 ? 'pl-6' : 
+                            item.level === 3 ? 'pl-9' :
+                            'pl-12'
+                          }`}
+                        >
+                          {item.text}
+                        </a>
+                      ))
+                    ) : (
+                      <div className="text-sm text-gray-500 px-3 py-2">
+                        No headings found in this article.
+                      </div>
+                    )}
+                  </nav>
+                </ClientOnly>
+              </motion.div>
+            </motion.div>
 
             {/* Main Content */}
-            <div className="lg:col-span-3">
-              <article className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <motion.div 
+              className="lg:col-span-3"
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 1.4 }}
+            >
+              <motion.article 
+                className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-2xl transition-all duration-500"
+                style={{ boxShadow: `0 20px 60px rgba(13, 44, 69, 0.15)` }}
+                whileHover={{ y: -5 }}
+                transition={{ type: "spring", stiffness: 300 }}
+              >
                 <div className="p-8 sm:p-12">
                   {richContent ? (
-                    <div className="prose prose-lg prose-slate max-w-none
-                      prose-headings:text-gray-900 prose-headings:font-bold
-                      prose-p:text-gray-700 prose-p:leading-relaxed prose-p:mb-6
-                      prose-a:text-blue-600 prose-a:underline hover:prose-a:text-blue-800
-                      prose-strong:text-gray-900 prose-strong:font-semibold
-                      prose-ul:my-6 prose-ol:my-6 prose-li:my-2
-                      prose-blockquote:border-l-4 prose-blockquote:border-teal-500 prose-blockquote:bg-teal-50 prose-blockquote:p-6 prose-blockquote:my-8
-                      prose-code:bg-slate-100 prose-code:text-slate-800 prose-code:px-2 prose-code:py-1 prose-code:rounded
-                      prose-pre:bg-slate-900 prose-pre:text-slate-100 prose-pre:p-6 prose-pre:rounded-xl
-                      prose-img:rounded-xl prose-img:shadow-lg prose-img:border prose-img:border-slate-200
-                      prose-hr:border-slate-200 prose-hr:my-12
-                    ">
+                    <motion.div 
+                      className="prose prose-lg prose-slate max-w-none
+                        prose-headings:font-bold prose-headings:scroll-mt-24
+                        prose-h1:text-4xl prose-h1:mb-8 prose-h1:mt-0 
+                        prose-h2:text-3xl prose-h2:mb-6 prose-h2:mt-12 prose-h2:border-l-4 prose-h2:pl-6 prose-h2:py-2
+                        prose-h3:text-2xl prose-h3:mb-4 prose-h3:mt-8 
+                        prose-h4:text-xl prose-h4:mb-3 prose-h4:mt-6
+                        prose-p:text-gray-700 prose-p:leading-relaxed prose-p:mb-6 prose-p:text-lg
+                        prose-strong:font-semibold
+                        prose-ul:my-6 prose-ol:my-6 prose-li:my-2 prose-li:text-gray-700 prose-li:text-lg
+                        prose-code:text-sm prose-code:px-2 prose-code:py-1 prose-code:rounded prose-code:font-medium
+                        prose-pre:p-6 prose-pre:rounded-xl prose-pre:my-8
+                        prose-img:rounded-xl prose-img:shadow-xl prose-img:border prose-img:border-gray-200 prose-img:my-8
+                        prose-hr:my-12 prose-hr:border-gray-200
+                      "
+                      style={{
+                        ['--tw-prose-headings' as any]: COLORS.navy,
+                        ['--tw-prose-h2-border-color' as any]: COLORS.teal,
+                        ['--tw-prose-links' as any]: COLORS.teal,
+                        ['--tw-prose-code' as any]: COLORS.navy,
+                        ['--tw-prose-code-bg' as any]: `${COLORS.teal}15`,
+                        ['--tw-prose-pre-bg' as any]: COLORS.navy,
+                        ['--tw-prose-pre-code' as any]: COLORS.white,
+                        ['--tw-prose-blockquotes' as any]: COLORS.navy,
+                        ['--tw-prose-quote-borders' as any]: COLORS.orange,
+                      } as React.CSSProperties}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 1, delay: 1.8 }}
+                    >
                       <BodyWithHeadingIds content={richContent} />
-                    </div>
+                    </motion.div>
                   ) : post.plainTextContent ? (
                     <div className="prose prose-lg prose-slate max-w-none">
                       <div className="text-gray-700 leading-relaxed space-y-6 whitespace-pre-line">
@@ -412,8 +570,8 @@ export default function BlogPostContent({ post, richContent }: BlogPostContentPr
                     </div>
                   )}
                 </div>
-              </article>
-            </div>
+              </motion.article>
+            </motion.div>
           </div>
         </div>
       </div>
