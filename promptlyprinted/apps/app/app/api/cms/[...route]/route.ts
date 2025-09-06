@@ -28,17 +28,16 @@ const cleanImageUrl = (url: string | undefined): string => {
 
 // Helper functions for BaseHub Transaction API
 const getComponentId = (type: string): string => {
-  // Map your content types to their BaseHub component IDs
-  // You can find these in your BaseHub dashboard
+  // Map your content types to their BaseHub component IDs from the provided info
   switch (type) {
     case 'PostsItem':
       return '098a9d008bfe005e8f90b'; // Your blog post component ID
     case 'AuthorsItem':
-      return 'authors-component-id'; // Replace with actual ID
+      return '6a9d63d4ab4c97c85285b'; // AuthorsItem component ID
     case 'CategoriesItem':
-      return 'categories-component-id'; // Replace with actual ID
+      return '686372d34543bd3d6cf0f'; // CategoriesItem component ID 
     case 'LegalPagesItem':
-      return 'legal-pages-component-id'; // Replace with actual ID
+      return 'd28899dce992adbba4c73'; // LegalPagesItem component ID
     default:
       throw new Error(`Unknown type: ${type}`);
   }
@@ -95,6 +94,22 @@ const createValueObject = (type: string, data: any) => {
           value: data.xUrl || ''
         }
       };
+    case 'CategoriesItem':
+      return {}; // Categories only have title, no additional fields
+    case 'LegalPagesItem':
+      return {
+        description: {
+          type: 'text',
+          value: data.description || ''
+        },
+        body: {
+          type: 'rich-text',
+          value: {
+            format: 'markdown',
+            value: data.body || ''
+          }
+        }
+      };
     default:
       return {};
   }
@@ -127,10 +142,35 @@ const createUpdateValueObject = (data: any) => {
     };
   }
   
-  if (data.xUrl) {
+  if (data.xUrl !== undefined) {
     valueObj.xUrl = {
       type: 'text',
       value: data.xUrl
+    };
+  }
+  
+  if (data.image) {
+    valueObj.image = {
+      type: 'media',
+      value: {
+        url: cleanImageUrl(data.image),
+        fileName: data.imageFileName || 'blog-image.jpg',
+        alt: data.imageAlt || data.title || 'Blog post image'
+      }
+    };
+  }
+  
+  if (data.authors) {
+    valueObj.authors = {
+      type: 'reference',
+      value: data.authors
+    };
+  }
+  
+  if (data.categories) {
+    valueObj.categories = {
+      type: 'reference',
+      value: data.categories
     };
   }
   
@@ -295,42 +335,78 @@ const updateBaseHubBlock = async (blockId: string, data: any) => {
   console.log('Updating BaseHub block:', { blockId, data });
   
   try {
-    // Create proper transaction object for updates
-    const transaction: Transaction = {
-      autoCommit: `Updated block: ${data._title || data.title || blockId}`,
-      operations: [
-        {
-          type: 'update',
-          id: blockId,
-          title: data._title || data.title,
-          value: createUpdateValueObject(data)
-        }
-      ]
+    // Use the same fetch-based approach as create operation
+    const mutation = `
+      mutation Transaction($data: String!, $autoCommit: String) {
+        transaction(data: $data, autoCommit: $autoCommit)
+      }
+    `;
+    
+    const valueObject = createUpdateValueObject(data);
+    console.log('📋 Update value object created:', JSON.stringify(valueObject, null, 2));
+    
+    const transactionData = [{
+      type: "update",
+      id: blockId,
+      title: data._title || data.title,
+      value: valueObject
+    }];
+    
+    console.log('📤 Update transaction data:', JSON.stringify(transactionData, null, 2));
+    
+    const variables = {
+      data: JSON.stringify(transactionData),
+      autoCommit: `Updated block: ${data._title || data.title || blockId}`
     };
     
-    const result = await basehubWithAdmin.mutation({
-      transaction: {
-        __args: {
-          data: [{
-            type: "update",
-            id: blockId,
-            title: data._title || data.title,
-            value: createUpdateValueObject(data)
-          }],
-          autoCommit: `Updated block: ${data._title || data.title || blockId}`
-        }
-      }
+    console.log('🚀 Sending update to BaseHub:', { variables });
+    
+    // Use fetch to call BaseHub GraphQL API directly
+    const response = await fetch('https://api.basehub.com/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.BASEHUB_ADMIN_TOKEN}`
+      },
+      body: JSON.stringify({
+        query: mutation,
+        variables
+      })
     });
     
-    console.log('BaseHub update result:', result);
+    console.log('📨 Update response status:', response.status);
+    const result = await response.json();
+    console.log('✅ BaseHub update response:', JSON.stringify(result, null, 2));
     
-    if (result.transaction) {
-      return { success: true };
-    } else {
-      throw new Error('Transaction failed');
+    // Check for HTTP errors first
+    if (!response.ok) {
+      console.error('❌ BaseHub HTTP Error:', response.status, result);
+      throw new Error(`HTTP Error ${response.status}: ${JSON.stringify(result)}`);
     }
-  } catch (error) {
-    console.error('BaseHub update error:', error);
+    
+    // Check for GraphQL errors
+    if (result.errors && result.errors.length > 0) {
+      console.error('❌ BaseHub GraphQL Errors:', result.errors);
+      const errorMessages = result.errors.map((e: any) => e.message).join(', ');
+      throw new Error(`GraphQL Error: ${errorMessages}`);
+    }
+    
+    // Check for data existence
+    if (!result.data) {
+      console.error('❌ No data in response:', result);
+      throw new Error('No data returned from BaseHub');
+    }
+    
+    // Check for successful transaction
+    if (result.data.transaction) {
+      console.log('✅ BaseHub update successful:', result.data.transaction);
+      return { success: true, id: result.data.transaction };
+    } else {
+      console.error('❌ BaseHub unexpected response format:', result);
+      throw new Error('Update failed - no transaction ID returned');
+    }
+  } catch (error: any) {
+    console.error('❌ BaseHub update error:', error);
     
     // Fallback to temporary storage if BaseHub mutation fails
     Object.keys(tempStorage).forEach(key => {
@@ -349,37 +425,73 @@ const deleteBaseHubBlock = async (blockId: string) => {
   console.log('Deleting BaseHub block:', { blockId });
   
   try {
-    const transaction: Transaction = {
-      autoCommit: `Deleted block: ${blockId}`,
-      operations: [
-        {
-          type: 'delete',
-          id: blockId
-        }
-      ]
+    // Use the same fetch-based approach as create/update operations
+    const mutation = `
+      mutation Transaction($data: String!, $autoCommit: String) {
+        transaction(data: $data, autoCommit: $autoCommit)
+      }
+    `;
+    
+    const transactionData = [{
+      type: "delete",
+      id: blockId
+    }];
+    
+    console.log('📤 Delete transaction data:', JSON.stringify(transactionData, null, 2));
+    
+    const variables = {
+      data: JSON.stringify(transactionData),
+      autoCommit: `Deleted block: ${blockId}`
     };
     
-    const result = await basehubWithAdmin.mutation({
-      transaction: {
-        __args: {
-          data: [{
-            type: "delete",
-            id: blockId
-          }],
-          autoCommit: `Deleted block: ${blockId}`
-        }
-      }
+    console.log('🚀 Sending delete to BaseHub:', { variables });
+    
+    // Use fetch to call BaseHub GraphQL API directly
+    const response = await fetch('https://api.basehub.com/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.BASEHUB_ADMIN_TOKEN}`
+      },
+      body: JSON.stringify({
+        query: mutation,
+        variables
+      })
     });
     
-    console.log('BaseHub delete result:', result);
+    console.log('📨 Delete response status:', response.status);
+    const result = await response.json();
+    console.log('✅ BaseHub delete response:', JSON.stringify(result, null, 2));
     
-    if (result.transaction) {
-      return { success: true };
-    } else {
-      throw new Error('Transaction failed');
+    // Check for HTTP errors first
+    if (!response.ok) {
+      console.error('❌ BaseHub HTTP Error:', response.status, result);
+      throw new Error(`HTTP Error ${response.status}: ${JSON.stringify(result)}`);
     }
-  } catch (error) {
-    console.error('BaseHub delete error:', error);
+    
+    // Check for GraphQL errors
+    if (result.errors && result.errors.length > 0) {
+      console.error('❌ BaseHub GraphQL Errors:', result.errors);
+      const errorMessages = result.errors.map((e: any) => e.message).join(', ');
+      throw new Error(`GraphQL Error: ${errorMessages}`);
+    }
+    
+    // Check for data existence
+    if (!result.data) {
+      console.error('❌ No data in response:', result);
+      throw new Error('No data returned from BaseHub');
+    }
+    
+    // Check for successful transaction
+    if (result.data.transaction) {
+      console.log('✅ BaseHub delete successful:', result.data.transaction);
+      return { success: true, id: result.data.transaction };
+    } else {
+      console.error('❌ BaseHub unexpected response format:', result);
+      throw new Error('Delete failed - no transaction ID returned');
+    }
+  } catch (error: any) {
+    console.error('❌ BaseHub delete error:', error);
     
     // Fallback to temporary storage if BaseHub mutation fails
     Object.keys(tempStorage).forEach(key => {
@@ -743,7 +855,7 @@ export async function POST(
         break;
         
       case 'blog/authors':
-        result = await createBaseHubBlock('blog', 'AuthorsItem', {
+        result = await createBaseHubBlock('7e25ad2d3a6858416cc03', 'AuthorsItem', {
           _title: body.title,
           xUrl: body.xUrl,
           _slug: body.slug || body.title?.toLowerCase().replace(/\s+/g, '-') || `author-${Date.now()}`
@@ -751,14 +863,14 @@ export async function POST(
         break;
         
       case 'blog/categories':
-        result = await createBaseHubBlock('blog', 'CategoriesItem', {
+        result = await createBaseHubBlock('bc838b21983025e4787e8', 'CategoriesItem', {
           _title: body.title,
           _slug: body.slug || body.title?.toLowerCase().replace(/\s+/g, '-') || `category-${Date.now()}`
         });
         break;
         
       case 'legal/pages':
-        result = await createBaseHubBlock('legalPages', 'LegalPagesItem', {
+        result = await createBaseHubBlock('4fb1d29811dd190f056f2', 'LegalPagesItem', {
           _title: body.title,
           description: body.description,
           body: { plainText: body.body || '' },
