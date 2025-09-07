@@ -928,12 +928,14 @@ export async function PUT(
     
     switch (contentType) {
       case 'blog/posts':
+        console.log('📝 SERVER: Updating post with body:', body);
         updateData = {
           _title: body.title,
           description: body.description,
-          body: { plainText: body.body || '' },
+          body: body.body,
           date: body.date
         };
+        console.log('📋 SERVER: Posts updateData:', JSON.stringify(updateData, null, 2));
         break;
         
       case 'blog/authors':
