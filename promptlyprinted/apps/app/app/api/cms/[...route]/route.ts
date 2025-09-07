@@ -3,6 +3,8 @@ import { basehub, fragmentOn } from 'basehub';
 import { Transaction } from '@basehub/mutation-api-helpers';
 import { NextResponse } from 'next/server';
 
+console.log('🚀 CMS Route file loaded');
+
 // BaseHub client with admin token for mutations
 const basehubWithAdmin = basehub({
   token: process.env.BASEHUB_ADMIN_TOKEN || process.env.BASEHUB_TOKEN,
@@ -241,7 +243,7 @@ const createBaseHubBlock = async (parentId: string, type: string, data: any) => 
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.BASEHUB_ADMIN_TOKEN}`
+        'Authorization': `Bearer ${process.env.BASEHUB_ADMIN_TOKEN || process.env.BASEHUB_TOKEN}`
       },
       body: JSON.stringify({
         query: mutation,
@@ -366,7 +368,7 @@ const updateBaseHubBlock = async (blockId: string, data: any) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.BASEHUB_ADMIN_TOKEN}`
+        'Authorization': `Bearer ${process.env.BASEHUB_ADMIN_TOKEN || process.env.BASEHUB_TOKEN}`
       },
       body: JSON.stringify({
         query: mutation,
@@ -422,7 +424,7 @@ const updateBaseHubBlock = async (blockId: string, data: any) => {
 };
 
 const deleteBaseHubBlock = async (blockId: string) => {
-  console.log('Deleting BaseHub block:', { blockId });
+  console.log('🗑️ SERVER: Deleting BaseHub block:', { blockId });
   
   try {
     // Use the same fetch-based approach as create/update operations
@@ -451,7 +453,7 @@ const deleteBaseHubBlock = async (blockId: string) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.BASEHUB_ADMIN_TOKEN}`
+        'Authorization': `Bearer ${process.env.BASEHUB_ADMIN_TOKEN || process.env.BASEHUB_TOKEN}`
       },
       body: JSON.stringify({
         query: mutation,
@@ -569,6 +571,7 @@ const queries = {
     blog: {
       posts: {
         items: {
+          _id: true,
           _slug: true,
           _title: true,
           description: true,
@@ -581,6 +584,7 @@ const queries = {
     blog: {
       authors: {
         items: {
+          _id: true,
           _slug: true,
           _title: true,
           xUrl: true,
@@ -592,6 +596,7 @@ const queries = {
     blog: {
       categories: {
         items: {
+          _id: true,
           _slug: true,
           _title: true,
         },
@@ -686,7 +691,7 @@ function transformResponse(contentType: keyof typeof queries, response: any) {
   switch (contentType) {
     case 'blog/posts':
       return (response?.blog?.posts?.items || []).map((post: any) => ({
-        id: post._slug,
+        id: post._id,
         title: post._title,
         description: post.description,
         date: post.date,
@@ -705,14 +710,14 @@ function transformResponse(contentType: keyof typeof queries, response: any) {
       }));
     case 'blog/authors':
       return (response?.blog?.authors?.items || []).map((author: any) => ({
-        id: author._slug,
+        id: author._id,
         title: author._title,
         avatar: author.avatar?.url,
         xUrl: author.xUrl,
       }));
     case 'blog/categories':
       return (response?.blog?.categories?.items || []).map((category: any) => ({
-        id: category._slug,
+        id: category._id,
         title: category._title,
       }));
     case 'legal/pages':
@@ -980,24 +985,29 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ route: string[] }> }
 ) {
+  console.log('🗑️ SERVER: DELETE endpoint called');
   const session = await auth();
   if (!session?.userId) {
+    console.log('❌ SERVER: Unauthorized DELETE request');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
     const { route } = await params;
     const path = `/${route.join('/')}`;
+    console.log('🛣️ SERVER: DELETE path:', path);
     
-    // Get the ID from the path (e.g., /blog/posts/some-id)
+    // Get the ID from the path (e.g., /blog/posts/some-id) 
     const pathSegments = path.replace(/^\//, '').split('/');
-    const blockId = pathSegments[pathSegments.length - 1];
     const contentType = pathSegments.slice(0, 2).join('/');
+    const blockId = pathSegments[pathSegments.length - 1];
+    
+    console.log('📂 SERVER: Content type:', contentType);
+    console.log('🆔 SERVER: Block ID to delete:', blockId);
+    console.log('📍 SERVER: Path segments:', pathSegments);
     
     const result = await deleteBaseHubBlock(blockId);
-    
-    // Commit the changes
-    await commitChanges(`Deleted ${contentType}: ${blockId}`);
+    console.log('📋 SERVER: Delete result:', result);
     
     return NextResponse.json(result);
   } catch (error) {
