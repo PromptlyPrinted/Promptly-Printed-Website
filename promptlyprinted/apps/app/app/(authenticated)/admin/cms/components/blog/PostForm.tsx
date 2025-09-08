@@ -4,8 +4,17 @@ import { Button } from '@repo/design-system/components/ui/button';
 import { Input } from '@repo/design-system/components/ui/input';
 import { Label } from '@repo/design-system/components/ui/label';
 import { Textarea } from '@repo/design-system/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@repo/design-system/components/ui/select';
+import { Badge } from '@repo/design-system/components/ui/badge';
+import { X } from 'lucide-react';
 import type React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export interface Post {
   id: string;
@@ -15,6 +24,18 @@ export interface Post {
   date: string;
   slug?: string;
   image?: string;
+  authors?: Array<{ id: string; title: string }>;
+  categories?: Array<{ id: string; title: string }>;
+}
+
+interface Author {
+  id: string;
+  title: string;
+}
+
+interface Category {
+  id: string;
+  title: string;
 }
 
 interface PostFormProps {
@@ -31,9 +52,93 @@ export default function PostForm({ post, onSave }: PostFormProps) {
     date: post.date || new Date().toISOString().split('T')[0],
     slug: post.slug || '',
     image: post.image || '',
+    authors: post.authors || [],
+    categories: post.categories || [],
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [availableAuthors, setAvailableAuthors] = useState<Author[]>([]);
+  const [availableCategories, setAvailableCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch available authors and categories
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [authorsRes, categoriesRes] = await Promise.all([
+          fetch('/api/cms/blog/authors'),
+          fetch('/api/cms/blog/categories')
+        ]);
+        
+        if (authorsRes.ok) {
+          const authors = await authorsRes.json();
+          setAvailableAuthors(authors);
+        }
+        
+        if (categoriesRes.ok) {
+          const categories = await categoriesRes.json();
+          setAvailableCategories(categories);
+        }
+      } catch (error) {
+        console.error('Error fetching authors/categories:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
+
+  // Update formData when post prop changes (for edit mode)
+  useEffect(() => {
+    setFormData({
+      id: post.id,
+      title: post.title || '',
+      description: post.description || '',
+      body: post.body || '',
+      date: post.date || new Date().toISOString().split('T')[0],
+      slug: post.slug || '',
+      image: post.image || '',
+      authors: post.authors || [],
+      categories: post.categories || [],
+    });
+  }, [post]);
+
+  // Helper functions for managing authors
+  const addAuthor = (authorId: string) => {
+    const author = availableAuthors.find(a => a.id === authorId);
+    if (author && !formData.authors?.some(a => a.id === authorId)) {
+      setFormData({
+        ...formData,
+        authors: [...(formData.authors || []), author]
+      });
+    }
+  };
+
+  const removeAuthor = (authorId: string) => {
+    setFormData({
+      ...formData,
+      authors: formData.authors?.filter(a => a.id !== authorId) || []
+    });
+  };
+
+  // Helper functions for managing categories
+  const addCategory = (categoryId: string) => {
+    const category = availableCategories.find(c => c.id === categoryId);
+    if (category && !formData.categories?.some(c => c.id === categoryId)) {
+      setFormData({
+        ...formData,
+        categories: [...(formData.categories || []), category]
+      });
+    }
+  };
+
+  const removeCategory = (categoryId: string) => {
+    setFormData({
+      ...formData,
+      categories: formData.categories?.filter(c => c.id !== categoryId) || []
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,7 +159,8 @@ export default function PostForm({ post, onSave }: PostFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="max-h-[60vh] overflow-y-auto pr-2">
+      <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
         <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded">
           {error}
@@ -128,10 +234,75 @@ export default function PostForm({ post, onSave }: PostFormProps) {
         />
       </div>
 
+      {/* Authors */}
+      <div>
+        <Label>Authors</Label>
+        <div className="space-y-2">
+          <Select onValueChange={addAuthor}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select authors..." />
+            </SelectTrigger>
+            <SelectContent>
+              {availableAuthors
+                .filter(author => !formData.authors?.some(a => a.id === author.id))
+                .map(author => (
+                  <SelectItem key={author.id} value={author.id}>
+                    {author.title}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+          <div className="flex flex-wrap gap-2">
+            {formData.authors?.map(author => (
+              <Badge key={author.id} variant="secondary" className="flex items-center gap-1">
+                {author.title}
+                <X 
+                  className="h-3 w-3 cursor-pointer hover:text-red-500" 
+                  onClick={() => removeAuthor(author.id)}
+                />
+              </Badge>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Categories */}
+      <div>
+        <Label>Categories</Label>
+        <div className="space-y-2">
+          <Select onValueChange={addCategory}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select categories..." />
+            </SelectTrigger>
+            <SelectContent>
+              {availableCategories
+                .filter(category => !formData.categories?.some(c => c.id === category.id))
+                .map(category => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.title}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+          <div className="flex flex-wrap gap-2">
+            {formData.categories?.map(category => (
+              <Badge key={category.id} variant="secondary" className="flex items-center gap-1">
+                {category.title}
+                <X 
+                  className="h-3 w-3 cursor-pointer hover:text-red-500" 
+                  onClick={() => removeCategory(category.id)}
+                />
+              </Badge>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Save button */}
       <Button type="submit" disabled={isSubmitting}>
         {isSubmitting ? 'Saving...' : 'Save Post'}
       </Button>
     </form>
+    </div>
   );
 }

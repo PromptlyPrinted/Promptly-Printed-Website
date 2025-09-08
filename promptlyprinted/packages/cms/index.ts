@@ -24,9 +24,11 @@ const postFragment = fragmentOn('PostsItem', {
     },
   },
   authors: {
+    _id: true,
     _title: true,
   },
   categories: {
+    _id: true,
     _title: true,
   },
 });

@@ -76,18 +76,7 @@ const createValueObject = (type: string, data: any) => {
             alt: 'Default blog post image'
           }
         },
-        authors: {
-          type: 'reference',
-          value: (() => {
-            const authors = data.authors || ['gitvyQQRn1f5ycC3fxkPJ'];
-            console.log('👥 Authors for post:', authors, authors.length === 1 && authors[0] === 'gitvyQQRn1f5ycC3fxkPJ' ? '(using default Nathan G)' : '(from request)');
-            return authors;
-          })()
-        },
-        categories: {
-          type: 'reference',
-          value: []
-        }
+        // Authors and categories will be added by the generic section below
       };
     case 'AuthorsItem':
       return {
@@ -162,18 +151,30 @@ const createUpdateValueObject = (data: any) => {
     };
   }
   
-  if (data.authors) {
+  // Add authors - use default Nathan G for posts if none provided
+  if (data.authors && Array.isArray(data.authors) && data.authors.length > 0) {
+    console.log('🔗 Adding authors to value object:', data.authors);
     valueObj.authors = {
       type: 'reference',
       value: data.authors
     };
+  } else {
+    // Default to Nathan G for posts
+    console.log('🔗 Adding default author (Nathan G) for post');
+    valueObj.authors = {
+      type: 'reference',
+      value: ['gitvyQQRn1f5ycC3fxkPJ']
+    };
   }
   
-  if (data.categories) {
+  if (data.categories && Array.isArray(data.categories) && data.categories.length > 0) {
+    console.log('🔗 Adding categories to value object:', data.categories);
     valueObj.categories = {
       type: 'reference',
       value: data.categories
     };
+  } else {
+    console.log('⏭️ Skipping categories - empty or undefined');
   }
   
   return valueObj;
@@ -267,6 +268,7 @@ const createBaseHubBlock = async (parentId: string, type: string, data: any) => 
     // Check for GraphQL errors
     if (result.errors && result.errors.length > 0) {
       console.error('❌ BaseHub GraphQL Errors:');
+      console.error('❌ Full result with errors:', JSON.stringify(result, null, 2));
       result.errors.forEach((error: any, index: number) => {
         console.error(`  Error ${index + 1}:`, {
           message: error.message,
@@ -274,6 +276,7 @@ const createBaseHubBlock = async (parentId: string, type: string, data: any) => 
           path: error.path,
           extensions: error.extensions
         });
+        console.error(`  Full error object ${index + 1}:`, JSON.stringify(error, null, 2));
       });
       const errorMessages = result.errors.map((e: any) => e.message).join(', ');
       throw new Error(`GraphQL Error: ${errorMessages}`);
@@ -576,6 +579,22 @@ const queries = {
           _title: true,
           description: true,
           date: true,
+          body: {
+            plainText: true,
+          },
+          image: {
+            url: true,
+          },
+          authors: {
+            _id: true,
+            _slug: true,
+            _title: true,
+          },
+          categories: {
+            _id: true,
+            _slug: true,
+            _title: true,
+          },
         },
       },
     },
@@ -696,16 +715,24 @@ function transformResponse(contentType: keyof typeof queries, response: any) {
         description: post.description,
         date: post.date,
         image: post.image?.url,
-        authors:
-          post.authors?.items?.map((author: any) => ({
-            id: author._slug,
-            title: author._title,
-          })) || [],
-        categories:
-          post.categories?.items?.map((category: any) => ({
-            id: category._slug,
-            title: category._title,
-          })) || [],
+        authors: Array.isArray(post.authors) 
+          ? post.authors.map((author: any) => ({
+              id: author._id || author._slug,
+              title: author._title,
+            }))
+          : post.authors ? [{
+              id: post.authors._id || post.authors._slug,
+              title: post.authors._title,
+            }] : [],
+        categories: Array.isArray(post.categories)
+          ? post.categories.map((category: any) => ({
+              id: category._id || category._slug,
+              title: category._title,
+            }))
+          : post.categories ? [{
+              id: post.categories._id || post.categories._slug,
+              title: post.categories._title,
+            }] : [],
         body: post.body?.plainText || '',
       }));
     case 'blog/authors':
@@ -847,7 +874,53 @@ export async function POST(
         console.log('📝 Creating blog post with data:', body);
         console.log('🖼️ Raw image from body.image:', body.image);
         console.log('🖼️ Image type:', typeof body.image);
-        result = await createBaseHubBlock('a509dd9aab04730e06088', 'PostsItem', {
+        console.log('📝 POST: Raw body.authors:', body.authors);
+        console.log('📝 POST: Raw body.categories:', body.categories);
+        console.log('📝 POST: body.categories type:', typeof body.categories);
+        console.log('📝 POST: body.categories is array:', Array.isArray(body.categories));
+        console.log('📝 POST: body.categories length:', body.categories?.length);
+        if (body.categories) {
+          console.log('📝 POST: First category:', body.categories[0]);
+        }
+        
+        // TEST MODE: Add debugging flag to isolate issues
+        const TEST_MODE = {
+          ONLY_AUTHORS: false,    // Set to true to test only authors
+          ONLY_CATEGORIES: false, // Set to true to test only categories  
+          NO_REFERENCES: false    // Set to true to test without any references
+        };
+        
+        console.log('🧪 TEST MODE:', TEST_MODE);
+        
+        let authors = body.authors && body.authors.length > 0 ? body.authors.map((a: any) => a.id || a) : ['gitvyQQRn1f5ycC3fxkPJ'];
+        
+        console.log('🔍 Category processing:');
+        console.log('  body.categories exists:', !!body.categories);
+        console.log('  body.categories.length > 0:', body.categories && body.categories.length > 0);
+        
+        let categories = [];
+        if (body.categories && Array.isArray(body.categories) && body.categories.length > 0) {
+          categories = body.categories.map((c: any) => {
+            console.log('  Processing category:', c);
+            console.log('  Category ID:', c.id || c);
+            return c.id || c;
+          });
+          console.log('  Final processed categories:', categories);
+        } else {
+          console.log('  No categories to process - using empty array');
+        }
+        
+        // Apply test mode filters
+        if (TEST_MODE.NO_REFERENCES) {
+          authors = [];
+          categories = [];
+        } else if (TEST_MODE.ONLY_AUTHORS) {
+          categories = [];
+        } else if (TEST_MODE.ONLY_CATEGORIES) {
+          authors = [];
+        }
+        
+        const postData = {
           _title: body.title,
           description: body.description,
           body: body.body,
@@ -855,8 +928,12 @@ export async function POST(
           image: cleanImageUrl(body.image || 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=800&h=600&fit=crop'),
           imageFileName: body.imageFileName || 'blog-image.jpg',
           imageAlt: body.imageAlt || body.title || 'Blog post image',
-          authors: body.authors || ['gitvyQQRn1f5ycC3fxkPJ'], // Include authors or default to Nathan G
-        });
+          authors: authors,
+          categories: categories
+        };
+        
+        console.log('📝 POST: Final postData being sent to BaseHub:', JSON.stringify(postData, null, 2));
+        result = await createBaseHubBlock('a509dd9aab04730e06088', 'PostsItem', postData);
         break;
         
       case 'blog/authors':
@@ -933,7 +1010,9 @@ export async function PUT(
           _title: body.title,
           description: body.description,
           body: body.body,
-          date: body.date
+          date: body.date,
+          authors: body.authors ? body.authors.map((a: any) => a.id || a) : undefined,
+          categories: body.categories ? body.categories.map((c: any) => c.id || c) : undefined
         };
         console.log('📋 SERVER: Posts updateData:', JSON.stringify(updateData, null, 2));
         break;

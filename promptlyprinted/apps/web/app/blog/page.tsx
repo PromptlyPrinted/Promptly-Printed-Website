@@ -151,7 +151,7 @@ const BlogIndex = async () => {
                   image: safeImageObj,
                   date: safeDate,
                   readTime: safePost.readTime || `${Math.max(1, Math.ceil((description.length || 300) / 200))} min read`,
-                  tags: safePost.tags || safePost.categories || safePost.topics || [],
+                  tags: safePost.tags || safePost.categories?.map((cat: any) => cat._title) || safePost.topics || [],
                   author: safeAuthor.name || safeAuthor.displayName || safePost.author || safePost.authorName || 'Promptly Printed Team',
                   featured: safePost.featured || safePost.isFeatured || safePost.isHighlighted || index === 0
                 };

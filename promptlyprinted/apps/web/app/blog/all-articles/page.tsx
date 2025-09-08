@@ -145,7 +145,7 @@ export default async function AllArticlesPage() {
                     slug: safePost._slug || safePost.slug || `post-${index}-${Date.now()}`,
                     title: safePost._title || safePost.title || safePost.name || 'Untitled Post',
                     excerpt: description,
-                    category: safePost.category || safePost.tags?.[0] || 'General',
+                    category: safePost.category || safePost.categories?.[0]?._title || safePost.tags?.[0] || 'General',
                     image: safeImageObj.url,
                     date: safeDate,
                     readTime: safePost.readTime || `${Math.max(1, Math.ceil((description.length || 300) / 200))} min read`,

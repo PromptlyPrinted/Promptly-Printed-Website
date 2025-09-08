@@ -206,7 +206,7 @@ const BlogPosts = () => {
                 Add Post
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add New Post</DialogTitle>
               </DialogHeader>
@@ -269,7 +269,7 @@ const BlogPosts = () => {
                           <Edit className="h-3 w-3" />
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-2xl">
+                      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                         <DialogHeader>
                           <DialogTitle>Edit Post</DialogTitle>
                         </DialogHeader>
@@ -323,7 +323,7 @@ const BlogPosts = () => {
                       <Edit className="h-3 w-3" />
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-2xl">
+                  <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle>Edit Post</DialogTitle>
                     </DialogHeader>
@@ -356,7 +356,7 @@ const BlogPosts = () => {
                 Create First Post
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Create New Post</DialogTitle>
               </DialogHeader>
