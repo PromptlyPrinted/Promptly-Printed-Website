@@ -6,11 +6,13 @@ import { notFound } from 'next/navigation';
 export default async function PaymentDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
+  
   const payment = await prisma.payment.findUnique({
     where: {
-      id: Number.parseInt(params.id),
+      id: Number.parseInt(id),
     },
     include: {
       Order: true,

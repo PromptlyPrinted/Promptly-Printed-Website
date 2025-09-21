@@ -1,5 +1,6 @@
 import { authMiddleware } from '@repo/auth/middleware';
 import { noseconeConfig, noseconeMiddleware } from '@repo/security/middleware';
+import type { NextRequest } from 'next/server';
 
 export const config = {
   matcher: [
@@ -14,9 +15,15 @@ export const config = {
 
 const securityHeaders = noseconeMiddleware(noseconeConfig);
 
-// Chain the middleware functions
-const middleware = authMiddleware(() => securityHeaders());
-
-// Explicitly cast the middleware to any to avoid type issues
-// This is safe because we know the middleware is compatible
-export default middleware as any;
+export default async function middleware(request: NextRequest) {
+  // First run auth middleware
+  const authResponse = await authMiddleware(request);
+  
+  // If auth middleware returns a redirect, return it
+  if (authResponse && authResponse.status >= 300 && authResponse.status < 400) {
+    return authResponse;
+  }
+  
+  // Otherwise apply security headers
+  return securityHeaders(request);
+}

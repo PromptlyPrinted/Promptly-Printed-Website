@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import { temporaryImageStore } from '@/lib/temp-image-store';
-import { auth } from '@clerk/nextjs/server';
+import { getSession } from '../../../lib/session-utils';
 import { OrderStatus, ShippingMethod } from '@repo/database';
 import { prisma } from '@repo/database';
 import type { User } from '@repo/database';
@@ -142,17 +142,17 @@ async function getImageUrl(url: string): Promise<string | null> {
 export async function POST(req: NextRequest) {
   console.log('=== CHECKOUT API REQUEST START ===');
   try {
-    const authResult = await auth();
+    const session = await getSession(req);
 
-    if (!authResult?.userId) {
-      console.error('Authentication failed: No userId found.');
+    if (!session?.user) {
+      console.error('Authentication failed: No user found.');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const clerkUserId = authResult.userId;
+    const userId = session.user.id;
     // Determine base URL for building absolute image URLs
     const urlObj = new URL(req.url);
     const origin = process.env.NEXT_PUBLIC_WEB_URL ?? urlObj.origin;
-    console.log(`Authenticated Clerk User ID: ${clerkUserId}`);
+    console.log(`Authenticated User ID: ${userId}`);
 
     // Get success and cancel URLs from query parameters
     const successUrl =
@@ -193,12 +193,12 @@ export async function POST(req: NextRequest) {
     let dbUser: User | null = null;
     try {
       dbUser = await prisma.user.findUnique({
-        where: { clerkId: clerkUserId },
+        where: { id: userId },
       });
 
       if (!dbUser) {
         console.error(
-          `User with clerkId ${clerkUserId} not found in the database.`
+          `User with id ${userId} not found in the database.`
         );
         return NextResponse.json(
           { error: 'User data not found. Please contact support.' },

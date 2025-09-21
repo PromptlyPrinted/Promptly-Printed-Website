@@ -1,7 +1,7 @@
 'use client';
 
 import { DataTable } from '@/components/ui/data-table';
-import { useUser } from '@clerk/nextjs';
+import { useSession } from '@repo/auth/client';
 import {
   Card,
   CardContent,
@@ -40,7 +40,9 @@ async function getUsers() {
 
 export default function UsersPage() {
   const router = useRouter();
-  const { user: currentUser, isLoaded } = useUser();
+  const { data: session, isPending } = useSession();
+  const currentUser = session?.user;
+  const isLoaded = !isPending;
   const { roleFilter, setRoleFilter } = useUserFilterStore();
   const {
     data: users,

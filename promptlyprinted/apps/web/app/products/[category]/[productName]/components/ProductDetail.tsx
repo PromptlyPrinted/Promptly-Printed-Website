@@ -27,7 +27,7 @@ import {
   formatPrice,
   getDefaultCurrency,
 } from '@/utils/currency';
-import { useAuth } from '@clerk/nextjs';
+import { useSession } from '@repo/auth/client';
 import { TruckIcon } from '@heroicons/react/24/outline';
 import { StarIcon } from '@heroicons/react/24/solid';
 import { Button } from '@repo/design-system/components/ui/button';
@@ -518,7 +518,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const [quantity, setQuantity] = useState<number>(1);
   const { items: cartItems, addItem } = useCartStore();
   const { initiateCheckout, isLoading: isCheckingOut } = useCheckout();
-  const { getToken } = useAuth();
+  // Note: getToken removed - Better Auth handles tokens differently
   const [isBaseModel, setIsBaseModel] = useState(false);
   const [selectedBaseModel, setSelectedBaseModel] = useState<string>('kontext-pro');
   const [removeBackground, setRemoveBackground] = useState(false);

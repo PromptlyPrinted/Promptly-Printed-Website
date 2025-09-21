@@ -1,12 +1,24 @@
-import { checkAdmin } from '@/lib/auth-utils';
+import { auth } from '@repo/auth/server';
 import { database as db } from '@repo/database';
+import { headers } from 'next/headers';
 import { saveProdigiQuote } from '@repo/database/utils/saveProdigiQuote';
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    await checkAdmin();
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user?.id) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+    });
+
+    if (user?.role !== 'ADMIN') {
+      return new NextResponse('Forbidden', { status: 403 });
+    }
 
     const products = await db.product.findMany({
       include: {
@@ -27,7 +39,18 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    await checkAdmin();
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user?.id) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+    });
+
+    if (user?.role !== 'ADMIN') {
+      return new NextResponse('Forbidden', { status: 403 });
+    }
 
     const body = await request.json();
     const { quote, ...productData } = body;
@@ -65,10 +88,22 @@ export async function POST(request: Request) {
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await checkAdmin();
+    const { id } = await params;
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user?.id) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+    });
+
+    if (user?.role !== 'ADMIN') {
+      return new NextResponse('Forbidden', { status: 403 });
+    }
 
     const body = await request.json();
     const { quote, ...productData } = body;
@@ -82,7 +117,7 @@ export async function PATCH(
     // Then update the product with the quote relation
     const product = await db.product.update({
       where: {
-        id: Number.parseInt(params.id),
+        id: Number.parseInt(id),
       },
       data: {
         ...productData,

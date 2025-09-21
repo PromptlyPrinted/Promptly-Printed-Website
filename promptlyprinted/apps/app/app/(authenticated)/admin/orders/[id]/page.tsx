@@ -1,6 +1,7 @@
 import { getProdigiProduct } from '@/lib/prodigi';
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@repo/auth/server';
 import { database } from '@repo/database';
+import { headers } from 'next/headers';
 import { Button } from '@repo/design-system/components/ui/button';
 import { Card } from '@repo/design-system/components/ui/card';
 import {
@@ -55,16 +56,18 @@ async function getOrder(id: string) {
 export default async function AdminOrderDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const { userId } = await auth();
-  if (!userId) {
+  const { id } = await params;
+  
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) {
     redirect('/sign-in');
   }
 
   // Verify admin status
   const user = await database.user.findUnique({
-    where: { clerkId: userId },
+    where: { id: session.user.id },
     select: { role: true },
   });
 
@@ -72,7 +75,7 @@ export default async function AdminOrderDetailPage({
     redirect('/');
   }
 
-  const { order, prodigiProduct } = await getOrder(params.id);
+  const { order, prodigiProduct } = await getOrder(id);
 
   return (
     <div className="space-y-6 p-6">

@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@repo/auth/server';
 import { database } from '@repo/database';
 import { Card } from '@repo/design-system/components/ui/card';
 import {
@@ -7,6 +7,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@repo/design-system/components/ui/tabs';
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import BaseHubIntegration from './basehub-integration';
 import BlogAuthors from './components/blog/BlogAuthors';
@@ -15,12 +16,12 @@ import BlogPosts from './components/blog/posts';
 import LegalPages from './components/legal/pages';
 
 export default async function CMSPage() {
-  const session = await auth();
-  if (!session?.userId) redirect('/sign-in');
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user?.id) redirect('/sign-in');
 
   // Verify admin status
   const user = await database.user.findUnique({
-    where: { clerkId: session.userId },
+    where: { id: session.user.id },
     select: { role: true },
   });
 

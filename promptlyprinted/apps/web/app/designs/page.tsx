@@ -1,6 +1,7 @@
 import { DesignCard } from '@/components/design-card';
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@repo/auth/server';
 import { database } from '@repo/database';
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 export const metadata = {
@@ -9,13 +10,13 @@ export const metadata = {
 };
 
 export default async function DesignsPage() {
-  const { userId } = await auth();
-  if (!userId) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user?.id) {
     redirect('/sign-in');
   }
 
   const designs = await database.savedImage.findMany({
-    where: { userId: userId },
+    where: { userId: session.user.id },
     include: {
       product: {
         select: {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
+import { useSession } from '@repo/auth/client';
 import { Button } from '@repo/design-system/components/ui/button';
 import { motion } from 'framer-motion';
 import { Heart, Image, LogOut, Package, Settings, User, X } from 'lucide-react';
@@ -23,7 +23,9 @@ export function ProfileDropdown({
   onSignOut,
   onClose,
 }: ProfileDropdownProps) {
-  const { isLoaded, user } = useUser();
+  const { data: session } = useSession();
+  const user = session?.user;
+  const isLoaded = true; // Better Auth loads immediately
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -98,7 +100,7 @@ export function ProfileDropdown({
                 <div>
                   <h3 className="font-medium text-gray-900">
                     {isLoaded && user
-                      ? `Welcome back, ${user.firstName || user.fullName}!`
+                      ? `Welcome back, ${user.name || user.email}!`
                       : 'Welcome back!'}
                   </h3>
                   <p className="text-gray-500 text-sm">Manage your account</p>

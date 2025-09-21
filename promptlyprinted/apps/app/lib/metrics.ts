@@ -1,4 +1,4 @@
-import type { Order, User } from '@prisma/client';
+import type { Order, User } from '@repo/database/types';
 import {
   startOfDay,
   startOfMonth,

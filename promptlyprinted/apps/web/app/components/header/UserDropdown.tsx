@@ -1,11 +1,15 @@
-import { useAuth } from '@repo/auth/client';
+import { useSession } from '@repo/auth/client';
 import { User } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
 export const UserDropdown = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { signOut } = useAuth();
+  const { data: session } = useSession();
+  
+  const signOut = async () => {
+    window.location.href = '/sign-out';
+  };
 
   return (
     <div className="group relative">

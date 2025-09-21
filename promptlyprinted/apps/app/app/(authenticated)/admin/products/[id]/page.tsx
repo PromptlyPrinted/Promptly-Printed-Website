@@ -7,18 +7,19 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 interface ProductPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default async function ProductPage({ params }: ProductPageProps) {
+  const { id } = await params;
   await checkAdmin();
 
   const [product, categories] = await Promise.all([
     db.product.findUnique({
       where: {
-        id: Number.parseInt(params.id),
+        id: Number.parseInt(id),
       },
       include: {
         quotes: {

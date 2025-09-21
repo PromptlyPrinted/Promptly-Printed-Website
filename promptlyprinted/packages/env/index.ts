@@ -2,8 +2,8 @@ import { createEnv } from '@t3-oss/env-nextjs';
 import { z } from 'zod';
 
 const server: Parameters<typeof createEnv>[0]['server'] = {
-  CLERK_SECRET_KEY: z.string().min(1).startsWith('sk_'),
-  CLERK_WEBHOOK_SECRET: z.string().min(1).startsWith('whsec_').optional(),
+  BETTER_AUTH_SECRET: z.string().min(1),
+  BETTER_AUTH_URL: z.string().min(1).url().optional(),
   RESEND_FROM: z.string().min(1).email(),
   DATABASE_URL: z.string().min(1).url(),
   RESEND_TOKEN: z.string().min(1).startsWith('re_'),
@@ -39,11 +39,7 @@ const server: Parameters<typeof createEnv>[0]['server'] = {
 };
 
 const client: Parameters<typeof createEnv>[0]['client'] = {
-  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1).startsWith('pk_'),
-  NEXT_PUBLIC_CLERK_SIGN_IN_URL: z.string().min(1).startsWith('/'),
-  NEXT_PUBLIC_CLERK_SIGN_UP_URL: z.string().min(1).startsWith('/'),
-  NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: z.string().min(1).startsWith('/'),
-  NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: z.string().min(1).startsWith('/'),
+  NEXT_PUBLIC_BETTER_AUTH_URL: z.string().min(1).url().optional(),
   NEXT_PUBLIC_APP_URL: z.string().min(1).url(),
   NEXT_PUBLIC_WEB_URL: z.string().min(1).url(),
   NEXT_PUBLIC_API_URL: z.string().min(1).url().optional(),
@@ -60,8 +56,8 @@ export const env = createEnv({
   client,
   server,
   runtimeEnv: {
-    CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
-    CLERK_WEBHOOK_SECRET: process.env.CLERK_WEBHOOK_SECRET,
+    BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
+    BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
     RESEND_FROM: process.env.RESEND_FROM,
     DATABASE_URL: process.env.DATABASE_URL,
     RESEND_TOKEN: process.env.RESEND_TOKEN,
@@ -83,14 +79,7 @@ export const env = createEnv({
     BASEHUB_TOKEN: process.env.BASEHUB_TOKEN,
     PRODIGI_API_KEY: process.env.PRODIGI_API_KEY,
     PRODIGI_API: process.env.PRODIGI_API,
-    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
-      process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
-    NEXT_PUBLIC_CLERK_SIGN_IN_URL: process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL,
-    NEXT_PUBLIC_CLERK_SIGN_UP_URL: process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL,
-    NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL:
-      process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL,
-    NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL:
-      process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL,
+    NEXT_PUBLIC_BETTER_AUTH_URL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_WEB_URL: process.env.NEXT_PUBLIC_WEB_URL,
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,

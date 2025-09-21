@@ -36,14 +36,14 @@ function getEnvStatus(value: string | undefined): {
 }
 
 export default async function SettingsPage() {
-  const { userId } = await auth();
-  if (!userId) {
+  const session = await auth.api.getSession({ headers: await import('next/headers').then(h => h.headers()) });
+  if (!session?.user?.id) {
     notFound();
   }
 
   // Verify admin status
   const user = await database.user.findUnique({
-    where: { clerkId: userId },
+    where: { id: session.user.id },
     select: { role: true },
   });
 

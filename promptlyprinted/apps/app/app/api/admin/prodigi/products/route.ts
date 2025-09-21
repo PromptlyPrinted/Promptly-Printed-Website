@@ -1,4 +1,6 @@
-import { checkAdmin } from '@/lib/auth-utils';
+import { auth } from '@repo/auth/server';
+import { database } from '@repo/database';
+import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 const PRODIGI_API = process.env.PRODIGI_API || 'https://api.prodigi.com/v4.0';
@@ -6,7 +8,18 @@ const PRODIGI_API_KEY = process.env.PRODIGI_API_KEY;
 
 export async function GET(req: Request) {
   try {
-    await checkAdmin();
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user?.id) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    const user = await database.user.findUnique({
+      where: { id: session.user.id },
+    });
+
+    if (user?.role !== 'ADMIN') {
+      return new NextResponse('Forbidden', { status: 403 });
+    }
 
     if (!PRODIGI_API_KEY) {
       throw new Error(

@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { Analytics } from '@prisma/client';
+import type { Analytics } from '@repo/database';
 import { format } from 'date-fns';
 import Script from 'next/script';
 import { useEffect, useState } from 'react';

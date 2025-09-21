@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
+import { useSession } from '@repo/auth/client';
 import type { Log } from '@prisma/client';
 import { Button } from '@repo/design-system/components/ui/button';
 import { Card } from '@repo/design-system/components/ui/card';
@@ -33,7 +33,9 @@ async function getLogs() {
 }
 
 export default function LogsPage() {
-  const { user, isLoaded } = useUser();
+  const { data: session, isPending } = useSession();
+  const user = session?.user;
+  const isLoaded = !isPending;
   const router = useRouter();
   const [level, setLevel] = useState('all');
   const [search, setSearch] = useState('');

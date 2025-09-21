@@ -12,9 +12,9 @@
   },
   "dependencies": {
     "@basehub/mutation-api-helpers": "^2.1.7",
-    "@clerk/nextjs": "6.9.6",
+    "better-auth": "^1.0.0",
     "@hookform/resolvers": "^3.9.1",
-    "@prisma/client": "6.0.1",
+    "@prisma/client": "6.5.0",
     "@radix-ui/react-popover": "^1.1.2",
     "@radix-ui/react-select": "^2.1.2",
     "@radix-ui/react-slot": "^1.1.0",

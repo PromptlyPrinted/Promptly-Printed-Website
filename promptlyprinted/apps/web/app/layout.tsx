@@ -1,5 +1,6 @@
 import '@repo/design-system/styles/globals.css';
 import './styles/web.css';
+import { AuthProvider } from '@repo/auth/provider';
 import { DesignSystemProvider } from '@repo/design-system';
 import { fonts } from '@repo/design-system/lib/fonts';
 import { cn } from '@repo/design-system/lib/utils';
@@ -54,12 +55,14 @@ const RootLayout = ({ children }: RootLayoutProperties) => (
       />
     </head>
     <body>
-      <DesignSystemProvider>
-        <Header />
-        {/* Your main content */}
-        <main>{children}</main>
-        <Footer />
-      </DesignSystemProvider>
+      <AuthProvider>
+        <DesignSystemProvider>
+          <Header />
+          {/* Your main content */}
+          <main>{children}</main>
+          <Footer />
+        </DesignSystemProvider>
+      </AuthProvider>
     </body>
   </html>
 );

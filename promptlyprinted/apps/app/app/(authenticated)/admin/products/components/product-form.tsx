@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { type Category, type Product, ShippingMethod } from '@prisma/client';
+import { type Category, type Product, ShippingMethod } from '@repo/database/types';
 import { Button } from '@repo/design-system/components/ui/button';
 import {
   Form,

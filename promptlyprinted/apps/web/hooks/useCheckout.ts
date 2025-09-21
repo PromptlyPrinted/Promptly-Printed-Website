@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@clerk/nextjs';
+import { useSession } from '@repo/auth/client';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -9,17 +9,19 @@ import type { CheckoutItem } from '@/types/checkout';
 export function useCheckout() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const { getToken } = useAuth();
+  const { data: session } = useSession();
 
   const handleCheckout = async (items: CheckoutItem[]) => {
     try {
       setIsLoading(true);
       console.log('Starting checkout process...');
 
-      const token = await getToken();
-      if (!token) {
+      if (!session?.user) {
         throw new Error('You must be logged in to checkout');
       }
+
+      // For Better Auth, we can just use the session directly in API calls
+      // or get the session token if needed
 
       const itemsWithSavedImages = await Promise.all(
         items.map(async (item) => {
@@ -36,7 +38,6 @@ export function useCheckout() {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({ url: imageUrl }),
           });
@@ -86,7 +87,6 @@ export function useCheckout() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(checkoutBody),
         }

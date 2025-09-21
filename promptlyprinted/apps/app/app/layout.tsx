@@ -1,4 +1,5 @@
 import '@repo/design-system/styles/globals.css';
+import { AuthProvider } from '@repo/auth/provider';
 import { DesignSystemProvider } from '@repo/design-system';
 import { fonts } from '@repo/design-system/lib/fonts';
 import type { ReactNode } from 'react';
@@ -46,7 +47,9 @@ const RootLayout = ({ children }: RootLayoutProperties) => (
       />
     </head>
     <body>
-      <DesignSystemProvider>{children}</DesignSystemProvider>
+      <AuthProvider>
+        <DesignSystemProvider>{children}</DesignSystemProvider>
+      </AuthProvider>
     </body>
   </html>
 );

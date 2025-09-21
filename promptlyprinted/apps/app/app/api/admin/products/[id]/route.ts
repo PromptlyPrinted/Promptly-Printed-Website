@@ -1,18 +1,31 @@
-import { checkAdmin } from '@/lib/auth-utils';
+import { auth } from '@repo/auth/server';
 import { database as db } from '@repo/database';
+import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await checkAdmin();
+    const { id } = await params;
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user?.id) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+    });
+
+    if (user?.role !== 'ADMIN') {
+      return new NextResponse('Forbidden', { status: 403 });
+    }
 
     const product = await db.product.findUnique({
       where: {
-        id: Number.parseInt(params.id),
+        id: Number.parseInt(id),
       },
       include: {
         category: true,
@@ -33,10 +46,22 @@ export async function GET(
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await checkAdmin();
+    const { id } = await params;
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user?.id) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+    });
+
+    if (user?.role !== 'ADMIN') {
+      return new NextResponse('Forbidden', { status: 403 });
+    }
 
     const body = await req.json();
     const {
@@ -74,7 +99,7 @@ export async function PATCH(
 
     const product = await db.product.update({
       where: {
-        id: Number.parseInt(params.id),
+        id: Number.parseInt(id),
       },
       data: {
         name,
@@ -100,14 +125,26 @@ export async function PATCH(
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await checkAdmin();
+    const { id } = await params;
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user?.id) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+    });
+
+    if (user?.role !== 'ADMIN') {
+      return new NextResponse('Forbidden', { status: 403 });
+    }
 
     const product = await db.product.delete({
       where: {
-        id: Number.parseInt(params.id),
+        id: Number.parseInt(id),
       },
     });
 

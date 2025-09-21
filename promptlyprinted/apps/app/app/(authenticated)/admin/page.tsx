@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@repo/auth/server';
 import { database } from '@repo/database';
 import { Card } from '@repo/design-system/components/ui/card';
 import {
@@ -16,6 +16,7 @@ import {
   ShoppingCartIcon,
   UsersIcon,
 } from 'lucide-react';
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 async function getOverviewData() {
@@ -79,12 +80,12 @@ async function getOverviewData() {
 }
 
 export default async function AdminOverviewPage() {
-  const session = await auth();
-  if (!session?.userId) redirect('/sign-in');
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user?.id) redirect('/sign-in');
 
   // Verify admin status
   const user = await database.user.findUnique({
-    where: { clerkId: session.userId },
+    where: { id: session.user.id },
     select: { role: true },
   });
 

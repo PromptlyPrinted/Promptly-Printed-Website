@@ -8,21 +8,37 @@ datasource db {
 }
 
 model User {
-  id          String       @id @default(cuid())
-  clerkId     String?      @unique
-  email       String       @unique
-  firstName   String?
-  lastName    String?
-  role        Role         @default(CUSTOMER)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id               String       @id @default(cuid())
+  email            String       @unique
+  emailVerified    Boolean      @default(false)
+  name             String?
+  firstName        String?
+  lastName         String?
+  image            String?
+  role             Role         @default(CUSTOMER)
+  stripeCustomerId String?      @unique
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  
+  // Better Auth plugin fields
+  username               String?  @unique // Username plugin
+  phoneNumber           String?  @unique // Phone number plugin
+  phoneNumberVerified   Boolean  @default(false) // Phone number plugin
+  twoFactorEnabled      Boolean  @default(false) // Two factor plugin
+  banned                Boolean  @default(false) // Admin plugin
+  banReason             String? // Admin plugin
+  banExpiresAt          DateTime? // Admin plugin
+  
+  // Relationships
   addresses   Address[]
   Analytics   Analytics[]
   orders      Order[]      @relation("UserOrders")
   savedImages SavedImage[]
   wishlist    Product[]    @relation("UserWishlist")
   designs     Design[]
-
+  sessions    Session[]
+  accounts    Account[]
+  twoFactor   TwoFactor? // Two factor plugin relationship
 }
 
 model Page {
@@ -479,4 +495,55 @@ enum ShippingMethod {
   STANDARD
   EXPRESS
   OVERNIGHT
+}
+
+// Better Auth Models
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  accountId         String
+  providerId        String
+  userId            String
+  type              String  @default("credential")
+  accessToken       String?
+  refreshToken      String?
+  idToken           String?
+  accessTokenExpiresAt DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope             String?
+  password          String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model TwoFactor {
+  id          String    @id @default(cuid())
+  secret      String
+  backupCodes String?
+  userId      String    @unique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

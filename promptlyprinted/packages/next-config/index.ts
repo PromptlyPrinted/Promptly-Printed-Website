@@ -13,10 +13,8 @@ const baseConfig: NextConfig = {
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'img.clerk.com',
-      },
+      // Add allowed image domains here
+      // Example: Google, Gravatar, etc.
     ],
   },
 

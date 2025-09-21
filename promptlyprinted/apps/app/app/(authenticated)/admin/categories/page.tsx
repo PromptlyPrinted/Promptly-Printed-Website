@@ -1,5 +1,6 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@repo/auth/server';
 import { database } from '@repo/database';
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { CategoriesClient } from './components/categories-client';
 
@@ -7,12 +8,12 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function CategoriesPage() {
-  const session = await auth();
-  if (!session?.userId) redirect('/sign-in');
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) redirect('/sign-in');
 
   // Verify admin status
   const user = await database.user.findUnique({
-    where: { clerkId: session.userId },
+    where: { id: session.user.id },
     select: { role: true },
   });
 

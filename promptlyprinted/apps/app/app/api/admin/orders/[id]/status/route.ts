@@ -1,21 +1,22 @@
 import { getProdigiProduct } from '@/lib/prodigi';
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@repo/auth/server';
 import { database } from '@repo/database';
 import { NextResponse } from 'next/server';
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const { id } = await params;
+    const session = await auth.api.getSession({ headers: request.headers });
+    if (!session?.user?.id) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
     // Verify admin status
     const user = await database.user.findUnique({
-      where: { clerkId: userId },
+      where: { id: session.user.id },
       select: { role: true },
     });
 
@@ -30,7 +31,7 @@ export async function PATCH(
       return new NextResponse('Invalid status', { status: 400 });
     }
 
-    const orderId = Number.parseInt(params.id);
+    const orderId = Number.parseInt(id);
     if (isNaN(orderId)) {
       return new NextResponse('Invalid order ID', { status: 400 });
     }

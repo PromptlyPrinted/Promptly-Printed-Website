@@ -10,7 +10,6 @@
     "build": "prisma generate --no-hints",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
     "typecheck": "tsc --noEmit",
-    "sync-clerk": "tsx scripts/sync-clerk.ts",
     "update-products": "NODE_NO_WARNINGS=1 tsx scripts/updateProducts.ts",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
@@ -26,7 +25,6 @@
     "seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
-    "@clerk/nextjs": "^4.29.0",
     "@prisma/client": "6.5.0",
     "@prisma/extension-accelerate": "1.3.0",
     "@repo/env": "workspace:*",

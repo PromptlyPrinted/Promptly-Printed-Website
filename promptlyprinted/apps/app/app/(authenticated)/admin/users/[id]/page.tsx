@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
+import { useSession } from '@repo/auth/client';
 import { Button } from '@repo/design-system/components/ui/button';
 import {
   Card,
@@ -57,7 +57,9 @@ async function updateUserRole(id: string, role: string) {
 export default function UserDetailPage() {
   // Grab router, user, and param ID:
   const router = useRouter();
-  const { user: currentUser, isLoaded } = useUser();
+  const { data: session, isPending } = useSession();
+  const currentUser = session?.user;
+  const isLoaded = !isPending;
   const params = useParams();
   const id =
     typeof params.id === 'string'

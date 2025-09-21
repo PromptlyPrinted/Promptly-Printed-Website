@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import type { Metadata } from 'next';
 import dynamic from 'next/dynamic';
+import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { calculateMetrics } from '../lib/metrics';
 import { Cursors } from './components/cursors';
@@ -79,14 +80,15 @@ async function getOverviewData() {
 }
 
 const App = async () => {
-  const { userId, orgId } = await auth();
-  if (!userId || !orgId) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  
+  if (!session?.user?.id) {
     notFound();
   }
 
   // Verify admin status
   const user = await database.user.findUnique({
-    where: { clerkId: userId },
+    where: { id: session.user.id },
     select: { role: true },
   });
 
@@ -100,7 +102,7 @@ const App = async () => {
     <>
       <Header pages={['Admin Dashboard']} page="Overview">
         {env.LIVEBLOCKS_SECRET && (
-          <CollaborationProvider orgId={orgId}>
+          <CollaborationProvider orgId="default-org">
             <Cursors />
           </CollaborationProvider>
         )}

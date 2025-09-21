@@ -37,7 +37,7 @@ const SUPPORTED_COUNTRIES = [
 export default async function ProductsPage({
   searchParams,
 }: {
-  searchParams?: {
+  searchParams?: Promise<{
     page?: string;
     country?: string;
     search?: string;
@@ -46,12 +46,13 @@ export default async function ProductsPage({
     listed?: string;
     minPrice?: string;
     maxPrice?: string;
-  };
+  }>;
 }) {
   await checkAdmin();
 
-  const currentPage = Number(searchParams?.page) || 1;
-  const countryCode = searchParams?.country || DEFAULT_COUNTRY;
+  const resolvedSearchParams = await searchParams;
+  const currentPage = Number(resolvedSearchParams?.page) || 1;
+  const countryCode = resolvedSearchParams?.country || DEFAULT_COUNTRY;
   const skip = (currentPage - 1) * ITEMS_PER_PAGE;
 
   // Ensure the country code is in the supported list or "all"
@@ -69,34 +70,34 @@ export default async function ProductsPage({
     where.countryCode = countryCode;
   }
 
-  if (searchParams?.search) {
+  if (resolvedSearchParams?.search) {
     where.OR = [
-      { name: { contains: searchParams.search, mode: 'insensitive' } },
-      { sku: { contains: searchParams.search, mode: 'insensitive' } },
+      { name: { contains: resolvedSearchParams.search, mode: 'insensitive' } },
+      { sku: { contains: resolvedSearchParams.search, mode: 'insensitive' } },
     ];
   }
 
-  if (searchParams?.category) {
+  if (resolvedSearchParams?.category) {
     where.category = {
-      name: searchParams.category,
+      name: resolvedSearchParams.category,
     };
   }
 
-  if (searchParams?.type) {
-    where.productType = searchParams.type;
+  if (resolvedSearchParams?.type) {
+    where.productType = resolvedSearchParams.type;
   }
 
-  if (searchParams?.listed) {
-    where.listed = searchParams.listed === 'listed';
+  if (resolvedSearchParams?.listed) {
+    where.listed = resolvedSearchParams.listed === 'listed';
   }
 
-  if (searchParams?.minPrice || searchParams?.maxPrice) {
+  if (resolvedSearchParams?.minPrice || resolvedSearchParams?.maxPrice) {
     where.customerPrice = {};
-    if (searchParams?.minPrice) {
-      where.customerPrice.gte = Number.parseFloat(searchParams.minPrice);
+    if (resolvedSearchParams?.minPrice) {
+      where.customerPrice.gte = Number.parseFloat(resolvedSearchParams.minPrice);
     }
-    if (searchParams?.maxPrice) {
-      where.customerPrice.lte = Number.parseFloat(searchParams.maxPrice);
+    if (resolvedSearchParams?.maxPrice) {
+      where.customerPrice.lte = Number.parseFloat(resolvedSearchParams.maxPrice);
     }
   }
 

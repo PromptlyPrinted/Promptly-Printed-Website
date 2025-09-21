@@ -10,6 +10,7 @@ import {
   TableRow,
 } from '@repo/design-system/components/ui/table';
 import { formatDistance } from 'date-fns';
+import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
 export const metadata = {
@@ -24,14 +25,14 @@ async function getWebhookLogs() {
 }
 
 export default async function WebhooksPage() {
-  const { userId } = await auth();
-  if (!userId) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user?.id) {
     notFound();
   }
 
   // Verify admin status
   const user = await database.user.findUnique({
-    where: { clerkId: userId },
+    where: { id: session.user.id },
     select: { role: true },
   });
 

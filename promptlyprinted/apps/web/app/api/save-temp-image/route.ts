@@ -1,11 +1,11 @@
-import { auth } from '@clerk/nextjs/server';
 import { database } from '@repo/database';
+import { getSession } from '../../../lib/session-utils';
 
 export async function POST(request: Request) {
   try {
-    const session = await auth();
+    const session = await getSession(request);
 
-    if (!session?.userId) {
+    if (!session?.user?.id) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { 'Content-Type': 'application/json' },
@@ -33,9 +33,9 @@ export async function POST(request: Request) {
       });
     }
 
-    // Get the database user ID from the Clerk user ID
+    // Get the database user from Better Auth session
     const dbUser = await database.user.findUnique({
-      where: { clerkId: session.userId },
+      where: { id: session.user.id },
     });
 
     if (!dbUser) {

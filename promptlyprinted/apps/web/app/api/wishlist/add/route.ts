@@ -1,5 +1,5 @@
-import { auth } from '@clerk/nextjs/server';
 import { database } from '@repo/database';
+import { getSession } from '../../../../lib/session-utils';
 import { type NextRequest, NextResponse } from 'next/server';
 import { ZodError, z } from 'zod';
 
@@ -10,8 +10,8 @@ const WishlistSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.userId) {
+    const session = await getSession(request);
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const body = await request.json();
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       throw err;
     }
     const dbUser = await database.user.findUnique({
-      where: { clerkId: session.userId },
+      where: { id: session.user.id },
     });
     if (!dbUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });

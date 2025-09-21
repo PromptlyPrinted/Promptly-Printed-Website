@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@repo/auth/server';
 import { database } from '@repo/database';
 import { Card } from '@repo/design-system/components/ui/card';
 import {
@@ -10,6 +10,7 @@ import {
   TableRow,
 } from '@repo/design-system/components/ui/table';
 import { formatDistance } from 'date-fns';
+import { headers } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
@@ -29,14 +30,14 @@ async function getOrders() {
 }
 
 export default async function AdminOrdersPage() {
-  const { userId } = await auth();
-  if (!userId) {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user?.id) {
     redirect('/sign-in');
   }
 
   // Verify admin status
   const user = await database.user.findUnique({
-    where: { clerkId: userId },
+    where: { id: session.user.id },
     select: { role: true },
   });
 

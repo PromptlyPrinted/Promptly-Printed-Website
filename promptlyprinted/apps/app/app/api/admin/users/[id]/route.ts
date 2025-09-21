@@ -1,22 +1,22 @@
-import { prisma } from '@/lib/prisma';
-import { auth } from '@clerk/nextjs/server';
+import { database } from '@repo/database';
+import { auth } from '@repo/auth/server';
 import { NextResponse } from 'next/server';
 
 export async function GET(
   request: Request,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = context.params;
-    const session = await auth();
+    const { id } = await context.params;
+    const session = await auth.api.getSession({ headers: request.headers });
 
-    if (!session?.userId) {
+    if (!session?.user?.id) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
     // Check if user is admin
-    const adminUser = await prisma.user.findUnique({
-      where: { clerkId: session.userId },
+    const adminUser = await database.user.findUnique({
+      where: { id: session.user.id },
       select: { role: true },
     });
 
@@ -28,13 +28,12 @@ export async function GET(
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await database.user.findUnique({
       where: { id },
       select: {
         id: true,
         email: true,
-        firstName: true,
-        lastName: true,
+        name: true,
         role: true,
         createdAt: true,
       },
@@ -53,19 +52,19 @@ export async function GET(
 
 export async function PATCH(
   request: Request,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = context.params;
-    const session = await auth();
+    const { id } = await context.params;
+    const session = await auth.api.getSession({ headers: request.headers });
 
-    if (!session?.userId) {
+    if (!session?.user?.id) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
     // Check if user is admin
-    const adminUser = await prisma.user.findUnique({
-      where: { clerkId: session.userId },
+    const adminUser = await database.user.findUnique({
+      where: { id: session.user.id },
       select: { role: true },
     });
 
@@ -84,14 +83,13 @@ export async function PATCH(
       return new NextResponse('Invalid role', { status: 400 });
     }
 
-    const updatedUser = await prisma.user.update({
+    const updatedUser = await database.user.update({
       where: { id },
       data: { role },
       select: {
         id: true,
         email: true,
-        firstName: true,
-        lastName: true,
+        name: true,
         role: true,
         createdAt: true,
       },

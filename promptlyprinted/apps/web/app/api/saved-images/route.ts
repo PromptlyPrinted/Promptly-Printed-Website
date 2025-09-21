@@ -1,16 +1,18 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@repo/auth/server';
 import { database } from '@repo/database';
 
 export async function GET(request: Request) {
   try {
-    const session = await auth();
-    if (!session?.userId) {
+    const session = await auth.api.getSession({
+      headers: request.headers,
+    });
+    if (!session?.user?.id) {
       return new Response('Unauthorized', { status: 401 });
     }
 
     // Fetch app user
     const dbUser = await database.user.findUnique({
-      where: { clerkId: session.userId },
+      where: { id: session.user.id },
     });
     if (!dbUser) {
       return new Response('User not found', { status: 404 });

@@ -1,12 +1,13 @@
 'use client';
 
 import { analytics } from '@repo/analytics/posthog/client';
-import { useUser } from '@repo/auth/client';
+import { useSession } from '@repo/auth/client';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 
 export const PostHogIdentifier = () => {
-  const { user } = useUser();
+  const { data: session } = useSession();
+  const user = session?.user;
   const identified = useRef(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -30,12 +31,12 @@ export const PostHogIdentifier = () => {
     }
 
     analytics.identify(user.id, {
-      email: user.emailAddresses.at(0)?.emailAddress,
+      email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
       createdAt: user.createdAt,
-      avatar: user.imageUrl,
-      phoneNumber: user.phoneNumbers.at(0)?.phoneNumber,
+      avatar: user.image,
+      // phoneNumbers not available in Better Auth by default
     });
 
     identified.current = true;

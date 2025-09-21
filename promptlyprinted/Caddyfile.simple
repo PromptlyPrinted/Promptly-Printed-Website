@@ -1,0 +1,7 @@
+localhost:8080
+
+reverse_proxy /api/auth/* localhost:3000
+reverse_proxy /admin* localhost:3000
+reverse_proxy /sign-in* localhost:3000
+reverse_proxy /sign-up* localhost:3000
+reverse_proxy localhost:3001

@@ -1,0 +1,29 @@
+{
+    auto_https off
+}
+
+:8080 {
+    # Auth API routes always go to admin app (port 3000)
+    handle /api/auth/* {
+        reverse_proxy localhost:3000
+    }
+
+    # Admin routes go to admin app
+    handle /admin* {
+        reverse_proxy localhost:3000
+    }
+
+    # Sign-in/sign-up routes go to admin app
+    handle /sign-in* {
+        reverse_proxy localhost:3000
+    }
+
+    handle /sign-up* {
+        reverse_proxy localhost:3000
+    }
+
+    # All other routes go to web app (customer-facing)
+    handle /* {
+        reverse_proxy localhost:3001
+    }
+}

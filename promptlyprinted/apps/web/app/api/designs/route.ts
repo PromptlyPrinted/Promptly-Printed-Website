@@ -1,11 +1,11 @@
 import { SaveDesignSchema } from '@/types/design';
-import { auth } from '@clerk/nextjs/server';
 import { database } from '@repo/database';
+import { getSession } from '../../../lib/session-utils';
 
 export async function POST(request: Request) {
   try {
-    const session = await auth();
-    if (!session?.userId) {
+    const session = await getSession(request);
+    if (!session?.user?.id) {
       return new Response('Unauthorized', { status: 401 });
     }
 
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
 
     // Look up app user
     const dbUser = await database.user.findUnique({
-      where: { clerkId: session.userId },
+      where: { id: session.user.id },
     });
     if (!dbUser) {
       return new Response('User not found', { status: 404 });
@@ -62,8 +62,8 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    const session = await auth();
-    if (!session?.userId) {
+    const session = await getSession(request);
+    if (!session?.user?.id) {
       return new Response('Unauthorized', { status: 401 });
     }
 
@@ -72,7 +72,7 @@ export async function GET(request: Request) {
 
     // Fetch saved designs for user
     const dbUser = await database.user.findUnique({
-      where: { clerkId: session.userId },
+      where: { id: session.user.id },
     });
     if (!dbUser) {
       return new Response('User not found', { status: 404 });

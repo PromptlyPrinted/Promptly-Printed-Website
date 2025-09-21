@@ -1,16 +1,29 @@
-import { checkAdmin } from '@/lib/auth-utils';
+import { auth } from '@repo/auth/server';
 import { database } from '@repo/database';
+import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await checkAdmin();
+    const { id } = await params;
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user?.id) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    const user = await database.user.findUnique({
+      where: { id: session.user.id },
+    });
+
+    if (user?.role !== 'ADMIN') {
+      return new NextResponse('Forbidden', { status: 403 });
+    }
 
     const category = await database.category.findUnique({
-      where: { id: Number.parseInt(params.id) },
+      where: { id: Number.parseInt(id) },
       include: {
         _count: {
           select: {
@@ -33,10 +46,22 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await checkAdmin();
+    const { id } = await params;
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user?.id) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    const user = await database.user.findUnique({
+      where: { id: session.user.id },
+    });
+
+    if (user?.role !== 'ADMIN') {
+      return new NextResponse('Forbidden', { status: 403 });
+    }
 
     const body = await request.json();
     const { name, description } = body;
@@ -46,7 +71,7 @@ export async function PUT(
       where: {
         name,
         NOT: {
-          id: Number.parseInt(params.id),
+          id: Number.parseInt(id),
         },
       },
     });
@@ -58,7 +83,7 @@ export async function PUT(
     }
 
     const category = await database.category.update({
-      where: { id: Number.parseInt(params.id) },
+      where: { id: Number.parseInt(id) },
       data: {
         name,
         description,
@@ -81,14 +106,26 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await checkAdmin();
+    const { id } = await params;
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user?.id) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    const user = await database.user.findUnique({
+      where: { id: session.user.id },
+    });
+
+    if (user?.role !== 'ADMIN') {
+      return new NextResponse('Forbidden', { status: 403 });
+    }
 
     // Check if category has products
     const category = await database.category.findUnique({
-      where: { id: Number.parseInt(params.id) },
+      where: { id: Number.parseInt(id) },
       include: {
         _count: {
           select: {
@@ -110,7 +147,7 @@ export async function DELETE(
     }
 
     await database.category.delete({
-      where: { id: Number.parseInt(params.id) },
+      where: { id: Number.parseInt(id) },
     });
 
     return new NextResponse(null, { status: 204 });

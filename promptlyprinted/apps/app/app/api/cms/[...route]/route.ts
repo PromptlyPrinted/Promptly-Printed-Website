@@ -1,6 +1,5 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth } from '@repo/auth/server';
 import { basehub, fragmentOn } from 'basehub';
-import { Transaction } from '@basehub/mutation-api-helpers';
 import { NextResponse } from 'next/server';
 
 console.log('🚀 CMS Route file loaded');
@@ -515,16 +514,16 @@ const commitChanges = async (message: string) => {
   return { success: true };
 };
 
-// Define fragments for reusable parts of queries
-const imageFragment = fragmentOn('BlockImage', {
+// Define fragments for reusable parts of queries (simplified without fragmentOn)
+const imageFragment = {
   url: true,
   width: true,
   height: true,
   alt: true,
   blurDataURL: true,
-});
+};
 
-const postFragment = fragmentOn('PostsItem', {
+const postFragment = {
   _slug: true,
   _title: true,
   authors: {
@@ -552,9 +551,9 @@ const postFragment = fragmentOn('PostsItem', {
   date: true,
   description: true,
   image: imageFragment,
-});
+};
 
-const legalPostFragment = fragmentOn('LegalPagesItem', {
+const legalPostFragment = {
   _slug: true,
   _title: true,
   body: {
@@ -566,10 +565,11 @@ const legalPostFragment = fragmentOn('LegalPagesItem', {
     readingTime: true,
   },
   description: true,
-});
+};
 
 // Define queries using fragments
 const queries = {
+  
   'blog/posts': {
     blog: {
       posts: {
@@ -817,8 +817,8 @@ export async function GET(
   { params }: { params: Promise<{ route: string[] }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.userId) {
+    const session = await auth.api.getSession({ headers: request.headers });
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -853,8 +853,8 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ route: string[] }> }
 ) {
-  const session = await auth();
-  if (!session?.userId) {
+  const session = await auth.api.getSession({ headers: request.headers });
+  if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -986,8 +986,8 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ route: string[] }> }
 ) {
-  const session = await auth();
-  if (!session?.userId) {
+  const session = await auth.api.getSession({ headers: request.headers });
+  if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -1067,8 +1067,8 @@ export async function DELETE(
   { params }: { params: Promise<{ route: string[] }> }
 ) {
   console.log('🗑️ SERVER: DELETE endpoint called');
-  const session = await auth();
-  if (!session?.userId) {
+  const session = await auth.api.getSession({ headers: request.headers });
+  if (!session?.user?.id) {
     console.log('❌ SERVER: Unauthorized DELETE request');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

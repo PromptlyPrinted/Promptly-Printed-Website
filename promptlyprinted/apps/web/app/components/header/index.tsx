@@ -1,7 +1,7 @@
 // Header.tsx
 'use client';
 
-import { useAuth } from '@repo/auth/client';
+import { useSession, signOut } from '@repo/auth/client';
 import { Button } from '@repo/design-system/components/ui/button';
 import { ChevronDown, Menu, Search, ShoppingCart, User, X } from 'lucide-react';
 import Image from 'next/image';
@@ -391,7 +391,17 @@ const ResourcesDropdownMobileExpanded = ({
 };
 
 export const Header = () => {
-  const { isSignedIn = false, signOut } = useAuth();
+  const { data: session } = useSession();
+  const isSignedIn = !!session?.user;
+  
+  // Debug logging
+  console.log('Header - Session data:', session);
+  console.log('Header - Is signed in:', isSignedIn);
+  
+  const handleSignOut = async () => {
+    await signOut();
+    window.location.href = '/';
+  };
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dropdownOpenIndex, setDropdownOpenIndex] = useState<number | null>(
     null
@@ -834,7 +844,7 @@ export const Header = () => {
             headerBottom={headerBottom}
             isOpen={profileDropdownOpen}
             isSignedIn={isSignedIn}
-            onSignOut={signOut}
+            onSignOut={handleSignOut}
             onClose={() => setProfileDropdownOpen(false)}
           />
           <BasketDropdown

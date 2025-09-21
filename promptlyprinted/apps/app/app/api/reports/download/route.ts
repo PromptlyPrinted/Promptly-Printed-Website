@@ -4,16 +4,16 @@ import { NextResponse } from 'next/server';
 import { generateExcelReport } from '../../../lib/generate-report';
 import { calculateMetrics } from '../../../lib/metrics';
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const session = await auth.api.getSession({ headers: request.headers });
+    if (!session?.user?.id) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
     // Verify admin status
     const user = await database.user.findUnique({
-      where: { clerkId: userId },
+      where: { id: session.user.id },
       select: { role: true },
     });
 
@@ -31,8 +31,7 @@ export async function POST() {
         select: {
           id: true,
           email: true,
-          firstName: true,
-          lastName: true,
+          name: true,
           createdAt: true,
         },
       }),

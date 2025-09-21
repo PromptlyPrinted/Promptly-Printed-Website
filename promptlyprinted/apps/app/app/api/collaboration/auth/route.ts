@@ -1,4 +1,4 @@
-import { auth, currentUser } from '@repo/auth/server';
+import { auth } from '@repo/auth/server';
 import { authenticate } from '@repo/collaboration/auth';
 import { tailwind } from '@repo/tailwind-config';
 
@@ -22,21 +22,19 @@ const COLORS = [
   tailwind.theme.colors.rose[500],
 ];
 
-export const POST = async () => {
-  const user = await currentUser();
-  const { orgId } = await auth();
+export const POST = async (request: Request) => {
+  const session = await auth.api.getSession({ headers: request.headers });
 
-  if (!user || !orgId) {
+  if (!session?.user) {
     return new Response('Unauthorized', { status: 401 });
   }
 
   return authenticate({
-    userId: user.id,
-    orgId,
+    userId: session.user.id,
+    orgId: 'default-org', // Since Better Auth doesn't have organizations, use a default
     userInfo: {
-      name:
-        user.fullName ?? user.emailAddresses.at(0)?.emailAddress ?? undefined,
-      avatar: user.imageUrl ?? undefined,
+      name: session.user.name ?? session.user.email ?? undefined,
+      avatar: session.user.image ?? undefined,
       color: COLORS[Math.floor(Math.random() * COLORS.length)],
     },
   });

@@ -1,5 +1,5 @@
-import { authMiddleware } from '@repo/auth/middleware';
 import { noseconeConfig, noseconeMiddleware } from '@repo/security/middleware';
+import type { NextRequest } from 'next/server';
 
 export const config = {
   // matcher tells Next.js which routes to run the middleware on. This runs the
@@ -16,9 +16,9 @@ export const config = {
 
 const securityHeaders = noseconeMiddleware(noseconeConfig);
 
-// Chain the middleware functions
-const middleware = authMiddleware(() => securityHeaders());
-
-// Explicitly cast the middleware to any to avoid type issues
-// This is safe because we know the middleware is compatible
-export default middleware as any;
+export default function middleware(request: NextRequest) {
+  // For apps/web (customer-facing), we don't redirect users away from customer pages
+  // The authentication state is handled by the UI components and API routes
+  // Only apply security headers for web app
+  return securityHeaders(request);
+}
