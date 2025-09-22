@@ -2,14 +2,14 @@ import { createAuthClient } from 'better-auth/react';
 import type { auth } from './server';
 
 export const authClient = createAuthClient({
-  // Always use the proxy URL for consistency
+  // Use local auth endpoints - each app has its own /api/auth route
   baseURL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL
     ? `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/api/auth`
     : typeof window !== 'undefined'
-    ? `${window.location.origin}/api/auth`
-    : 'http://localhost:8888/api/auth',
+      ? `${window.location.origin}/api/auth` // Use current app's auth endpoint
+      : 'http://localhost:3000/api/auth', // Fallback for SSR
   fetchOptions: {
-    credentials: 'include', // Include cookies in cross-origin requests
+    credentials: 'include', // Include cookies for session sharing
   },
 });
 

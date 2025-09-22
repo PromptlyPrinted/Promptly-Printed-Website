@@ -17,6 +17,30 @@ nextConfig.images?.remotePatterns?.push({
   hostname: 'assets.basehub.com',
 });
 
+// Development: Proxy admin routes to admin app
+if (process.env.NODE_ENV === 'development') {
+  const rewrites: NextConfig['rewrites'] = async () => [
+    {
+      source: '/admin/:path*',
+      destination: 'http://localhost:3000/admin/:path*',
+    },
+    {
+      source: '/sign-in/:path*',
+      destination: 'http://localhost:3000/sign-in/:path*',
+    },
+    {
+      source: '/sign-up/:path*',
+      destination: 'http://localhost:3000/sign-up/:path*',
+    },
+    {
+      source: '/api/auth/:path*',
+      destination: 'http://localhost:3000/api/auth/:path*',
+    },
+  ];
+
+  nextConfig.rewrites = rewrites;
+}
+
 if (process.env.NODE_ENV === 'production') {
   const redirects: NextConfig['redirects'] = async () => [
     {

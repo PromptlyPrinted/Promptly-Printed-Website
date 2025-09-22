@@ -3,7 +3,7 @@
 import { useSession } from '@repo/auth/client';
 import { Button } from '@repo/design-system/components/ui/button';
 import { motion } from 'framer-motion';
-import { Heart, Image, LogOut, Package, Settings, User, X } from 'lucide-react';
+import { Heart, Image, LogOut, Package, Settings, Shield, User, X } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -16,6 +16,25 @@ type ProfileDropdownProps = {
   onClose: () => void;
 };
 
+function useUserRole() {
+  const { data: session } = useSession();
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      setIsLoading(true);
+      fetch('/api/user/role')
+        .then(res => res.json())
+        .then(data => setUserRole(data.role))
+        .catch(error => console.error('Failed to fetch user role:', error))
+        .finally(() => setIsLoading(false));
+    }
+  }, [session?.user?.id]);
+
+  return { userRole, isLoading };
+}
+
 export function ProfileDropdown({
   headerBottom,
   isOpen,
@@ -27,6 +46,7 @@ export function ProfileDropdown({
   const user = session?.user;
   const isLoaded = true; // Better Auth loads immediately
   const [mounted, setMounted] = useState(false);
+  const { userRole, isLoading } = useUserRole();
 
   useEffect(() => {
     setMounted(true);
@@ -136,6 +156,15 @@ export function ProfileDropdown({
                   <Package className="h-5 w-5" />
                   <span>Orders</span>
                 </Link>
+                {userRole === 'ADMIN' && (
+                  <Link
+                    href="/admin"
+                    className="flex items-center space-x-3 rounded-md px-3 py-2 text-blue-700 bg-blue-50 transition-colors hover:bg-blue-100 border border-blue-200"
+                  >
+                    <Shield className="h-5 w-5" />
+                    <span className="font-medium">Admin Dashboard</span>
+                  </Link>
+                )}
                 <Link
                   href="/settings"
                   className="flex items-center space-x-3 rounded-md px-3 py-2 text-gray-700 transition-colors hover:bg-gray-50"

@@ -1,4 +1,5 @@
 import 'server-only';
+import { randomUUID } from 'crypto';
 
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
@@ -7,7 +8,7 @@ import { admin, twoFactor, phoneNumber, username } from 'better-auth/plugins';
 import { prisma } from '@repo/database';
 
 export const auth = betterAuth({
-  baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:8888',
+  baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
   database: prismaAdapter(prisma, {
     provider: 'postgresql',
   }),
@@ -58,12 +59,43 @@ export const auth = betterAuth({
     }
   },
   advanced: {
-    useSecureCookies: false, // Disable for localhost development
-    cookiePrefix: "better-auth", // Match existing cookies
+    useSecureCookies: process.env.NODE_ENV === 'production',
+    cookiePrefix: "better-auth",
     crossSubDomainCookies: {
       enabled: true,
-      domain: "localhost", // Set explicit domain for localhost
+      domain: process.env.NODE_ENV === 'production'
+        ? ".promptlyprinted.com"  // Production: share across subdomains
+        : "localhost",            // Development: share across localhost ports
     },
+    generateId: () => randomUUID(),
+  },
+  cookies: {
+    sessionToken: {
+      name: "better-auth.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === 'production',
+        domain: process.env.NODE_ENV === 'production'
+          ? ".promptlyprinted.com"
+          : "localhost",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7 // 7 days
+      }
+    },
+    csrfToken: {
+      name: "better-auth.csrf-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === 'production',
+        domain: process.env.NODE_ENV === 'production'
+          ? ".promptlyprinted.com"
+          : "localhost",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7
+      }
+    }
   },
   plugins: [
     nextCookies(),
@@ -84,9 +116,13 @@ export const auth = betterAuth({
     }
   },
   trustedOrigins: [
+    // Development
     'http://localhost:3000',
     'http://localhost:3001',
-    'http://localhost:8888', // Add proxy URL
+    // Production
+    'https://promptlyprinted.com',
+    'https://app.promptlyprinted.com',
+    'https://auth.promptlyprinted.com',
     process.env.BETTER_AUTH_URL || 'http://localhost:3000'
   ],
 });
