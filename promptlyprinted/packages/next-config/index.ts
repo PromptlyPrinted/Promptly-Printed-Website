@@ -18,6 +18,32 @@ const baseConfig: NextConfig = {
     ],
   },
 
+  // Add cache headers to prevent chunk load errors
+  async headers() {
+    return [
+      {
+        // Cache static assets aggressively
+        source: '/_next/static/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        // Don't cache HTML files to ensure latest code is served
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=0, must-revalidate',
+          },
+        ],
+      },
+    ];
+  },
+
   // biome-ignore lint/suspicious/useAwait: rewrites is async
   async rewrites() {
     return [
@@ -36,12 +62,39 @@ const baseConfig: NextConfig = {
     ];
   },
 
-  webpack(config, { isServer }) {
+  webpack(config, { isServer, dev }) {
     if (isServer) {
       config.plugins = [...config.plugins, new PrismaPlugin()];
     }
 
     config.ignoreWarnings = [{ module: otelRegex }];
+
+    // Optimize chunk naming for better caching and to prevent chunk load errors
+    if (!dev && !isServer) {
+      config.optimization = {
+        ...config.optimization,
+        splitChunks: {
+          ...config.optimization?.splitChunks,
+          cacheGroups: {
+            ...config.optimization?.splitChunks?.cacheGroups,
+            // Create stable vendor chunk
+            vendor: {
+              test: /[\\/]node_modules[\\/]/,
+              name: 'vendors',
+              chunks: 'all',
+              priority: 20,
+            },
+            // Create common chunk for shared components
+            common: {
+              minChunks: 2,
+              name: 'common',
+              chunks: 'all',
+              priority: 10,
+            },
+          },
+        },
+      };
+    }
 
     return config;
   },

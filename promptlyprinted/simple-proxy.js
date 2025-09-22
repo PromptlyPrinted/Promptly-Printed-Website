@@ -3,6 +3,34 @@
 const http = require('http');
 const url = require('url');
 
+// Helper function to check if a file exists on a server
+function checkFileExists(hostname, port, path) {
+  return new Promise((resolve) => {
+    const options = {
+      hostname,
+      port,
+      path,
+      method: 'HEAD',
+      timeout: 1000 // 1 second timeout
+    };
+
+    const req = http.request(options, (res) => {
+      resolve(res.statusCode === 200);
+    });
+
+    req.on('error', () => {
+      resolve(false);
+    });
+
+    req.on('timeout', () => {
+      req.destroy();
+      resolve(false);
+    });
+
+    req.end();
+  });
+}
+
 function proxyRequest(req, res, targetPort) {
   const options = {
     hostname: 'localhost',
@@ -26,7 +54,32 @@ function proxyRequest(req, res, targetPort) {
   req.pipe(proxyReq);
 }
 
-const server = http.createServer((req, res) => {
+// Dynamic routing for static assets
+async function routeStaticAsset(req, res) {
+  const path = req.url;
+
+  // First check admin app (port 3000)
+  const existsOnAdmin = await checkFileExists('localhost', 3000, path);
+  if (existsOnAdmin) {
+    console.log(`  -> Routing to admin app (port 3000) [file exists on admin]`);
+    proxyRequest(req, res, 3000);
+    return;
+  }
+
+  // Then check web app (port 3001)
+  const existsOnWeb = await checkFileExists('localhost', 3001, path);
+  if (existsOnWeb) {
+    console.log(`  -> Routing to web app (port 3001) [file exists on web]`);
+    proxyRequest(req, res, 3001);
+    return;
+  }
+
+  // Default to admin app if not found on either (for better error handling)
+  console.log(`  -> Routing to admin app (port 3000) [default - file not found on either server]`);
+  proxyRequest(req, res, 3000);
+}
+
+const server = http.createServer(async (req, res) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
 
   let targetPort;
@@ -46,77 +99,15 @@ const server = http.createServer((req, res) => {
       targetPort = 3000;
       console.log(`  -> Routing auth API to admin app (port 3000) [context: admin/auth]`);
     } else {
-      // Otherwise, route to web app for web app pages
-      targetPort = 3001;
-      console.log(`  -> Routing auth API to web app (port 3001) [context: web]`);
+      // Default to admin app for auth APIs to ensure session consistency
+      targetPort = 3000;
+      console.log(`  -> Routing auth API to admin app (port 3000) [default for auth consistency]`);
     }
   }
-  // Route static assets based on referer and asset patterns
+  // Route static assets using dynamic checking
   else if (req.url.startsWith('/_next/')) {
-    // Check if this is a direct navigation to sign-in or admin
-    const origin = req.headers.origin || `http://localhost:8888`;
-    const fullReferer = referer || '';
-
-    if (fullReferer.includes('/admin') ||
-        fullReferer.includes('/sign-in') ||
-        fullReferer.includes('/sign-up') ||
-        fullReferer.includes(':8888/admin') ||
-        fullReferer.includes(':8888/sign-in') ||
-        fullReferer.includes(':8888/sign-up')) {
-      targetPort = 3000;
-      console.log(`  -> Routing to admin app (port 3000) [static asset from admin, referer: ${fullReferer}]`);
-    } else if (fullReferer &&
-               !fullReferer.includes('/admin') &&
-               !fullReferer.includes('/sign-in') &&
-               !fullReferer.includes('/sign-up')) {
-      targetPort = 3001;
-      console.log(`  -> Routing to web app (port 3001) [static asset from web, referer: ${fullReferer}]`);
-    } else {
-      // When referer is unclear, analyze the asset path to determine which app it belongs to
-      // Decode URL to handle encoded characters like %5B and %5D
-      const decodedUrl = decodeURIComponent(req.url);
-
-      // Admin app specific patterns
-      if (decodedUrl.includes('apps_app') ||
-          decodedUrl.includes('authenticated') ||
-          decodedUrl.includes('admin') ||
-          decodedUrl.includes('__61ce41') ||  // Admin app specific chunk
-          decodedUrl.includes('_063ab7') ||   // Admin app icon
-          decodedUrl.includes('__1d4c5d') ||  // Admin app specific chunk
-          decodedUrl.includes('__cffd3f') ||  // Admin app specific chunk
-          decodedUrl.includes('_b16ee7') ||   // Admin app specific chunk
-          decodedUrl.includes('__0678eb') ||  // Admin app specific chunk
-          decodedUrl.includes('__a4e8ed') ||  // Admin app specific chunk
-          decodedUrl.includes('_635ecd') ||   // Admin app specific chunk
-          decodedUrl.includes('__67441e') ||  // Admin app specific CSS
-          decodedUrl.includes('[root of the server]__67441e') ||  // Handle decoded version
-          decodedUrl.includes('(unauthenticated)') ||  // Sign-in page assets
-          decodedUrl.includes('__75d270') ||  // Admin app specific chunk
-          decodedUrl.includes('__744cf3') ||  // Admin app specific chunk
-          decodedUrl.includes('_af2195') ||   // Admin app specific chunk
-          decodedUrl.includes('9dd9d8')) {  // Sign-in page specific chunk
-        targetPort = 3000;
-        console.log(`  -> Routing to admin app (port 3000) [static asset pattern match: ${decodedUrl}]`);
-      } else if (decodedUrl.includes('apps_web') ||
-                 decodedUrl.includes('(home)') ||
-                 decodedUrl.includes('__2e7fab') ||  // Web app specific chunk
-                 decodedUrl.includes('_cbb84b') ||   // Web app icon
-                 decodedUrl.includes('__2f5eec') ||  // Web app specific chunk
-                 decodedUrl.includes('__83ce3d') ||  // Web app specific chunk
-                 decodedUrl.includes('_44c4d9') ||   // Web app specific chunk
-                 decodedUrl.includes('__f72137') ||  // Web app specific chunk
-                 decodedUrl.includes('_123ae5') ||   // Web app specific chunk
-                 decodedUrl.includes('__05dc44') ||  // Web app specific CSS
-                 decodedUrl.includes('[root of the server]__05dc44')) {  // Handle decoded version
-        targetPort = 3001;
-        console.log(`  -> Routing to web app (port 3001) [static asset pattern match: ${decodedUrl}]`);
-      } else {
-        // For unclear assets, check the most recent page request to determine context
-        // If the last main page request was /sign-in or /admin, route to admin app
-        targetPort = 3001; // Default to web app as it's the public-facing app
-        console.log(`  -> Routing to web app (port 3001) [static asset default: ${decodedUrl}]`);
-      }
-    }
+    await routeStaticAsset(req, res);
+    return;
   }
   else {
     targetPort = 3001;
