@@ -29,7 +29,8 @@ export const SignUp = () => {
       if (result.error) {
         setError(result.error.message || 'Sign up failed');
       } else {
-        router.push('/');
+        // Redirect to web app home after successful sign up
+        window.location.href = 'http://localhost:3001';
       }
     } catch (err) {
       setError('An unexpected error occurred');
@@ -43,7 +44,7 @@ export const SignUp = () => {
     try {
       await signIn.social({
         provider,
-        callbackURL: '/',
+        callbackURL: 'http://localhost:3001',
       });
     } catch (err) {
       setError(`Failed to sign up with ${provider}`);

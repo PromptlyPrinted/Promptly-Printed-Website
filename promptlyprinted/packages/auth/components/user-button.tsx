@@ -26,7 +26,8 @@ export const UserButton = ({ showName = false, appearance }: UserButtonProps) =>
 
   const handleSignOut = async () => {
     await signOut();
-    router.push('/sign-in');
+    // Redirect to web app home after sign out
+    window.location.href = 'http://localhost:3001';
   };
 
   return (

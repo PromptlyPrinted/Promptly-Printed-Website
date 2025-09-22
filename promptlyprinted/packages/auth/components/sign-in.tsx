@@ -13,7 +13,7 @@ export const SignIn = () => {
   
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams.get('redirect') || '/';
+  const redirect = searchParams.get('redirect') || 'http://localhost:3001';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +29,12 @@ export const SignIn = () => {
       if (result.error) {
         setError(result.error.message || 'Sign in failed');
       } else {
-        router.push(redirect);
+        // If redirect is external URL, use window.location.href
+        if (redirect.startsWith('http')) {
+          window.location.href = redirect;
+        } else {
+          router.push(redirect);
+        }
       }
     } catch (err) {
       setError('An unexpected error occurred');

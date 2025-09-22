@@ -1,13 +1,14 @@
 import { auth } from '@repo/auth/server';
-import { basehub, fragmentOn } from 'basehub';
+// import { basehub } from '../../../.basehub';
+// import type { Transaction } from '@basehub/mutation-api-helpers';
 import { NextResponse } from 'next/server';
 
 console.log('🚀 CMS Route file loaded');
 
 // BaseHub client with admin token for mutations
-const basehubWithAdmin = basehub({
-  token: process.env.BASEHUB_ADMIN_TOKEN || process.env.BASEHUB_TOKEN,
-});
+// const basehubWithAdmin = basehub({
+//   token: process.env.BASEHUB_ADMIN_TOKEN || process.env.BASEHUB_TOKEN,
+// });
 
 // Temporary in-memory storage for demo purposes
 // In a real implementation, this would use BaseHub's mutation API
@@ -638,17 +639,18 @@ async function fetchFromBasehub(path: string, options: RequestInit = {}) {
   if (options.method === 'GET' && queries[contentType]) {
     try {
       console.log('🔍 Querying BaseHub for:', contentType);
-      const data = await basehubWithAdmin.query(queries[contentType]);
-      console.log('✅ BaseHub raw response:', JSON.stringify(data, null, 2));
-      
-      const basehubData = transformResponse(contentType, data);
-      console.log('📋 Transformed BaseHub data:', basehubData.length, 'items');
-      
+      // const data = await basehubWithAdmin.query(queries[contentType]);
+      // console.log('✅ BaseHub raw response:', JSON.stringify(data, null, 2));
+
+      // const basehubData = transformResponse(contentType, data);
+      // console.log('📋 Transformed BaseHub data:', basehubData.length, 'items');
+
       // Merge with temporary storage
       const tempData = getTempData(contentType);
       console.log('📦 Temp data to merge:', tempData.length, 'items');
-      
-      const combined = [...basehubData, ...tempData];
+
+      // const combined = [...basehubData, ...tempData];
+      const combined = [...tempData]; // Use only temp data for now
       console.log('🔗 Combined data returned:', combined.length, 'total items');
       return combined;
     } catch (error) {
