@@ -36,6 +36,14 @@ if (process.env.NODE_ENV === 'development') {
       source: '/api/auth/:path*',
       destination: 'http://localhost:3000/api/auth/:path*',
     },
+    {
+      source: '/design',
+      destination: 'http://localhost:3000/halloween-2025',
+    },
+    {
+      source: '/halloween-2025/:path*',
+      destination: 'http://localhost:3000/halloween-2025/:path*',
+    },
   ];
 
   nextConfig.rewrites = rewrites;

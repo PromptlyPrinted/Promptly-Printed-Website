@@ -478,9 +478,10 @@ const removeImageBackground = async (imageUrl: string): Promise<string> => {
 
 interface ProductDetailProps {
   product: Product;
+  isDesignMode?: boolean;
 }
 
-export function ProductDetail({ product }: ProductDetailProps) {
+export function ProductDetail({ product, isDesignMode = false }: ProductDetailProps) {
   const searchParams = useSearchParams();
   const colorFromUrl = searchParams.get('color');
   
@@ -1304,7 +1305,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
       id: `${product.id}-${selectedSize}-${selectedColor}`,
       productId: product.id.toString(),
       name: product.name,
-      price: product.price,
+      price: product.pricing?.[0]?.amount || product.price || 0,
       quantity: quantity,
       size: selectedSize,
       color: selectedColor,
@@ -1458,8 +1459,8 @@ export function ProductDetail({ product }: ProductDetailProps) {
   };
 
   return (
-    <div className="product-detail-background min-h-screen">
-      <div className="mx-auto max-w-[1440px] px-3 py-8 lg:px-6 lg:py-12 product-detail-container">
+    <div className={`product-detail-background ${isDesignMode ? '' : 'min-h-screen'}`}>
+      <div className={`mx-auto product-detail-container ${isDesignMode ? 'max-w-7xl px-4 sm:px-6 lg:px-8 py-6' : 'max-w-[1440px] px-3 py-8 lg:px-6 lg:py-12'}`}>
         <div className="grid grid-cols-1 gap-x-6 gap-y-6 lg:grid-cols-2">
         {/* LEFT PANEL: T-shirt Preview + AI Prompt */}
         <div className="space-y-4">
@@ -1876,13 +1877,13 @@ export function ProductDetail({ product }: ProductDetailProps) {
             <div className="flex items-baseline space-x-2">
               <p className="font-bold text-2xl text-teal-800">
                 {formatPrice(
-                  getConvertedPrice(product.price),
+                  getConvertedPrice(product.pricing?.[0]?.amount || product.price || 0),
                   selectedCurrency
                 )}
               </p>
               {selectedCurrency !== 'USD' && (
                 <p className="text-gray-500 text-sm">
-                  (${product.price.toFixed(2)} USD)
+                  (${(product.pricing?.[0]?.amount || product.price || 0).toFixed(2)} USD)
                 </p>
               )}
             </div>
@@ -2294,7 +2295,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
                   id: `${product.id}-${selectedSize}-${selectedColor}`,
                   productId: product.id.toString(),
                   name: product.name,
-                  price: product.price,
+                  price: product.pricing?.[0]?.amount || product.price || 0,
                   quantity: quantity,
                   size: selectedSize,
                   color: selectedColor,
