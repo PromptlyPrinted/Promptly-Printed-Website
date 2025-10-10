@@ -202,7 +202,7 @@ export default function ProductsPage() {
       shippingCost: 0,
       imageUrls: {
         base: product.imageUrls.base || '',
-        cover: `${product.imageUrls.base}/cover.png` || '',
+        cover: product.imageUrls.productImage || `${product.imageUrls.base}/cover.png` || '',
         sizeChart: ''
       },
       sku: product.sku,
@@ -1082,26 +1082,23 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
   
   // Get current image based on selected color or current index
   const getCurrentImage = () => {
-    if (!isHovered && !selectedColor) {
-      return product.imageUrls.cover;
-    }
-    
+    // If user has selected a color, show that color's image
     if (selectedColor && originalProduct) {
-      // Find color option by matching formatted names
       const colorOption = colorOptions.find(c => formatColorForUrl(c.name) === selectedColor);
       if (colorOption) {
         return `${originalProduct.imageUrls.base}/${colorOption.filename}`;
       }
     }
-    
-    // Fallback to current color index when navigating with arrows
-    if (colorOptions.length > 0 && originalProduct) {
+
+    // If hovering (but no color selected), show current color index
+    if (isHovered && !selectedColor && colorOptions.length > 0 && originalProduct) {
       const currentColorOption = colorOptions[currentColorIndex];
       if (currentColorOption) {
         return `${originalProduct.imageUrls.base}/${currentColorOption.filename}`;
       }
     }
-    
+
+    // Default: show productImage thumbnail
     return product.imageUrls.cover;
   };
   
@@ -1155,7 +1152,7 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
                 src={getCurrentImage()}
                 alt={product.name}
                 fill
-                className="object-cover rounded-lg group-hover:scale-[1.03] transition-all duration-300"
+                className="object-contain rounded-lg group-hover:scale-[1.03] transition-all duration-300"
               />
             </Link>
             {product.badge && (
@@ -1318,7 +1315,7 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
             src={getCurrentImage()}
             alt={product.name}
             fill
-            className="object-cover group-hover:scale-[1.03] transition-all duration-300"
+            className="object-contain group-hover:scale-[1.03] transition-all duration-300"
           />
         </Link>
         

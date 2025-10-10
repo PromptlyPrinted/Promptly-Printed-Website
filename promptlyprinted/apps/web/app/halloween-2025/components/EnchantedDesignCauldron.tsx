@@ -136,7 +136,7 @@ export const EnchantedDesignCauldron = () => {
     }
 
     // Navigate to Halloween design tool with prompt
-    window.location.href = 'http://localhost:3001/design/halloween';
+    window.location.href = '/design/halloween';
   };
 
   const getDifficultyColor = (difficulty: string) => {

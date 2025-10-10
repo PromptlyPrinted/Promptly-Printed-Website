@@ -186,6 +186,7 @@ export interface ProductDetails {
   category: string;
   imageUrls: {
     base: string;
+    productImage?: string;
     front?: string;
     back?: string;
     closeup?: string;
@@ -371,6 +372,7 @@ export const tshirtDetails: Record<string, ProductDetails> = {
     category: "Men's T-shirts",
     imageUrls: {
       base: '/assets/images/Apparel/Mens/T-Shirts/TEE-SS-STTU755/Blanks/png',
+      productImage: '/assets/images/Apparel/Mens/T-Shirts/TEE-SS-STTU755/ProductImage/image.png',
       front:
         '/assets/images/Apparel/Mens/T-Shirts/TEE-SS-STTU755/Blanks/png/front.png',
       back: '/assets/images/Apparel/Mens/T-Shirts/TEE-SS-STTU755/Blanks/png/back.png',
@@ -451,6 +453,7 @@ export const tshirtDetails: Record<string, ProductDetails> = {
     category: "Men's T-shirts",
     imageUrls: {
       base: '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-BC-3413/Blanks/png',
+      productImage: '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-BC-3413/ProductImage/image.png',
     },
     colorOptions: [
       {
@@ -514,6 +517,7 @@ export const tshirtDetails: Record<string, ProductDetails> = {
     category: "Men's T-shirts",
     imageUrls: {
       base: '/assets/images/Apparel/Mens/T-Shirts/TT-GIL-64200/Blanks/png',
+      productImage: '/assets/images/Apparel/Mens/T-Shirts/TT-GIL-64200/ProductImage/image.png',
     },
     colorOptions: [
       { name: 'Black', filename: 'black.png' },
@@ -573,6 +577,7 @@ export const tshirtDetails: Record<string, ProductDetails> = {
     category: "Men's T-shirts",
     imageUrls: {
       base: '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/Blanks/png',
+      productImage: '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/ProductImage/image.png',
     },
     colorOptions: [
       { name: 'Black', filename: 'black.png' },
@@ -633,6 +638,7 @@ export const tshirtDetails: Record<string, ProductDetails> = {
     category: "Men's T-shirts",
     imageUrls: {
       base: '/assets/images/Apparel/Mens/T-Shirts/A-ML-GD2400/Blanks/png',
+      productImage: '/assets/images/Apparel/Mens/T-Shirts/A-ML-GD2400/ProductImage/image.png',
     },
     colorOptions: [
       { name: 'Black', filename: 'black.png' },
@@ -701,6 +707,7 @@ export const tshirtDetails: Record<string, ProductDetails> = {
     category: "Women's T-shirts",
     imageUrls: {
       base: '/assets/images/Apparel/Womens/T-Shirts/A-WT-GD64000L/Blanks/png',
+      productImage: '/assets/images/Apparel/Womens/T-Shirts/A-WT-GD64000L/ProductImage/image.png',
     },
     colorOptions: [
       { name: 'Black', filename: 'black.png' },
@@ -761,6 +768,7 @@ export const tshirtDetails: Record<string, ProductDetails> = {
     category: "Women's T-shirts",
     imageUrls: {
       base: '/assets/images/Apparel/Womens/T-Shirts/GLOBAL-TEE-BC-6035/Blanks/png',
+      productImage: '/assets/images/Apparel/Womens/T-Shirts/GLOBAL-TEE-BC-6035/ProductImage/image.png',
     },
     colorOptions: [
       { name: 'Black', filename: 'black.png' },
@@ -833,6 +841,7 @@ export const tshirtDetails: Record<string, ProductDetails> = {
     category: 'Baby Clothing',
     imageUrls: {
       base: '/assets/images/Apparel/Kids+Babies/Babies/A-BB-LA4411/Blanks/png',
+      productImage: '/assets/images/Apparel/Kids+Babies/Babies/A-BB-LA4411/ProductImage/image.png',
     },
     colorOptions: [
       { name: 'White', filename: 'white.png' },
@@ -902,6 +911,7 @@ export const tshirtDetails: Record<string, ProductDetails> = {
     category: 'Baby Clothing',
     imageUrls: {
       base: '/assets/images/Apparel/Kids+Babies/Babies/GLOBAL-TEE-RS-3322/Blanks/png',
+      productImage: '/assets/images/Apparel/Kids+Babies/Babies/GLOBAL-TEE-RS-3322/ProductImage/image.png',
     },
     colorOptions: [
       { name: 'White', filename: 'white.png' },
@@ -972,6 +982,7 @@ export const tshirtDetails: Record<string, ProductDetails> = {
     category: "Kids' T-shirts",
     imageUrls: {
       base: '/assets/images/Apparel/Kids+Babies/Kids/T-Shirts/A-KT-GD64000B/Blanks/png',
+      productImage: '/assets/images/Apparel/Kids+Babies/Kids/T-Shirts/A-KT-GD64000B/ProductImage/image.png',
     },
     colorOptions: [
       { name: 'Black', filename: 'black.png' },
@@ -1044,6 +1055,7 @@ export const tshirtDetails: Record<string, ProductDetails> = {
     category: "Kids' Sweatshirts",
     imageUrls: {
       base: '/assets/images/Apparel/Kids+Babies/Kids/T-Shirts/SWEAT-AWD-JH030B/Blanks/png',
+      productImage: '/assets/images/Apparel/Kids+Babies/Kids/T-Shirts/SWEAT-AWD-JH030B/ProductImage/image.png',
     },
     colorOptions: [
       { name: 'Arctic White', filename: 'arctic-white.png' },

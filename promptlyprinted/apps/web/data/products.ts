@@ -176,6 +176,7 @@ export const tshirtDetails = {
     category: "Men's T-shirts",
     imageUrls: {
       base: '/assets/images/Apparel/Mens/T-Shirts/TEE-SS-STTU755/Blanks/png',
+      productImage: '/assets/images/Apparel/Mens/T-Shirts/TEE-SS-STTU755/ProductImage/image.png',
       cover: '/assets/images/Apparel/Mens/T-Shirts/TEE-SS-STTU755/Blanks/cover',
       sizeChart:
         '/assets/images/Apparel/Mens/T-Shirts/TEE-SS-STTU755/Blanks/size-chart.png',
@@ -253,6 +254,7 @@ export const tshirtDetails = {
     category: "Men's T-shirts",
     imageUrls: {
       base: '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-BC-3413/Blanks/png',
+      productImage: '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-BC-3413/ProductImage/image.png',
       cover:
         '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-BC-3413/Blanks/cover',
       sizeChart:
@@ -321,6 +323,7 @@ export const tshirtDetails = {
     category: "Men's T-shirts",
     imageUrls: {
       base: '/assets/images/Apparel/Mens/T-Shirts/TT-GIL-64200/Blanks/png',
+      productImage: '/assets/images/Apparel/Mens/T-Shirts/TT-GIL-64200/ProductImage/image.png',
       cover: '/assets/images/Apparel/Mens/T-Shirts/TT-GIL-64200/Blanks/cover',
       sizeChart:
         '/assets/images/Apparel/Mens/T-Shirts/TT-GIL-64200/Blanks/size-chart.png',
@@ -385,6 +388,7 @@ export const tshirtDetails = {
     category: "Men's T-shirts",
     imageUrls: {
       base: '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/Blanks/png',
+      productImage: '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/ProductImage/image.png',
       cover:
         '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/Blanks/cover',
       sizeChart:
@@ -454,6 +458,7 @@ export const tshirtDetails = {
     category: "Men's T-shirts",
     imageUrls: {
       base: '/assets/images/Apparel/Mens/T-Shirts/A-ML-GD2400/Blanks/png',
+      productImage: '/assets/images/Apparel/Mens/T-Shirts/A-ML-GD2400/ProductImage/image.png',
       cover: '/assets/images/Apparel/Mens/T-Shirts/A-ML-GD2400/Blanks/cover',
       sizeChart:
         '/assets/images/Apparel/Mens/T-Shirts/A-ML-GD2400/Blanks/size-chart.png',
@@ -522,6 +527,7 @@ export const tshirtDetails = {
     category: "Women's T-shirts",
     imageUrls: {
       base: '/assets/images/Apparel/Womens/T-Shirts/A-WT-GD64000L/Blanks/png',
+      productImage: '/assets/images/Apparel/Womens/T-Shirts/A-WT-GD64000L/ProductImage/image.png',
       cover:
         '/assets/images/Apparel/Womens/T-Shirts/A-WT-GD64000L/Blanks/cover',
       sizeChart:
@@ -593,6 +599,7 @@ export const tshirtDetails = {
     category: "Women's T-shirts",
     imageUrls: {
       base: '/assets/images/Apparel/Womens/T-Shirts/GLOBAL-TEE-BC-6035/Blanks/png',
+      productImage: '/assets/images/Apparel/Womens/T-Shirts/GLOBAL-TEE-BC-6035/ProductImage/image.png',
       cover:
         '/assets/images/Apparel/Womens/T-Shirts/GLOBAL-TEE-BC-6035/Blanks/cover',
       sizeChart:
@@ -671,6 +678,7 @@ export const tshirtDetails = {
     category: 'Baby Clothing',
     imageUrls: {
       base: '/assets/images/Apparel/Kids+Babies/Babies/A-BB-LA4411/Blanks/png',
+      productImage: '/assets/images/Apparel/Kids+Babies/Babies/A-BB-LA4411/ProductImage/image.png',
       cover:
         '/assets/images/Apparel/Kids+Babies/Babies/A-BB-LA4411/Blanks/cover',
       sizeChart:
@@ -746,6 +754,7 @@ export const tshirtDetails = {
     category: 'Baby Clothing',
     imageUrls: {
       base: '/assets/images/Apparel/Kids+Babies/Babies/GLOBAL-TEE-RS-3322/Blanks/png',
+      productImage: '/assets/images/Apparel/Kids+Babies/Babies/GLOBAL-TEE-RS-3322/ProductImage/image.png',
       cover:
         '/assets/images/Apparel/Kids+Babies/Babies/GLOBAL-TEE-RS-3322/Blanks/cover',
       sizeChart:
@@ -825,6 +834,7 @@ export const tshirtDetails = {
     category: "Kids' T-shirts",
     imageUrls: {
       base: '/assets/images/Apparel/Kids+Babies/Kids/T-Shirts/A-KT-GD64000B/Blanks/png',
+      productImage: '/assets/images/Apparel/Kids+Babies/Kids/T-Shirts/A-KT-GD64000B/ProductImage/image.png',
       cover:
         '/assets/images/Apparel/Kids+Babies/Kids/T-Shirts/A-KT-GD64000B/Blanks/cover',
       sizeChart:
@@ -905,6 +915,7 @@ export const tshirtDetails = {
     category: "Kids' Sweatshirts",
     imageUrls: {
       base: '/assets/images/Apparel/Kids+Babies/Kids/T-Shirts/SWEAT-AWD-JH030B/Blanks/png',
+      productImage: '/assets/images/Apparel/Kids+Babies/Kids/T-Shirts/SWEAT-AWD-JH030B/ProductImage/image.png',
       cover:
         '/assets/images/Apparel/Kids+Babies/Kids/T-Shirts/SWEAT-AWD-JH030B/Blanks/cover',
       sizeChart:

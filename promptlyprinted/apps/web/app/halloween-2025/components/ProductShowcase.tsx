@@ -72,7 +72,7 @@ export const ProductShowcase = () => {
     }
 
     // Navigate to Halloween design tool
-    window.location.href = 'http://localhost:3001/design/halloween';
+    window.location.href = '/design/halloween';
   };
 
   return (

@@ -1,11 +1,12 @@
 'use client';
 
 import { tshirtDetails } from '@repo/database/scripts/tshirt-details';
-import { Button } from '@repo/design-system/components/ui/button';
 import { Badge } from '@repo/design-system/components/ui/badge';
 import { cn } from '@repo/design-system/lib/utils';
 import Link from 'next/link';
 import { useState } from 'react';
+import Image from 'next/image';
+import { useDesignTheme } from '@/contexts/DesignThemeContext';
 
 interface DesignProductNavigationProps {
   currentProductSku: string;
@@ -14,25 +15,34 @@ interface DesignProductNavigationProps {
 
 const productCategories = {
   Men: {
-    'T-Shirts': ['TEE-SS-STTU755', 'GLOBAL-TEE-BC-3413', 'GLOBAL-TEE-GIL-64V00'],
-    'Tank Tops': ['TT-GIL-64200'],
-    'Long Sleeve': ['A-ML-GD2400'],
+    'APPAREL': {
+      'T-Shirts': ['TEE-SS-STTU755', 'GLOBAL-TEE-BC-3413', 'GLOBAL-TEE-GIL-64V00'],
+      'Tank Tops': ['TT-GIL-64200'],
+      'Long Sleeve': ['A-ML-GD2400'],
+    }
   },
   Women: {
-    'T-Shirts': ['A-WT-GD64000L', 'GLOBAL-TEE-BC-6035'],
+    'APPAREL': {
+      'T-Shirts': ['A-WT-GD64000L', 'GLOBAL-TEE-BC-6035'],
+    }
   },
   Kids: {
-    'T-Shirts': ['A-KT-GD64000B'],
-    'Sweatshirts': ['SWEAT-AWD-JH030B'],
+    'APPAREL': {
+      'T-Shirts': ['A-KT-GD64000B'],
+      'Sweatshirts': ['SWEAT-AWD-JH030B'],
+    }
   },
   Babies: {
-    'Bodysuits': ['A-BB-LA4411'],
-    'T-Shirts': ['GLOBAL-TEE-RS-3322'],
+    'APPAREL': {
+      'Bodysuits': ['A-BB-LA4411'],
+      'T-Shirts': ['GLOBAL-TEE-RS-3322'],
+    }
   },
 };
 
 export function DesignProductNavigation({ currentProductSku, onProductChange }: DesignProductNavigationProps) {
-  const [activeCategory, setActiveCategory] = useState<keyof typeof productCategories>('Men');
+  const [hoveredCategory, setHoveredCategory] = useState<keyof typeof productCategories | null>(null);
+  const { theme } = useDesignTheme();
 
   // Find current product by SKU or name
   let currentProduct = tshirtDetails[currentProductSku as keyof typeof tshirtDetails];
@@ -68,88 +78,141 @@ export function DesignProductNavigation({ currentProductSku, onProductChange }: 
   const currentCategory = currentProduct ? getCategoryFromProduct(currentProduct) : 'Men';
 
   return (
-    <div className="bg-white border-b border-gray-200 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Category Navigation */}
-        <div className="flex space-x-8 py-4">
-          {Object.keys(productCategories).map((category) => (
-            <button
-              key={category}
-              onClick={() => setActiveCategory(category as keyof typeof productCategories)}
-              className={cn(
-                'text-sm font-medium pb-2 border-b-2 transition-colors',
-                activeCategory === category || currentCategory === category
-                  ? 'text-blue-600 border-blue-600'
-                  : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
-              )}
-            >
-              {category}
-            </button>
-          ))}
+    <div className={cn("relative border-b shadow-sm", `bg-${theme.background}`, `border-${theme.borderLight}`)}>
+      <div className="max-w-7xl mx-auto">
+        {/* Main Navigation Bar */}
+        <div className="flex items-center px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex space-x-8">
+            {Object.keys(productCategories).map((category) => {
+              const isActive = currentCategory === category;
+
+              return (
+                <div
+                  key={category}
+                  className="relative"
+                  onMouseEnter={() => setHoveredCategory(category as keyof typeof productCategories)}
+                  onMouseLeave={() => setHoveredCategory(null)}
+                >
+                  <button
+                    className={cn(
+                      'text-base font-medium px-4 py-2 rounded-md transition-all duration-200',
+                      isActive || hoveredCategory === category
+                        ? `text-${theme.primary} bg-${theme.primaryLight}`
+                        : `text-${theme.textSecondary} hover:text-${theme.primaryHover} hover:bg-${theme.hover}`
+                    )}
+                  >
+                    {category}
+                    <span className="ml-1 text-sm">▼</span>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Product Type Tabs */}
-        <div className="flex space-x-6 pb-4">
-          {Object.entries(productCategories[activeCategory]).map(([type, skus]) => (
-            <div key={type} className="flex flex-col">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                {type}
-              </h3>
-              <div className="flex space-x-2">
-                {skus.map((sku) => {
-                  const product = tshirtDetails[sku as keyof typeof tshirtDetails];
-                  if (!product) return null;
+        {/* Mega Menu Dropdown */}
+        {hoveredCategory && (
+          <div
+            className={cn("absolute left-0 right-0 top-full shadow-xl border-t z-50", `bg-${theme.background}`, `border-${theme.borderLight}`)}
+            onMouseEnter={() => setHoveredCategory(hoveredCategory)}
+            onMouseLeave={() => setHoveredCategory(null)}
+          >
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+              <div className="grid grid-cols-12 gap-8">
+                {/* Product Categories */}
+                <div className="col-span-9">
+                  <div className="grid grid-cols-3 gap-8">
+                    {Object.entries(productCategories[hoveredCategory]).map(([sectionTitle, productTypes]) => (
+                      <div key={sectionTitle} className="space-y-4">
+                        <h3 className={cn("text-sm font-bold uppercase tracking-wider border-b pb-2", `text-${theme.primaryDark}`, `border-${theme.borderLight}`)}>
+                          {sectionTitle}
+                        </h3>
+                        <div className="space-y-3">
+                          {Object.entries(productTypes).map(([productType, skus]) => (
+                            <div key={productType} className="space-y-2">
+                              <h4 className={cn("text-sm font-semibold mb-2", `text-${theme.textPrimary}`)}>
+                                {productType}
+                              </h4>
+                              <div className="space-y-1">
+                                {skus.map((sku) => {
+                                  const product = tshirtDetails[sku as keyof typeof tshirtDetails];
+                                  if (!product) return null;
 
-                  const isActive = sku === currentProductSku ||
-                    (currentProduct && createSlug(product.name) === createSlug(currentProduct.name));
-                  const price = product.pricing.find(p => p.currency === 'GBP')?.amount || product.pricing[0].amount;
+                                  const isActive = sku === currentProductSku ||
+                                    (currentProduct && createSlug(product.name) === createSlug(currentProduct.name));
+                                  const price = product.pricing.find(p => p.currency === 'GBP')?.amount || product.pricing[0].amount;
+                                  const productSlug = createSlug(product.name);
 
-                  const productSlug = createSlug(product.name);
-
-                  return (
-                    <Link
-                      key={sku}
-                      href={`/design/${productSlug}`}
-                      onClick={() => handleProductSelect(sku, product.name)}
-                      className={cn(
-                        'group relative p-3 rounded-lg border transition-all duration-200 hover:shadow-md',
-                        isActive
-                          ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-500 ring-opacity-50'
-                          : 'border-gray-200 bg-white hover:border-gray-300'
-                      )}
-                    >
-                      <div className="flex flex-col items-center space-y-2 min-w-[120px]">
-                        {/* Product Image Preview */}
-                        <div className="w-12 h-12 bg-gray-100 rounded-md flex items-center justify-center">
-                          <span className="text-xs text-gray-500">
-                            {product.productType.replace(/_/g, ' ')}
-                          </span>
+                                  return (
+                                    <Link
+                                      key={sku}
+                                      href={`/design/${productSlug}`}
+                                      onClick={() => handleProductSelect(sku, product.name)}
+                                      className={cn(
+                                        'group flex items-center justify-between p-3 rounded-lg transition-all duration-200 border',
+                                        isActive
+                                          ? `bg-${theme.primaryLight} border-${theme.border} text-${theme.primaryDark}`
+                                          : `hover:bg-${theme.hover} border-transparent hover:border-gray-200`
+                                      )}
+                                    >
+                                      <div className="flex-1">
+                                        <p className={cn(
+                                          'text-sm font-medium truncate',
+                                          isActive ? `text-${theme.primaryDark}` : `text-${theme.textPrimary}`
+                                        )}>
+                                          {product.name}
+                                        </p>
+                                        <p className="text-xs text-gray-500 mt-0.5">
+                                          £{price}
+                                        </p>
+                                      </div>
+                                      {isActive && (
+                                        <Badge className={cn("ml-2 text-white text-xs", `bg-${theme.accent}`)}>
+                                          Current
+                                        </Badge>
+                                      )}
+                                    </Link>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
                         </div>
-
-                        {/* Product Info */}
-                        <div className="text-center">
-                          <p className="text-xs font-medium text-gray-900 truncate">
-                            {product.name}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            £{price}
-                          </p>
-                        </div>
-
-                        {/* Active Badge */}
-                        {isActive && (
-                          <Badge variant="default" className="absolute -top-2 -right-2 text-xs">
-                            Current
-                          </Badge>
-                        )}
                       </div>
-                    </Link>
-                  );
-                })}
+                    ))}
+                  </div>
+                </div>
+
+                {/* Featured Section */}
+                <div className="col-span-3">
+                  <div className={cn("bg-gradient-to-br rounded-lg p-6 h-full", `from-${theme.gradientFrom}`, `to-${theme.gradientTo}`)}>
+                    <div className="flex flex-col h-full">
+                      <div className="flex-1">
+                        <h3 className={cn("text-lg font-bold mb-2", `text-${theme.primaryDark}`)}>
+                          Design with AI
+                        </h3>
+                        <p className={cn("text-sm mb-4", `text-${theme.primary}`)}>
+                          Create unique designs instantly with our AI-powered design tools.
+                        </p>
+                        <ul className={cn("text-xs space-y-1", `text-${theme.accent}`)}>
+                          <li>• Text to image generation</li>
+                          <li>• Style customization</li>
+                          <li>• Multiple AI models</li>
+                          <li>• Instant previews</li>
+                        </ul>
+                      </div>
+                      <div className="mt-6">
+                        <div className={cn("w-full h-24 rounded-md flex items-center justify-center", `bg-${theme.accentLight}`)}>
+                          <span className={cn("text-xs font-medium", `text-${theme.accent}`)}>AI Design Preview</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

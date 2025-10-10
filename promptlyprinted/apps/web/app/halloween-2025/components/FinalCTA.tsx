@@ -12,7 +12,7 @@ export const FinalCTA = () => {
     }
 
     // Navigate to Halloween design funnel
-    window.location.href = 'http://localhost:3001/design/halloween';
+    window.location.href = '/design/halloween';
   };
 
   return (

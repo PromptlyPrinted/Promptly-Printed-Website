@@ -2,10 +2,14 @@ import { tshirtDetails } from '@repo/database/scripts/tshirt-details';
 import { notFound, redirect } from 'next/navigation';
 import { DesignProductDetail } from './components/DesignProductDetail';
 import type { Product } from '@/types/product';
+import { DesignThemeProvider } from '@/contexts/DesignThemeContext';
 
 interface DesignPageProps {
   params: {
     productSku: string;
+  };
+  searchParams?: {
+    campaign?: string;
   };
 }
 
@@ -17,8 +21,9 @@ const normalizeString = (str: string) =>
 const createSlug = (str: string) =>
   str.toLowerCase().replace(/[''"]/g, '').replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
 
-export default function DesignPage({ params }: DesignPageProps) {
+export default function DesignPage({ params, searchParams }: DesignPageProps) {
   const { productSku } = params;
+  const campaign = searchParams?.campaign || 'default';
 
   // Get product from tshirt details - support both SKU and name-based lookup for backward compatibility
   let product = tshirtDetails[productSku as keyof typeof tshirtDetails];
@@ -66,7 +71,11 @@ export default function DesignPage({ params }: DesignPageProps) {
     wishedBy: [],
   };
 
-  return <DesignProductDetail product={productWithPrice} />;
+  return (
+    <DesignThemeProvider themeName={campaign}>
+      <DesignProductDetail product={productWithPrice} />
+    </DesignThemeProvider>
+  );
 }
 
 export async function generateStaticParams() {

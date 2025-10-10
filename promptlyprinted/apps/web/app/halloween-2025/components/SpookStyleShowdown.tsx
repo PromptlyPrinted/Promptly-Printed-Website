@@ -88,7 +88,7 @@ export const SpookStyleShowdown = () => {
     }
 
     // Navigate to Halloween design tool for challenge submission
-    window.location.href = 'http://localhost:3001/design/halloween';
+    window.location.href = '/design/halloween';
   };
 
   const sortedEntries = [...currentChallenge].sort((a, b) => b.votes - a.votes);
