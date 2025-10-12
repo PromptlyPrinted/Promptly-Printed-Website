@@ -6,6 +6,31 @@ import FluxMidJourney from '@/public/lora-images/midjourney.png';
 import PencilSketch from '@/public/lora-images/pencil-sketch.png';
 import TarotCard from '@/public/lora-images/tarot-card.png';
 import VectorSketch from '@/public/lora-images/vector-sketch.png';
+
+// Kontext LORA images
+import Chibi3D from '@/public/kontext-lora-images/3dchibi.png';
+import AmericanCartoon from '@/public/kontext-lora-images/americancartoon.png';
+import ChineseInk from '@/public/kontext-lora-images/chineseink.png';
+import ClayToy from '@/public/kontext-lora-images/claytoy.png';
+import Fabric from '@/public/kontext-lora-images/fabric.png';
+import Ghibli from '@/public/kontext-lora-images/ghibli.png';
+import Irasutoya from '@/public/kontext-lora-images/irasutoya.png';
+import Jojo from '@/public/kontext-lora-images/jojo.png';
+import OilPainting from '@/public/kontext-lora-images/oilpainting.png';
+import Pixel from '@/public/kontext-lora-images/pixel.png';
+import Snoopy from '@/public/kontext-lora-images/snoopy.png';
+import Poly from '@/public/kontext-lora-images/poly.png';
+import Lego from '@/public/kontext-lora-images/lego.png';
+import Origami from '@/public/kontext-lora-images/origami.png';
+import PopArt from '@/public/kontext-lora-images/popart.png';
+import VanGogh from '@/public/kontext-lora-images/vangogh.png';
+import PaperCutting from '@/public/kontext-lora-images/papercutting.png';
+import Line from '@/public/kontext-lora-images/line.png';
+import Vector from '@/public/kontext-lora-images/vector.png';
+import Picasso from '@/public/kontext-lora-images/picasso.png';
+import Macaron from '@/public/kontext-lora-images/macaron.png';
+import RickMorty from '@/public/kontext-lora-images/rickmorty.png';
+
 import type { StaticImageData } from 'next/image'; //apps/web/public/lora-images/flux-midjourney.png
 
 export type Lora = {
@@ -178,6 +203,7 @@ export type KontextLora = {
   name: string;
   description: string;
   safetensorFileName: string;
+  image: StaticImageData;
   applyTrigger: (prompt: string) => string;
   scale: number;
   steps: number;
@@ -190,6 +216,7 @@ export const KONTEXT_LORAS: KontextLora[] = [
     name: '3D Chibi',
     description: 'Transforms images into cute 3D chibi style characters.',
     safetensorFileName: '3D_Chibi_lora_weights.safetensors',
+    image: Chibi3D,
     applyTrigger: (prompt) => `Turn this image into the 3D Chibi style. ${prompt}`,
     scale: 1.0,
     steps: 24,
@@ -204,6 +231,7 @@ export const KONTEXT_LORAS: KontextLora[] = [
     name: 'American Cartoon',
     description: 'Converts images to American cartoon animation style.',
     safetensorFileName: 'American_Cartoon_lora_weights.safetensors',
+    image: AmericanCartoon,
     applyTrigger: (prompt) => `Turn this image into the American Cartoon style. ${prompt}`,
     scale: 1.0,
     steps: 24,
@@ -218,6 +246,7 @@ export const KONTEXT_LORAS: KontextLora[] = [
     name: 'Chinese Ink',
     description: 'Transforms images into traditional Chinese ink painting style.',
     safetensorFileName: 'Chinese_Ink_lora_weights.safetensors',
+    image: ChineseInk,
     applyTrigger: (prompt) => `Turn this image into the Chinese Ink style. ${prompt}`,
     scale: 1.0,
     steps: 24,
@@ -232,6 +261,7 @@ export const KONTEXT_LORAS: KontextLora[] = [
     name: 'Clay Toy',
     description: 'Converts images to look like clay toy figurines.',
     safetensorFileName: 'Clay_Toy_lora_weights.safetensors',
+    image: ClayToy,
     applyTrigger: (prompt) => `Turn this image into the Clay Toy style. ${prompt}`,
     scale: 1.0,
     steps: 24,
@@ -246,6 +276,7 @@ export const KONTEXT_LORAS: KontextLora[] = [
     name: 'Fabric',
     description: 'Transforms images to appear as if made from fabric or textile.',
     safetensorFileName: 'Fabric_lora_weights.safetensors',
+    image: Fabric,
     applyTrigger: (prompt) => `Turn this image into the Fabric style. ${prompt}`,
     scale: 1.0,
     steps: 24,
@@ -260,6 +291,7 @@ export const KONTEXT_LORAS: KontextLora[] = [
     name: 'Ghibli',
     description: 'Converts images to Studio Ghibli animation style.',
     safetensorFileName: 'Ghibli_lora_weights.safetensors',
+    image: Ghibli,
     applyTrigger: (prompt) => `Turn this image into the Ghibli style. ${prompt}`,
     scale: 1.0,
     steps: 24,
@@ -274,6 +306,7 @@ export const KONTEXT_LORAS: KontextLora[] = [
     name: 'Irasutoya',
     description: 'Transforms images into Japanese Irasutoya illustration style.',
     safetensorFileName: 'Irasutoya_lora_weights.safetensors',
+    image: Irasutoya,
     applyTrigger: (prompt) => `Turn this image into the Irasutoya style. ${prompt}`,
     scale: 1.0,
     steps: 24,
@@ -288,6 +321,7 @@ export const KONTEXT_LORAS: KontextLora[] = [
     name: 'Jojo',
     description: 'Converts images to JoJo\'s Bizarre Adventure anime style.',
     safetensorFileName: 'Jojo_lora_weights.safetensors',
+    image: Jojo,
     applyTrigger: (prompt) => `Turn this image into the Jojo style. ${prompt}`,
     scale: 1.0,
     steps: 24,
@@ -302,6 +336,7 @@ export const KONTEXT_LORAS: KontextLora[] = [
     name: 'Oil Painting',
     description: 'Transforms images into classical oil painting style.',
     safetensorFileName: 'Oil_Painting_lora_weights.safetensors',
+    image: OilPainting,
     applyTrigger: (prompt) => `Turn this image into the Oil Painting style. ${prompt}`,
     scale: 1.0,
     steps: 24,
@@ -316,6 +351,7 @@ export const KONTEXT_LORAS: KontextLora[] = [
     name: 'Pixel',
     description: 'Converts images to retro pixel art style.',
     safetensorFileName: 'Pixel_lora_weights.safetensors',
+    image: Pixel,
     applyTrigger: (prompt) => `Turn this image into the Pixel style. ${prompt}`,
     scale: 1.0,
     steps: 24,
@@ -330,6 +366,7 @@ export const KONTEXT_LORAS: KontextLora[] = [
     name: 'Snoopy',
     description: 'Transforms images into Peanuts/Snoopy comic strip style.',
     safetensorFileName: 'Snoopy_lora_weights.safetensors',
+    image: Snoopy,
     applyTrigger: (prompt) => `Turn this image into the Snoopy style. ${prompt}`,
     scale: 1.0,
     steps: 24,
@@ -344,6 +381,7 @@ export const KONTEXT_LORAS: KontextLora[] = [
     name: 'Poly',
     description: 'Converts images to low-poly 3D geometric style.',
     safetensorFileName: 'Poly_lora_weights.safetensors',
+    image: Poly,
     applyTrigger: (prompt) => `Turn this image into the Poly style. ${prompt}`,
     scale: 1.0,
     steps: 24,
@@ -358,6 +396,7 @@ export const KONTEXT_LORAS: KontextLora[] = [
     name: 'LEGO',
     description: 'Transforms images to look like LEGO brick constructions.',
     safetensorFileName: 'LEGO_lora_weights.safetensors',
+    image: Lego,
     applyTrigger: (prompt) => `Turn this image into the LEGO style. ${prompt}`,
     scale: 1.0,
     steps: 24,
@@ -372,6 +411,7 @@ export const KONTEXT_LORAS: KontextLora[] = [
     name: 'Origami',
     description: 'Converts images to look like paper origami art.',
     safetensorFileName: 'Origami_lora_weights.safetensors',
+    image: Origami,
     applyTrigger: (prompt) => `Turn this image into the Origami style. ${prompt}`,
     scale: 1.0,
     steps: 24,
@@ -386,6 +426,7 @@ export const KONTEXT_LORAS: KontextLora[] = [
     name: 'Pop Art',
     description: 'Transforms images into pop art style with bold colors.',
     safetensorFileName: 'Pop_Art_lora_weights.safetensors',
+    image: PopArt,
     applyTrigger: (prompt) => `Turn this image into the Pop Art style. ${prompt}`,
     scale: 1.0,
     steps: 24,
@@ -400,6 +441,7 @@ export const KONTEXT_LORAS: KontextLora[] = [
     name: 'Van Gogh',
     description: 'Converts images to Vincent van Gogh painting style.',
     safetensorFileName: 'Van_Gogh_lora_weights.safetensors',
+    image: VanGogh,
     applyTrigger: (prompt) => `Turn this image into the Van Gogh style. ${prompt}`,
     scale: 1.0,
     steps: 24,
@@ -414,6 +456,7 @@ export const KONTEXT_LORAS: KontextLora[] = [
     name: 'Paper Cutting',
     description: 'Transforms images to look like paper cut art.',
     safetensorFileName: 'Paper_Cutting_lora_weights.safetensors',
+    image: PaperCutting,
     applyTrigger: (prompt) => `Turn this image into the Paper Cutting style. ${prompt}`,
     scale: 1.0,
     steps: 24,
@@ -428,6 +471,7 @@ export const KONTEXT_LORAS: KontextLora[] = [
     name: 'Line',
     description: 'Converts images to clean line art style.',
     safetensorFileName: 'Line_lora_weights.safetensors',
+    image: Line,
     applyTrigger: (prompt) => `Turn this image into the Line style. ${prompt}`,
     scale: 1.0,
     steps: 24,
@@ -442,6 +486,7 @@ export const KONTEXT_LORAS: KontextLora[] = [
     name: 'Vector',
     description: 'Transforms images into clean vector graphic style.',
     safetensorFileName: 'Vector_lora_weights.safetensors',
+    image: Vector,
     applyTrigger: (prompt) => `Turn this image into the Vector style. ${prompt}`,
     scale: 1.0,
     steps: 24,
@@ -456,6 +501,7 @@ export const KONTEXT_LORAS: KontextLora[] = [
     name: 'Picasso',
     description: 'Converts images to Pablo Picasso cubist style.',
     safetensorFileName: 'Picasso_lora_weights.safetensors',
+    image: Picasso,
     applyTrigger: (prompt) => `Turn this image into the Picasso style. ${prompt}`,
     scale: 1.0,
     steps: 24,
@@ -470,6 +516,7 @@ export const KONTEXT_LORAS: KontextLora[] = [
     name: 'Macaron',
     description: 'Transforms images to look like colorful macaron pastries.',
     safetensorFileName: 'Macaron_lora_weights.safetensors',
+    image: Macaron,
     applyTrigger: (prompt) => `Turn this image into the Macaron style. ${prompt}`,
     scale: 1.0,
     steps: 24,
@@ -484,6 +531,7 @@ export const KONTEXT_LORAS: KontextLora[] = [
     name: 'Rick & Morty',
     description: 'Converts images to Rick and Morty animation style.',
     safetensorFileName: 'Rick_Morty_lora_weights.safetensors',
+    image: RickMorty,
     applyTrigger: (prompt) => `Turn this image into the Rick Morty style. ${prompt}`,
     scale: 1.0,
     steps: 24,

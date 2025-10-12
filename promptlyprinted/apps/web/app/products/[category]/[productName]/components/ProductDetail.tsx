@@ -2496,11 +2496,11 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 mb-3">
+                    <div className="grid grid-cols-3 gap-2 md:grid-cols-4 lg:grid-cols-5">
                       {KONTEXT_LORAS.map((lora) => (
                         <div
                           key={lora.id}
-                          className={`relative cursor-pointer overflow-hidden rounded border p-2 ${
+                          className={`group relative aspect-square cursor-pointer overflow-hidden rounded-lg transition-all duration-200 ${
                             selectedKontextModels.includes(lora.id)
                               ? 'ring-2 ring-teal-500'
                               : 'hover:ring-2 hover:ring-teal-200'
@@ -2511,30 +2511,19 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                             setModelWeights({ [lora.id]: lora.scale || 1.0 });
                           }}
                         >
-                          <div className="text-center">
-                            <div className="text-xs font-medium text-gray-900 mb-1">
-                              {lora.name}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {lora.description.substring(0, 50)}...
-                            </div>
+                          <div className="relative h-full w-full">
+                            <Image
+                              src={lora.image}
+                              alt={lora.name}
+                              fill
+                              className="object-cover"
+                            />
                           </div>
-                          {selectedKontextModels.includes(lora.id) && (
-                            <div className="absolute right-0 bottom-0 left-0 px-1 py-1">
-                              <Slider
-                                value={[
-                                  modelWeights[lora.id] || lora.scale || 1.0,
-                                ]}
-                                onValueChange={([value]) => {
-                                  setModelWeights({ [lora.id]: value });
-                                }}
-                                min={0}
-                                max={2}
-                                step={0.1}
-                                onClick={(e) => e.stopPropagation()}
-                              />
-                            </div>
-                          )}
+                          <div className="absolute right-0 bottom-0 left-0 bg-black/50 p-1 backdrop-blur-sm">
+                            <p className="text-center font-medium text-xs text-white">
+                              {lora.name}
+                            </p>
+                          </div>
                         </div>
                       ))}
                     </div>
