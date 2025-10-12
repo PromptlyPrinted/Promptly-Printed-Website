@@ -533,6 +533,19 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
   const [subjectDescription, setSubjectDescription] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
 
+  // Nano Banana state
+  const [useNanoBanana, setUseNanoBanana] = useState(false);
+  const [nanoBananaEditHistory, setNanoBananaEditHistory] = useState<Array<{
+    prompt: string;
+    imageUrl: string;
+    timestamp: number;
+  }>>([]);
+  const [nanoBananaPrompt, setNanoBananaPrompt] = useState('');
+  const [showEditHistory, setShowEditHistory] = useState(false);
+  // Reference images state (up to 3 optional reference images)
+  const [referenceImages, setReferenceImages] = useState<string[]>([]);
+  const [isUploadingReference, setIsUploadingReference] = useState(false);
+
   // Refs
   const tshirtImageRef = useRef<HTMLImageElement>(null);
   const designImageRef = useRef<HTMLImageElement>(null);
@@ -749,6 +762,174 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       // Return original URL as fallback
       return imageUrl;
     }
+  };
+
+  // ---- Nano Banana Generation ----
+  const handleNanoBananaGeneration = async () => {
+    const currentPrompt = nanoBananaPrompt || promptText;
+
+    if (!currentPrompt.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Please enter a prompt for Nano Banana',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      // Determine input image for conversational editing
+      let inputImage = null;
+      if (generationMode === 'image') {
+        if (useTshirtDesign && generatedImage) {
+          inputImage = generatedImage;
+        } else if (useReferenceImage && referenceImage) {
+          inputImage = referenceImage;
+        } else if (nanoBananaEditHistory.length > 0) {
+          // Use the last edited image from history
+          inputImage = nanoBananaEditHistory[nanoBananaEditHistory.length - 1].imageUrl;
+        }
+      }
+
+      // Determine mode: if we have an input image, use 'edit' mode, otherwise use 'generate' mode
+      const nanoBananaMode = inputImage ? 'edit' : 'generate';
+
+      console.log('Nano Banana request:', {
+        prompt: currentPrompt,
+        hasInputImage: !!inputImage,
+        editHistoryLength: nanoBananaEditHistory.length,
+        mode: nanoBananaMode,
+      });
+
+      const response = await fetch('/api/generate-nano-banana', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: currentPrompt,
+          imageUrl: inputImage,
+          editHistory: nanoBananaEditHistory,
+          mode: nanoBananaMode,
+          referenceImages: referenceImages, // Include reference images (0-3)
+        }),
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'Failed to generate/edit image with Nano Banana';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.details || errorData.error || errorMessage;
+        } catch {
+          // Keep default message
+        }
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+
+      if (!data.data?.[0]?.url) {
+        throw new Error('No image URL returned from Nano Banana');
+      }
+
+      const generatedUrl = data.data[0].url;
+
+      // Update state with new image
+      setGeneratedImage(generatedUrl);
+
+      // Update edit history
+      if (data.editHistory) {
+        setNanoBananaEditHistory(data.editHistory);
+      }
+
+      // Clear the prompt for next edit
+      setNanoBananaPrompt('');
+
+      toast({
+        title: 'Success',
+        description: nanoBananaEditHistory.length > 0
+          ? 'Image edited successfully with Nano Banana!'
+          : 'Image generated successfully with Nano Banana!',
+      });
+    } catch (error) {
+      console.error('Nano Banana generation error:', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to process image with Nano Banana',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // ---- Reference Image Handlers (for Nano Banana) ----
+  /**
+   * Handle file drop for reference images (up to 3)
+   */
+  const handleReferenceImageDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+
+    const files = Array.from(e.dataTransfer.files);
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+
+    // Process up to 3 images
+    const filesToProcess = imageFiles.slice(0, 3 - referenceImages.length);
+
+    filesToProcess.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setReferenceImages(prev => {
+          if (prev.length < 3) {
+            return [...prev, result];
+          }
+          return prev;
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  /**
+   * Handle file selection for reference images (up to 3)
+   */
+  const handleReferenceImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+    const filesToProcess = imageFiles.slice(0, 3 - referenceImages.length);
+
+    filesToProcess.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setReferenceImages(prev => {
+          if (prev.length < 3) {
+            return [...prev, result];
+          }
+          return prev;
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Reset input value so same file can be selected again
+    e.target.value = '';
+  };
+
+  /**
+   * Remove a specific reference image by index
+   */
+  const handleRemoveReferenceImage = (index: number) => {
+    setReferenceImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  /**
+   * Clear all reference images
+   */
+  const handleClearReferenceImages = () => {
+    setReferenceImages([]);
   };
 
   // ---- Generate Image ----
@@ -1660,7 +1841,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                 />
                 <Button
                   className="w-full bg-teal-600 text-white hover:bg-teal-700"
-                  onClick={handleImageGeneration}
+                  onClick={useNanoBanana ? handleNanoBananaGeneration : handleImageGeneration}
                   disabled={isGenerating || !promptText}
                   size="sm"
                 >
@@ -1685,105 +1866,211 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                   />
                 </div>
 
-                {/* Image Upload Area */}
+                {/* Image Upload Area - Enhanced for Nano Banana */}
                 <div className="space-y-3">
-                  <Label className="text-teal-600 text-sm">Reference Image</Label>
-                  
-                  {/* Drag and Drop Zone */}
-                  <div
-                    className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-                      isDragOver 
-                        ? 'border-teal-500 bg-teal-50' 
-                        : 'border-gray-300 hover:border-teal-400'
-                    } ${
-                      (useTshirtDesign && generatedImage) ? 'opacity-50 pointer-events-none' : ''
-                    }`}
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                  >
-                    {referenceImage && useReferenceImage ? (
-                      <div className="space-y-2">
-                        <img 
-                          src={referenceImage} 
-                          alt="Reference" 
-                          className="mx-auto max-h-32 rounded"
-                        />
-                        <p className="text-sm text-gray-600">Reference image uploaded</p>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => {
-                            setReferenceImage('');
-                            setUseReferenceImage(false);
-                          }}
-                        >
-                          Remove
-                        </Button>
+                  <Label className={`text-sm ${useNanoBanana ? 'text-purple-600' : 'text-teal-600'}`}>
+                    Reference Image{useNanoBanana ? 's (1-3 optional)' : ''}
+                  </Label>
+
+                  {useNanoBanana ? (
+                    /* Nano Banana: Multi-image upload (1-3 images) */
+                    <div className="border-2 border-dashed border-purple-300 rounded-lg p-4 bg-gradient-to-br from-purple-50 to-indigo-50">
+                      {/* Reference Images Grid */}
+                      <div className="grid grid-cols-3 gap-2 mb-3">
+                        {[0, 1, 2].map((index) => (
+                          <div
+                            key={index}
+                            className={`aspect-square rounded-lg border-2 border-dashed relative overflow-hidden ${
+                              referenceImages[index]
+                                ? 'border-purple-400 bg-white'
+                                : 'border-purple-300 bg-purple-50/50'
+                            }`}
+                          >
+                            {referenceImages[index] ? (
+                              <>
+                                <Image
+                                  src={referenceImages[index]}
+                                  alt={`Reference ${index + 1}`}
+                                  fill
+                                  className="object-cover"
+                                />
+                                <button
+                                  onClick={() => handleRemoveReferenceImage(index)}
+                                  className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-md transition-colors"
+                                  aria-label="Remove image"
+                                >
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-1">
+                                  <span className="text-white text-xs font-medium">
+                                    {index === 0 && 'Style'}
+                                    {index === 1 && 'Composition'}
+                                    {index === 2 && 'Texture'}
+                                  </span>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="absolute inset-0 flex flex-col items-center justify-center p-2">
+                                <svg className="w-6 h-6 text-purple-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                                <span className="text-xs text-purple-500 text-center font-medium">
+                                  {index === 0 && 'Style'}
+                                  {index === 1 && 'Layout'}
+                                  {index === 2 && 'Texture'}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
                       </div>
-                    ) : (
-                      <div className="space-y-3">
-                        <div className="text-gray-600">
-                          <p className="font-medium">Drop Image Here or Click to Upload</p>
-                          <p className="text-sm">PNG, JPG, WebP up to 10MB</p>
-                        </div>
-                        
-                        <div className="flex flex-col sm:flex-row gap-2 justify-center">
+
+                      {/* Upload Controls */}
+                      {referenceImages.length < 3 && (
+                        <div
+                          className="border-2 border-dashed border-purple-300 rounded-lg p-3 text-center cursor-pointer hover:border-purple-400 hover:bg-purple-100 transition-colors"
+                          onDrop={handleReferenceImageDrop}
+                          onDragOver={(e) => e.preventDefault()}
+                        >
                           <input
                             type="file"
                             accept="image/*"
-                            onChange={handleFileSelect}
+                            multiple
+                            onChange={handleReferenceImageSelect}
                             className="hidden"
-                            id="image-upload"
+                            id="nano-banana-upload"
                           />
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="cursor-pointer"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              const input = document.getElementById('image-upload') as HTMLInputElement;
-                              if (input) {
-                                input.click();
+                          <label htmlFor="nano-banana-upload" className="cursor-pointer flex flex-col items-center">
+                            <svg className="w-8 h-8 text-purple-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            </svg>
+                            <span className="text-sm text-purple-700 font-medium">Click or drag to upload</span>
+                            <span className="text-xs text-purple-500 mt-1">
+                              ({3 - referenceImages.length} slot{3 - referenceImages.length !== 1 ? 's' : ''} remaining)
+                            </span>
+                          </label>
+                        </div>
+                      )}
+
+                      {referenceImages.length > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleClearReferenceImages}
+                          className="w-full mt-2 text-xs border-purple-300 text-purple-700 hover:bg-purple-100"
+                        >
+                          Clear All ({referenceImages.length})
+                        </Button>
+                      )}
+
+                      {/* Helper Info */}
+                      {referenceImages.length === 0 && (
+                        <div className="mt-2 text-xs text-purple-600 space-y-1">
+                          <div><strong>1 image:</strong> Style & mood</div>
+                          <div><strong>2 images:</strong> Style + element</div>
+                          <div><strong>3 images:</strong> Style + composition + texture</div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* Standard: Single image upload */
+                    <div
+                      className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                        isDragOver
+                          ? 'border-teal-500 bg-teal-50'
+                          : 'border-gray-300 hover:border-teal-400'
+                      } ${
+                        (useTshirtDesign && generatedImage) ? 'opacity-50 pointer-events-none' : ''
+                      }`}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                    >
+                      {referenceImage && useReferenceImage ? (
+                        <div className="space-y-2">
+                          <img
+                            src={referenceImage}
+                            alt="Reference"
+                            className="mx-auto max-h-32 rounded"
+                          />
+                          <p className="text-sm text-gray-600">Reference image uploaded</p>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setReferenceImage('');
+                              setUseReferenceImage(false);
+                            }}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <div className="text-gray-600">
+                            <p className="font-medium">Drop Image Here or Click to Upload</p>
+                            <p className="text-sm">PNG, JPG, WebP up to 10MB</p>
+                          </div>
+
+                          <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handleFileSelect}
+                              className="hidden"
+                              id="image-upload"
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="cursor-pointer"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                const input = document.getElementById('image-upload') as HTMLInputElement;
+                                if (input) {
+                                  input.click();
+                                }
+                              }}
+                            >
+                              📁 Choose File
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleWebcamCapture}
+                            >
+                              📷 Use Webcam
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handlePasteFromClipboard}
+                            >
+                              📋 Paste Image
+                            </Button>
+                          </div>
+
+                          <div className="pt-2">
+                            <DesignPicker
+                              productId={Number(product.id)}
+                              onDesignSelect={(image) => {
+                                setReferenceImage(image.url);
+                                setUseReferenceImage(true);
+                                setUseTshirtDesign(false);
+                              }}
+                              trigger={
+                                <Button variant="outline" size="sm">
+                                  🖼 Choose Existing Image
+                                </Button>
                               }
-                            }}
-                          >
-                            📁 Choose File
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={handleWebcamCapture}
-                          >
-                            📷 Use Webcam
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={handlePasteFromClipboard}
-                          >
-                            📋 Paste Image
-                          </Button>
+                            />
+                          </div>
                         </div>
-                        
-                        <div className="pt-2">
-                          <DesignPicker
-                            productId={Number(product.id)}
-                            onDesignSelect={(image) => {
-                              setReferenceImage(image.url);
-                              setUseReferenceImage(true);
-                              setUseTshirtDesign(false);
-                            }}
-                            trigger={
-                              <Button variant="outline" size="sm">
-                                🖼 Choose Existing Image
-                              </Button>
-                            }
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Toggle Options */}
@@ -1836,11 +2123,11 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                 {/* Generate Button */}
                 <Button
                   className="w-full bg-teal-600 text-white hover:bg-teal-700"
-                  onClick={handleImageGeneration}
-                  disabled={isGenerating || (!useTshirtDesign && !useReferenceImage)}
+                  onClick={generationMode === 'image' && useNanoBanana ? handleNanoBananaGeneration : handleImageGeneration}
+                  disabled={isGenerating || (generationMode === 'image' && !useNanoBanana && !useTshirtDesign && !useReferenceImage) || !promptText}
                   size="sm"
                 >
-                  {isGenerating ? 'Generating...' : 'Generate Design'}
+                  {isGenerating ? 'Generating...' : (useNanoBanana && nanoBananaEditHistory.length > 0 ? 'Apply Edit' : 'Generate Design')}
                 </Button>
               </div>
             )}
@@ -2029,13 +2316,19 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                     Select Model
                   </Label>
                   <Select
-                    value={isBaseModel ? 'base' : selectedModels[0]?.toString()}
+                    value={useNanoBanana ? 'nano-banana' : (isBaseModel ? 'base' : selectedModels[0]?.toString())}
                     onValueChange={(value) => {
-                      if (value === 'base') {
+                      if (value === 'nano-banana') {
+                        setUseNanoBanana(true);
+                        setIsBaseModel(false);
+                        setSelectedModels([]);
+                      } else if (value === 'base') {
+                        setUseNanoBanana(false);
                         setIsBaseModel(true);
                         setSelectedModels([]);
                       }
                       else {
+                        setUseNanoBanana(false);
                         setIsBaseModel(false);
                         setSelectedModels([Number(value)]);
                         setModelWeights({ [value]: 1.0 });
@@ -2046,6 +2339,9 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                       <SelectValue placeholder="Select a model" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="nano-banana">
+                        Google Nano Banana (AI Image Generation)
+                      </SelectItem>
                       <SelectItem value={LORAS[0].id.toString()}>
                         Promptly LORA's (Fine-tuned)
                       </SelectItem>
@@ -2056,7 +2352,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                   </Select>
                 </div>
 
-                {!isBaseModel && (
+                {!isBaseModel && !useNanoBanana && (
                   <>
                     <Label className="mb-2 block text-teal-600 text-sm">
                       AI Models &amp; LoRAs
@@ -2139,16 +2435,22 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
               <div>
                 <div className="mb-3">
                   <Label className="mb-1 block text-teal-600 text-sm">
-                    Select Kontext Model
+                    Select Image Editing Model
                   </Label>
                   <Select
-                    value={isBaseModel ? selectedBaseModel : selectedKontextModels[0]?.toString()}
+                    value={useNanoBanana ? 'nano-banana' : (isBaseModel ? selectedBaseModel : selectedKontextModels[0]?.toString())}
                     onValueChange={(value) => {
-                      if (value === 'kontext-pro' || value === 'kontext-max') {
+                      if (value === 'nano-banana') {
+                        setUseNanoBanana(true);
+                        setIsBaseModel(false);
+                        setSelectedKontextModels([]);
+                      } else if (value === 'kontext-pro' || value === 'kontext-max') {
+                        setUseNanoBanana(false);
                         setIsBaseModel(true);
                         setSelectedBaseModel(value);
                         setSelectedKontextModels([]);
                       } else {
+                        setUseNanoBanana(false);
                         setIsBaseModel(false);
                         setSelectedKontextModels([Number(value)]);
                         setModelWeights({ [value]: 1.0 });
@@ -2159,6 +2461,9 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                       <SelectValue placeholder="Select model" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="nano-banana">
+                        Google Nano Banana (Conversational AI Editing)
+                      </SelectItem>
                       <SelectItem value="kontext-pro">Flux Kontext Pro</SelectItem>
                       <SelectItem value="kontext-max">Flux Kontext Max</SelectItem>
                       {KONTEXT_LORAS.map((lora) => (
@@ -2235,9 +2540,109 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                     </div>
                   </>
                 )}
+
+                {useNanoBanana && (
+                  <div className="space-y-3">
+                    <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4">
+                      <div className="flex items-start space-x-2 mb-2">
+                        <div className="flex-shrink-0">
+                          <svg className="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 2a8 8 0 100 16 8 8 0 000-16zM9 9a1 1 0 112 0v4a1 1 0 11-2 0V9zm1-5a1 1 0 100 2 1 1 0 000-2z"/>
+                          </svg>
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-sm font-semibold text-purple-900 mb-1">
+                            Nano Banana - Conversational AI Editing
+                          </h4>
+                          <p className="text-xs text-purple-700">
+                            Google's advanced image editing AI. Make iterative edits with natural language - the AI remembers your previous changes for seamless refinement.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 space-y-2">
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div className="bg-white rounded p-2">
+                            <div className="font-medium text-purple-900">Multi-turn Editing</div>
+                            <div className="text-purple-600">Remembers context</div>
+                          </div>
+                          <div className="bg-white rounded p-2">
+                            <div className="font-medium text-purple-900">Character Consistency</div>
+                            <div className="text-purple-600">Preserves features</div>
+                          </div>
+                          <div className="bg-white rounded p-2">
+                            <div className="font-medium text-purple-900">Surgical Precision</div>
+                            <div className="text-purple-600">Targeted changes</div>
+                          </div>
+                          <div className="bg-white rounded p-2">
+                            <div className="font-medium text-purple-900">Ultra Fast</div>
+                            <div className="text-purple-600">Seconds per edit</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {nanoBananaEditHistory.length > 0 && (
+                      <div className="border border-purple-200 rounded-lg p-3 bg-purple-50">
+                        <div className="flex items-center justify-between mb-2">
+                          <Label className="text-purple-900 text-sm font-semibold">
+                            Edit History ({nanoBananaEditHistory.length} edits)
+                          </Label>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs text-purple-600 hover:text-purple-800"
+                            onClick={() => setShowEditHistory(!showEditHistory)}
+                          >
+                            {showEditHistory ? 'Hide' : 'Show'}
+                          </Button>
+                        </div>
+
+                        {showEditHistory && (
+                          <div className="space-y-2 max-h-48 overflow-y-auto">
+                            {nanoBananaEditHistory.map((edit, index) => (
+                              <div key={index} className="bg-white rounded p-2 text-xs">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <div className="font-medium text-purple-900">
+                                      Edit {index + 1}
+                                    </div>
+                                    <div className="text-gray-600 mt-1">
+                                      "{edit.prompt}"
+                                    </div>
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-xs text-purple-600 hover:text-purple-800"
+                                    onClick={() => {
+                                      setGeneratedImage(edit.imageUrl);
+                                      toast({
+                                        title: 'Restored',
+                                        description: `Restored to edit ${index + 1}`,
+                                      });
+                                    }}
+                                  >
+                                    Restore
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {nanoBananaEditHistory.length > 0 && (
+                      <div className="bg-blue-50 border border-blue-200 rounded p-2 text-xs text-blue-800">
+                        💡 <strong>Tip:</strong> Each new edit builds on the previous one. Try: "make the background brighter" then "change the color to blue" then "add a sunset"
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
-            
+
             {generatedImage && (
               <div className="space-y-3">
                 <Button
