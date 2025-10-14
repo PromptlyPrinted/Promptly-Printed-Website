@@ -2208,10 +2208,10 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
               )}
               {colorList.length > 0 && (
                 <div>
-                  <Label htmlFor="color" className="text-teal-600 text-sm">
+                  <Label htmlFor="color" className="text-teal-600 text-sm block mb-1">
                     Color
                   </Label>
-                  <div className="mt-1 flex gap-1">
+                  <div className="flex gap-1 bg-gradient-to-r from-orange-100 to-teal-100 p-2 rounded-lg w-fit">
                     <TooltipProvider>
                       {colorList.map((clr, idx) => {
                         const colorValue = toKebabCase(clr);
