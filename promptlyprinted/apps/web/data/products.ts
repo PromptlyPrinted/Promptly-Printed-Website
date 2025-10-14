@@ -544,7 +544,7 @@ export const tshirtDetails = {
       { name: 'Purple', filename: 'purple.png' },
       { name: 'Red', filename: 'red.png' },
       { name: 'Royal', filename: 'royal.png' },
-      { name: 'Sports Grey', filename: 'sport-grey.png' },
+      { name: 'Sports Grey', filename: 'sports-grey.png' },
       { name: 'White', filename: 'white.png' },
     ],
     brand: {

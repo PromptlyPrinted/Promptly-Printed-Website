@@ -122,7 +122,7 @@ const colors = [
   { id: 'sun-yellow', name: 'Sun Yellow', hex: '#FFD700' },
   { id: 'royal-blue', name: 'Royal Blue', hex: '#4169E1' },
   { id: 'burgundy', name: 'Burgundy', hex: '#800020' },
-  { id: 'sport-grey', name: 'Sport Grey', hex: '#808080' },
+  { id: 'sport-grey', name: 'Sports Grey', hex: '#808080' },
   { id: 'light-pink', name: 'Light Pink', hex: '#FFB6C1' },
   { id: 'vintage-white', name: 'Vintage White', hex: '#F5F5DC' },
   { id: 'french-navy', name: 'French Navy', hex: '#002654' },
@@ -1309,7 +1309,12 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
       }}
     >
       {/* Image Container */}
-      <div className="relative aspect-square overflow-hidden">
+      <div
+        className="relative aspect-square overflow-hidden"
+        style={{
+          background: 'radial-gradient(ellipse at 50% 40%, rgba(248, 250, 252, 0.95) 0%, rgba(243, 247, 251, 0.9) 100%), linear-gradient(135deg, rgba(22, 193, 168, 0.02) 0%, rgba(255, 138, 38, 0.02) 100%), #fafbfc'
+        }}
+      >
         <Link href={selectedColor ? `${productUrl}?color=${encodeURIComponent(selectedColor)}` : productUrl}>
           <Image
             src={getCurrentImage()}

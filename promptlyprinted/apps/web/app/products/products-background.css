@@ -29,16 +29,15 @@
     position: relative;
     overflow: hidden;
     
-    /* Image container within product cards */
+    /* Image container within product cards - Match ProductDetail background */
     .aspect-square {
-      background: 
-        /* Light neutral background for white clothing contrast */
-        radial-gradient(ellipse at 50% 40%, rgba(248, 250, 252, 0.6) 0%, rgba(245, 248, 251, 0.4) 100%),
-        linear-gradient(135deg, rgba(22, 193, 168, 0.01) 0%, rgba(255, 138, 38, 0.01) 100%),
+      background:
+        radial-gradient(ellipse at 50% 40%, rgba(248, 250, 252, 0.95) 0%, rgba(243, 247, 251, 0.9) 100%),
+        linear-gradient(135deg, rgba(22, 193, 168, 0.02) 0%, rgba(255, 138, 38, 0.02) 100%),
         #fafbfc;
       position: relative;
-      
-      /* Subtle texture for white clothing definition */
+
+      /* Subtle texture for white clothing definition - Match ProductDetail */
       &::before {
         content: '';
         position: absolute;
@@ -46,16 +45,16 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: 
-          radial-gradient(circle at 30% 70%, rgba(22, 193, 168, 0.008) 0%, transparent 40%),
-          radial-gradient(circle at 70% 30%, rgba(255, 138, 38, 0.008) 0%, transparent 40%),
-          radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.005) 1px, transparent 1px);
-        background-size: 120px 120px, 100px 100px, 30px 30px;
+        background:
+          radial-gradient(circle at 25% 25%, rgba(22, 193, 168, 0.015) 0%, transparent 50%),
+          radial-gradient(circle at 75% 75%, rgba(255, 138, 38, 0.015) 0%, transparent 50%),
+          radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.01) 1px, transparent 1px);
+        background-size: 200px 200px, 180px 180px, 40px 40px;
         pointer-events: none;
         z-index: 1;
         border-radius: inherit;
       }
-      
+
       /* Ensure images appear above texture */
       img {
         position: relative;
@@ -66,23 +65,23 @@
     &:hover {
       background: rgba(255, 255, 255, 0.95);
       transform: translateY(-4px);
-      box-shadow: 
+      box-shadow:
         0 12px 40px rgba(0, 0, 0, 0.15),
         0 4px 16px rgba(22, 193, 168, 0.08);
       border-color: rgba(22, 193, 168, 0.2);
-      
+
       .aspect-square {
-        background: 
-          radial-gradient(ellipse at 50% 40%, rgba(250, 252, 254, 0.8) 0%, rgba(247, 250, 253, 0.6) 100%),
-          linear-gradient(135deg, rgba(22, 193, 168, 0.015) 0%, rgba(255, 138, 38, 0.015) 100%),
+        background:
+          radial-gradient(ellipse at 50% 40%, rgba(250, 252, 254, 0.97) 0%, rgba(245, 249, 253, 0.92) 100%),
+          linear-gradient(135deg, rgba(22, 193, 168, 0.03) 0%, rgba(255, 138, 38, 0.03) 100%),
           #fbfcfd;
-          
+
         &::before {
-          background: 
-            radial-gradient(circle at 30% 70%, rgba(22, 193, 168, 0.012) 0%, transparent 40%),
-            radial-gradient(circle at 70% 30%, rgba(255, 138, 38, 0.012) 0%, transparent 40%),
-            radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.008) 1px, transparent 1px);
-          background-size: 100px 100px, 80px 80px, 25px 25px;
+          background:
+            radial-gradient(circle at 25% 25%, rgba(22, 193, 168, 0.015) 0%, transparent 50%),
+            radial-gradient(circle at 75% 75%, rgba(255, 138, 38, 0.015) 0%, transparent 50%),
+            radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.01) 1px, transparent 1px);
+          background-size: 200px 200px, 180px 180px, 40px 40px;
         }
       }
     }
