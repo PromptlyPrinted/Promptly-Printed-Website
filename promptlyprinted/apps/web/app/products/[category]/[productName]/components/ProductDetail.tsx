@@ -2316,22 +2316,17 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                     Select Model
                   </Label>
                   <Select
-                    value={useNanoBanana ? 'nano-banana' : (isBaseModel ? 'base' : selectedModels[0]?.toString())}
+                    value={useNanoBanana ? 'nano-banana' : 'promptly-loras'}
                     onValueChange={(value) => {
                       if (value === 'nano-banana') {
                         setUseNanoBanana(true);
                         setIsBaseModel(false);
                         setSelectedModels([]);
-                      } else if (value === 'base') {
-                        setUseNanoBanana(false);
-                        setIsBaseModel(true);
-                        setSelectedModels([]);
-                      }
-                      else {
+                      } else if (value === 'promptly-loras') {
                         setUseNanoBanana(false);
                         setIsBaseModel(false);
-                        setSelectedModels([Number(value)]);
-                        setModelWeights({ [value]: 1.0 });
+                        setSelectedModels([LORAS[0].id]);
+                        setModelWeights({ [LORAS[0].id]: LORAS[0].scale || 1.0 });
                       }
                     }}
                   >
@@ -2339,14 +2334,11 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                       <SelectValue placeholder="Select a model" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="nano-banana">
-                        Google Nano Banana (AI Image Generation)
-                      </SelectItem>
-                      <SelectItem value={LORAS[0].id.toString()}>
+                      <SelectItem value="promptly-loras">
                         Promptly LORA's (Fine-tuned)
                       </SelectItem>
-                      <SelectItem value="base">
-                        Promptly Base Model (Pure Text-to-Image)
+                      <SelectItem value="nano-banana">
+                        Google Nano Banana (AI Image Generation)
                       </SelectItem>
                     </SelectContent>
                   </Select>
@@ -2382,7 +2374,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                           </div>
                           <div className="absolute right-0 bottom-0 left-0 bg-black/50 p-1 backdrop-blur-sm">
                             <p className="text-center font-medium text-xs text-white">
-                              {model.name.split(/(?=[A-Z])/).join(' ')}
+                              {model.name}
                             </p>
                           </div>
                           <div className="absolute top-1 left-1">
@@ -2438,22 +2430,17 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                     Select Image Editing Model
                   </Label>
                   <Select
-                    value={useNanoBanana ? 'nano-banana' : (isBaseModel ? selectedBaseModel : selectedKontextModels[0]?.toString())}
+                    value={useNanoBanana ? 'nano-banana' : 'kontext-loras'}
                     onValueChange={(value) => {
                       if (value === 'nano-banana') {
                         setUseNanoBanana(true);
                         setIsBaseModel(false);
                         setSelectedKontextModels([]);
-                      } else if (value === 'kontext-pro' || value === 'kontext-max') {
-                        setUseNanoBanana(false);
-                        setIsBaseModel(true);
-                        setSelectedBaseModel(value);
-                        setSelectedKontextModels([]);
-                      } else {
+                      } else if (value === 'kontext-loras') {
                         setUseNanoBanana(false);
                         setIsBaseModel(false);
-                        setSelectedKontextModels([Number(value)]);
-                        setModelWeights({ [value]: 1.0 });
+                        setSelectedKontextModels([KONTEXT_LORAS[0].id]);
+                        setModelWeights({ [KONTEXT_LORAS[0].id]: KONTEXT_LORAS[0].scale || 1.0 });
                       }
                     }}
                   >
@@ -2461,43 +2448,23 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                       <SelectValue placeholder="Select model" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="kontext-loras">
+                        Promptly Kontext LORA's
+                      </SelectItem>
                       <SelectItem value="nano-banana">
                         Google Nano Banana (Conversational AI Editing)
                       </SelectItem>
-                      <SelectItem value="kontext-pro">Flux Kontext Pro</SelectItem>
-                      <SelectItem value="kontext-max">Flux Kontext Max</SelectItem>
-                      {KONTEXT_LORAS.map((lora) => (
-                        <SelectItem key={lora.id} value={lora.id.toString()}>
-                          {lora.name} LoRA
-                        </SelectItem>
-                      ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                {!isBaseModel && selectedKontextModels.length > 0 && (
+                {!isBaseModel && !useNanoBanana && selectedKontextModels.length > 0 && (
                   <>
-                    <div className="mb-3">
-                      <Label className="mb-1 block text-teal-600 text-sm">
-                        Kontext LoRA Scale
-                      </Label>
-                      <div className="flex items-center space-x-2">
-                        <Slider
-                          className="flex-1"
-                          value={[loraScale]}
-                          onValueChange={([value]) => setLoraScale(value)}
-                          min={0}
-                          max={2}
-                          step={0.1}
-                        />
-                        <span className="text-sm font-medium text-teal-600 w-10">
-                          {loraScale.toFixed(1)}
-                        </span>
-                      </div>
-                    </div>
-
+                    <Label className="mb-2 block text-teal-600 text-sm">
+                      Kontext LoRAs &amp; Styles
+                    </Label>
                     <div className="grid grid-cols-3 gap-2 md:grid-cols-4 lg:grid-cols-5">
-                      {KONTEXT_LORAS.map((lora) => (
+                      {KONTEXT_LORAS.map((lora: KontextLora) => (
                         <div
                           key={lora.id}
                           className={`group relative aspect-square cursor-pointer overflow-hidden rounded-lg transition-all duration-200 ${
@@ -2524,6 +2491,44 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                               {lora.name}
                             </p>
                           </div>
+                          <div className="absolute top-1 left-1">
+                            <Checkbox
+                              id={`kontext-${lora.id}`}
+                              checked={selectedKontextModels.includes(lora.id)}
+                              className="border-teal-500 bg-white/90 data-[state=checked]:bg-teal-500 h-4 w-4"
+                              onClick={(e) => e.stopPropagation()}
+                              onCheckedChange={(checked: boolean) => {
+                                if (checked) {
+                                  setSelectedKontextModels([lora.id]);
+                                  setModelWeights({
+                                    [lora.id]: lora.scale || 1.0,
+                                  });
+                                } else if (
+                                  selectedKontextModels.length === 1 &&
+                                  selectedKontextModels[0] === lora.id
+                                ) {
+                                  // Prevent unchecking the only selected model
+                                  return;
+                                }
+                              }}
+                            />
+                          </div>
+                          {selectedKontextModels.includes(lora.id) && (
+                            <div className="absolute right-0 bottom-8 left-0 px-2 py-1">
+                              <Slider
+                                value={[
+                                  modelWeights[lora.id] || lora.scale || 1.0,
+                                ]}
+                                onValueChange={([value]) => {
+                                  setModelWeights({ [lora.id]: value });
+                                }}
+                                min={0}
+                                max={1}
+                                step={0.1}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
