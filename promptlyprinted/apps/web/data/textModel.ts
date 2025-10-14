@@ -1,11 +1,17 @@
 import AnimeSketch from '@/public/lora-images/anime-sketch.png';
 import ColoredSketch from '@/public/lora-images/colored-sketch.png';
 import Icons from '@/public/lora-images/icons.png';
-import LogoDesign from '@/public/lora-images/logo-design.png';
 import FluxMidJourney from '@/public/lora-images/midjourney.png';
 import PencilSketch from '@/public/lora-images/pencil-sketch.png';
 import TarotCard from '@/public/lora-images/tarot-card.png';
 import VectorSketch from '@/public/lora-images/vector-sketch.png';
+import SyntheticAnime from '@/public/lora-images/synthetic-anime.png';
+import SoftServe from '@/public/lora-images/soft-serve.png';
+import ReplicateFlux from '@/public/lora-images/replicate-flux.png';
+import RetroFuturism from '@/public/lora-images/retro-futurism.png';
+import YarnArt from '@/public/lora-images/yarn-art.png';
+import FrostingLane from '@/public/lora-images/frosting-lane.png';
+import HalfIllustration from '@/public/lora-images/half-illustration.png';
 
 // Kontext LORA images
 import Chibi3D from '@/public/kontext-lora-images/3dchibi.png';
@@ -71,24 +77,132 @@ export const LORAS: Lora[] = [
   },
   {
     id: 2,
-    name: 'Logo Design',
-    model: 'FLUX.1-dev-LoRA-Logo-Design',
-    description: 'Creates professional logo designs.',
-    url: 'https://huggingface.co/Shakker-Labs/FLUX.1-dev-LoRA-Logo-Design',
-    image: LogoDesign,
-    path: 'https://huggingface.co/Shakker-Labs/FLUX.1-dev-LoRA-Logo-Design',
-    applyTrigger: (prompt) => `logo design, ${prompt}`,
-    refinement: 'Refine the prompt for professional logo designs.',
+    name: 'Synthetic Anime',
+    model: 'FLUX-SyntheticAnime',
+    description: 'Creates synthetic anime-style illustrations.',
+    url: 'https://huggingface.co/dataautogpt3/FLUX-SyntheticAnime',
+    image: SyntheticAnime,
+    path: 'https://huggingface.co/dataautogpt3/FLUX-SyntheticAnime',
+    applyTrigger: (prompt) => `synthetic anime style, ${prompt}`,
+    refinement: 'Refine the prompt for synthetic anime-style illustrations.',
     scale: 1,
     steps: 28,
     suggestions: [
-      { label: 'Company logo', prompt: 'a modern company logo' },
-      { label: 'Brand mark', prompt: 'a minimal brand mark' },
-      { label: 'Wordmark', prompt: 'an elegant wordmark' },
+      { label: 'Character', prompt: 'an anime character portrait' },
+      { label: 'Scene', prompt: 'an anime background scene' },
+      { label: 'Action', prompt: 'a dynamic action pose' },
     ],
   },
   {
     id: 3,
+    name: 'Soft Serve',
+    model: 'softserve_anime',
+    description: 'Creates soft, dreamy anime-style artwork.',
+    url: 'https://huggingface.co/alvdansen/softserve_anime',
+    image: SoftServe,
+    path: 'https://huggingface.co/alvdansen/softserve_anime',
+    applyTrigger: (prompt) => `soft serve anime style, ${prompt}`,
+    refinement: 'Refine the prompt for soft, dreamy anime-style artwork.',
+    scale: 1,
+    steps: 28,
+    suggestions: [
+      { label: 'Portrait', prompt: 'a soft dreamy portrait' },
+      { label: 'Pastel scene', prompt: 'a pastel colored scene' },
+      { label: 'Cute character', prompt: 'a cute anime character' },
+    ],
+  },
+  {
+    id: 4,
+    name: 'Replicate Flux',
+    model: 'ReplicateFluxLoRA',
+    description: 'Creates high-quality Flux-style images.',
+    url: 'https://huggingface.co/lucataco/ReplicateFluxLoRA',
+    image: ReplicateFlux,
+    path: 'https://huggingface.co/lucataco/ReplicateFluxLoRA',
+    applyTrigger: (prompt) => `flux style, ${prompt}`,
+    refinement: 'Refine the prompt for high-quality Flux-style images.',
+    scale: 1,
+    steps: 28,
+    suggestions: [
+      { label: 'Artistic', prompt: 'an artistic composition' },
+      { label: 'Detailed', prompt: 'a highly detailed scene' },
+      { label: 'Creative', prompt: 'a creative concept' },
+    ],
+  },
+  {
+    id: 5,
+    name: 'Retro Futurism',
+    model: 'retrofuturism-flux',
+    description: 'Creates retro-futuristic sci-fi artwork.',
+    url: 'https://huggingface.co/martintomov/retrofuturism-flux',
+    image: RetroFuturism,
+    path: 'https://huggingface.co/martintomov/retrofuturism-flux',
+    applyTrigger: (prompt) => `retrofuturism style, ${prompt}`,
+    refinement: 'Refine the prompt for retro-futuristic sci-fi artwork.',
+    scale: 1,
+    steps: 28,
+    suggestions: [
+      { label: 'Sci-fi scene', prompt: 'a retro sci-fi scene' },
+      { label: 'Future tech', prompt: 'vintage future technology' },
+      { label: 'Space age', prompt: 'a space age design' },
+    ],
+  },
+  {
+    id: 6,
+    name: 'Yarn Art',
+    model: 'yarn_art_Flux_LoRA',
+    description: 'Creates artwork that looks like yarn or textile art.',
+    url: 'https://huggingface.co/linoyts/yarn_art_Flux_LoRA',
+    image: YarnArt,
+    path: 'https://huggingface.co/linoyts/yarn_art_Flux_LoRA',
+    applyTrigger: (prompt) => `yarn art style, ${prompt}`,
+    refinement: 'Refine the prompt for yarn or textile art style.',
+    scale: 1,
+    steps: 28,
+    suggestions: [
+      { label: 'Knitted', prompt: 'a knitted texture design' },
+      { label: 'Textile art', prompt: 'textile art composition' },
+      { label: 'Cozy design', prompt: 'a cozy yarn design' },
+    ],
+  },
+  {
+    id: 7,
+    name: 'Frosting Lane',
+    model: 'frosting_lane_flux',
+    description: 'Creates sweet, frosting-like artwork with pastel colors.',
+    url: 'https://huggingface.co/alvdansen/frosting_lane_flux',
+    image: FrostingLane,
+    path: 'https://huggingface.co/alvdansen/frosting_lane_flux',
+    applyTrigger: (prompt) => `frosting lane style, ${prompt}`,
+    refinement: 'Refine the prompt for sweet, frosting-like artwork.',
+    scale: 1,
+    steps: 28,
+    suggestions: [
+      { label: 'Sweet design', prompt: 'a sweet pastel design' },
+      { label: 'Candy-like', prompt: 'a candy-colored scene' },
+      { label: 'Dreamy', prompt: 'a dreamy frosted aesthetic' },
+    ],
+  },
+  {
+    id: 8,
+    name: 'Half Illustration',
+    model: 'half_illustration',
+    description: 'Creates half-illustrated, half-realistic artwork.',
+    url: 'https://huggingface.co/davisbro/half_illustration',
+    image: HalfIllustration,
+    path: 'https://huggingface.co/davisbro/half_illustration',
+    applyTrigger: (prompt) => `half illustration style, ${prompt}`,
+    refinement: 'Refine the prompt for half-illustrated artwork.',
+    scale: 1,
+    steps: 28,
+    suggestions: [
+      { label: 'Mixed media', prompt: 'a mixed media composition' },
+      { label: 'Artistic blend', prompt: 'an artistic blend of styles' },
+      { label: 'Unique look', prompt: 'a unique illustrated look' },
+    ],
+  },
+  {
+    id: 9,
     name: 'Midjourney',
     model: 'Flux-Midjourney-Mix2-LoRA',
     description: "Mimics MidJourney's artistic style.",
@@ -106,7 +220,7 @@ export const LORAS: Lora[] = [
     ],
   },
   {
-    id: 4,
+    id: 10,
     name: 'Tarot Card',
     model: 'flux-tarot-v1',
     description: 'Creates mystical tarot card designs.',
@@ -124,7 +238,7 @@ export const LORAS: Lora[] = [
     ],
   },
   {
-    id: 5,
+    id: 11,
     name: 'Vector Sketch',
     model: 'vector-illustration',
     description: 'Generates smooth, scalable vector-style sketches.',
@@ -143,7 +257,7 @@ export const LORAS: Lora[] = [
     ],
   },
   {
-    id: 6,
+    id: 12,
     name: 'Pencil Sketch',
     model: 'shou_xin',
     description: 'Creates detailed pencil sketch artwork.',
@@ -161,7 +275,7 @@ export const LORAS: Lora[] = [
     ],
   },
   {
-    id: 7,
+    id: 13,
     name: 'Colored Sketch',
     model: 'Flux-Sketch-Ep-LoRA',
     description: 'Creates vibrant, colorful sketch-style illustrations.',
@@ -179,7 +293,7 @@ export const LORAS: Lora[] = [
     ],
   },
   {
-    id: 8,
+    id: 14,
     name: 'Anime Sketch',
     model: 'anime-blockprint-style',
     description: 'Creates anime-style character illustrations.',
