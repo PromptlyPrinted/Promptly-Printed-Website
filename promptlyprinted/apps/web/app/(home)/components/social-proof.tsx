@@ -1,35 +1,44 @@
 'use client';
 
-import { Star } from 'lucide-react';
+import { Star, MapPin } from 'lucide-react';
+import Image from 'next/image';
 
 export const SocialProof = () => {
   const testimonials = [
     {
       name: 'Alex Chen',
       handle: '@alexdesigns',
+      country: 'United States',
+      countryFlag: '🇺🇸',
       quote: 'AI fashion done right. The quality exceeded my expectations and the design came out exactly as I imagined.',
-      image: '/placeholder-avatar-1.jpg',
+      image: '/testimonials/alex-chen.jpg',
       rating: 5,
     },
     {
       name: 'Sarah Williams',
       handle: '@sarahstyle',
+      country: 'United Kingdom',
+      countryFlag: '🇬🇧',
       quote: 'Finally, a platform that combines cutting-edge AI with premium quality. My custom hoodie is amazing!',
-      image: '/placeholder-avatar-2.jpg',
+      image: '/testimonials/sarah-williams.jpg',
       rating: 5,
     },
     {
       name: 'Marcus Johnson',
       handle: '@marcusj',
+      country: 'Canada',
+      countryFlag: '🇨🇦',
       quote: 'The attention to detail is incredible. From the fabric to the print quality, everything feels premium.',
-      image: '/placeholder-avatar-3.jpg',
+      image: '/testimonials/marcus-johnson.jpg',
       rating: 5,
     },
     {
       name: 'Emma Rodriguez',
       handle: '@emmacreates',
+      country: 'Australia',
+      countryFlag: '🇦🇺',
       quote: "Love how easy it was to bring my idea to life. The AI understood exactly what I wanted, and the shipping was super fast.",
-      image: '/placeholder-avatar-4.jpg',
+      image: '/testimonials/emma-rodriguez.jpg',
       rating: 5,
     },
   ];
@@ -73,15 +82,35 @@ export const SocialProof = () => {
                   "{testimonial.quote}"
                 </p>
 
-                {/* Author */}
-                <div className="flex items-center gap-3 mt-2">
-                  {/* Avatar Placeholder */}
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#16C1A8] to-[#0D2C45]" />
-                  <div className="flex flex-col">
-                    <p className="font-semibold text-[#1E293B]">
+                {/* Author with Photo and Location */}
+                <div className="flex items-start gap-4 mt-2 pt-4 border-t border-gray-200">
+                  {/* Avatar with Image */}
+                  <div className="relative w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br from-[#16C1A8] to-[#0D2C45] flex-shrink-0 ring-2 ring-gray-200">
+                    <Image
+                      src={testimonial.image}
+                      alt={testimonial.name}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex flex-col gap-1 flex-1">
+                    <p className="font-semibold text-[#1E293B] text-lg">
                       {testimonial.name}
                     </p>
                     <p className="text-sm text-[#64748B]">{testimonial.handle}</p>
+
+                    {/* Country Badge */}
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-gray-200">
+                        <span className="text-base">{testimonial.countryFlag}</span>
+                        <MapPin className="w-3 h-3 text-[#64748B]" />
+                        <span className="text-xs font-medium text-[#64748B]">
+                          {testimonial.country}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
