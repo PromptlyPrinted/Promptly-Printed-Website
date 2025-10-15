@@ -1,39 +1,35 @@
-import { showBetaFeature } from '@repo/feature-flags';
 import { createMetadata } from '@repo/seo/metadata';
 import type { Metadata } from 'next';
-import { Cases } from './components/cases';
-import { CTA } from './components/cta';
-import { FAQ } from './components/faq';
-import { Features } from './components/features';
 import { Hero } from './components/hero';
-import { Stats } from './components/stats';
-import { Testimonials } from './components/testimonials';
+import { HowItWorks } from './components/how-it-works';
+import { Showcase } from './components/showcase';
+import { WhyDifferent } from './components/why-different';
+import { Craftsmanship } from './components/craftsmanship';
+import { SocialProof } from './components/social-proof';
+import { PricingOffer } from './components/pricing-offer';
+import { BrandStory } from './components/brand-story';
+import { FinalCTA } from './components/final-cta';
 
 const meta = {
-  title: 'From zero to production in minutes.',
+  title: 'Design Your Own Premium Apparel with AI | Promptly Printed',
   description:
-    "next-forge is a production-grade boilerplate for modern Next.js apps. It's designed to have everything you need to build your new SaaS app as quick as possible. Authentication, billing, analytics, SEO, and more. It's all here.",
+    'Type an idea. Watch it become wearable art. Create custom AI-generated designs on premium 220gsm cotton. Global shipping. One-of-one exclusivity.',
 };
 
 export const metadata: Metadata = createMetadata(meta);
 
 const Home = async () => {
-  const betaFeature = await showBetaFeature();
-
   return (
     <>
-      {betaFeature && (
-        <div className="w-full bg-black py-2 text-center text-white">
-          Beta feature now available
-        </div>
-      )}
       <Hero />
-      <Cases />
-      <Features />
-      <Stats />
-      <Testimonials />
-      <FAQ />
-      <CTA />
+      <HowItWorks />
+      <Showcase />
+      <WhyDifferent />
+      <Craftsmanship />
+      <SocialProof />
+      <PricingOffer />
+      <BrandStory />
+      <FinalCTA />
     </>
   );
 };

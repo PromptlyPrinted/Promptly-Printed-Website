@@ -1,64 +1,80 @@
-import { blog } from '@repo/cms';
-import { Feed } from '@repo/cms/components/feed';
 import { Button } from '@repo/design-system/components/ui/button';
-import { env } from '@repo/env';
-import { MoveRight, PhoneCall } from 'lucide-react';
-import { draftMode } from 'next/headers';
+import { Sparkles, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
 export const Hero = async () => {
-  const draft = await draftMode();
-
   return (
-    <div className="w-full">
-      <div className="container mx-auto">
-        <div className="flex flex-col items-center justify-center gap-8 py-20 lg:py-40">
-          <div>
-            <Feed queries={[blog.latestPostQuery]} draft={draft.isEnabled}>
-              {/* biome-ignore lint/suspicious/useAwait: "Server Actions must be async" */}
-              {async ([data]) => {
-                'use server';
+    <div className="relative w-full overflow-hidden bg-gradient-to-br from-[#0D2C45] via-[#0D2C45] to-[#16C1A8]/20">
+      {/* Video Background */}
+      <div className="absolute inset-0 z-0">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="h-full w-full object-cover opacity-40"
+        >
+          <source src="/videos/hero-bg.mp4" type="video/mp4" />
+        </video>
+        {/* Dark overlay for better text readability */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0D2C45]/50 to-[#0D2C45]" />
+      </div>
 
-                return (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="gap-4"
-                    asChild
-                  >
-                    <Link href={`/blog/${data.blog.posts.items.at(0)?._slug}`}>
-                      Read our latest article <MoveRight className="h-4 w-4" />
-                    </Link>
-                  </Button>
-                );
-              }}
-            </Feed>
+      {/* Content */}
+      <div className="container relative z-10 mx-auto px-4">
+        <div className="flex min-h-[85vh] flex-col items-center justify-center gap-8 py-20 lg:py-32">
+          {/* Badge */}
+          <div className="animate-fade-in">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#16C1A8]/30 bg-[#16C1A8]/10 px-4 py-2 backdrop-blur-sm">
+              <Sparkles className="h-4 w-4 text-[#16C1A8]" />
+              <span className="text-sm font-medium text-white/90">
+                AI-Powered Custom Apparel
+              </span>
+            </div>
           </div>
-          <div className="flex flex-col gap-4">
-            <h1 className="max-w-2xl text-center font-regular text-5xl tracking-tighter md:text-7xl">
-              This is the start of something new
+
+          {/* Headline */}
+          <div className="flex flex-col gap-6">
+            <h1 className="max-w-4xl text-center font-bold text-5xl text-white tracking-tight md:text-7xl lg:text-8xl">
+              Design your own premium apparel with AI
             </h1>
-            <p className="max-w-2xl text-center text-lg text-muted-foreground leading-relaxed tracking-tight md:text-xl">
-              Managing a small business today is already tough. Avoid further
-              complications by ditching outdated, tedious trade methods. Our
-              goal is to streamline SMB trade, making it easier and faster than
-              ever.
+            <p className="max-w-2xl text-center text-xl text-white/80 leading-relaxed md:text-2xl">
+              Type an idea. Watch it become wearable art.
             </p>
           </div>
-          <div className="flex flex-row gap-3">
-            <Button size="lg" className="gap-4" variant="outline" asChild>
-              <Link href="/contact">
-                Get in touch <PhoneCall className="h-4 w-4" />
+
+          {/* CTAs */}
+          <div className="flex flex-col sm:flex-row gap-4 items-center">
+            <Button
+              size="lg"
+              className="gap-2 bg-[#16C1A8] hover:bg-[#16C1A8]/90 text-white text-lg px-8 py-6 h-auto shadow-lg shadow-[#16C1A8]/25"
+              asChild
+            >
+              <Link href="/designs">
+                Start Designing <ArrowRight className="h-5 w-5" />
               </Link>
             </Button>
-            <Button size="lg" className="gap-4" asChild>
-              <Link href={env.NEXT_PUBLIC_APP_URL}>
-                Sign up <MoveRight className="h-4 w-4" />
+            <Button
+              size="lg"
+              variant="outline"
+              className="gap-2 border-white/30 bg-white/10 hover:bg-white/20 text-white text-lg px-8 py-6 h-auto backdrop-blur-sm"
+              asChild
+            >
+              <Link href="#examples">
+                See Examples
               </Link>
             </Button>
           </div>
+
+          {/* Subtext */}
+          <p className="text-sm text-white/60 text-center max-w-md">
+            Premium 220gsm cotton. Global shipping.
+          </p>
         </div>
       </div>
+
+      {/* Bottom Gradient Fade */}
+      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white to-transparent z-10" />
     </div>
   );
 };
