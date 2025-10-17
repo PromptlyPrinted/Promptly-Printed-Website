@@ -117,11 +117,37 @@ export async function GET(request: Request) {
     if (rawUrl) {
       try {
         const decodedUrl = decodeURIComponent(rawUrl);
+        if (decodedUrl.startsWith('data:image')) {
+          const matches = decodedUrl.match(/^data:(image\/[\w.+-]+);base64,(.+)$/);
+          if (!matches) {
+            return new Response(JSON.stringify({ error: 'Invalid data URL' }), {
+              status: 400,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          }
+
+          const [, mimeType, base64Data] = matches;
+          const buffer = Buffer.from(base64Data, 'base64');
+          return new Response(buffer, {
+            headers: {
+              'Content-Type': mimeType,
+              'Content-Length': buffer.length.toString(),
+              'Cache-Control': 'public, max-age=31536000, immutable',
+            },
+          });
+        }
+
         const response = await fetch(decodedUrl);
+        if (!response.ok) {
+          throw new Error(`Upstream response ${response.status} ${response.statusText}`);
+        }
         const contentType =
           response.headers.get('content-type') || 'application/octet-stream';
         return new Response(response.body, {
-          headers: { 'Content-Type': contentType },
+          headers: {
+            'Content-Type': contentType,
+            'Cache-Control': 'public, max-age=31536000, immutable',
+          },
         });
       } catch (error) {
         console.error('Error proxying raw URL:', error);

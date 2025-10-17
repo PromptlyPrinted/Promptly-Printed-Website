@@ -16,12 +16,8 @@ export function useCheckout() {
       setIsLoading(true);
       console.log('Starting checkout process...');
 
-      if (!session?.user) {
-        throw new Error('You must be logged in to checkout');
-      }
-
-      // For Better Auth, we can just use the session directly in API calls
-      // or get the session token if needed
+      // Guest checkout is now allowed - no auth required
+      // The API will handle both authenticated and guest users
 
       const itemsWithSavedImages = await Promise.all(
         items.map(async (item) => {

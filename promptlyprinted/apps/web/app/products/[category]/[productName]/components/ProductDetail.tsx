@@ -484,14 +484,16 @@ interface ProductDetailProps {
 export function ProductDetail({ product, isDesignMode = false }: ProductDetailProps) {
   const searchParams = useSearchParams();
   const colorFromUrl = searchParams.get('color');
-  
+  const promptFromUrl = searchParams.get('prompt'); // Get pre-filled prompt from quiz
+  const campaignFromUrl = searchParams.get('campaign'); // Get campaign context
+
   const [selectedSize, setSelectedSize] = useState<string | undefined>(
     undefined
   );
   const [selectedColor, setSelectedColor] = useState<string | undefined>(
     colorFromUrl || undefined
   );
-  const [promptText, setPromptText] = useState('');
+  const [promptText, setPromptText] = useState(promptFromUrl || '');
   const [selectedModels, setSelectedModels] = useState<(number | string)[]>([
     LORAS[0].id,
   ]);

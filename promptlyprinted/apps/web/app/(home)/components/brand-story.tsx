@@ -1,4 +1,6 @@
-import { Leaf, Recycle, Heart, Zap } from 'lucide-react';
+import { Leaf, Recycle, Heart, Zap, ArrowRight, BookOpen } from 'lucide-react';
+import { Button } from '@repo/design-system/components/ui/button';
+import Link from 'next/link';
 
 export const BrandStory = () => {
   const values = [
@@ -49,6 +51,31 @@ export const BrandStory = () => {
               <p>
                 Every order is <span className="font-semibold text-[#1E293B]">printed only when you design it</span> — zero waste, maximum creativity. We combine the latest AI technology with sustainable practices to create apparel that's good for you and the planet.
               </p>
+            </div>
+
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 pt-4">
+              <Button
+                size="lg"
+                className="gap-2 bg-[#16C1A8] hover:bg-[#16C1A8]/90 text-white"
+                asChild
+              >
+                <Link href="/about">
+                  Learn Our Story
+                  <ArrowRight className="w-5 h-5" />
+                </Link>
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className="gap-2 border-[#16C1A8] text-[#16C1A8] hover:bg-[#16C1A8]/10"
+                asChild
+              >
+                <Link href="/blog">
+                  <BookOpen className="w-5 h-5" />
+                  Read Our Blog
+                </Link>
+              </Button>
             </div>
           </div>
 

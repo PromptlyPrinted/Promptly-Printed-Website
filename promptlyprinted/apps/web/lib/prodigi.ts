@@ -1,5 +1,4 @@
 import { env } from '@repo/env';
-import { generateHighResImage, getImageSpecForSku } from './imageSpecs';
 
 interface ProdigiQuoteItem {
   sku: string;
@@ -87,17 +86,83 @@ interface ProdigiOrderRequest {
   metadata?: Record<string, any>;
 }
 
-interface ProdigiOrderItem {
-  sku: string;
-  copies: number;
-  artworkUrl: string; // URL to the original artwork
-  mockupUrl: string; // URL to the mockup image (for display only)
-}
-
 class ProdigiService {
   private apiKey: string;
   private baseUrl: string;
   private headers: HeadersInit;
+
+  private normalizeAssetUrl(rawUrl: string) {
+    if (!rawUrl) {
+      throw new Error('Received empty asset URL');
+    }
+
+    console.log('Normalizing asset URL:', rawUrl);
+
+    // Prodigi does NOT accept data URIs - they need publicly accessible HTTP/HTTPS URLs
+    if (rawUrl.startsWith('data:image')) {
+      throw new Error(
+        'Prodigi API does not accept base64/data URI images. Images must be uploaded to a publicly accessible URL first. ' +
+        'Please ensure images are saved to file storage and converted to public URLs before sending to Prodigi.'
+      );
+    }
+
+    let absoluteUrl = rawUrl;
+
+    // Convert relative URLs to absolute
+    if (rawUrl.startsWith('/')) {
+      // In production, use the Vercel URL; in development, use the configured public URL
+      const base = env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL
+        ? `https://${env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL}`
+        : env.NEXT_PUBLIC_WEB_URL;
+
+      if (!base) {
+        throw new Error(
+          `Cannot resolve relative asset URL "${rawUrl}" because NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL (or fallback NEXT_PUBLIC_WEB_URL) is not configured`
+        );
+      }
+      absoluteUrl = new URL(rawUrl, base).toString();
+    }
+
+    let parsed: URL;
+    try {
+      parsed = new URL(absoluteUrl);
+    } catch (error) {
+      throw new Error(
+        `Invalid asset URL "${rawUrl}": ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    }
+
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      throw new Error(
+        `Prodigi requires HTTP/HTTPS asset URLs. Received "${parsed.protocol}" for "${parsed.href}"`
+      );
+    }
+
+    // Check for localhost URLs - Prodigi cannot access these
+    // This should be caught earlier in the flow, but double-check here
+    if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') {
+      console.error(
+        `ERROR: Localhost URL detected: ${parsed.href}. ` +
+        `This should have been replaced with a test image earlier in the flow.`
+      );
+      throw new Error(
+        `Prodigi cannot access localhost URLs ("${parsed.href}"). ` +
+        `The application should replace localhost URLs with public test images in development.`
+      );
+    }
+
+    // Ensure HTTPS for security
+    if (parsed.protocol !== 'https:') {
+      console.warn(`Converting HTTP to HTTPS for asset URL: ${parsed.href}`);
+      parsed.protocol = 'https:';
+    }
+
+    const normalizedUrl = parsed.toString();
+    console.log('Normalized asset URL:', normalizedUrl);
+    return normalizedUrl;
+  }
 
   constructor() {
     console.log('Initializing ProdigiService with environment:', {
@@ -134,40 +199,6 @@ class ProdigiService {
     });
   }
 
-  private async prepareItemWithHighResImage(item: ProdigiOrderItem) {
-    const spec = getImageSpecForSku(item.sku);
-    if (!spec) {
-      throw new Error(`No image specifications found for SKU: ${item.sku}`);
-    }
-
-    // If the image is already a high-res base64 image, use it directly
-    if (item.artworkUrl.startsWith('data:image')) {
-      return {
-        sku: item.sku,
-        copies: item.copies,
-        assets: [
-          {
-            printArea: 'default',
-            url: item.artworkUrl,
-          },
-        ],
-      };
-    }
-
-    // Otherwise, generate high-res version of the artwork
-    const highResUrl = await generateHighResImage(item.artworkUrl, spec);
-
-    return {
-      sku: item.sku,
-      copies: item.copies,
-      assets: [
-        {
-          printArea: 'default',
-          url: highResUrl,
-        },
-      ],
-    };
-  }
 
   async getQuote(request: ProdigiQuoteRequest): Promise<ProdigiQuoteResponse> {
     const response = await fetch(`${this.baseUrl}/quotes`, {
@@ -198,15 +229,30 @@ class ProdigiService {
     // Ensure all items have artwork URLs
     const items = await Promise.all(
       request.items.map(async (item) => {
-        if (!item.assets[0]?.url) {
+        if (!item.assets?.length || !item.assets[0]?.url) {
           throw new Error(`Missing artwork URL for SKU: ${item.sku}`);
         }
         return {
           ...item,
+          assets: item.assets.map((asset) => ({
+            ...asset,
+            url: this.normalizeAssetUrl(asset.url),
+          })),
           sizing: item.sizing || 'fillPrintArea',
         };
       })
     );
+
+    console.log('Prepared Prodigi order payload items:', {
+      items: items.map((item) => ({
+        sku: item.sku,
+        assets: item.assets.map((asset) => ({
+          printArea: asset.printArea,
+          url: asset.url,
+          urlType: typeof asset.url,
+        })),
+      })),
+    });
 
     console.log('Sending request to Prodigi API:', {
       url: `${this.baseUrl}/orders`,

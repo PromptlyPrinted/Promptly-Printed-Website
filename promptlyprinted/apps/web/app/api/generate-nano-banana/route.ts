@@ -65,6 +65,25 @@ function enhancePromptWithBestPractices(userPrompt: string): string {
 }
 
 /**
+ * Safely extract inline image data from a Gemini response.
+ */
+function extractInlineImageData(result: any): string | null {
+  const parts = result?.candidates?.[0]?.content?.parts;
+  if (!Array.isArray(parts)) {
+    return null;
+  }
+
+  for (const part of parts) {
+    const inlineData = part?.inline_data || part?.inlineData;
+    if (inlineData?.data) {
+      return inlineData.data;
+    }
+  }
+
+  return null;
+}
+
+/**
  * Construct hierarchical master prompt based on number of reference images
  * This is the critical logic that determines how the AI interprets multiple images
  */
@@ -267,12 +286,12 @@ export async function POST(request: Request) {
         const result = await response.json();
 
         // Extract the generated image base64 data
-        const generatedData = result.candidates?.[0]?.content?.parts?.[0];
-        if (!generatedData || !generatedData.inline_data?.data) {
+        const generatedData = extractInlineImageData(result);
+        if (!generatedData) {
           throw new Error('No image data returned from Gemini API');
         }
 
-        generatedImageBase64 = generatedData.inline_data.data;
+        generatedImageBase64 = generatedData;
         console.log('Initial generation successful');
       } else {
         // Text-to-image generation mode
@@ -297,12 +316,12 @@ export async function POST(request: Request) {
         const result = await response.json();
 
         // Extract the generated image base64 data
-        const generatedData = result.candidates?.[0]?.content?.parts?.[0];
-        if (!generatedData || !generatedData.inline_data?.data) {
+        const generatedData = extractInlineImageData(result);
+        if (!generatedData) {
           throw new Error('No image data returned from Gemini API');
         }
 
-        generatedImageBase64 = generatedData.inline_data.data;
+        generatedImageBase64 = generatedData;
         console.log('Text-to-image generation successful');
       }
 
@@ -342,12 +361,12 @@ export async function POST(request: Request) {
         finalImageBase64 = generatedImageBase64;
       } else {
         const embellishmentResult = await embellishmentResponse.json();
-        const embellishedData = embellishmentResult.candidates?.[0]?.content?.parts?.[0];
-        if (!embellishedData || !embellishedData.inline_data?.data) {
+        const embellishedData = extractInlineImageData(embellishmentResult);
+        if (!embellishedData) {
           console.warn('Embellishment returned no data, using original image');
           finalImageBase64 = generatedImageBase64;
         } else {
-          finalImageBase64 = embellishedData.inline_data.data;
+          finalImageBase64 = embellishedData;
         }
       }
 

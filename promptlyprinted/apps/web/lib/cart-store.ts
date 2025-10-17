@@ -75,6 +75,42 @@ export const useCartStore = create<CartStore>()(
     }),
     {
       name: 'cart-storage',
+      // Custom storage that filters out base64 images before saving to localStorage
+      storage: {
+        getItem: (name) => {
+          const str = localStorage.getItem(name);
+          if (!str) return null;
+          return JSON.parse(str);
+        },
+        setItem: (name, value) => {
+          // Filter out base64 data from imageUrl and assets before saving
+          const filteredValue = {
+            ...value,
+            state: {
+              ...value.state,
+              items: value.state.items.map((item: CartItem) => ({
+                ...item,
+                // Don't store base64 imageUrl in localStorage
+                imageUrl: item.imageUrl.startsWith('data:image') ? '' : item.imageUrl,
+                assets: item.assets.map((asset) => {
+                  // If the URL is a base64 string, don't store it in localStorage
+                  if (asset.url.startsWith('data:image')) {
+                    return {
+                      ...asset,
+                      url: '', // Store empty string instead of base64
+                    };
+                  }
+                  return asset;
+                }),
+              })),
+            },
+          };
+          localStorage.setItem(name, JSON.stringify(filteredValue));
+        },
+        removeItem: (name) => {
+          localStorage.removeItem(name);
+        },
+      },
     }
   )
 );

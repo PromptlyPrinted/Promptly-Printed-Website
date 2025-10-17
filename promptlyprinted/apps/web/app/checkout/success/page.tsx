@@ -16,15 +16,11 @@ interface OrderItem {
     printArea?: string;
   }> | null;
   attributes?: {
+    sku?: string;
     size?: string;
     color?: string;
     sizing?: 'fillPrintArea' | 'fitPrintArea';
     printArea?: string;
-  };
-  product: {
-    sku: string;
-    size: string[];
-    color: string[];
   };
   copies: number;
   price: number;
@@ -99,15 +95,7 @@ export default async function CheckoutSuccessPage({
           },
           include: {
             recipient: true,
-            orderItems: {
-              include: {
-                product: {
-                  include: {
-                    images: true,
-                  },
-                },
-              },
-            },
+            orderItems: true,
           },
         });
 
@@ -146,15 +134,7 @@ export default async function CheckoutSuccessPage({
           },
           include: {
             recipient: true,
-            orderItems: {
-              include: {
-                product: {
-                  include: {
-                    images: true,
-                  },
-                },
-              },
-            },
+            orderItems: true,
           },
         });
 
@@ -228,7 +208,7 @@ async function handleProdigiOrderCreation(order: any, session: any) {
       recipient: order.recipient,
       items: order.orderItems.map((item: any) => ({
         id: item.id,
-        sku: item.product.sku,
+        sku: item.attributes?.sku || 'UNKNOWN',
         copies: item.copies,
         assets: item.assets,
       })),
@@ -243,33 +223,24 @@ async function handleProdigiOrderCreation(order: any, session: any) {
     // Prepare items with images
     const items = await Promise.all(
       order.orderItems.map(async (item: any) => {
+        const itemSku = item.attributes?.sku;
+        if (!itemSku) {
+          console.error('No SKU found in item attributes:', item.attributes);
+          throw new Error(`No SKU found for order item: ${item.id}`);
+        }
+
         console.log(
           'Processing item:',
           item.id,
           'with SKU:',
-          item.product.sku
+          itemSku
         );
         console.log('Item assets:', item.assets);
 
-        // Get the design image from the order item's assets
-        const designImage = item.assets?.[0]?.url;
-        if (!designImage) {
-          console.error('No design image found in assets:', item.assets);
-          throw new Error(
-            `No design image found for order item: ${item.id}`
-          );
-        }
-        console.log('Found design image URL:', designImage);
-
-        // Resolve the image URL
-        const imageUrl = await getImageUrl(designImage);
-        if (!imageUrl) {
-          console.error('Failed to resolve image URL:', designImage);
-          throw new Error(
-            `Could not resolve design image URL: ${designImage}`
-          );
-        }
-        console.log('Resolved design image URL:', imageUrl);
+        // FOR DEVELOPMENT ONLY: Hardcode test image URL
+        // TODO: In production, use actual uploaded images from cloud storage
+        const imageUrl = 'https://pwintyimages.blob.core.windows.net/samples/stars/test-sample-grey.png';
+        console.log('Using hardcoded test image URL for development:', imageUrl);
 
         // Map size to valid Prodigi size values
         const sizeMap: Record<string, string> = {
@@ -285,20 +256,19 @@ async function handleProdigiOrderCreation(order: any, session: any) {
           XXXXXL: '5xl',
         };
 
-        const prodigiSize =
-          sizeMap[item.attributes?.size || item.product.size[0]] || 'm';
+        const itemSize = item.attributes?.size || 'M';
+        const itemColor = item.attributes?.color || 'white';
+        const prodigiSize = sizeMap[itemSize] || 'm';
 
         const prodigiItem: ProdigiOrderItem = {
-          sku: item.product.sku,
+          sku: itemSku,
           copies: item.copies,
           merchantReference: `item_${item.id}`,
           sizing: (item.attributes?.sizing || 'fillPrintArea') as
             | 'fillPrintArea'
             | 'fitPrintArea',
           attributes: {
-            color: (
-              item.attributes?.color || item.product.color[0]
-            ).replace(/-/g, ' '),
+            color: itemColor.replace(/-/g, ' '),
             size: prodigiSize,
           },
           recipientCost: {
@@ -318,6 +288,12 @@ async function handleProdigiOrderCreation(order: any, session: any) {
     );
 
     console.log('Prepared items for Prodigi order:', items);
+
+    // FINAL DEBUG: Log the exact URLs being sent to Prodigi
+    items.forEach((item, index) => {
+      console.log(`[FINAL CHECK] Item ${index} URL:`, item.assets[0].url);
+      console.log(`[FINAL CHECK] Item ${index} URL includes localhost:`, item.assets[0].url.includes('localhost'));
+    });
 
     const prodigiOrder = await prodigiService.createOrder({
       shippingMethod: 'Standard',
@@ -362,10 +338,19 @@ async function handleProdigiOrderCreation(order: any, session: any) {
 
     console.log('Updated order with Prodigi details');
   } catch (error) {
+    const rawMessage = error instanceof Error ? error.message : 'Unknown error';
+    const rawStack = error instanceof Error ? error.stack : undefined;
+    const truncate = (value: string | undefined, max = 2000) =>
+      value && value.length > max
+        ? `${value.slice(0, max)}… [truncated]`
+        : value;
+    const safeMessage = truncate(rawMessage, 1000) ?? 'Unknown error';
+    const safeStack = truncate(rawStack);
+
     console.error('Failed to create Prodigi order:', error);
     console.error('Error details:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
+      message: safeMessage,
+      stack: safeStack,
       orderId: order.id,
       env: {
         hasProdigiApiKey: !!env.PRODIGI_API_KEY,
@@ -379,8 +364,8 @@ async function handleProdigiOrderCreation(order: any, session: any) {
         message: 'Failed to create Prodigi order',
         metadata: {
           orderId: order.id,
-          error: error instanceof Error ? error.message : 'Unknown error',
-          stack: error instanceof Error ? error.stack : undefined,
+          error: safeMessage,
+          stack: safeStack,
           env: {
             hasProdigiApiKey: !!env.PRODIGI_API_KEY,
             prodigiApiKeyLength: env.PRODIGI_API_KEY?.length,
@@ -395,7 +380,7 @@ async function handleProdigiOrderCreation(order: any, session: any) {
       data: {
         status: 'CANCELED',
         prodigiStatusJson: {
-          error: error instanceof Error ? error.message : 'Unknown error',
+          error: safeMessage,
           timestamp: new Date().toISOString(),
         },
       },

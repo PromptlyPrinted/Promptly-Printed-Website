@@ -252,3 +252,229 @@ export function getTierBenefits(tier: UserStats['tier']) {
 
   return benefits[tier];
 }
+
+// ========================================
+// Competition System - Points & Levels
+// ========================================
+
+import { prisma } from './prisma';
+
+// Point values for competition actions
+export const COMPETITION_POINTS = {
+  // Design Actions
+  DESIGN_SUBMISSION: 50,
+  COMPETITION_ENTRY: 100,
+
+  // Social Actions
+  VOTE_RECEIVED: 10,
+  LIKE_RECEIVED: 5,
+  VOTE_GIVEN: 2,
+  LIKE_GIVEN: 1,
+
+  // Achievements
+  FIRST_DESIGN: 100,
+  FIRST_COMPETITION: 150,
+  DAILY_LOGIN: 5,
+  WEEKLY_STREAK: 50,
+
+  // Competition Rewards
+  FIRST_PLACE: 1000,
+  SECOND_PLACE: 500,
+  THIRD_PLACE: 250,
+  TOP_10: 100,
+} as const;
+
+/**
+ * Calculate user level based on points
+ * Level up every 500 points
+ */
+export function calculateLevel(points: number): number {
+  return Math.floor(points / 500) + 1;
+}
+
+/**
+ * Calculate points needed for next level
+ */
+export function pointsToNextLevel(currentPoints: number): number {
+  const currentLevel = calculateLevel(currentPoints);
+  const nextLevelPoints = currentLevel * 500;
+  return nextLevelPoints - currentPoints;
+}
+
+/**
+ * Get level badge based on level
+ */
+export function getLevelBadge(level: number): string {
+  if (level >= 10) return 'Master';
+  if (level >= 5) return 'Artist';
+  if (level >= 3) return 'Creator';
+  if (level >= 2) return 'Designer';
+  return 'Beginner';
+}
+
+/**
+ * Award points to a user and update their level
+ */
+export async function awardCompetitionPoints(
+  userId: string,
+  points: number,
+  action: string,
+  description?: string
+) {
+  const userPoints = await prisma.$transaction(async tx => {
+    const existingPoints = await tx.userPoints.findUnique({
+      where: { userId },
+    });
+
+    const previousPoints = existingPoints?.points ?? 0;
+    const updatedPoints = Math.max(0, previousPoints + points);
+    const updatedLevel = calculateLevel(updatedPoints);
+
+    const record = existingPoints
+      ? await tx.userPoints.update({
+          where: { userId },
+          data: {
+            points: updatedPoints,
+            level: updatedLevel,
+            updatedAt: new Date(),
+          },
+        })
+      : await tx.userPoints.create({
+          data: {
+            userId,
+            points: updatedPoints,
+            level: updatedLevel,
+          },
+        });
+
+    await tx.pointHistory.create({
+      data: {
+        userId,
+        points,
+        action,
+        description: description || `Earned ${points} points for ${action}`,
+      },
+    });
+
+    return {
+      ...record,
+      points: updatedPoints,
+      level: updatedLevel,
+    };
+  });
+
+  return userPoints;
+}
+
+/**
+ * Update daily streak for a user
+ */
+export async function updateStreak(userId: string) {
+  const userPoints = await prisma.userPoints.findUnique({
+    where: { userId },
+  });
+
+  if (!userPoints) {
+    return await prisma.userPoints.create({
+      data: {
+        userId,
+        streak: 1,
+        lastActiveDate: new Date(),
+      },
+    });
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const lastActive = userPoints.lastActiveDate;
+  if (!lastActive) {
+    // First time active
+    return await prisma.userPoints.update({
+      where: { userId },
+      data: {
+        streak: 1,
+        lastActiveDate: new Date(),
+      },
+    });
+  }
+
+  const lastActiveDate = new Date(lastActive);
+  lastActiveDate.setHours(0, 0, 0, 0);
+
+  const daysSinceLastActive = Math.floor(
+    (today.getTime() - lastActiveDate.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  if (daysSinceLastActive === 0) {
+    // Already logged in today
+    return userPoints;
+  } else if (daysSinceLastActive === 1) {
+    // Consecutive day - increment streak
+    const newStreak = userPoints.streak + 1;
+
+    // Award daily login points
+    await awardCompetitionPoints(userId, COMPETITION_POINTS.DAILY_LOGIN, 'daily_login', 'Daily login bonus');
+
+    // Award weekly streak bonus
+    if (newStreak % 7 === 0) {
+      await awardCompetitionPoints(userId, COMPETITION_POINTS.WEEKLY_STREAK, 'weekly_streak', `${newStreak}-day streak bonus!`);
+    }
+
+    return await prisma.userPoints.update({
+      where: { userId },
+      data: {
+        streak: newStreak,
+        lastActiveDate: new Date(),
+      },
+    });
+  } else {
+    // Streak broken - reset to 1
+    return await prisma.userPoints.update({
+      where: { userId },
+      data: {
+        streak: 1,
+        lastActiveDate: new Date(),
+      },
+    });
+  }
+}
+
+/**
+ * Get user rank globally
+ */
+export async function getUserRank(userId: string): Promise<number> {
+  const userPoints = await prisma.userPoints.findUnique({
+    where: { userId },
+  });
+
+  if (!userPoints) return 0;
+
+  const higherRanked = await prisma.userPoints.count({
+    where: {
+      points: { gt: userPoints.points },
+    },
+  });
+
+  return higherRanked + 1;
+}
+
+/**
+ * Get global leaderboard
+ */
+export async function getGlobalLeaderboard(limit: number = 10) {
+  return await prisma.userPoints.findMany({
+    take: limit,
+    orderBy: { points: 'desc' },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          image: true,
+          username: true,
+        },
+      },
+    },
+  });
+}

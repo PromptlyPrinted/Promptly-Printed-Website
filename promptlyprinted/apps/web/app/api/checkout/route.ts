@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import { temporaryImageStore } from '@/lib/temp-image-store';
-import { getSession } from '../../../lib/session-utils';
+import { getSession } from '@/lib/session-utils';
 import { OrderStatus, ShippingMethod } from '@repo/database';
 import { prisma } from '@repo/database';
 import type { User } from '@repo/database';
@@ -11,6 +11,37 @@ import { ZodError, z } from 'zod';
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-02-24.acacia',
 });
+
+/**
+ * Save base64 image to file system and return URL
+ */
+async function saveBase64Image(base64Data: string): Promise<string> {
+  const { writeFile, mkdir } = await import('fs/promises');
+  const { join } = await import('path');
+  const { v4: uuidv4 } = await import('uuid');
+
+  // Extract mime type and base64 data
+  const matches = base64Data.match(/^data:image\/(\w+);base64,(.+)$/);
+  if (!matches) {
+    throw new Error('Invalid base64 image format');
+  }
+
+  const [, extension, data] = matches;
+  const fileName = `${uuidv4()}.${extension}`;
+
+  // Create uploads directory if it doesn't exist
+  // Use absolute path to public directory in the web app
+  const uploadsDir = join(process.cwd(), 'apps', 'web', 'public', 'uploads', 'checkout');
+  await mkdir(uploadsDir, { recursive: true });
+
+  // Write file
+  const filePath = join(uploadsDir, fileName);
+  const buffer = Buffer.from(data, 'base64');
+  await writeFile(filePath, buffer);
+
+  // Return public URL
+  return `/uploads/checkout/${fileName}`;
+}
 
 const ImageSchema = z.object({
   url: z.string(),
@@ -144,11 +175,9 @@ export async function POST(req: NextRequest) {
   try {
     const session = await getSession(req);
 
-    if (!session?.user) {
-      console.error('Authentication failed: No user found.');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const userId = session.user.id;
+    // Allow guest checkout - no auth required
+    // We'll use Stripe's guest checkout and create order after payment
+    const userId = session?.user?.id || null;
     // Determine base URL for building absolute image URLs
     const urlObj = new URL(req.url);
     const origin = process.env.NEXT_PUBLIC_WEB_URL ?? urlObj.origin;
@@ -167,7 +196,7 @@ export async function POST(req: NextRequest) {
       orderItems = CheckoutRequestSchema.parse(body);
       console.log(
         'Parsed Checkout Items:',
-        JSON.stringify(orderItems, null, 2)
+        `${orderItems.items.length} items`
       );
     } catch (error: unknown) {
       console.error('Failed to parse request body:', error);
@@ -191,21 +220,30 @@ export async function POST(req: NextRequest) {
     }
 
     let dbUser: User | null = null;
-    try {
-      dbUser = await prisma.user.findUnique({
-        where: { id: userId },
-      });
+    let isGuestCheckout = false;
 
-      if (!dbUser) {
-        console.error(
-          `User with id ${userId} not found in the database.`
-        );
-        return NextResponse.json(
-          { error: 'User data not found. Please contact support.' },
-          { status: 500 }
-        );
+    try {
+      if (userId) {
+        // Authenticated user - fetch from database
+        dbUser = await prisma.user.findUnique({
+          where: { id: userId },
+        });
+
+        if (!dbUser) {
+          console.error(
+            `User with id ${userId} not found in the database.`
+          );
+          return NextResponse.json(
+            { error: 'User data not found. Please contact support.' },
+            { status: 500 }
+          );
+        }
+        console.log(`Found existing user with DB ID: ${dbUser.id}`);
+      } else {
+        // Guest checkout - we'll create user after payment with Stripe customer email
+        isGuestCheckout = true;
+        console.log('Guest checkout - will create user after payment');
       }
-      console.log(`Found existing user with DB ID: ${dbUser.id}`);
 
       const total = orderItems.items.reduce(
         (acc, item) => acc + item.price * item.copies,
@@ -213,104 +251,118 @@ export async function POST(req: NextRequest) {
       );
       console.log(`Calculated Total Price: ${total}`);
 
-      // Build the order creation data
-      const orderData = {
-        userId: dbUser.id,
-        totalPrice: total,
-        status: OrderStatus.PENDING,
-        merchantReference: `ORDER-${Date.now()}`,
-        shippingMethod: ShippingMethod.STANDARD,
-        callbackUrl: `${process.env.NEXT_PUBLIC_WEB_URL}/api/webhooks/prodigi`,
-        idempotencyKey: randomUUID(),
-        metadata: {
-          sourceId: Date.now(),
-        },
-        recipient: {
-          create: {
-            name: 'Pending',
-            email: dbUser.email,
-            phoneNumber: null,
-            addressLine1: 'Pending',
-            addressLine2: '',
-            postalCode: '00000',
-            countryCode: 'US',
-            city: 'Pending',
-            state: null,
+      let order = null;
+
+      // For authenticated users, create order first
+      if (dbUser) {
+        // Build the order creation data
+        const orderData = {
+          userId: dbUser.id,
+          totalPrice: total,
+          status: OrderStatus.PENDING,
+          merchantReference: `ORDER-${Date.now()}`,
+          shippingMethod: ShippingMethod.STANDARD,
+          callbackUrl: `${process.env.NEXT_PUBLIC_WEB_URL}/api/webhooks/prodigi`,
+          idempotencyKey: randomUUID(),
+          metadata: {
+            sourceId: Date.now(),
           },
-        },
-        orderItems: {
-          create: await Promise.all(
-            orderItems.items.map(async (item) => {
-              // Convert each image object into something we can store in `assets` (JSON),
-              // since there's no separate `images` relation in OrderItem.
-              const resolvedAssets = await Promise.all(
-                item.images.map(async (img) => {
-                  // If it's a base64 image, use it directly
-                  if (img.url.startsWith('data:image')) {
+          recipient: {
+            create: {
+              name: 'Pending',
+              email: dbUser.email,
+              phoneNumber: null,
+              addressLine1: 'Pending',
+              addressLine2: '',
+              postalCode: '00000',
+              countryCode: 'US',
+              city: 'Pending',
+              state: null,
+            },
+          },
+          orderItems: {
+            create: await Promise.all(
+              orderItems.items.map(async (item) => {
+                // Convert each image object into something we can store in `assets` (JSON),
+                // since there's no separate `images` relation in OrderItem.
+                const resolvedAssets = await Promise.all(
+                  item.images.map(async (img) => {
+                    let finalUrl: string;
+
+                    // If it's a base64 image, save it as a file first
+                    if (img.url.startsWith('data:image')) {
+                      console.log('Converting base64 image to file for item:', item.productId);
+                      finalUrl = await saveBase64Image(img.url);
+                    } else {
+                      // For non-base64 images, resolve the URL
+                      const actualUrl = await getImageUrl(img.url);
+                      if (!actualUrl) {
+                        console.warn(
+                          `Could not resolve or invalid image URL: ${img.url} for product ${item.productId}`
+                        );
+                        return null;
+                      }
+                      finalUrl = actualUrl.startsWith('/api/save-temp-image')
+                        ? actualUrl
+                        : `/api/save-temp-image?url=${encodeURIComponent(actualUrl)}`;
+                    }
+
+                    // Only store URL - don't store dpi, width, height to keep database size small
                     return {
-                      url: img.url,
-                      dpi: img.dpi,
-                      width: img.width,
-                      height: img.height,
-                      isPublic: true,
+                      url: finalUrl,
+                      printArea: item.customization?.printArea || 'front',
                     };
-                  }
+                  })
+                ).then((assets) => assets.filter(Boolean));
 
-                  // For non-base64 images, resolve the URL
-                  const actualUrl = await getImageUrl(img.url);
-                  if (!actualUrl) {
-                    console.warn(
-                      `Could not resolve or invalid image URL: ${img.url} for product ${item.productId}`
-                    );
-                    return null;
-                  }
-                  const publicUrl = actualUrl.startsWith('/api/save-temp-image')
-                    ? actualUrl
-                    : `/api/save-temp-image?url=${encodeURIComponent(actualUrl)}`;
-                  return {
-                    url: publicUrl,
-                    dpi: img.dpi,
-                    width: img.width,
-                    height: img.height,
-                    isPublic: true,
-                  };
-                })
-              ).then((assets) => assets.filter(Boolean));
+                return {
+                  productId: item.productId,
+                  copies: item.copies,
+                  price: item.price,
+                  assets: resolvedAssets,
+                  merchantReference:
+                    item.merchantReference || `item #${item.productId}`,
+                  recipientCostAmount: item.recipientCostAmount ?? item.price,
+                  recipientCostCurrency: item.currency || 'USD',
+                  sizing: item.customization?.sizing,
+                  attributes: {
+                    sku: item.sku,
+                    designUrl: item.designUrl,
+                    printArea: item.customization?.printArea,
+                    position: item.customization?.position,
+                    color: item.color,
+                    size: item.size,
+                  },
+                };
+              })
+            ),
+          },
+        };
 
-              return {
-                productId: item.productId,
-                copies: item.copies,
-                price: item.price,
-                assets: resolvedAssets,
-                merchantReference:
-                  item.merchantReference || `item #${item.productId}`,
-                recipientCostAmount: item.recipientCostAmount ?? item.price,
-                recipientCostCurrency: item.currency || 'USD',
-                sizing: item.customization?.sizing,
-                attributes: {
-                  designUrl: item.designUrl,
-                  printArea: item.customization?.printArea,
-                  position: item.customization?.position,
-                  color: item.color,
-                  size: item.size,
-                },
-              };
-            })
-          ),
-        },
+        // Create order in database first (without include to avoid 5MB response limit)
+        order = await prisma.order.create({
+          data: orderData,
+        });
+      }
+
+      // Prepare Stripe session metadata
+      const stripeMetadata: Record<string, string> = {
+        isGuestCheckout: isGuestCheckout.toString(),
       };
 
-      // Create order in database first
-      const order = await prisma.order.create({
-        data: orderData,
-        include: {
-          orderItems: true,
-        },
-      });
+      if (order) {
+        stripeMetadata.orderId = order.id.toString();
+      } else {
+        // For guest checkout, store order data in metadata to create after payment
+        stripeMetadata.orderData = JSON.stringify({
+          items: orderItems.items,
+          totalPrice: total,
+        });
+      }
 
       // Create Stripe checkout session
-      const session = await stripe.checkout.sessions.create({
-        customer_email: dbUser.email,
+      const stripeSession = await stripe.checkout.sessions.create({
+        customer_email: dbUser?.email || undefined, // Allow Stripe to collect email for guests
         line_items: orderItems.items.map((item) => {
           const images = item.images
             .map((img) => {
@@ -347,9 +399,7 @@ export async function POST(req: NextRequest) {
         mode: 'payment',
         success_url: `${process.env.NEXT_PUBLIC_WEB_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${process.env.NEXT_PUBLIC_WEB_URL}/cancel`,
-        metadata: {
-          orderId: order.id.toString(),
-        },
+        metadata: stripeMetadata,
         shipping_address_collection: {
           allowed_countries: ['US', 'CA', 'GB', 'AU', 'NZ'],
         },
@@ -378,15 +428,17 @@ export async function POST(req: NextRequest) {
         ],
       });
 
-      if (!session.url) {
+      if (!stripeSession.url) {
         throw new Error('Failed to create Stripe checkout session');
       }
 
-      // Update order with Stripe session ID
-      await prisma.order.update({
-        where: { id: order.id },
-        data: { stripeSessionId: session.id },
-      });
+      // Update order with Stripe session ID (only for authenticated users)
+      if (order) {
+        await prisma.order.update({
+          where: { id: order.id },
+          data: { stripeSessionId: stripeSession.id },
+        });
+      }
 
       // Clean up temporary images
       orderItems.items.forEach((item) => {
@@ -398,7 +450,13 @@ export async function POST(req: NextRequest) {
         });
       });
 
-      return NextResponse.json({ url: session.url });
+      console.log('Checkout session created successfully', {
+        sessionId: stripeSession.id,
+        isGuestCheckout,
+        orderId: order?.id || 'N/A (will be created after payment)',
+      });
+
+      return NextResponse.json({ url: stripeSession.url });
     } catch (error: unknown) {
       console.error('Error during checkout process:', error);
       if (error instanceof Error) {

@@ -1,5 +1,5 @@
 import { database } from '@repo/database';
-import { getSession } from '../../../lib/session-utils';
+import { getSession } from '@/lib/session-utils';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
