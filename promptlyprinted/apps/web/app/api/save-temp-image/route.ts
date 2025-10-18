@@ -1,5 +1,6 @@
 import { database } from '@repo/database';
 import { getSession } from '../../../lib/session-utils';
+import { storage } from '@/lib/storage';
 
 export async function POST(request: Request) {
   try {
@@ -22,17 +23,6 @@ export async function POST(request: Request) {
       });
     }
 
-    // Check if the image is already saved
-    const existingImage = await database.savedImage.findFirst({
-      where: { url },
-    });
-
-    if (existingImage) {
-      return new Response(JSON.stringify({ id: existingImage.id }), {
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
     // Get the database user from Better Auth session
     const dbUser = await database.user.findUnique({
       where: { id: session.user.id },
@@ -48,11 +38,29 @@ export async function POST(request: Request) {
       );
     }
 
-    // Save the image to the database
+    // If URL is base64, upload it to storage first
+    let finalUrl = url;
+    if (url.startsWith('data:image')) {
+      console.log('Converting base64 image to file storage');
+      finalUrl = await storage.uploadFromBase64(url, 'checkout-image');
+    }
+
+    // Check if the image is already saved
+    const existingImage = await database.savedImage.findFirst({
+      where: { url: finalUrl },
+    });
+
+    if (existingImage) {
+      return new Response(JSON.stringify({ id: existingImage.id }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Save the image to the database (now with file URL instead of base64)
     const savedImage = await database.savedImage.create({
       data: {
         name: 'Checkout Image',
-        url,
+        url: finalUrl,
         userId: dbUser.id,
       },
     });

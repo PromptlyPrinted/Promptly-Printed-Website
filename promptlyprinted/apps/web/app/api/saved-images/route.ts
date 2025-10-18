@@ -19,11 +19,15 @@ export async function GET(request: Request) {
     }
 
     // Fetch all saved images for user (both standalone images and designs)
-    // Limit to 10 most recent to avoid exceeding 5MB response limit
-    // (URLs may contain large base64 data)
+    // Exclude old base64 images to avoid exceeding 5MB response limit
     const images = await database.savedImage.findMany({
       where: {
         userId: dbUser.id,
+        url: {
+          not: {
+            startsWith: 'data:image' // Exclude base64 images
+          }
+        }
       },
       select: {
         id: true,
@@ -41,7 +45,7 @@ export async function GET(request: Request) {
         },
       },
       orderBy: { createdAt: 'desc' },
-      take: 10,
+      take: 50,
     });
 
     return new Response(JSON.stringify(images), {

@@ -1,8 +1,6 @@
 import { database } from '@repo/database';
 import { getSession } from '@/lib/session-utils';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import { storage } from '@/lib/storage';
 
 export async function POST(request: Request) {
   try {
@@ -40,21 +38,13 @@ export async function POST(request: Request) {
       );
     }
 
-    let buffer: Buffer;
-    let fileExtension = 'png';
+    let publicUrl: string;
 
     if (imageData) {
-      // Handle base64 data URLs
-      const base64Data = imageData.replace(/^data:image\/\w+;base64,/, '');
-      buffer = Buffer.from(base64Data, 'base64');
-      
-      // Extract file extension from data URL
-      const mimeMatch = imageData.match(/^data:image\/(\w+);base64,/);
-      if (mimeMatch) {
-        fileExtension = mimeMatch[1];
-      }
+      // Handle base64 data URLs - use storage abstraction
+      publicUrl = await storage.uploadFromBase64(imageData, name);
     } else if (imageUrl) {
-      // Fetch image from URL
+      // Fetch image from URL and upload
       const response = await fetch(imageUrl);
       if (!response.ok) {
         return new Response(JSON.stringify({ error: 'Failed to fetch image' }), {
@@ -64,35 +54,25 @@ export async function POST(request: Request) {
       }
 
       const arrayBuffer = await response.arrayBuffer();
-      buffer = Buffer.from(arrayBuffer);
+      const buffer = Buffer.from(arrayBuffer);
 
-      // Try to determine file extension from Content-Type
-      const contentType = response.headers.get('content-type');
-      if (contentType?.includes('jpeg') || contentType?.includes('jpg')) {
+      // Determine file extension from Content-Type
+      const contentType = response.headers.get('content-type') || 'image/png';
+      let fileExtension = 'png';
+      if (contentType.includes('jpeg') || contentType.includes('jpg')) {
         fileExtension = 'jpg';
-      } else if (contentType?.includes('webp')) {
+      } else if (contentType.includes('webp')) {
         fileExtension = 'webp';
       }
+
+      const filename = `${name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.${fileExtension}`;
+      publicUrl = await storage.uploadFromBuffer(buffer, filename, contentType);
     } else {
       return new Response(JSON.stringify({ error: 'No valid image source provided' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       });
     }
-
-    // Generate unique filename
-    const fileName = `${uuidv4()}.${fileExtension}`;
-    
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = join(process.cwd(), 'public', 'uploads', 'images');
-    await mkdir(uploadsDir, { recursive: true });
-    
-    // Write file to public/uploads/images
-    const filePath = join(uploadsDir, fileName);
-    await writeFile(filePath, buffer);
-
-    // Create public URL
-    const publicUrl = `/uploads/images/${fileName}`;
 
     // Save to database
     const savedImage = await database.savedImage.create({
@@ -104,7 +84,6 @@ export async function POST(request: Request) {
     });
 
     console.log('Image uploaded successfully:', {
-      fileName,
       publicUrl,
       savedImageId: savedImage.id
     });

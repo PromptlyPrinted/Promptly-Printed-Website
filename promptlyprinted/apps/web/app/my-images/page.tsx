@@ -18,7 +18,12 @@ export default async function MyImagesPage() {
   const images = await database.savedImage.findMany({
     where: {
       userId: dbUser.id,
-      productId: null // Only show images that were not saved as designs (no product context)
+      productId: null, // Only show images that were not saved as designs (no product context)
+      url: {
+        not: {
+          startsWith: 'data:image' // Exclude old base64 images
+        }
+      }
     },
     select: {
       id: true,
@@ -26,7 +31,7 @@ export default async function MyImagesPage() {
       name: true,
     },
     orderBy: { createdAt: 'desc' },
-    take: 20, // Limit to avoid exceeding 5MB response size
+    take: 50, // Can increase now that we're excluding base64
   });
 
   return <MyImagesClient images={images} />;
