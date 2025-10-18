@@ -1,8 +1,7 @@
 import { auth } from '@repo/auth/server';
 import { database } from '@repo/database';
-import Image from 'next/image';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { MyDesignsClient } from './my-designs-client';
 
 export default async function MyDesignsPage() {
   const session = await auth.api.getSession({ headers: await import('next/headers').then(h => h.headers()) });
@@ -16,52 +15,22 @@ export default async function MyDesignsPage() {
     return <div className="container mx-auto p-4">User not found</div>;
   }
   const designs = await database.savedImage.findMany({
-    where: { 
+    where: {
       userId: dbUser.id,
       productId: { not: null } // Only show images that were saved as designs (with product context)
     },
-    include: { 
+    include: {
       product: {
         select: {
           name: true,
           sku: true,
           color: true,
+          category: true,
         }
       }
     },
     orderBy: { createdAt: 'desc' },
   });
 
-  return (
-    <div className="container mx-auto p-4">
-      <h1 className="mb-4 font-semibold text-2xl">My Designs</h1>
-      {designs.length === 0 ? (
-        <p>You have no saved designs.</p>
-      ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-          {designs.map((design) => (
-            <Link
-              key={design.id}
-              href={`/products/${design.product?.sku || design.productId}`}
-              className="block overflow-hidden rounded border p-2 hover:shadow-lg"
-            >
-              <Image
-                src={design.url}
-                alt={design.name}
-                width={200}
-                height={200}
-                className="h-48 w-full object-cover"
-              />
-              <p className="mt-2 text-center text-sm">{design.name}</p>
-              {design.product && (
-                <p className="text-xs text-gray-600 text-center">
-                  {design.product.name}
-                </p>
-              )}
-            </Link>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+  return <MyDesignsClient designs={designs} />;
 }

@@ -13,7 +13,7 @@ import { FinalCTA } from './components/final-cta';
 const meta = {
   title: 'Design Your Own Premium Apparel with AI | Promptly Printed',
   description:
-    'Type an idea. Watch it become wearable art. Create custom AI-generated designs on premium 220gsm cotton. Global shipping. One-of-one exclusivity.',
+    'Type an idea. Watch it become wearable art. Create custom AI-generated designs on premium fabric up to 280gsm. Global shipping. One-of-one exclusivity.',
 };
 
 export const metadata: Metadata = createMetadata(meta);

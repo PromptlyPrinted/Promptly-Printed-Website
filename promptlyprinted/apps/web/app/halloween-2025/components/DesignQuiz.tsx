@@ -33,7 +33,7 @@ const audienceOptions = [
 
 const productOptions = [
   { id: 'hoodie', label: 'Oversized Hoodie', perks: 'Our best-seller with ultra-soft fleece' },
-  { id: 'tee', label: 'Premium Tee', perks: '220gsm organic cotton, buttery soft feel' },
+  { id: 'tee', label: 'Premium Tee', perks: 'Organic cotton up to 280gsm, buttery soft feel' },
   { id: 'crewneck', label: 'Vintage Crewneck', perks: 'Relaxed fit, 90s inspired silhouette' },
   { id: 'accessory', label: 'Sticker & Poster Pack', perks: 'Perfect as add-on freebies' },
 ];

@@ -17,7 +17,7 @@ const questions = [
   {
     question: 'What products can I print on?',
     answer:
-      'Our creator bundles cover hoodies, tees, and crewnecks using premium 220gsm organic cotton. You can also add-on tote bags, posters, and sticker packs. Every product is printed in the UK/EU with eco-friendly inks.',
+      'Our creator bundles cover hoodies, tees, and crewnecks using premium organic cotton up to 280gsm. You can also add-on tote bags, posters, and sticker packs. Every product is printed in the UK/EU with eco-friendly inks.',
   },
   {
     question: 'How fast is delivery?',

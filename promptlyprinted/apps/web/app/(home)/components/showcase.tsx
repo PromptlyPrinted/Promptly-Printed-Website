@@ -117,7 +117,7 @@ export const Showcase = () => {
 
           {/* CTA */}
           <Link
-            href="/designs"
+            href="/design/mens-classic-t-shirt"
             className="group inline-flex items-center gap-2 text-[#16C1A8] hover:text-[#0D2C45] font-semibold text-lg transition-colors"
           >
             Create Your Design

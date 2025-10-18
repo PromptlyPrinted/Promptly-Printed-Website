@@ -154,7 +154,7 @@ const discountedPrice = product.price * (1 - FIRST_DROP_DISCOUNT);
 
 #### What's Included Section
 - AI-designed print personalized to style
-- 220gsm organic cotton premium fabric
+- Organic cotton premium fabric up to 280gsm
 - Free design toolkit (unlimited generations)
 - 48-hour dispatch priority production
 

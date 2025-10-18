@@ -1,10 +1,11 @@
 import { auth } from '@repo/auth/server';
 import { database } from '@repo/database';
-import Image from 'next/image';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
+import { MyImagesClient } from './my-images-client';
 
 export default async function MyImagesPage() {
-  const session = await auth.api.getSession({ headers: await import('next/headers').then(h => h.headers()) });
+  const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user?.id) {
     redirect('/sign-in');
   }
@@ -15,34 +16,18 @@ export default async function MyImagesPage() {
     return <div className="container mx-auto p-4">User not found</div>;
   }
   const images = await database.savedImage.findMany({
-    where: { 
+    where: {
       userId: dbUser.id,
       productId: null // Only show images that were not saved as designs (no product context)
     },
+    select: {
+      id: true,
+      url: true,
+      name: true,
+    },
     orderBy: { createdAt: 'desc' },
+    take: 20, // Limit to avoid exceeding 5MB response size
   });
 
-  return (
-    <div className="container mx-auto p-4">
-      <h1 className="mb-4 font-semibold text-2xl">My Images</h1>
-      {images.length === 0 ? (
-        <p>You have no saved images.</p>
-      ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-          {images.map((img) => (
-            <div key={img.id} className="overflow-hidden rounded border p-2">
-              <Image
-                src={img.url}
-                alt={img.name}
-                width={200}
-                height={200}
-                className="h-48 w-full object-cover"
-              />
-              <p className="mt-2 text-center">{img.name}</p>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
+  return <MyImagesClient images={images} />;
 }

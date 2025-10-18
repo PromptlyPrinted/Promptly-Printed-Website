@@ -31,7 +31,7 @@ export const PricingOffer = () => {
 
   const features = [
     'Unlimited AI design generations',
-    'Premium 220gsm organic cotton',
+    'Premium organic cotton up to 280gsm',
     'Professional DTG printing',
     'Free worldwide shipping',
     'Satisfaction guarantee',

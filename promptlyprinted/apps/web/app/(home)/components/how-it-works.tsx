@@ -72,23 +72,16 @@ export const HowItWorks = () => {
       },
       {
         number: '4',
-        title: 'Upload Image or image',
-        description: 'Upload your reference image to transform with AI.',
+        title: 'Upload Image and Describe Your Vision',
+        description: 'Upload your reference image and add creative instructions to transform it with AI.',
         image: '/how-it-works/image-to-image/step-4.png',
-        action: 'Upload or drag your image',
+        action: 'Upload your image and type your transformation prompt',
       },
       {
         number: '5',
-        title: 'Describe prompt of the image you want to create',
-        description: 'Add your creative instructions to transform the image.',
-        image: '/how-it-works/image-to-image/step-5.png',
-        action: 'Type your transformation prompt',
-      },
-      {
-        number: '6',
         title: 'Add to cart or Buy now',
         description: 'Complete your purchase and get ready to wear your creation.',
-        image: '/how-it-works/image-to-image/step-6.png',
+        image: '/how-it-works/image-to-image/step-5.png',
         action: 'Complete your order',
       },
     ],
@@ -263,7 +256,7 @@ export const HowItWorks = () => {
               className="gap-2 bg-[#0D2C45] hover:bg-[#0D2C45]/90 text-white text-lg px-8 py-6 h-auto shadow-lg"
               asChild
             >
-              <Link href="/designs">
+              <Link href="/design/mens-classic-t-shirt">
                 <Play className="h-5 w-5" />
                 Start Creating Now
               </Link>

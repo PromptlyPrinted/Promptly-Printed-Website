@@ -3,7 +3,7 @@
 import { env } from '@repo/env';
 import Image from 'next/image';
 import Link from 'next/link';
-import PromptlyLogo from './header/PromptlyLogo.svg';
+import PromptlyLogo from './footer/PromptlyLogo.svg';
 import { Facebook, Instagram, Twitter, Youtube, Mail, ShieldCheck, Globe, CreditCard } from 'lucide-react';
 
 const COLORS = {

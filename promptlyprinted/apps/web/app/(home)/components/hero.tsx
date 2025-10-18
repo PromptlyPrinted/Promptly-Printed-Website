@@ -34,7 +34,7 @@ export const Hero = async () => {
           </div>
 
           {/* Headline */}
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-6 items-center">
             <h1 className="max-w-4xl text-center font-bold text-5xl text-white tracking-tight md:text-7xl lg:text-8xl">
               Design your own premium apparel with AI
             </h1>
@@ -68,7 +68,7 @@ export const Hero = async () => {
 
           {/* Subtext */}
           <p className="text-sm text-white/60 text-center max-w-md">
-            Premium 220gsm cotton. Global shipping.
+            Premium fabric up to 280gsm. Global shipping.
           </p>
         </div>
       </div>

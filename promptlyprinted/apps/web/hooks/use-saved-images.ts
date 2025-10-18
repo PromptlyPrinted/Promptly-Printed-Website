@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 export interface SavedImage {
-  id: number;
+  id: string;
   name: string;
   url: string;
-  userId: number;
+  userId: string;
   productId: number | null;
   createdAt: Date;
   product?: {

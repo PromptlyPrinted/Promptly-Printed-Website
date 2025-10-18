@@ -9,7 +9,7 @@ export const Craftsmanship = () => {
               {/* Placeholder for fabric close-up image */}
               <div className="w-full h-full flex items-center justify-center">
                 <div className="text-white/20 text-center">
-                  <p className="text-sm font-medium">220gsm Premium Cotton</p>
+                  <p className="text-sm font-medium">Premium Cotton up to 280gsm</p>
                   <p className="text-xs">Fabric Close-up</p>
                 </div>
               </div>
@@ -18,7 +18,7 @@ export const Craftsmanship = () => {
             {/* Floating Stats */}
             <div className="absolute -bottom-6 -right-6 bg-white rounded-2xl shadow-xl p-6 border border-gray-200">
               <div className="flex flex-col gap-2">
-                <p className="text-4xl font-bold text-[#16C1A8]">220gsm</p>
+                <p className="text-4xl font-bold text-[#16C1A8]">Up to 280gsm</p>
                 <p className="text-sm text-[#64748B]">Premium Weight</p>
               </div>
             </div>
@@ -40,7 +40,7 @@ export const Craftsmanship = () => {
                 We use <span className="font-semibold text-[#1E293B]">premium, heavyweight cotton</span> with hand-finished prints. Every garment is crafted to the same standards as high-end streetwear.
               </p>
               <p>
-                Your idea deserves the same quality as luxury brands. That's why we partner with the best manufacturers and use only <span className="font-semibold text-[#1E293B]">220gsm organic cotton</span> — the kind of fabric that gets better with every wash.
+                Your idea deserves the same quality as luxury brands. That's why we partner with the best manufacturers and use only <span className="font-semibold text-[#1E293B]">premium organic cotton up to 280gsm</span> — the kind of fabric that gets better with every wash.
               </p>
             </div>
 
@@ -48,7 +48,7 @@ export const Craftsmanship = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
               {[
                 { label: 'Organic Cotton', value: '100%' },
-                { label: 'Fabric Weight', value: '220gsm' },
+                { label: 'Fabric Weight', value: 'Up to 280gsm' },
                 { label: 'Print Quality', value: 'Premium DTG' },
                 { label: 'Durability', value: 'Long-lasting' },
               ].map((item, index) => (

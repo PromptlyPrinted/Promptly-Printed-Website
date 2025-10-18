@@ -6,7 +6,7 @@ import { Package, Ticket, Gift, Truck, Shield } from 'lucide-react';
 
 export const ProductBundlePreview = () => {
   const bundleFeatures = [
-    { icon: Package, title: 'Premium Apparel', description: 'Choose from hoodie, tee, or crewneck with 220gsm organic cotton.' },
+    { icon: Package, title: 'Premium Apparel', description: 'Choose from hoodie, tee, or crewneck with organic cotton up to 280gsm.' },
     { icon: Ticket, title: '10% Creator Discount', description: 'Automatically applied when you check out within 48 hours.' },
     { icon: Gift, title: 'Free Sticker Pack', description: 'Limited edition die-cut stickers with every bundle purchase.' },
     { icon: Truck, title: '48-Hour Dispatch', description: 'Priority Halloween shipping from UK & EU fulfilment hubs.' },

@@ -363,10 +363,10 @@ export async function POST(req: NextRequest) {
       // Create Stripe checkout session
       const stripeSession = await stripe.checkout.sessions.create({
         customer_email: dbUser?.email || undefined, // Allow Stripe to collect email for guests
-        line_items: orderItems.items.map((item) => {
-          const images = item.images
-            .map((img) => {
-              const resolvedUrl = getImageUrl(img.url);
+        line_items: await Promise.all(orderItems.items.map(async (item) => {
+          const images = await Promise.all(item.images
+            .map(async (img) => {
+              const resolvedUrl = await getImageUrl(img.url);
               if (!resolvedUrl) {
                 console.error('Failed to resolve image URL:', img.url);
                 return '';
@@ -376,8 +376,8 @@ export async function POST(req: NextRequest) {
                 resolved: resolvedUrl,
               });
               return resolvedUrl;
-            })
-            .filter(Boolean);
+            }))
+            .then(urls => urls.filter(Boolean));
 
           if (images.length === 0) {
             console.error('No valid images found for item:', item.productId);
@@ -395,7 +395,7 @@ export async function POST(req: NextRequest) {
             },
             quantity: item.copies,
           };
-        }),
+        })),
         mode: 'payment',
         success_url: `${process.env.NEXT_PUBLIC_WEB_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${process.env.NEXT_PUBLIC_WEB_URL}/cancel`,
