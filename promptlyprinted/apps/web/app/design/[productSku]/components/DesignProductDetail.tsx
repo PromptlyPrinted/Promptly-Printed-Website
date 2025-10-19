@@ -4,7 +4,7 @@ import { DesignProductNavigation } from './DesignProductNavigation';
 import { ProductDetail } from '../../../products/[category]/[productName]/components/ProductDetail';
 import type { Product } from '@/types/product';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useDesignTheme } from '@/contexts/DesignThemeContext';
 import { cn } from '@repo/design-system/lib/utils';
 
@@ -14,17 +14,30 @@ interface DesignProductDetailProps {
 
 export function DesignProductDetail({ product }: DesignProductDetailProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [currentProduct, setCurrentProduct] = useState(product);
   const { theme } = useDesignTheme();
+
+  // Get discount from URL
+  const discountFromUrl = searchParams.get('discount');
+  const discountPercent = discountFromUrl ? parseFloat(discountFromUrl) : 0;
 
   const handleProductChange = (newSku: string, productName?: string) => {
     // Create slug from product name for better URLs
     const slug = productName
       ? productName.toLowerCase().replace(/[''"]/g, '').replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')
       : newSku;
-    // Navigate to the new product design page
-    router.push(`/design/${slug}`);
+
+    // Preserve all URL parameters when switching products
+    const params = new URLSearchParams(searchParams.toString());
+
+    // Navigate to the new product design page with preserved params
+    router.push(`/design/${slug}?${params.toString()}`);
   };
+
+  // Calculate display price with discount
+  const basePrice = currentProduct.pricing.find(p => p.currency === 'GBP')?.amount || currentProduct.pricing[0].amount;
+  const displayPrice = discountPercent > 0 ? basePrice * (1 - discountPercent) : basePrice;
 
   return (
     <div className={cn("min-h-screen", `bg-${theme.hover}`)}>
@@ -47,10 +60,27 @@ export function DesignProductDetail({ product }: DesignProductDetailProps) {
               </p>
             </div>
             <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-500">Starting from</span>
-              <span className={cn("text-lg font-semibold", `text-${theme.textPrimary}`)}>
-                £{currentProduct.pricing.find(p => p.currency === 'GBP')?.amount || currentProduct.pricing[0].amount}
-              </span>
+              {discountPercent > 0 ? (
+                <>
+                  <span className="text-sm text-gray-500">Sale Price</span>
+                  <span className={cn("text-xl font-bold text-green-600")}>
+                    £{displayPrice.toFixed(2)}
+                  </span>
+                  <span className="text-sm text-gray-400 line-through">
+                    £{basePrice.toFixed(2)}
+                  </span>
+                  <span className="text-xs bg-red-500 text-white px-2 py-1 rounded-full font-semibold">
+                    -{Math.round(discountPercent * 100)}%
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="text-sm text-gray-500">Starting from</span>
+                  <span className={cn("text-lg font-semibold", `text-${theme.textPrimary}`)}>
+                    £{displayPrice.toFixed(2)}
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -486,6 +486,11 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
   const colorFromUrl = searchParams.get('color');
   const promptFromUrl = searchParams.get('prompt'); // Get pre-filled prompt from quiz
   const campaignFromUrl = searchParams.get('campaign'); // Get campaign context
+  const discountFromUrl = searchParams.get('discount'); // Get discount from quiz/offer
+  const giveawayTierFromUrl = searchParams.get('giveawayTier'); // Get giveaway tier
+
+  // Parse discount (0.3 = 30% off)
+  const discountPercent = discountFromUrl ? parseFloat(discountFromUrl) : 0;
 
   const [selectedSize, setSelectedSize] = useState<string | undefined>(
     undefined
@@ -1484,11 +1489,17 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       return;
     }
 
+    // Calculate final price with discount
+    const basePrice = product.pricing?.[0]?.amount || product.price || 0;
+    const finalPrice = discountPercent > 0 ? basePrice * (1 - discountPercent) : basePrice;
+
     const itemToAdd = {
       id: `${product.id}-${selectedSize}-${selectedColor}`,
       productId: product.id.toString(),
       name: product.name,
-      price: product.pricing?.[0]?.amount || product.price || 0,
+      price: finalPrice, // Apply discount to cart price
+      originalPrice: basePrice, // Store original price for reference
+      discount: discountPercent > 0 ? Math.round(discountPercent * 100) : undefined, // Store discount %
       quantity: quantity,
       size: selectedSize,
       color: selectedColor,
@@ -1505,7 +1516,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       copies: item.quantity,
       color: item.color,
       size: item.size,
-      images: [{ url: item.imageUrl }],
+      images: [{ url: item.imageUrl || product.imageUrls?.cover || '' }],
       customization: item.customization,
       recipientCostAmount: item.price,
       currency: 'USD',
@@ -2163,17 +2174,57 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
             <h1 className="font-bold text-2xl text-teal-900 tracking-tight">
               {product.name}
             </h1>
-            <div className="flex items-baseline space-x-2">
-              <p className="font-bold text-2xl text-teal-800">
-                {formatPrice(
-                  getConvertedPrice(product.pricing?.[0]?.amount || product.price || 0),
-                  selectedCurrency
-                )}
-              </p>
-              {selectedCurrency !== 'USD' && (
-                <p className="text-gray-500 text-sm">
-                  (${(product.pricing?.[0]?.amount || product.price || 0).toFixed(2)} USD)
-                </p>
+
+            {/* Price with optional discount */}
+            <div className="space-y-2">
+              {discountPercent > 0 ? (
+                <>
+                  {/* Discounted Price Display */}
+                  <div className="flex items-center gap-3">
+                    <p className="font-bold text-3xl text-green-600">
+                      {formatPrice(
+                        getConvertedPrice((product.pricing?.[0]?.amount || product.price || 0) * (1 - discountPercent)),
+                        selectedCurrency
+                      )}
+                    </p>
+                    <p className="font-semibold text-lg text-gray-400 line-through">
+                      {formatPrice(
+                        getConvertedPrice(product.pricing?.[0]?.amount || product.price || 0),
+                        selectedCurrency
+                      )}
+                    </p>
+                  </div>
+                  {/* Discount Badge */}
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-full text-sm font-semibold shadow-lg">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 17.5 9.134a1 1 0 010 1.732l-3.354 1.935-1.18 4.455a1 1 0 01-1.933 0L9.854 12.8 6.5 10.866a1 1 0 010-1.732l3.354-1.935 1.18-4.455A1 1 0 0112 2z" clipRule="evenodd" />
+                    </svg>
+                    <span>Save {Math.round(discountPercent * 100)}% OFF</span>
+                  </div>
+                  {selectedCurrency !== 'USD' && (
+                    <p className="text-gray-500 text-xs">
+                      Original: ${(product.pricing?.[0]?.amount || product.price || 0).toFixed(2)} USD |
+                      Sale: ${((product.pricing?.[0]?.amount || product.price || 0) * (1 - discountPercent)).toFixed(2)} USD
+                    </p>
+                  )}
+                </>
+              ) : (
+                <>
+                  {/* Regular Price Display */}
+                  <div className="flex items-baseline space-x-2">
+                    <p className="font-bold text-2xl text-teal-800">
+                      {formatPrice(
+                        getConvertedPrice(product.pricing?.[0]?.amount || product.price || 0),
+                        selectedCurrency
+                      )}
+                    </p>
+                    {selectedCurrency !== 'USD' && (
+                      <p className="text-gray-500 text-sm">
+                        (${(product.pricing?.[0]?.amount || product.price || 0).toFixed(2)} USD)
+                      </p>
+                    )}
+                  </div>
+                </>
               )}
             </div>
           </div>

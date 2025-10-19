@@ -22,6 +22,12 @@ export function useCheckout() {
       const itemsWithSavedImages = await Promise.all(
         items.map(async (item) => {
           console.log('Processing item:', item);
+
+          // Validate that images array exists and has a valid URL
+          if (!item.images || !item.images[0] || !item.images[0].url) {
+            throw new Error('Missing product image. Please generate or upload an image before checkout.');
+          }
+
           const imageUrl = item.images[0].url;
 
           if (imageUrl.includes('/api/save-temp-image')) {

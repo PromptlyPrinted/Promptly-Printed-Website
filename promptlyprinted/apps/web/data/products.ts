@@ -960,4 +960,230 @@ export const tshirtDetails = {
       maxQuantityPerOrder: 10,
     },
   },
+  // Men's Hoodies
+  'A-MH-JH001': {
+    sku: 'A-MH-JH001',
+    name: "Men's Premium Organic Cotton Hoodie",
+    shortDescription:
+      'Premium pullover hoodie made from sustainable organic cotton. Comfortable, warm, and eco-friendly with modern fit and quality construction.',
+    features: [
+      'Classic pullover design with kangaroo pocket',
+      'Lined hood with matching drawcords',
+      'Ribbed cuffs and hem for perfect fit',
+      'Soft brushed fleece interior',
+      'Set-in sleeves for comfortable movement',
+      'Made with GOTS certified organic cotton',
+    ],
+    manufacturingLocation: 'Multiple locations worldwide',
+    materials: [
+      '85% organic ring-spun combed cotton, 15% recycled polyester',
+      '350 GSM fabric weight for premium warmth',
+    ],
+    ecoProperties: [
+      'GOTS certified organic cotton',
+      'PETA-approved vegan friendly',
+      'Fair Wear Foundation member',
+      'Sustainable textile production',
+    ],
+    careInstructions: [
+      'Wash similar colours together',
+      'Do not iron on print',
+      'Wash and iron inside out',
+    ],
+    pdfUrl:
+      'https://www.prodigi.com/download/product-range/Prodigi%20Stanley%20Stella%20Cruiser%20STSU812.pdf',
+    size: ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL'],
+    productType: 'HOODIE',
+    category: "Men's Hoodies",
+    imageUrls: {
+      base: '/assets/images/Apparel/Mens/Hoodies/A-MH-JH001/Blanks/png',
+      productImage: '/assets/images/Apparel/Mens/Hoodies/A-MH-JH001/ProductImage/image.png',
+      cover: '/assets/images/Apparel/Mens/Hoodies/A-MH-JH001/Blanks/cover',
+      sizeChart:
+        '/assets/images/Apparel/Mens/Hoodies/A-MH-JH001/Blanks/size-chart.png',
+    },
+    colorOptions: [
+      { name: 'Black', filename: 'black.png' },
+      { name: 'White', filename: 'white.png' },
+      { name: 'Navy', filename: 'navy.png' },
+      { name: 'Heather Grey', filename: 'heather-grey.png' },
+    ],
+    brand: {
+      name: 'Stanley/Stella',
+      identifier: 'SS',
+    },
+    identifiers: {
+      mpn: 'STSU812',
+    },
+    availability: 'https://schema.org/InStock',
+    dimensions: {
+      width: 22,
+      height: 30,
+      units: 'in',
+    },
+    weight: {
+      value: 0.55,
+      units: 'kg',
+    },
+    pricing: generatePricingArray(80),
+    shippingZones: baseShippingZones,
+    vatIncluded: true,
+    customsDutyInfo: baseCustomsDutyInfo,
+    restrictions: {
+      excludedCountries: [],
+      maxQuantityPerOrder: 1000,
+    },
+  },
+  // Women's Hoodies
+  'A-WH-JH001F': {
+    sku: 'A-WH-JH001F',
+    name: "Women's Premium Organic Cotton Hoodie",
+    shortDescription:
+      "Premium women's pullover hoodie with feminine fit. Made from sustainable organic cotton for comfort and style.",
+    features: [
+      'Feminine fit with side seams',
+      'Classic pullover design with kangaroo pocket',
+      'Lined hood with matching drawcords',
+      'Ribbed cuffs and hem',
+      'Soft brushed fleece interior',
+      'Made with GOTS certified organic cotton',
+    ],
+    manufacturingLocation: 'Multiple locations worldwide',
+    materials: [
+      '85% organic ring-spun combed cotton, 15% recycled polyester',
+      '350 GSM fabric weight',
+    ],
+    ecoProperties: [
+      'GOTS certified organic cotton',
+      'PETA-approved vegan friendly',
+      'Fair Wear Foundation member',
+      'Sustainable textile production',
+    ],
+    careInstructions: [
+      'Wash similar colours together',
+      'Do not iron on print',
+      'Wash and iron inside out',
+    ],
+    pdfUrl:
+      'https://www.prodigi.com/download/product-range/Prodigi%20Stanley%20Stella%20Stella%20Cruiser%20STSW148.pdf',
+    size: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+    productType: 'HOODIE',
+    category: "Women's Hoodies",
+    imageUrls: {
+      base: '/assets/images/Apparel/Womens/Hoodies/A-WH-JH001F/Blanks/png',
+      productImage: '/assets/images/Apparel/Womens/Hoodies/A-WH-JH001F/ProductImage/image.png',
+      cover: '/assets/images/Apparel/Womens/Hoodies/A-WH-JH001F/Blanks/cover',
+      sizeChart:
+        '/assets/images/Apparel/Womens/Hoodies/A-WH-JH001F/Blanks/size-chart.png',
+    },
+    colorOptions: [
+      { name: 'Black', filename: 'black.png' },
+      { name: 'White', filename: 'white.png' },
+      { name: 'Navy', filename: 'navy.png' },
+      { name: 'Heather Grey', filename: 'heather-grey.png' },
+    ],
+    brand: {
+      name: 'Stanley/Stella',
+      identifier: 'SS',
+    },
+    identifiers: {
+      mpn: 'STSW148',
+    },
+    availability: 'https://schema.org/InStock',
+    dimensions: {
+      width: 20,
+      height: 28,
+      units: 'in',
+    },
+    weight: {
+      value: 0.5,
+      units: 'kg',
+    },
+    pricing: generatePricingArray(76),
+    shippingZones: baseShippingZones,
+    vatIncluded: true,
+    customsDutyInfo: baseCustomsDutyInfo,
+    restrictions: {
+      excludedCountries: [],
+      maxQuantityPerOrder: 1000,
+    },
+  },
+  // Kids Hoodies
+  'HOOD-AWD-JH001B': {
+    sku: 'HOOD-AWD-JH001B',
+    name: 'Kids Premium Hoodie',
+    shortDescription:
+      'Premium kids hoodie with soft brushed fleece interior. Comfortable and durable for active kids.',
+    features: [
+      'Double fabric hood with matching drawcords',
+      'Kangaroo pouch pocket',
+      'Ribbed cuffs and hem',
+      'Twin needle stitching',
+      'Brushed inner fleece for warmth',
+    ],
+    manufacturingLocation: 'Multiple locations worldwide',
+    materials: [
+      '80% ringspun cotton, 20% polyester',
+      'Brushed back fleece',
+      '280 GSM fabric weight',
+    ],
+    ecoProperties: [
+      'CPSIA compliant',
+      'Kid-safe materials',
+      'Sustainable manufacturing',
+      'Oeko-Tex® Standard 100 Certified',
+    ],
+    careInstructions: [
+      'Machine wash at 30°C',
+      'Do not bleach',
+      'Iron on low heat',
+      'Do not iron decoration',
+      'Do not dry clean',
+    ],
+    pdfUrl:
+      'https://www.prodigi.com/download/product-range/Prodigi%20AWDis%20JH001J.pdf',
+    size: ['3-4Y', '5-6Y', '7-8Y', '9-11Y', '12-13Y'],
+    productType: 'KIDS_HOODIE',
+    category: 'Kids Hoodies',
+    imageUrls: {
+      base: '/assets/images/Apparel/Kids+Babies/Kids/Hoodies/HOOD-AWD-JH001B/Blanks/png',
+      productImage: '/assets/images/Apparel/Kids+Babies/Kids/Hoodies/HOOD-AWD-JH001B/ProductImage/image.png',
+      cover: '/assets/images/Apparel/Kids+Babies/Kids/Hoodies/HOOD-AWD-JH001B/Blanks/cover',
+      sizeChart:
+        '/assets/images/Apparel/Kids+Babies/Kids/Hoodies/HOOD-AWD-JH001B/Blanks/size-chart.png',
+    },
+    colorOptions: [
+      { name: 'Arctic White', filename: 'arctic-white.png' },
+      { name: 'Jet Black', filename: 'jet-black.png' },
+      { name: 'Charcoal', filename: 'charcoal.png' },
+      { name: 'Heather Grey', filename: 'heather-grey.png' },
+      { name: 'Oxford Navy', filename: 'oxford-navy.png' },
+      { name: 'Royal Blue', filename: 'royal-blue.png' },
+    ],
+    brand: {
+      name: 'AWDis',
+      identifier: 'AWD',
+    },
+    identifiers: {
+      mpn: 'JH001B',
+    },
+    availability: 'https://schema.org/InStock',
+    dimensions: {
+      width: 18,
+      height: 26,
+      units: 'in',
+    },
+    weight: {
+      value: 0.4,
+      units: 'kg',
+    },
+    pricing: generatePricingArray(76),
+    shippingZones: baseShippingZones,
+    vatIncluded: true,
+    customsDutyInfo: baseCustomsDutyInfo,
+    restrictions: {
+      excludedCountries: [],
+      maxQuantityPerOrder: 10,
+    },
+  },
 };

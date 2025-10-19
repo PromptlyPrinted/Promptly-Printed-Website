@@ -6,15 +6,29 @@ import { QuizStep } from './components/QuizStep';
 import { StyleResult } from './components/StyleResult';
 
 export type StyleQuizAnswers = {
+  audience?: 'mens' | 'womens' | 'kids' | 'babies';
+  styleType?:
+    | 'classic-tee'
+    | 'v-neck'
+    | 'triblend'
+    | 'tank-top'
+    | 'long-sleeve'
+    | 'hoodie'
+    | 'sweatshirt'
+    | 'bodysuit'
+    | 'baseball-tee';
+  theme?: 'halloween' | 'everyday' | 'christmas' | 'summer' | 'custom';
+  aiModel?: 'flux-dev' | 'lora-normal' | 'lora-context' | 'nano-banana' | 'seedance';
+  colorPreference?: string;
   vibe?: string;
   colorPalette?: string;
-  clothingType?: string;
+  clothingType?: string; // Legacy field for backwards compatibility
   wearLocation?: string;
   designPersonality?: string;
-  campaign?: string; // halloween, black-friday, christmas, etc.
+  campaign?: string;
 };
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 8;
 
 export default function StyleQuizPage() {
   const router = useRouter();
@@ -78,7 +92,247 @@ export default function StyleQuizPage() {
 
       {/* Quiz Content */}
       <main className="container mx-auto px-6 py-12 max-w-4xl">
+        {/* Step 1: Audience Selection */}
         {currentStep === 1 && (
+          <QuizStep
+            question="Who's this for?"
+            subtitle="Select your target audience"
+            options={[
+              {
+                id: 'mens',
+                label: "Men's",
+                description: 'Classic and modern men\'s apparel',
+                icon: '👨',
+              },
+              {
+                id: 'womens',
+                label: "Women's",
+                description: 'Stylish women\'s clothing',
+                icon: '👩',
+              },
+              {
+                id: 'kids',
+                label: 'Kids',
+                description: 'Fun designs for children',
+                icon: '👦',
+              },
+              {
+                id: 'babies',
+                label: 'Babies',
+                description: 'Adorable baby apparel',
+                icon: '👶',
+              },
+            ]}
+            selectedValue={answers.audience}
+            onSelect={(value) => updateAnswer('audience', value as any)}
+            onContinue={goToNextStep}
+          />
+        )}
+
+        {/* Step 2: Style Type Selection */}
+        {currentStep === 2 && (
+          <QuizStep
+            question="What style do you prefer?"
+            subtitle="Choose your garment type"
+            options={
+              // Dynamically show options based on audience
+              answers.audience === 'babies'
+                ? [
+                    {
+                      id: 'bodysuit',
+                      label: 'Bodysuit',
+                      description: 'Comfortable baby bodysuit',
+                      icon: '👕',
+                    },
+                    {
+                      id: 'classic-tee',
+                      label: 'Baby Tee',
+                      description: 'Cute baby t-shirt',
+                      icon: '👶',
+                    },
+                  ]
+                : answers.audience === 'kids'
+                  ? [
+                      {
+                        id: 'classic-tee',
+                        label: 'Kids Tee',
+                        description: 'Classic t-shirt for kids',
+                        icon: '👕',
+                      },
+                      {
+                        id: 'hoodie',
+                        label: 'Kids Hoodie',
+                        description: 'Cozy hoodie for kids',
+                        icon: '🧥',
+                      },
+                      {
+                        id: 'sweatshirt',
+                        label: 'Sweatshirt',
+                        description: 'Comfortable kids sweatshirt',
+                        icon: '👔',
+                      },
+                    ]
+                  : answers.audience === 'womens'
+                    ? [
+                        {
+                          id: 'classic-tee',
+                          label: 'Classic Tee',
+                          description: 'Everyday women\'s t-shirt',
+                          icon: '👕',
+                        },
+                        {
+                          id: 'v-neck',
+                          label: 'V-Neck',
+                          description: 'Flattering v-neck style',
+                          icon: '👚',
+                        },
+                        {
+                          id: 'hoodie',
+                          label: 'Hoodie',
+                          description: 'Cozy and stylish',
+                          icon: '🧥',
+                        },
+                      ]
+                    : // Default to men's options
+                      [
+                        {
+                          id: 'classic-tee',
+                          label: 'Classic Tee',
+                          description: 'Timeless everyday wear',
+                          icon: '👕',
+                        },
+                        {
+                          id: 'v-neck',
+                          label: 'V-Neck',
+                          description: 'Modern v-neck style',
+                          icon: '👚',
+                        },
+                        {
+                          id: 'triblend',
+                          label: 'Triblend',
+                          description: 'Ultra-soft premium blend',
+                          icon: '✨',
+                        },
+                        {
+                          id: 'tank-top',
+                          label: 'Tank Top',
+                          description: 'Athletic sleeveless style',
+                          icon: '🎽',
+                        },
+                        {
+                          id: 'long-sleeve',
+                          label: 'Long Sleeve',
+                          description: 'Year-round versatility',
+                          icon: '👔',
+                        },
+                        {
+                          id: 'hoodie',
+                          label: 'Hoodie',
+                          description: 'Statement comfort piece',
+                          icon: '🧥',
+                        },
+                        {
+                          id: 'baseball-tee',
+                          label: 'Baseball Tee',
+                          description: 'Sporty raglan style',
+                          icon: '⚾',
+                        },
+                      ]
+            }
+            selectedValue={answers.styleType}
+            onSelect={(value) => updateAnswer('styleType', value as any)}
+            onContinue={goToNextStep}
+          />
+        )}
+
+        {/* Step 3: Theme/Occasion */}
+        {currentStep === 3 && (
+          <QuizStep
+            question="What's the occasion?"
+            subtitle="Choose your design theme"
+            options={[
+              {
+                id: 'everyday',
+                label: 'Everyday Wear',
+                description: 'Timeless, versatile designs',
+                icon: '☀️',
+              },
+              {
+                id: 'halloween',
+                label: 'Halloween',
+                description: 'Spooky seasonal vibes',
+                icon: '🎃',
+              },
+              {
+                id: 'christmas',
+                label: 'Christmas',
+                description: 'Festive holiday cheer',
+                icon: '🎄',
+              },
+              {
+                id: 'summer',
+                label: 'Summer',
+                description: 'Bright tropical vibes',
+                icon: '🌴',
+              },
+              {
+                id: 'custom',
+                label: 'Custom',
+                description: 'Fully personalized',
+                icon: '🎨',
+              },
+            ]}
+            selectedValue={answers.theme}
+            onSelect={(value) => updateAnswer('theme', value as any)}
+            onContinue={goToNextStep}
+          />
+        )}
+
+        {/* Step 4: AI Model Selection */}
+        {currentStep === 4 && (
+          <QuizStep
+            question="Choose your AI model"
+            subtitle="Each model has unique strengths"
+            options={[
+              {
+                id: 'flux-dev',
+                label: 'Flux Dev',
+                description: 'Balanced, versatile, high quality',
+                icon: '⚡',
+              },
+              {
+                id: 'lora-normal',
+                label: 'LORA Normal',
+                description: 'Artistic detail, vibrant colors',
+                icon: '🎨',
+              },
+              {
+                id: 'lora-context',
+                label: 'LORA Context',
+                description: 'Smart themes, storytelling',
+                icon: '📖',
+              },
+              {
+                id: 'nano-banana',
+                label: 'Nano Banana',
+                description: 'Fast, clean, minimalist',
+                icon: '🍌',
+              },
+              {
+                id: 'seedance',
+                label: 'SeeDance',
+                description: 'Dynamic, energetic visuals',
+                icon: '💃',
+              },
+            ]}
+            selectedValue={answers.aiModel}
+            onSelect={(value) => updateAnswer('aiModel', value as any)}
+            onContinue={goToNextStep}
+          />
+        )}
+
+        {/* Step 5: Original Vibe Question */}
+        {currentStep === 5 && (
           <QuizStep
             question="What's your vibe?"
             subtitle="Choose the style that resonates with you"
@@ -120,9 +374,11 @@ export default function StyleQuizPage() {
           />
         )}
 
-        {currentStep === 2 && (
+        {/* Step 6: Color Palette */}
+        {currentStep === 6 && (
           <QuizStep
             question="Preferred color palette?"
+            subtitle="Select colors that match your style"
             options={[
               {
                 id: 'black-white',
@@ -161,42 +417,8 @@ export default function StyleQuizPage() {
           />
         )}
 
-        {currentStep === 3 && (
-          <QuizStep
-            question="Favorite clothing type?"
-            options={[
-              {
-                id: 'tee',
-                label: 'T-Shirt',
-                description: 'Classic everyday wear',
-                icon: '👕',
-              },
-              {
-                id: 'hoodie',
-                label: 'Hoodie',
-                description: 'Cozy and statement-making',
-                icon: '🧥',
-              },
-              {
-                id: 'long-sleeve',
-                label: 'Long Sleeve',
-                description: 'Versatile layering piece',
-                icon: '👚',
-              },
-              {
-                id: 'crewneck',
-                label: 'Crewneck',
-                description: 'Timeless sweatshirt style',
-                icon: '👔',
-              },
-            ]}
-            selectedValue={answers.clothingType}
-            onSelect={(value) => updateAnswer('clothingType', value)}
-            onContinue={goToNextStep}
-          />
-        )}
-
-        {currentStep === 4 && (
+        {/* Step 7: Wear Location */}
+        {currentStep === 7 && (
           <QuizStep
             question="Where do you wear your style most?"
             options={[
@@ -237,9 +459,11 @@ export default function StyleQuizPage() {
           />
         )}
 
-        {currentStep === 5 && (
+        {/* Step 8: Design Personality */}
+        {currentStep === 8 && (
           <QuizStep
             question="Design personality?"
+            subtitle="Choose your preferred design style"
             options={[
               {
                 id: 'simple-logo',

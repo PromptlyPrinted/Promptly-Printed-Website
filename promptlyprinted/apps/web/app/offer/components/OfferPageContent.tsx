@@ -3,17 +3,17 @@
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@repo/design-system/components/ui/button';
 import { useState, useMemo } from 'react';
-import { Sparkles, Tag, Gift, Clock } from 'lucide-react';
+import { Sparkles, Tag, Gift, Clock, Trophy, Cpu } from 'lucide-react';
 import Image from 'next/image';
 import { tshirtDetails } from '@repo/database/scripts/tshirt-details';
+import { getProductDisplayName, GIVEAWAY_ITEMS, AI_MODEL_INFO } from '@/lib/quiz-product-selector';
 
-// Map quiz clothing types to actual product SKUs
-// Note: Update these SKUs to match your actual inventory
-const CLOTHING_TYPE_TO_SKU: Record<string, string> = {
-  'tee': 'TEE-SS-STTU755', // Men's Classic T-Shirt
-  'hoodie': 'TEE-SS-STTU755', // TODO: Add hoodie SKU when available
-  'long-sleeve': 'A-ML-GD2400', // Men's Long Sleeve T-Shirt
-  'crewneck': 'TEE-SS-STTU755', // TODO: Add crewneck SKU when available
+// Legacy fallback map for backwards compatibility
+const LEGACY_CLOTHING_TYPE_TO_SKU: Record<string, string> = {
+  'tee': 'TEE-SS-STTU755',
+  'hoodie': 'A-MH-JH001',
+  'long-sleeve': 'A-ML-GD2400',
+  'crewneck': 'TEE-SS-STTU755',
 };
 
 export function OfferPageContent() {
@@ -24,10 +24,22 @@ export function OfferPageContent() {
   const style = searchParams.get('style') || 'minimalist';
   const campaign = searchParams.get('campaign') || 'general';
   const source = searchParams.get('source') || 'direct';
+
+  // NEW: Get product SKU from quiz (primary method)
+  const quizProductSKU = searchParams.get('productSKU');
+
+  // NEW: Get all quiz parameters
+  const audience = searchParams.get('audience') || 'mens';
+  const styleType = searchParams.get('styleType') || 'classic-tee';
+  const theme = searchParams.get('theme') || 'everyday';
+  const aiModel = searchParams.get('aiModel') || 'flux-dev';
+  const giveawayTier = searchParams.get('giveawayTier') as keyof typeof GIVEAWAY_ITEMS || 'standard';
+
+  // Legacy parameter (for backwards compatibility)
   const clothingType = searchParams.get('clothingType') || 'tee';
 
-  // Get actual product from tshirtDetails
-  const productSku = CLOTHING_TYPE_TO_SKU[clothingType] || CLOTHING_TYPE_TO_SKU.tee;
+  // Determine product SKU: Use quiz-provided SKU, or fall back to legacy mapping
+  const productSku = quizProductSKU || LEGACY_CLOTHING_TYPE_TO_SKU[clothingType] || 'TEE-SS-STTU755';
   const productData = tshirtDetails[productSku as keyof typeof tshirtDetails];
 
   // If product not found, fallback to first available product
@@ -36,10 +48,27 @@ export function OfferPageContent() {
   // Get USD pricing
   const usdPrice = product.pricing.find((p) => p.currency === 'USD')?.amount || 0;
 
-  // First-drop discount
-  const FIRST_DROP_DISCOUNT = 0.40; // 40% off
-  const discountedPrice = usdPrice * (1 - FIRST_DROP_DISCOUNT);
+  // Get discount from URL or use giveaway tier default
+  const discountParam = searchParams.get('discount');
+  const discount = discountParam
+    ? parseFloat(discountParam)
+    : GIVEAWAY_ITEMS[giveawayTier]?.discount || 0.30;
+
+  const discountedPrice = usdPrice * (1 - discount);
   const savings = usdPrice - discountedPrice;
+
+  // Get giveaway info
+  const giveawayInfo = GIVEAWAY_ITEMS[giveawayTier];
+
+  // Get product display name from quiz data
+  const productDisplayName = quizProductSKU
+    ? getProductDisplayName(audience as any, styleType as any)
+    : product.name;
+
+  // Get AI model info
+  const aiModelInfo = aiModel && AI_MODEL_INFO[aiModel as keyof typeof AI_MODEL_INFO]
+    ? AI_MODEL_INFO[aiModel as keyof typeof AI_MODEL_INFO]
+    : null;
 
   // Get first available color image
   const firstColor = product.colorOptions?.[0];
@@ -61,7 +90,12 @@ export function OfferPageContent() {
       source,
       color: selectedColor,
       size: selectedSize,
-      discount: FIRST_DROP_DISCOUNT.toString(),
+      discount: discount.toString(),
+      audience,
+      styleType,
+      theme,
+      aiModel,
+      giveawayTier,
     });
 
     // Navigate to design page using SKU
@@ -127,13 +161,41 @@ export function OfferPageContent() {
               </div>
 
               <h1 className="text-4xl font-bold text-gray-900 mb-4">
-                Your Personalized {product.name}
+                Your Personalized {productDisplayName}
               </h1>
 
-              <p className="text-lg text-gray-600 mb-6">
+              <p className="text-lg text-gray-600 mb-4">
                 We've prepared your AI design prompt based on your style quiz. Start designing and get your first drop at an exclusive discount.
               </p>
+
+              {/* AI Model Badge */}
+              {aiModelInfo && (
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 rounded-full text-sm mb-6">
+                  <Cpu className="w-4 h-4 text-blue-600" />
+                  <span className="text-blue-900">
+                    <strong>{aiModelInfo.name}</strong> - {aiModelInfo.description}
+                  </span>
+                </div>
+              )}
             </div>
+
+            {/* Giveaway Banner */}
+            {giveawayInfo && (
+              <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-2xl p-6 mb-6 shadow-lg">
+                <div className="flex items-start gap-4">
+                  <Trophy className="w-8 h-8 flex-shrink-0 mt-1" />
+                  <div>
+                    <h3 className="text-2xl font-bold mb-2">🎉 {giveawayInfo.name}!</h3>
+                    <p className="text-white/90 mb-3">
+                      You've unlocked <strong>{Math.round(discount * 100)}% OFF</strong> + FREE bonus items!
+                    </p>
+                    <div className="text-sm text-white/80">
+                      ✓ Plus free giveaway items with your order
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Pricing */}
             <div className="bg-gradient-to-br from-[#16C1A8]/10 to-[#0D2C45]/10 rounded-2xl p-6 mb-6 border border-[#16C1A8]/20">
@@ -147,7 +209,7 @@ export function OfferPageContent() {
               </div>
               <div className="flex items-center gap-2 text-green-600 font-semibold">
                 <Tag className="w-5 h-5" />
-                Save ${savings.toFixed(2)} ({Math.round(FIRST_DROP_DISCOUNT * 100)}% off)
+                Save ${savings.toFixed(2)} ({Math.round(discount * 100)}% off)
               </div>
             </div>
 
@@ -233,7 +295,7 @@ export function OfferPageContent() {
             </Button>
 
             <p className="text-center text-sm text-gray-500">
-              Your {Math.round(FIRST_DROP_DISCOUNT * 100)}% discount will be automatically applied at checkout
+              Your {Math.round(discount * 100)}% discount will be automatically applied at checkout
             </p>
           </div>
         </div>
