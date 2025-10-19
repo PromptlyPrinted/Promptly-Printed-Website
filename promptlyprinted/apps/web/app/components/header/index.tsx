@@ -32,7 +32,7 @@ const navigationItems = [
   { name: 'About Us', href: '/about' },
   {
     name: 'Design Your Apparel',
-    href: '/design',
+    href: '/design/mens-classic-t-shirt',
     isButton: true,
   },
 ];

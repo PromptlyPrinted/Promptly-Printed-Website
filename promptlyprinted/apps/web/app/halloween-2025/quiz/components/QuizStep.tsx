@@ -17,7 +17,6 @@ type QuizStepProps = {
   selectedValue?: string;
   onSelect: (value: string) => void;
   onContinue: () => void;
-  multiSelect?: boolean;
 };
 
 export const QuizStep = ({
@@ -27,32 +26,19 @@ export const QuizStep = ({
   selectedValue,
   onSelect,
   onContinue,
-  multiSelect = false,
 }: QuizStepProps) => {
-  const [selected, setSelected] = useState<string[]>(
-    selectedValue ? [selectedValue] : []
-  );
+  const [selected, setSelected] = useState<string>(selectedValue || '');
 
   const handleSelect = (id: string) => {
-    if (multiSelect) {
-      const newSelected = selected.includes(id)
-        ? selected.filter((s) => s !== id)
-        : [...selected, id];
-      setSelected(newSelected);
-      onSelect(newSelected.join(','));
-    } else {
-      setSelected([id]);
-      onSelect(id);
-    }
+    setSelected(id);
+    onSelect(id);
   };
 
   const handleContinue = () => {
-    if (selected.length > 0) {
+    if (selected) {
       onContinue();
     }
   };
-
-  const isSelected = (id: string) => selected.includes(id);
 
   return (
     <div className="text-center">
@@ -66,32 +52,22 @@ export const QuizStep = ({
       </div>
 
       {/* Options Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-12">
         {options.map((option) => (
           <button
             key={option.id}
             onClick={() => handleSelect(option.id)}
             className={`relative p-6 rounded-2xl border-2 transition-all text-center hover:shadow-lg ${
-              isSelected(option.id)
-                ? 'border-orange-500 bg-orange-50 shadow-lg'
-                : 'border-gray-200 bg-white hover:border-orange-300'
+              selected === option.id
+                ? 'border-orange-500 bg-orange-500/5 shadow-lg'
+                : 'border-gray-200 bg-white hover:border-orange-500/50'
             }`}
           >
             {/* Checkmark */}
-            {isSelected(option.id) && (
-              <div className="absolute top-4 right-4 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                <svg
-                  className="w-4 h-4 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={3}
-                    d="M5 13l4 4L19 7"
-                  />
+            {selected === option.id && (
+              <div className="absolute top-4 right-4 w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
             )}
@@ -111,8 +87,8 @@ export const QuizStep = ({
       {/* Continue Button */}
       <Button
         onClick={handleContinue}
-        disabled={selected.length === 0}
-        className="px-12 py-6 text-lg bg-black text-white hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-full transition-all"
+        disabled={!selected}
+        className="px-12 py-6 text-lg bg-orange-500 text-white hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed rounded-full transition-all"
       >
         Continue
       </Button>

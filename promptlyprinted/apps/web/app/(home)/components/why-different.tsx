@@ -169,7 +169,7 @@ export const WhyDifferent = () => {
                 className="gap-2 bg-[#16C1A8] hover:bg-[#16C1A8]/90 text-white px-8 py-6 h-auto shadow-lg shadow-[#16C1A8]/25"
                 asChild
               >
-                <Link href="/designs">
+                <Link href="/design/mens-classic-t-shirt">
                   Start Designing <ArrowRight className="h-5 w-5" />
                 </Link>
               </Button>

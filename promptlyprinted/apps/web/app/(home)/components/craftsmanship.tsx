@@ -3,16 +3,18 @@ export const Craftsmanship = () => {
     <div className="w-full bg-gradient-to-b from-[#F9FAFB] to-white py-20 lg:py-32">
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          {/* Image Side */}
+          {/* Video Side */}
           <div className="relative order-2 lg:order-1">
             <div className="aspect-square rounded-2xl overflow-hidden bg-gradient-to-br from-[#0D2C45] to-[#16C1A8] shadow-2xl">
-              {/* Placeholder for fabric close-up image */}
-              <div className="w-full h-full flex items-center justify-center">
-                <div className="text-white/20 text-center">
-                  <p className="text-sm font-medium">Premium Cotton up to 280gsm</p>
-                  <p className="text-xs">Fabric Close-up</p>
-                </div>
-              </div>
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+              >
+                <source src="/videos/craftsmanship.mp4" type="video/mp4" />
+              </video>
             </div>
 
             {/* Floating Stats */}

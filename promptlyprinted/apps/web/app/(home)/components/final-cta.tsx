@@ -45,7 +45,7 @@ export const FinalCTA = () => {
               className="gap-2 bg-[#16C1A8] hover:bg-[#16C1A8]/90 text-white text-lg px-10 py-7 h-auto shadow-xl shadow-[#16C1A8]/25 transition-all hover:scale-105"
               asChild
             >
-              <Link href="/designs">
+              <Link href="/design/mens-classic-t-shirt">
                 Start Designing <ArrowRight className="h-5 w-5" />
               </Link>
             </Button>

@@ -1,58 +1,23 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
+import Link from 'next/link';
+import { Button } from '@repo/design-system/components/ui/button';
+import { ArrowRight, Sparkles } from 'lucide-react';
 
 import { EnhancedSocialProof } from './EnhancedSocialProof';
 import { FinalCTA } from './FinalCTA';
 import { HalloweenFAQ } from './HalloweenFAQ';
 import { HeroOffer } from './HeroOffer';
-import { DesignQuiz, type QuizAnswers } from './DesignQuiz';
-import { PromptShowcase } from './PromptShowcase';
 import { ProductBundlePreview } from './ProductBundlePreview';
 import { LimitedTimeOffer } from './LimitedTimeOffer';
 import { CompetitionLeaderboardSection } from './CompetitionLeaderboardSection';
 
 type LeadStatus = 'idle' | 'submitting' | 'error' | 'submitted';
 
-const buildPromptVariants = (answers: QuizAnswers): string[] => {
-  const styleDescriptions: Record<string, string> = {
-    'retro-ghoul': 'retro horror poster aesthetic, grainy halftone textures, bold distressed typography, 1980s VHS glow',
-    'modern-luxe': 'sleek gradient lighting, metallic chrome accents, fashion editorial photography style',
-    'dark-fantasy': 'cinematic gothic illustration, misty ambience, dramatic volumetric lighting, ornate details',
-    'cartoon-chaos': 'playful cartoon illustration, exaggerated expressions, thick outlines, vibrant candy colour palette',
-  };
-
-  const audienceAngles: Record<string, string> = {
-    self: 'designed as a single standout piece that looks premium in streetwear lookbooks',
-    squad: 'coordinated for a group with complementary variations and space for names or roles',
-    customers: 'commercial-ready artwork optimised for ecommerce thumbnails and social promotion',
-    family: 'friendly illustration with adjustable elements for adults and kids, inclusive silhouettes',
-  };
-
-  const productNotes: Record<string, string> = {
-    hoodie: 'oversized heavyweight hoodie mockup, front and back views, premium cotton texture, ribbed cuffs',
-    tee: 'unisex premium tee mockup laid flat and on-model, highlight stitching and fabric drape',
-    crewneck: 'vintage crewneck mockup with soft fleece interior, relaxed fit, drop shoulder detail',
-    accessory: 'sticker sheet and A3 poster mockups, glossy finish, die-cut outlines, layered composition',
-  };
-
-  const style = styleDescriptions[answers.style] ?? answers.style;
-  const audience = audienceAngles[answers.audience] ?? answers.audience;
-  const product = productNotes[answers.productFocus] ?? answers.productFocus;
-
-  return [
-    `Halloween concept illustration featuring ${style}. Focus on ${product}. Tailor the design for ${audience}. Include subtle Halloween motifs (pumpkins, ravens, moons) and keep colour palette punchy yet wearable.`,
-    `High-impact Halloween streetwear graphic in ${style}. Showcase ${product}. Ensure the composition allows for easy print placement and that typography can be personalised. Appeal to ${audience}.`,
-    `Create a Halloween-ready design with ${style}, balanced negative space, and merch mockups for ${product}. Optimise for print clarity, add micro-details for close-up shots, and make it irresistible to ${audience}.`,
-  ];
-};
-
 export const HalloweenFunnelExperience = () => {
   const [leadStatus, setLeadStatus] = useState<LeadStatus>('idle');
   const [leadInfo, setLeadInfo] = useState<{ email: string; persona: string } | null>(null);
-  const [quizAnswers, setQuizAnswers] = useState<QuizAnswers | null>(null);
-  const [promptVariants, setPromptVariants] = useState<string[]>([]);
-  const [generationsUsed, setGenerationsUsed] = useState(0);
 
   const handleLeadCaptured = useCallback(
     async ({ email, persona }: { email: string; persona: string }) => {
@@ -85,39 +50,33 @@ export const HalloweenFunnelExperience = () => {
     []
   );
 
-  const handleQuizComplete = useCallback(
-    (answers: QuizAnswers) => {
-      setQuizAnswers(answers);
-      setPromptVariants(buildPromptVariants(answers));
-      setGenerationsUsed(1);
-    },
-    []
-  );
-
-  const handleGenerateAnother = useCallback(() => {
-    if (!quizAnswers) return;
-    if (generationsUsed >= 1) {
-      return;
-    }
-
-    setPromptVariants(buildPromptVariants(quizAnswers));
-    setGenerationsUsed((current) => current + 1);
-  }, [quizAnswers, generationsUsed]);
-
-  const showUnlockBanner = useMemo(() => generationsUsed >= 1, [generationsUsed]);
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#1a0b2e] to-[#06070a] relative overflow-hidden">
       <HeroOffer onLeadCaptured={handleLeadCaptured} status={leadStatus} defaultEmail={leadInfo?.email} />
 
-      <DesignQuiz leadEmail={leadInfo?.email} onComplete={handleQuizComplete} />
-
-      <PromptShowcase
-        answers={quizAnswers}
-        prompts={promptVariants}
-        showUnlockMessage={showUnlockBanner}
-        onGenerateAnother={handleGenerateAnother}
-      />
+      {/* Quiz Section - Navigate to dedicated quiz page */}
+      <section className="py-20 bg-gradient-to-b from-[#120920] to-[#1a0b2e]" id="design-flow">
+        <div className="container mx-auto px-6 text-center">
+          <div className="max-w-2xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-900/40 border border-purple-500/30 text-purple-200 text-sm mb-4">
+              <Sparkles className="w-4 h-4 text-orange-300" />
+              Step 2 · Discover Your Perfect Halloween Style
+            </div>
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
+              Take the Halloween Style Quiz
+            </h2>
+            <p className="text-purple-200 mb-8">
+              Answer a few quick questions to get personalized Halloween apparel recommendations tailored just for you.
+            </p>
+            <Link href="/halloween-2025/quiz">
+              <Button className="bg-gradient-to-r from-orange-500 to-purple-600 hover:from-orange-600 hover:to-purple-700 text-white font-semibold px-8 py-4 rounded-xl shadow-lg flex items-center gap-2 mx-auto text-lg">
+                Start Quiz
+                <ArrowRight className="w-5 h-5" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
 
       <ProductBundlePreview />
 
