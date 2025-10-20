@@ -1,6 +1,7 @@
 import { Button } from '@repo/design-system/components/ui/button';
 import { ArrowRight, Shield, Truck, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
+import { BeehiivEmailSignup } from '@/app/components/BeehiivEmailSignup';
 
 export const FinalCTA = () => {
   const trustBadges = [
@@ -38,8 +39,28 @@ export const FinalCTA = () => {
             </p>
           </div>
 
+          {/* Email Signup */}
+          <div className="w-full max-w-xl">
+            <div className="mb-4">
+              <p className="text-white text-2xl font-bold mb-3">
+                Get 10% OFF + Free AI Prompts eBook! 🎁
+              </p>
+              <p className="text-white/80 text-base">
+                Join our newsletter and instantly receive a 10% discount code plus our exclusive eBook:
+                <span className="text-[#16C1A8] font-semibold"> "Mastering AI Picture Prompts"</span>
+              </p>
+            </div>
+            <BeehiivEmailSignup
+              campaignId="home-final-cta"
+              placeholder="Enter your email for instant access"
+              buttonText="Claim My Rewards"
+              successMessage="Success! Check your inbox for your 10% discount code and free eBook!"
+              variant="minimal"
+            />
+          </div>
+
           {/* CTAs */}
-          <div className="flex flex-col sm:flex-row gap-4 items-center">
+          <div className="flex flex-col sm:flex-row gap-4 items-center pt-4">
             <Button
               size="lg"
               className="gap-2 bg-[#16C1A8] hover:bg-[#16C1A8]/90 text-white text-lg px-10 py-7 h-auto shadow-xl shadow-[#16C1A8]/25 transition-all hover:scale-105"

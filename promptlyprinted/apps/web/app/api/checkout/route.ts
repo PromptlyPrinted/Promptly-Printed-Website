@@ -363,6 +363,7 @@ export async function POST(req: NextRequest) {
       // Create Stripe checkout session
       const stripeSession = await stripe.checkout.sessions.create({
         customer_email: dbUser?.email || undefined, // Allow Stripe to collect email for guests
+        allow_promotion_codes: true, // Enable discount code field at checkout
         line_items: await Promise.all(orderItems.items.map(async (item) => {
           const images = await Promise.all(item.images
             .map(async (img) => {

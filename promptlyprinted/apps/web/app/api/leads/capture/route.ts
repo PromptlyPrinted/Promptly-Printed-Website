@@ -64,24 +64,39 @@ export async function POST(request: NextRequest) {
 
 async function sendToEmailAutomation(leadData: any) {
   try {
-    // Example Beehiiv integration
-    if (process.env.BEEHIIV_API_KEY) {
-      const response = await fetch('https://api.beehiiv.com/v2/subscribers', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.BEEHIIV_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: leadData.email,
-          tags: [leadData.campaignId, leadData.trigger],
-          custom_fields: {
-            campaign_id: leadData.campaignId,
-            utm_source: leadData.utmSource,
-            themes: leadData.metadata?.themes?.join(','),
+    // Beehiiv integration with publication_id
+    if (process.env.BEEHIIV_API_KEY && process.env.BEEHIIV_PUBLICATION_ID) {
+      const response = await fetch(
+        `https://api.beehiiv.com/v2/publications/${process.env.BEEHIIV_PUBLICATION_ID}/subscriptions`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${process.env.BEEHIIV_API_KEY}`,
+            'Content-Type': 'application/json',
           },
-        }),
-      });
+          body: JSON.stringify({
+            email: leadData.email,
+            reactivate_existing: false,
+            send_welcome_email: true,
+            utm_source: leadData.utmSource || 'website',
+            utm_campaign: leadData.campaignId,
+            custom_fields: [
+              {
+                name: 'campaign_id',
+                value: leadData.campaignId,
+              },
+              {
+                name: 'trigger',
+                value: leadData.trigger,
+              },
+              {
+                name: 'themes',
+                value: leadData.metadata?.themes?.join(',') || '',
+              },
+            ],
+          }),
+        }
+      );
 
       if (!response.ok) {
         console.error('Beehiiv API error:', await response.text());

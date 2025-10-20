@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@repo/design-system/components/ui/button';
-import { ArrowRight, Check, Clock } from 'lucide-react';
+import { ArrowRight, Check, Ghost, Skull } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -30,44 +30,47 @@ export const PricingOffer = () => {
   }, []);
 
   const features = [
-    'Unlimited AI design generations',
+    'Personalized AI Halloween designs',
     'Premium organic cotton up to 280gsm',
     'Professional DTG printing',
-    'Free worldwide shipping',
+    'Exclusive quiz discounts & freebies',
     'Satisfaction guarantee',
-    'One-of-one exclusivity',
+    'Limited edition Halloween items',
   ];
 
   return (
-    <div className="w-full bg-gradient-to-br from-[#0D2C45] via-[#16C1A8] to-[#0D2C45] py-20 lg:py-32 relative overflow-hidden">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] bg-repeat" />
+    <div className="w-full bg-gradient-to-br from-orange-950 via-purple-900 to-black py-20 lg:py-32 relative overflow-hidden">
+      {/* Floating Halloween Elements */}
+      <div className="absolute inset-0 opacity-10 pointer-events-none">
+        <div className="absolute top-20 left-10 text-8xl animate-pulse">🎃</div>
+        <div className="absolute top-40 right-20 text-7xl animate-bounce" style={{ animationDelay: '0.5s' }}>👻</div>
+        <div className="absolute bottom-40 left-20 text-6xl animate-pulse" style={{ animationDelay: '1s' }}>🦇</div>
+        <div className="absolute bottom-20 right-40 text-8xl animate-bounce" style={{ animationDelay: '1.5s' }}>💀</div>
       </div>
 
       <div className="container relative z-10 mx-auto px-4">
         <div className="flex flex-col items-center gap-12">
           {/* Header */}
           <div className="flex flex-col items-center gap-4 text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#FF8A26] text-white font-semibold text-sm">
-              <Clock className="w-4 h-4" />
-              Limited Time Offer
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-orange-500 to-purple-600 text-white font-semibold text-sm shadow-lg shadow-orange-500/50 animate-pulse">
+              <Skull className="w-4 h-4" />
+              Halloween 2025 Special
             </div>
-            <h2 className="max-w-3xl text-4xl md:text-5xl lg:text-6xl font-bold text-white tracking-tight">
-              Your first AI Tee — Special Launch Price
+            <h2 className="max-w-3xl text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-orange-400 via-purple-400 to-pink-400 bg-clip-text text-transparent tracking-tight">
+              Spooky Style Quiz — Unlock Exclusive Discounts
             </h2>
-            <p className="max-w-2xl text-lg text-white/80 leading-relaxed">
-              Join our community of creators and get exclusive launch pricing.
+            <p className="max-w-2xl text-lg text-gray-300 leading-relaxed">
+              Take our Halloween quiz to discover your perfect design and unlock up to 50% off + free spooky goodies!
             </p>
           </div>
 
           {/* Pricing Card */}
           <div className="w-full max-w-2xl">
-            <div className="relative p-8 lg:p-12 rounded-3xl bg-white shadow-2xl border-4 border-[#FF8A26]">
+            <div className="relative p-8 lg:p-12 rounded-3xl bg-gradient-to-br from-gray-900 to-black shadow-2xl border-4 border-orange-500">
               {/* Badge */}
               <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <div className="px-6 py-2 rounded-full bg-[#FF8A26] text-white font-bold text-sm">
-                  LIMITED DROP
+                <div className="px-6 py-2 rounded-full bg-gradient-to-r from-orange-500 to-purple-600 text-white font-bold text-sm shadow-lg">
+                  🎃 LIMITED HALLOWEEN DROP
                 </div>
               </div>
 
@@ -75,11 +78,10 @@ export const PricingOffer = () => {
                 {/* Price */}
                 <div className="flex flex-col items-center gap-2">
                   <div className="flex items-end gap-2">
-                    <span className="text-6xl font-bold text-[#1E293B]">$39</span>
-                    <span className="text-3xl text-[#64748B] line-through mb-2">$66</span>
+                    <span className="text-6xl font-bold bg-gradient-to-r from-orange-400 to-purple-400 bg-clip-text text-transparent">Up to 50% OFF</span>
                   </div>
-                  <p className="text-[#64748B] text-lg">
-                    Save <span className="font-bold text-[#16C1A8]">$27</span> on your first design
+                  <p className="text-gray-300 text-lg">
+                    Plus <span className="font-bold text-orange-400">FREE Halloween freebies</span> with your order
                   </p>
                 </div>
 
@@ -91,10 +93,10 @@ export const PricingOffer = () => {
                     { label: 'Seconds', value: timeLeft.seconds },
                   ].map((unit, index) => (
                     <div key={index} className="flex flex-col items-center">
-                      <div className="w-16 h-16 flex items-center justify-center rounded-lg bg-[#0D2C45] text-white font-bold text-2xl">
+                      <div className="w-16 h-16 flex items-center justify-center rounded-lg bg-gradient-to-br from-orange-600 to-purple-600 text-white font-bold text-2xl shadow-lg">
                         {String(unit.value).padStart(2, '0')}
                       </div>
-                      <p className="text-xs text-[#64748B] mt-1">{unit.label}</p>
+                      <p className="text-xs text-gray-400 mt-1">{unit.label}</p>
                     </div>
                   ))}
                 </div>
@@ -103,10 +105,10 @@ export const PricingOffer = () => {
                 <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {features.map((feature, index) => (
                     <div key={index} className="flex items-center gap-2">
-                      <div className="flex-shrink-0 w-5 h-5 rounded-full bg-[#16C1A8] flex items-center justify-center">
+                      <div className="flex-shrink-0 w-5 h-5 rounded-full bg-gradient-to-r from-orange-500 to-purple-600 flex items-center justify-center">
                         <Check className="w-3 h-3 text-white" />
                       </div>
-                      <p className="text-[#1E293B] text-sm">{feature}</p>
+                      <p className="text-gray-200 text-sm">{feature}</p>
                     </div>
                   ))}
                 </div>
@@ -114,16 +116,18 @@ export const PricingOffer = () => {
                 {/* CTA */}
                 <Button
                   size="lg"
-                  className="w-full gap-2 bg-[#16C1A8] hover:bg-[#16C1A8]/90 text-white text-lg px-8 py-6 h-auto shadow-lg shadow-[#16C1A8]/25"
+                  className="w-full gap-2 bg-gradient-to-r from-orange-500 to-purple-600 hover:from-orange-600 hover:to-purple-700 text-white text-lg px-8 py-6 h-auto shadow-lg shadow-orange-500/30 group"
                   asChild
                 >
-                  <Link href="/designs">
-                    Join the Drop <ArrowRight className="h-5 w-5" />
+                  <Link href="/halloween-2025/quiz?campaign=halloween-2025">
+                    <Ghost className="h-5 w-5 group-hover:animate-bounce" />
+                    Take the Halloween Quiz
+                    <ArrowRight className="h-5 w-5" />
                   </Link>
                 </Button>
 
-                <p className="text-xs text-[#64748B] text-center">
-                  Offer ends soon. Regular price $66 applies after.
+                <p className="text-xs text-gray-400 text-center">
+                  Takes 2 minutes • Instant discounts • Free Halloween goodies included 🎃
                 </p>
               </div>
             </div>
