@@ -365,25 +365,32 @@ export async function POST(req: NextRequest) {
         customer_email: dbUser?.email || undefined, // Allow Stripe to collect email for guests
         allow_promotion_codes: true, // Enable discount code field at checkout
         line_items: await Promise.all(orderItems.items.map(async (item) => {
-          const images = await Promise.all(item.images
-            .map(async (img) => {
-              const resolvedUrl = await getImageUrl(img.url);
-              if (!resolvedUrl) {
-                console.error('Failed to resolve image URL:', img.url);
-                return '';
-              }
-              console.log('Resolved image URL:', {
-                original: img.url,
-                resolved: resolvedUrl,
-              });
-              return resolvedUrl;
-            }))
-            .then(urls => urls.filter(Boolean));
+          // TEMPORARY: Hard-code a test image URL to test if localhost is the issue
+          const hardcodedTestImage = 'https://files.stripe.com/links/MDB8YWNjdF8xUWZLWEVGaVVvWGRXcFFOfGZsX3Rlc3RfNGF0VVdJWk5jNDdHSDBGOHd6V1Y2cHoz00CgkmPw0R';
 
-          if (images.length === 0) {
-            console.error('No valid images found for item:', item.productId);
-            throw new Error(`No valid images found for item ${item.productId}`);
-          }
+          console.log('USING HARDCODED TEST IMAGE FOR DEBUGGING');
+          const images = [hardcodedTestImage];
+
+          // Original code (commented out for testing):
+          // const images = await Promise.all(item.images
+          //   .map(async (img) => {
+          //     const resolvedUrl = await getImageUrl(img.url);
+          //     if (!resolvedUrl) {
+          //       console.error('Failed to resolve image URL:', img.url);
+          //       return '';
+          //     }
+          //     console.log('Resolved image URL:', {
+          //       original: img.url,
+          //       resolved: resolvedUrl,
+          //     });
+          //     return resolvedUrl;
+          //   }))
+          //   .then(urls => urls.filter(Boolean));
+
+          // if (images.length === 0) {
+          //   console.error('No valid images found for item:', item.productId);
+          //   throw new Error(`No valid images found for item ${item.productId}`);
+          // }
 
           return {
             price_data: {

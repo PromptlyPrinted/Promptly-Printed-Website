@@ -1,3 +1,5 @@
+'use client';
+
 import { Button } from '@repo/design-system/components/ui/button';
 import { ArrowRight, Shield, Truck, RefreshCw } from 'lucide-react';
 import Link from 'next/link';

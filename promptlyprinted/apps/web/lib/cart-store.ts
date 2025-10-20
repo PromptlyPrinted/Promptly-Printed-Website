@@ -117,5 +117,20 @@ export const useCartStore = create<CartStore>()(
 
 // Helper function to get cart items with images
 export async function getCartItemsWithImages(): Promise<CartItem[]> {
-  return useCartStore.getState().items;
+  const items = useCartStore.getState().items;
+
+  // Ensure items have valid image URLs
+  return items.map(item => {
+    // If imageUrl is empty but we have assets with URLs, use the first asset
+    if ((!item.imageUrl || item.imageUrl.trim() === '') && item.assets && item.assets.length > 0) {
+      const firstAssetWithUrl = item.assets.find(asset => asset.url && asset.url.trim() !== '');
+      if (firstAssetWithUrl) {
+        return {
+          ...item,
+          imageUrl: firstAssetWithUrl.url
+        };
+      }
+    }
+    return item;
+  });
 }

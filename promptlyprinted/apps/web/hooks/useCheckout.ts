@@ -24,8 +24,9 @@ export function useCheckout() {
           console.log('Processing item:', item);
 
           // Validate that images array exists and has a valid URL
-          if (!item.images || !item.images[0] || !item.images[0].url) {
-            throw new Error('Missing product image. Please generate or upload an image before checkout.');
+          if (!item.images || !item.images[0] || !item.images[0].url || item.images[0].url.trim() === '') {
+            console.error('Invalid item image:', item);
+            throw new Error(`Missing product image for "${item.name}". Please refresh the page and try again, or contact support if the issue persists.`);
           }
 
           const imageUrl = item.images[0].url;

@@ -222,20 +222,27 @@ export const BasketDropdown = ({
               {/* Checkout Buttons */}
               <div className="mt-4 space-y-2">
                 <CheckoutButton
-                  items={cartItems.map((item) => ({
-                    productId: item.productId,
-                    name: item.name,
-                    price: item.price,
-                    copies: item.quantity,
-                    color: item.color,
-                    size: item.size,
-                    images: [{ url: item.imageUrl }],
-                    customization: item.customization,
-                    recipientCostAmount: item.price,
-                    currency: 'USD',
-                    merchantReference: `item_${item.productId}`,
-                    sku: item.productId,
-                  }))}
+                  items={cartItems.map((item) => {
+                    // Use the first asset URL if imageUrl is empty or invalid
+                    const imageUrl = item.imageUrl && item.imageUrl.trim() !== ''
+                      ? item.imageUrl
+                      : item.assets?.[0]?.url || '';
+
+                    return {
+                      productId: item.productId,
+                      name: item.name,
+                      price: item.price,
+                      copies: item.quantity,
+                      color: item.color,
+                      size: item.size,
+                      images: [{ url: imageUrl }],
+                      customization: item.customization,
+                      recipientCostAmount: item.price,
+                      currency: 'USD',
+                      merchantReference: `item_${item.productId}`,
+                      sku: item.productId,
+                    };
+                  })}
                   className="w-full"
                 />
                 <Button variant="outline" className="w-full" onClick={onClose}>
