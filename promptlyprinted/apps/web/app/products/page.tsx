@@ -40,6 +40,22 @@ interface DisplayProduct extends Product {
   reviewCount: number;
   stock: number;
   isWishlisted: boolean;
+  // Variant system
+  isVariantProduct?: boolean;
+  variantCount?: number;
+  variantOptions?: Array<{
+    optionName: string;
+    optionValue: string;
+    displayOrder: number;
+  }>;
+  variants?: Array<{
+    id: number;
+    sku: string;
+    name: string;
+    price: number;
+    variantAttributes: any;
+    stock: number;
+  }>;
 }
 
 // Brand color constants
@@ -189,6 +205,22 @@ type ApiProductResponse = {
   savedImages?: any[];
   wishedBy?: any[];
   stock?: number | null;
+  // Variant system
+  isVariantProduct?: boolean;
+  variantCount?: number;
+  variantOptions?: Array<{
+    optionName: string;
+    optionValue: string;
+    displayOrder: number;
+  }>;
+  variants?: Array<{
+    id: number;
+    sku: string;
+    name: string;
+    price: number;
+    variantAttributes: any;
+    stock: number;
+  }>;
 };
 
 const FALLBACK_PRODUCTS: DisplayProduct[] = buildFallbackProducts();
@@ -335,6 +367,11 @@ function buildProductsFromApi(products: ApiProductResponse[]): DisplayProduct[] 
             ? 0
             : 25 + ((index * 3) % 50)),
       isWishlisted: false,
+      // Variant system
+      isVariantProduct: product.isVariantProduct ?? false,
+      variantCount: product.variantCount ?? 0,
+      variantOptions: product.variantOptions ?? [],
+      variants: product.variants ?? [],
     };
   });
 }
@@ -1298,6 +1335,7 @@ interface ProductCardProps {
 function ProductCard({ product, viewMode, colors }: ProductCardProps) {
   const [isWishlisted, setIsWishlisted] = useState(product.isWishlisted);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [selectedVariantOptions, setSelectedVariantOptions] = useState<Record<string, string>>({});
   const [showColorOptions, setShowColorOptions] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [currentColorIndex, setCurrentColorIndex] = useState(0);
@@ -1305,17 +1343,48 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
   const formatColorForUrl = (colorName: string) =>
     colorName.replace(/\s+/g, '-').toLowerCase();
 
-  const prodigiColorOptions =
-    product.prodigiVariants?.colorOptions ?? [];
-  const fallbackColorOptions =
-    product.specifications?.color?.map((name) => ({
-      name,
-      filename: `${formatColorForUrl(name)}.png`,
-    })) ?? [];
-  const colorOptions =
-    prodigiColorOptions.length > 0
-      ? prodigiColorOptions
-      : fallbackColorOptions;
+  // Separate variant options into color/finish vs other attributes (size, shape, pieces, type)
+  const variantColorOptions = product.isVariantProduct && product.variantOptions
+    ? product.variantOptions
+        .filter(opt =>
+          opt.optionName.toLowerCase() === 'color' ||
+          opt.optionName.toLowerCase() === 'finish'
+        )
+        .map(opt => ({
+          name: opt.optionValue,
+          filename: `${formatColorForUrl(opt.optionValue)}.png`,
+        }))
+    : [];
+
+  // Get non-color variant options (size, shape, pieces, type, etc.)
+  const nonColorVariantOptions = product.isVariantProduct && product.variantOptions
+    ? product.variantOptions.filter(opt =>
+        opt.optionName.toLowerCase() !== 'color' &&
+        opt.optionName.toLowerCase() !== 'finish'
+      )
+    : [];
+
+  // Group non-color options by option name
+  const groupedVariantOptions = nonColorVariantOptions.reduce((acc, opt) => {
+    if (!acc[opt.optionName]) {
+      acc[opt.optionName] = [];
+    }
+    if (!acc[opt.optionName].includes(opt.optionValue)) {
+      acc[opt.optionName].push(opt.optionValue);
+    }
+    return acc;
+  }, {} as Record<string, string[]>);
+
+  // If this is a variant product, ONLY show colors if it has color/finish options
+  // Don't fall back to template colors for variant products
+  const colorOptions = product.isVariantProduct
+    ? variantColorOptions
+    : (product.prodigiVariants?.colorOptions ??
+       product.specifications?.color?.map((name) => ({
+         name,
+         filename: `${formatColorForUrl(name)}.png`,
+       })) ??
+       []);
   const imageBase =
     product.prodigiVariants?.imageUrls?.base || product.imageUrls.base;
   const defaultImage =
@@ -1329,6 +1398,52 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
   const prettySelectedColor = selectedColorLabel
     ? selectedColorLabel.replace(/\b\w/g, (letter) => letter.toUpperCase())
     : null;
+
+  // Find matching variant based on selected options
+  const getMatchingVariant = () => {
+    if (!product.isVariantProduct || !product.variants || product.variants.length === 0) {
+      return null;
+    }
+
+    // Build the selection criteria including color/finish
+    const selectedAttributes: Record<string, string> = { ...selectedVariantOptions };
+    if (selectedColor) {
+      // Check if we have a color or finish option
+      const hasColorOption = variantColorOptions.some(opt =>
+        formatColorForUrl(opt.name) === selectedColor
+      );
+      if (hasColorOption) {
+        const colorOpt = variantColorOptions.find(opt => formatColorForUrl(opt.name) === selectedColor);
+        if (colorOpt) {
+          // Determine if it's a color or finish based on variant options
+          const isFinish = product.variantOptions?.some(opt =>
+            opt.optionName.toLowerCase() === 'finish' && opt.optionValue === colorOpt.name
+          );
+          selectedAttributes[isFinish ? 'finish' : 'color'] = colorOpt.name;
+        }
+      }
+    }
+
+    // Only search if we have selections
+    if (Object.keys(selectedAttributes).length === 0) {
+      return null;
+    }
+
+    // Find variant that matches all selected attributes
+    return product.variants.find(variant => {
+      const variantAttrs = variant.variantAttributes as Record<string, string> | null;
+      if (!variantAttrs) return false;
+
+      return Object.entries(selectedAttributes).every(([key, value]) => {
+        const normalizedKey = key.toLowerCase();
+        const variantValue = variantAttrs[normalizedKey] || variantAttrs[key];
+        return variantValue && variantValue.toLowerCase() === value.toLowerCase();
+      });
+    });
+  };
+
+  const matchingVariant = getMatchingVariant();
+  const displayPrice = matchingVariant ? matchingVariant.price : product.price;
   
   // Create product URL using the same logic as the existing ProductCard
   const categorySlug = createSlug(product.category?.name || 'all');
@@ -1411,18 +1526,31 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
                 className="object-contain rounded-lg group-hover:scale-[1.03] transition-all duration-300"
               />
             </Link>
-            {product.badge && (
-              <span 
-                className="absolute top-2 left-2 px-2 py-1 text-xs font-medium rounded-full"
-                style={{
-                  backgroundColor: product.badge === 'sale' ? colors.accent : 
-                                 product.badge === 'new' ? colors.primary : colors.dark,
-                  color: colors.white
-                }}
-              >
-                {product.badge.toUpperCase()}
-              </span>
-            )}
+            <div className="absolute top-2 left-2 flex flex-col gap-2">
+              {product.badge && (
+                <span
+                  className="px-2 py-1 text-xs font-medium rounded-full"
+                  style={{
+                    backgroundColor: product.badge === 'sale' ? colors.accent :
+                                   product.badge === 'new' ? colors.primary : colors.dark,
+                    color: colors.white
+                  }}
+                >
+                  {product.badge.toUpperCase()}
+                </span>
+              )}
+              {product.isVariantProduct && product.variantCount && product.variantCount > 0 && (
+                <span
+                  className="px-2 py-1 text-xs font-medium rounded-full"
+                  style={{
+                    backgroundColor: colors.secondary,
+                    color: colors.dark
+                  }}
+                >
+                  {product.variantCount} {product.variantCount === 1 ? 'Option' : 'Options'}
+                </span>
+              )}
+            </div>
             
             {/* Design icon on hover for list view */}
             {isHovered && (
@@ -1442,8 +1570,14 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
                 {product.name}
               </h3>
             </Link>
-            {prettySelectedColor && (
-              <p className="text-sm text-gray-500 mt-1">Color: {prettySelectedColor}</p>
+            {/* Show selected variant options */}
+            {(prettySelectedColor || Object.keys(selectedVariantOptions).length > 0) && (
+              <div className="text-sm text-gray-500 mt-1 space-y-0.5">
+                {prettySelectedColor && <p>Color: {prettySelectedColor}</p>}
+                {Object.entries(selectedVariantOptions).map(([key, value]) =>
+                  value && <p key={key}>{key}: {value}</p>
+                )}
+              </div>
             )}
             <p className="text-sm mt-1 line-clamp-2" style={{ color: colors.gray600 }}>
               {product.description}
@@ -1468,11 +1602,11 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
             <div className="flex items-center justify-between mt-4">
               <div className="flex items-center gap-2">
                 <span className="text-xl font-bold" style={{ color: colors.accent }}>
-                  ${product.price}
+                  ${displayPrice?.toFixed(2) || '0.00'}
                 </span>
                 {product.originalPrice && (
                   <span className="text-sm line-through" style={{ color: colors.gray400 }}>
-                    ${product.originalPrice}
+                    ${product.originalPrice.toFixed(2)}
                   </span>
                 )}
               </div>
@@ -1481,15 +1615,17 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
                 <Link href={selectedColor ? `${productUrl}?color=${encodeURIComponent(selectedColor)}` : productUrl}>
                   <button
                     className="py-2 px-4 rounded-full font-medium text-white transition-all duration-200 hover:shadow-lg hover:scale-[1.02]"
-                    style={{ 
+                    style={{
                       backgroundColor: colors.accent,
                       boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
                     }}
                   >
-                    {prettySelectedColor
-                      ? `Design in ${prettySelectedColor}`
-                      : 'Design Now'
-                    }
+                    {(() => {
+                      const selections = [];
+                      if (prettySelectedColor) selections.push(prettySelectedColor);
+                      Object.values(selectedVariantOptions).forEach(v => v && selections.push(v));
+                      return selections.length > 0 ? `Design (${selections.join(', ')})` : 'Design Now';
+                    })()}
                   </button>
                 </Link>
               </div>
@@ -1508,7 +1644,7 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
                   selectedColor
                     ? selectedColor === colorSlug
                     : index === currentColorIndex;
-                
+
                 return (
                   <button
                     key={colorOption.name}
@@ -1524,24 +1660,24 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
                       e.currentTarget.style.transform = 'translateY(0)';
                     }}
                     className={`relative w-6 h-6 rounded-full transition-all duration-200 flex items-center justify-center ${
-                      isSelected 
-                        ? 'scale-110 shadow-md' 
+                      isSelected
+                        ? 'scale-110 shadow-md'
                         : 'hover:shadow-sm'
                     }`}
-                    style={{ 
+                    style={{
                       transform: isSelected ? 'scale(1.1) translateY(-1px)' : 'scale(1)'
                     }}
                     aria-label={`Select ${colorOption.name.replace(/-/g, ' ')}`}
                     title={colorOption.name.replace(/-/g, ' ')}
                   >
                     {/* Full-filled color circle with contrasting ring */}
-                    <div 
+                    <div
                       className={`w-6 h-6 rounded-full border-2 transition-all duration-200 ${
-                        isSelected 
-                          ? 'border-gray-800' 
+                        isSelected
+                          ? 'border-gray-800'
                           : 'border-white hover:border-gray-200'
                       }`}
-                      style={{ 
+                      style={{
                         backgroundColor: colorHex,
                         boxShadow: '0 0 0 1px rgba(0,0,0,0.1)'
                       }}
@@ -1552,18 +1688,63 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
             </div>
           </div>
         )}
+
+        {/* Variant selectors for list view */}
+        {Object.keys(groupedVariantOptions).length > 0 && (
+          <div className="px-6 pb-4 space-y-2">
+            {Object.entries(groupedVariantOptions).map(([optionName, values]) => (
+              <div key={optionName}>
+                <p className="text-xs font-medium mb-1.5" style={{ color: colors.gray600 }}>
+                  {optionName}:
+                </p>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {values.map((value) => {
+                    const isSelected = selectedVariantOptions[optionName] === value;
+                    return (
+                      <button
+                        key={value}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSelectedVariantOptions(prev => ({
+                            ...prev,
+                            [optionName]: isSelected ? '' : value
+                          }));
+                        }}
+                        className={`px-2.5 py-1.5 text-xs rounded-md transition-all duration-200 font-medium ${
+                          isSelected
+                            ? 'shadow-md scale-105'
+                            : 'hover:shadow-sm hover:scale-105'
+                        }`}
+                        style={{
+                          backgroundColor: isSelected ? colors.primary : colors.gray100,
+                          color: isSelected ? colors.white : colors.gray700,
+                          border: `1px solid ${isSelected ? colors.primary : colors.gray300}`
+                        }}
+                        title={value}
+                      >
+                        {value}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
 
   return (
-    <div 
+    <div
       className="group relative bg-white rounded-lg border overflow-hidden transition-all duration-300 hover:shadow-2xl hover:-translate-y-1"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => {
         setIsHovered(false);
         setShowColorOptions(false);
         setSelectedColor(null);
+        setSelectedVariantOptions({});
         setCurrentColorIndex(0);
       }}
     >
@@ -1584,18 +1765,31 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
         </Link>
         
         {/* Badges */}
-        {product.badge && (
-          <span 
-            className="absolute top-3 left-3 px-2 py-1 text-xs font-medium rounded-full z-10"
-            style={{
-              backgroundColor: product.badge === 'sale' ? colors.accent : 
-                             product.badge === 'new' ? colors.primary : colors.dark,
-              color: colors.white
-            }}
-          >
-            {product.badge.toUpperCase()}
-          </span>
-        )}
+        <div className="absolute top-3 left-3 z-10 flex flex-col gap-2">
+          {product.badge && (
+            <span
+              className="px-2 py-1 text-xs font-medium rounded-full"
+              style={{
+                backgroundColor: product.badge === 'sale' ? colors.accent :
+                               product.badge === 'new' ? colors.primary : colors.dark,
+                color: colors.white
+              }}
+            >
+              {product.badge.toUpperCase()}
+            </span>
+          )}
+          {product.isVariantProduct && product.variantCount && product.variantCount > 0 && (
+            <span
+              className="px-2 py-1 text-xs font-medium rounded-full"
+              style={{
+                backgroundColor: colors.secondary,
+                color: colors.dark
+              }}
+            >
+              {product.variantCount} {product.variantCount === 1 ? 'Option' : 'Options'}
+            </span>
+          )}
+        </div>
 
         {/* Stock indicator */}
         {product.stock <= 5 && product.stock > 0 && (
@@ -1653,7 +1847,7 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
                 selectedColor
                   ? selectedColor === colorSlug
                   : index === currentColorIndex;
-                  
+
               return (
                 <button
                   key={colorOption.name}
@@ -1669,24 +1863,24 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
                     e.currentTarget.style.transform = 'translateY(0)';
                   }}
                   className={`relative w-6 h-6 rounded-full transition-all duration-200 flex items-center justify-center ${
-                    isSelected 
-                      ? 'scale-110 shadow-md' 
+                    isSelected
+                      ? 'scale-110 shadow-md'
                       : 'hover:shadow-sm'
                   }`}
-                  style={{ 
+                  style={{
                     transform: isSelected ? 'scale(1.1) translateY(-1px)' : 'scale(1)'
                   }}
                   aria-label={`Select ${colorOption.name.replace(/-/g, ' ')}`}
                   title={colorOption.name.replace(/-/g, ' ')}
                 >
                   {/* Full-filled color circle with contrasting ring */}
-                  <div 
+                  <div
                     className={`w-6 h-6 rounded-full border-2 transition-all duration-200 ${
-                      isSelected 
-                        ? 'border-gray-800' 
+                      isSelected
+                        ? 'border-gray-800'
                         : 'border-white hover:border-gray-200'
                     }`}
-                    style={{ 
+                    style={{
                       backgroundColor: colorHex,
                       boxShadow: '0 0 0 1px rgba(0,0,0,0.1)'
                     }}
@@ -1698,6 +1892,50 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
         </div>
       )}
 
+      {/* Variant selectors for size, shape, pieces, type, etc. */}
+      {Object.keys(groupedVariantOptions).length > 0 && (
+        <div className="px-4 pt-2 pb-1 space-y-2">
+          {Object.entries(groupedVariantOptions).map(([optionName, values]) => (
+            <div key={optionName}>
+              <p className="text-xs font-medium mb-1 text-center" style={{ color: colors.gray600 }}>
+                {optionName}:
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-1.5">
+                {values.map((value) => {
+                  const isSelected = selectedVariantOptions[optionName] === value;
+                  return (
+                    <button
+                      key={value}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedVariantOptions(prev => ({
+                          ...prev,
+                          [optionName]: isSelected ? '' : value
+                        }));
+                      }}
+                      className={`px-2 py-1 text-xs rounded-md transition-all duration-200 font-medium ${
+                        isSelected
+                          ? 'shadow-md scale-105'
+                          : 'hover:shadow-sm hover:scale-105'
+                      }`}
+                      style={{
+                        backgroundColor: isSelected ? colors.primary : colors.gray100,
+                        color: isSelected ? colors.white : colors.gray700,
+                        border: `1px solid ${isSelected ? colors.primary : colors.gray300}`
+                      }}
+                      title={value}
+                    >
+                      {value}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Product Info */}
       <div className="p-4">
         <Link href={selectedColor ? `${productUrl}?color=${encodeURIComponent(selectedColor)}` : productUrl}>
@@ -1705,10 +1943,14 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
             {product.name}
           </h3>
         </Link>
-        {prettySelectedColor && (
-          <p className="text-xs text-gray-500 mt-1">
-            Color: {prettySelectedColor}
-          </p>
+        {/* Show selected variant options */}
+        {(prettySelectedColor || Object.keys(selectedVariantOptions).length > 0) && (
+          <div className="text-xs text-gray-500 mt-1 space-y-0.5">
+            {prettySelectedColor && <p>Color: {prettySelectedColor}</p>}
+            {Object.entries(selectedVariantOptions).map(([key, value]) =>
+              value && <p key={key}>{key}: {value}</p>
+            )}
+          </div>
         )}
 
         {/* Rating */}
@@ -1732,11 +1974,11 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
         <div className="flex items-center justify-between mt-3">
           <div className="flex items-center gap-2">
             <span className="font-bold text-lg" style={{ color: colors.accent }}>
-              ${product.price}
+              ${displayPrice?.toFixed(2) || '0.00'}
             </span>
             {product.originalPrice && (
               <span className="text-sm line-through" style={{ color: colors.gray400 }}>
-                ${product.originalPrice}
+                ${product.originalPrice.toFixed(2)}
               </span>
             )}
           </div>
@@ -1746,17 +1988,20 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
         <Link href={selectedColor ? `${productUrl}?color=${encodeURIComponent(selectedColor)}` : productUrl}>
           <button
             className="w-full mt-4 py-3 px-6 rounded-full font-medium text-white transition-all duration-200 hover:shadow-lg hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ 
+            style={{
               backgroundColor: product.stock === 0 ? colors.gray400 : colors.accent,
               boxShadow: product.stock === 0 ? 'none' : '0 4px 12px rgba(0,0,0,0.15)'
             }}
             disabled={product.stock === 0}
           >
-            {product.stock === 0 
-              ? 'Out of Stock' 
-              : prettySelectedColor
-                ? `Design in ${prettySelectedColor}`
-                : 'Design Now'
+            {product.stock === 0
+              ? 'Out of Stock'
+              : (() => {
+                  const selections = [];
+                  if (prettySelectedColor) selections.push(prettySelectedColor);
+                  Object.values(selectedVariantOptions).forEach(v => v && selections.push(v));
+                  return selections.length > 0 ? `Design (${selections.join(', ')})` : 'Design Now';
+                })()
             }
           </button>
         </Link>
@@ -1783,11 +2028,21 @@ function getColorHex(colorName: string): string | null {
     'vintage white': '#F5F5DC',
     'off white': '#FAF0E6',
     'arctic white': '#F0F8FF',
-    
+
     // Blacks
     'black': '#000000',
     'jet black': '#0A0A0A',
-    
+
+    // Metallic finishes (for Apple Watch and accessories)
+    'rose gold': '#B76E79',
+    'gold': '#FFD700',
+    'silver': '#C0C0C0',
+    'standard': '#808080',
+
+    // Sticker finishes
+    'glossy': '#E8F4F8',
+    'matte': '#D3D3D3',
+
     // Greys
     'anthracite': '#36454F',
     'charcoal': '#36454F',

@@ -87,6 +87,12 @@ model Product {
   prodigiDescription     String?
   prodigiPrintAreas      Json?
   prodigiVariants        Json?
+
+  // Variant support
+  isVariantProduct       Boolean      @default(false)  // True if this product has variants
+  parentProductId        Int?                          // Reference to parent if this is a variant
+  variantAttributes      Json?                         // Stores variant-specific attributes (e.g., {"size": "38mm", "finish": "Rose Gold"})
+
   images                 Image[]
   category               Category?    @relation(fields: [categoryId], references: [id])
   quotes                 Quote[]
@@ -96,12 +102,19 @@ model Product {
   prices                 ProductPrice[]
   translations           ProductTranslation[]
 
+  // Variant relationships
+  parentProduct          Product?     @relation("ProductVariants", fields: [parentProductId], references: [id])
+  variants               Product[]    @relation("ProductVariants")
+  variantOptions         ProductVariantOption[]
+
   @@unique([sku, countryCode])
   @@index([countryCode])
   @@index([categoryId])
   @@index([productType])
   @@index([listed])
   @@index([createdAt])
+  @@index([parentProductId])
+  @@index([isVariantProduct])
 }
 
 model Category {
@@ -476,6 +489,21 @@ model ProductTranslation {
   updatedAt   DateTime @updatedAt
 
   @@unique([productId, languageCode])
+}
+
+model ProductVariantOption {
+  id          Int      @id @default(autoincrement())
+  productId   Int
+  optionName  String   // e.g., "Size", "Finish", "Color"
+  optionValue String   // e.g., "38mm", "Rose Gold", "Black"
+  displayOrder Int     @default(0) // Order in which to display options
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, optionName, optionValue])
+  @@index([productId])
 }
 
 enum Role {
