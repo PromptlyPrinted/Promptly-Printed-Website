@@ -145,10 +145,10 @@ export const Footer = () => {
                   Follow
                 </p>
                 <div className="mt-1 flex items-center gap-3">
-                  <a href="#" aria-label="Instagram" className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition"><Instagram className="w-4 h-4" /></a>
-                  <a href="#" aria-label="Twitter" className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition"><Twitter className="w-4 h-4" /></a>
-                  <a href="#" aria-label="Facebook" className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition"><Facebook className="w-4 h-4" /></a>
-                  <a href="#" aria-label="YouTube" className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition"><Youtube className="w-4 h-4" /></a>
+                  <a href="https://www.instagram.com/promptlyprinted/" aria-label="Tiktok" className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition"><Youtube className="w-4 h-4" /></a>
+                  <a href="https://www.instagram.com/promptlyprinted/" aria-label="Instagram" className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition"><Instagram className="w-4 h-4" /></a>
+                  <a href="https://www.instagram.com/promptlyprinted/" aria-label="Twitter" className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition"><Twitter className="w-4 h-4" /></a>
+                  <a href="https://www.instagram.com/promptlyprinted/" aria-label="Facebook" className="p-2 rounded-xl bg-white/10 hover:bg-white/20 transition"><Facebook className="w-4 h-4" /></a>
                 </div>
               </div>
             </div>
