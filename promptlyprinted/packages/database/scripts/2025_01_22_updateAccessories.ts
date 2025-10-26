@@ -176,6 +176,15 @@ const accessoryGroups = {
   ],
 };
 
+const CATEGORY_MAP: Record<string, string> = {
+  Bags: 'Accessories - Bags',
+  'Gaming Accessories': 'Accessories - Gaming',
+  'Laptop Accessories': 'Accessories - Laptop',
+  'Jewelry & Keychains': 'Accessories - Jewelry & Keychains',
+  'Apple Watch Bands': 'Accessories - Watch Straps',
+  Stickers: 'Others - Stickers',
+};
+
 interface ProdigiProduct {
   sku: string;
   description: string;
@@ -265,6 +274,7 @@ async function updateAccessory(
     console.log(`Processing ${groupName} - ${sku}`);
 
     const priceUSD = Number.parseFloat(price);
+    const categoryName = CATEGORY_MAP[groupName] ?? groupName;
 
     // For each supported country
     for (const country of SUPPORTED_COUNTRIES) {
@@ -296,10 +306,15 @@ async function updateAccessory(
       }
 
       try {
-        await prisma.product.upsert({
-          where: {
-            sku: `${sku}-${countryCode}`,
+        const whereUnique = {
+          sku_countryCode: {
+            sku,
+            countryCode,
           },
+        };
+
+        await prisma.product.upsert({
+          where: whereUnique,
           update: {
             name,
             description,
@@ -322,15 +337,12 @@ async function updateAccessory(
             style: 'Standard',
             countryCode,
             category: {
-              connectOrCreate: {
-                where: { name: groupName },
-                create: { name: groupName },
-              },
+              connect: { name: categoryName },
             },
             updatedAt: new Date(),
           },
           create: {
-            sku: `${sku}-${countryCode}`,
+            sku,
             name,
             description,
             price: localPrice,
@@ -353,8 +365,8 @@ async function updateAccessory(
             countryCode,
             category: {
               connectOrCreate: {
-                where: { name: groupName },
-                create: { name: groupName },
+                where: { name: categoryName },
+                create: { name: categoryName },
               },
             },
           },

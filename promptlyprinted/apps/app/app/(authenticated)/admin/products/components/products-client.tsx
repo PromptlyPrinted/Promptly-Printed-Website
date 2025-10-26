@@ -19,9 +19,11 @@ import {
   TableRow,
 } from '@repo/design-system/components/ui/table';
 import { Toggle } from '@repo/design-system/components/ui/toggle';
+import { Switch } from '@repo/design-system/components/ui/switch';
 import { LayoutGrid, List } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 const PRODUCT_TYPES = [
   'T-SHIRT',
@@ -91,9 +93,15 @@ export function ProductsClient({
   const [selectedType, setSelectedType] = useState<string>('all');
   const [showListed, setShowListed] = useState<string>('all');
   const [priceRange, setPriceRange] = useState({ min: '', max: '' });
+  const [products, setProducts] = useState(initialProducts);
+  const [updatingProductIds, setUpdatingProductIds] = useState<number[]>([]);
+
+  useEffect(() => {
+    setProducts(initialProducts);
+  }, [initialProducts]);
 
   // Filter logic
-  const filteredProducts = initialProducts.filter((product) => {
+  const filteredProducts = products.filter((product) => {
     const matchesSearch =
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.sku.toLowerCase().includes(searchQuery.toLowerCase());
@@ -194,6 +202,43 @@ export function ProductsClient({
     priceRange.min,
     priceRange.max,
   ]);
+
+  const toggleProductListed = async (
+    product: ProductWithBasicInfo,
+    nextListed: boolean
+  ) => {
+    setUpdatingProductIds((ids) =>
+      ids.includes(product.id) ? ids : [...ids, product.id]
+    );
+    try {
+      const response = await fetch(`/api/admin/products/${product.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ listed: nextListed }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update product ${product.id}`);
+      }
+
+      setProducts((prev) =>
+        prev.map((item) =>
+          item.id === product.id ? { ...item, listed: nextListed } : item
+        )
+      );
+      toast.success(
+        nextListed ? 'Product is now visible in the catalog.' : 'Product has been hidden.'
+      );
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+      toast.error('Unable to update product status. Please try again.');
+    } finally {
+      setUpdatingProductIds((ids) => ids.filter((id) => id !== product.id));
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -309,6 +354,7 @@ export function ProductsClient({
                 const catName =
                   categories.find((c) => c.id === product.categoryId)?.name ||
                   '—';
+                const isUpdating = updatingProductIds.includes(product.id);
                 return (
                   <TableRow key={product.id}>
                     <TableCell>{product.name}</TableCell>
@@ -324,15 +370,25 @@ export function ProductsClient({
                     </TableCell>
                     <TableCell>{product.stock}</TableCell>
                     <TableCell>
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-medium text-xs ${
-                          product.listed
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}
-                      >
-                        {product.listed ? 'Listed' : 'Unlisted'}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={product.listed}
+                          onCheckedChange={(checked) =>
+                            toggleProductListed(product, checked === true)
+                          }
+                          disabled={isUpdating}
+                          aria-label="Toggle product visibility"
+                        />
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-medium text-xs ${
+                            product.listed
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-yellow-100 text-yellow-800'
+                          }`}
+                        >
+                          {product.listed ? 'Listed' : 'Unlisted'}
+                        </span>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Button
@@ -389,6 +445,7 @@ export function ProductsClient({
           {filteredProducts.map((product) => {
             const catName =
               categories.find((c) => c.id === product.categoryId)?.name || '—';
+            const isUpdating = updatingProductIds.includes(product.id);
             return (
               <Card
                 key={product.id}
@@ -414,15 +471,28 @@ export function ProductsClient({
                   </div>
                   <div className="mt-2 flex items-center justify-between">
                     <span className="text-sm">Stock: {product.stock}</span>
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-medium text-xs ${
-                        product.listed
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}
+                    <div
+                      className="flex items-center gap-2"
+                      onClick={(event) => event.stopPropagation()}
                     >
-                      {product.listed ? 'Listed' : 'Unlisted'}
-                    </span>
+                      <Switch
+                        checked={product.listed}
+                        onCheckedChange={(checked) =>
+                          toggleProductListed(product, checked === true)
+                        }
+                        disabled={isUpdating}
+                        aria-label="Toggle product visibility"
+                      />
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-medium text-xs ${
+                          product.listed
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}
+                      >
+                        {product.listed ? 'Listed' : 'Unlisted'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </Card>

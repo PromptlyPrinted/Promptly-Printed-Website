@@ -84,6 +84,11 @@ const petGroups = {
   ],
 };
 
+const CATEGORY_MAP: Record<string, string> = {
+  'Pet Beds': 'Home & Living - Pet Beds',
+  'Pet Accessories': 'Accessories - Pet Accessories',
+};
+
 interface ExchangeRateResponse {
   rates: Record<string, number>;
 }
@@ -139,6 +144,7 @@ async function updatePet(
     console.log(`Processing ${groupName} - ${sku}`);
 
     const priceUSD = Number.parseFloat(price);
+    const categoryName = CATEGORY_MAP[groupName] ?? groupName;
 
     // For each supported country
     for (const country of SUPPORTED_COUNTRIES) {
@@ -161,10 +167,15 @@ async function updatePet(
       }
 
       try {
-        await prisma.product.upsert({
-          where: {
-            sku: sku,
+        const whereUnique = {
+          sku_countryCode: {
+            sku,
+            countryCode,
           },
+        };
+
+        await prisma.product.upsert({
+          where: whereUnique,
           update: {
             name,
             description,
@@ -195,10 +206,7 @@ async function updatePet(
             style: 'Standard',
             countryCode,
             category: {
-              connectOrCreate: {
-                where: { name: groupName },
-                create: { name: groupName },
-              },
+              connect: { name: categoryName },
             },
             updatedAt: new Date(),
           },
@@ -234,8 +242,8 @@ async function updatePet(
             countryCode,
             category: {
               connectOrCreate: {
-                where: { name: groupName },
-                create: { name: groupName },
+                where: { name: categoryName },
+                create: { name: categoryName },
               },
             },
           },

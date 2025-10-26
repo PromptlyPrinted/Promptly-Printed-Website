@@ -96,6 +96,11 @@ const bookGroups = {
   ],
 };
 
+const CATEGORY_MAP: Record<string, string> = {
+  Books: 'Home & Living - Books',
+  Notebooks: 'Home & Living - Notebooks',
+};
+
 interface ProdigiProduct {
   sku: string;
   description: string;
@@ -217,6 +222,7 @@ async function updateBook(
     console.log(`Processing ${groupName} - ${sku}`);
 
     const priceUSD = Number.parseFloat(price);
+    const categoryName = CATEGORY_MAP[groupName] ?? groupName;
 
     // For each supported country
     for (const country of SUPPORTED_COUNTRIES) {
@@ -252,10 +258,15 @@ async function updateBook(
       }
 
       try {
-        await prisma.product.upsert({
-          where: {
-            sku: sku,
+        const whereUnique = {
+          sku_countryCode: {
+            sku,
+            countryCode,
           },
+        };
+
+        await prisma.product.upsert({
+          where: whereUnique,
           update: {
             name,
             description,
@@ -278,10 +289,7 @@ async function updateBook(
             style: 'Standard',
             countryCode,
             category: {
-              connectOrCreate: {
-                where: { name: groupName },
-                create: { name: groupName },
-              },
+              connect: { name: categoryName },
             },
             updatedAt: new Date(),
           },
@@ -309,8 +317,8 @@ async function updateBook(
             countryCode,
             category: {
               connectOrCreate: {
-                where: { name: groupName },
-                create: { name: groupName },
+                where: { name: categoryName },
+                create: { name: categoryName },
               },
             },
           },

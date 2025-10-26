@@ -160,6 +160,185 @@ const sortOptions = [
   { value: 'bestseller', label: 'Bestseller' },
 ];
 
+const IMAGE_PLACEHOLDER =
+  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
+
+type ApiProductResponse = {
+  id?: number | string;
+  sku?: string;
+  name: string;
+  description?: string | null;
+  pricing?: Array<{ amount: number; currency: string }>;
+  price?: number | null;
+  customerPrice?: number | null;
+  currency?: string | null;
+  shippingCost?: number | null;
+  imageUrls?: {
+    base?: string;
+    cover?: string;
+    sizeChart?: string;
+    productImage?: string;
+  };
+  category?: {
+    id?: number | string;
+    name: string;
+    description?: string | null;
+  } | null;
+  specifications?: Product['specifications'];
+  prodigiVariants?: Product['prodigiVariants'];
+  savedImages?: any[];
+  wishedBy?: any[];
+  stock?: number | null;
+};
+
+const FALLBACK_PRODUCTS: DisplayProduct[] = buildFallbackProducts();
+
+function buildFallbackProducts(): DisplayProduct[] {
+  return Object.values(tshirtDetails).map((product, index): DisplayProduct => {
+    const usdPrice =
+      product.pricing.find((p) => p.currency === 'USD')?.amount ||
+      product.pricing[0]?.amount ||
+      0;
+
+    const imageBase = product.imageUrls?.base || '';
+    const coverImage =
+      product.imageUrls?.productImage ||
+      product.imageUrls?.cover ||
+      (imageBase ? `${imageBase}/cover.png` : '');
+
+    return {
+      id: product.sku,
+      name: product.name,
+      description: product.shortDescription,
+      category: { id: product.category, name: product.category },
+      price: usdPrice,
+      pricing: product.pricing,
+      shippingCost: 0,
+      imageUrls: {
+        base: imageBase,
+        cover: coverImage,
+        sizeChart: product.imageUrls?.sizeChart || '',
+      },
+      sku: product.sku,
+      specifications: {
+        dimensions: product.dimensions
+          ? {
+              width: product.dimensions.width,
+              height: product.dimensions.height,
+              units: product.dimensions.units,
+            }
+          : undefined,
+        brand: product.brand?.name || 'Promptly Printed',
+        style: 'Standard',
+        color: product.colorOptions?.map((opt) => opt.name) || [],
+        size: product.size || [],
+      },
+      prodigiVariants: {
+        imageUrls: {
+          base: imageBase,
+        },
+        colorOptions: product.colorOptions || [],
+      },
+      savedImages: [],
+      wishedBy: [],
+      badge:
+        index % 5 === 0
+          ? 'bestseller'
+          : index % 7 === 0
+            ? 'new'
+            : index % 3 === 0
+              ? 'sale'
+              : undefined,
+      originalPrice: index % 3 === 0 ? usdPrice * 1.2 : undefined,
+      rating: 3.5 + (index % 3) * 0.5,
+      reviewCount: 12 + (index * 7) % 89,
+      stock:
+        index % 10 === 0
+          ? 2
+          : index % 15 === 0
+            ? 0
+            : 25 + ((index * 3) % 50),
+      isWishlisted: false,
+    };
+  });
+}
+
+function buildProductsFromApi(products: ApiProductResponse[]): DisplayProduct[] {
+  return products.map((product, index) => {
+    const price =
+      product.customerPrice ??
+      product.price ??
+      product.pricing?.[0]?.amount ??
+      0;
+    const currency =
+      product.currency ?? product.pricing?.[0]?.currency ?? 'USD';
+    const imageBase =
+      product.prodigiVariants?.imageUrls?.base ||
+      product.imageUrls?.base ||
+      '';
+    const coverImage =
+      product.imageUrls?.cover ||
+      product.imageUrls?.productImage ||
+      (imageBase ? `${imageBase}/cover.png` : '');
+
+    return {
+      id:
+        (typeof product.id === 'number'
+          ? product.id.toString()
+          : product.id) ||
+        product.sku ||
+        `product-${index}`,
+      name: product.name,
+      description: product.description || '',
+      category: product.category
+        ? {
+            id:
+              (typeof product.category.id === 'number'
+                ? product.category.id.toString()
+                : product.category.id) || product.category.name,
+            name: product.category.name,
+            description: product.category.description ?? undefined,
+          }
+        : { id: 'uncategorized', name: 'Uncategorized' },
+      price,
+      pricing:
+        product.pricing && product.pricing.length > 0
+          ? product.pricing
+          : [{ amount: price, currency }],
+      shippingCost: product.shippingCost ?? 0,
+      imageUrls: {
+        base: imageBase,
+        cover: coverImage,
+        sizeChart: product.imageUrls?.sizeChart || '',
+      },
+      sku: product.sku,
+      specifications: product.specifications ?? undefined,
+      prodigiVariants: product.prodigiVariants ?? undefined,
+      savedImages: product.savedImages ?? [],
+      wishedBy: product.wishedBy ?? [],
+      badge:
+        index % 5 === 0
+          ? 'bestseller'
+          : index % 7 === 0
+            ? 'new'
+            : index % 3 === 0
+              ? 'sale'
+              : undefined,
+      originalPrice: index % 3 === 0 ? price * 1.2 : undefined,
+      rating: 3.5 + (index % 3) * 0.5,
+      reviewCount: 12 + (index * 7) % 89,
+      stock:
+        product.stock ??
+        (index % 10 === 0
+          ? 2
+          : index % 15 === 0
+            ? 0
+            : 25 + ((index * 3) % 50)),
+      isWishlisted: false,
+    };
+  });
+}
+
 export default function ProductsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -190,33 +369,62 @@ export default function ProductsPage() {
   const [sortBy, setSortBy] = useState('relevance');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  // Convert tshirt details to DisplayProduct format
-  const rawProducts = useMemo(() => {
-    return Object.values(tshirtDetails).map((product, index): DisplayProduct => ({
-      id: product.sku,
-      name: product.name,
-      description: product.shortDescription,
-      category: { id: product.category, name: product.category },
-      price: product.pricing.find(p => p.currency === 'USD')?.amount || 0,
-      pricing: product.pricing,
-      shippingCost: 0,
-      imageUrls: {
-        base: product.imageUrls.base || '',
-        cover: product.imageUrls.productImage || `${product.imageUrls.base}/cover.png` || '',
-        sizeChart: ''
-      },
-      sku: product.sku,
-      specifications: undefined,
-      prodigiVariants: undefined,
-      savedImages: [],
-      wishedBy: [],
-      badge: index % 5 === 0 ? 'bestseller' : index % 7 === 0 ? 'new' : index % 3 === 0 ? 'sale' : undefined,
-      originalPrice: index % 3 === 0 ? (product.pricing.find(p => p.currency === 'USD')?.amount || 0) * 1.2 : undefined,
-      rating: 3.5 + (index % 3) * 0.5, // Random rating between 3.5-5
-      reviewCount: 12 + (index * 7) % 89, // Random review count
-      stock: index % 10 === 0 ? 2 : index % 15 === 0 ? 0 : 25 + (index * 3) % 50,
-      isWishlisted: index % 8 === 0,
-    }));
+  // Products (API backed with fallback)
+  const [rawProducts, setRawProducts] = useState<DisplayProduct[]>(() => [
+    ...FALLBACK_PRODUCTS,
+  ]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchProducts() {
+      try {
+        const response = await fetch('/api/products/list', {
+          cache: 'no-store',
+        });
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`);
+        }
+        const data = await response.json();
+        const fetchedProducts = Array.isArray(data.products)
+          ? buildProductsFromApi(data.products)
+          : [];
+
+        if (!cancelled) {
+          priceInitialized.current = false;
+          if (fetchedProducts.length > 0) {
+            setRawProducts(fetchedProducts);
+            setLoadError(null);
+          } else {
+            setRawProducts([...FALLBACK_PRODUCTS]);
+            setLoadError(
+              'Showing fallback catalog because no products were returned from the database.'
+            );
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch products list:', error);
+        if (!cancelled) {
+          priceInitialized.current = false;
+          setRawProducts([...FALLBACK_PRODUCTS]);
+          setLoadError(
+            'Unable to fetch live product data. Showing fallback catalog.'
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingProducts(false);
+        }
+      }
+    }
+
+    fetchProducts();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Calculate dynamic price range from products
@@ -302,13 +510,28 @@ export default function ProductsPage() {
     // Color filter
     if (selectedColors.length > 0) {
       filtered = filtered.filter(product => {
-        // Check if any of the product's available colors match the selected colors
-        const productColors = Object.values(tshirtDetails).find(p => p.sku === product.sku)?.colorOptions || [];
+        const prodigiColorNames =
+          product.prodigiVariants?.colorOptions?.map(color =>
+            color.name.toLowerCase()
+          ) || [];
+        const specificationColors =
+          product.specifications?.color?.map(color =>
+            color.toLowerCase()
+          ) || [];
+        const allProductColors = new Set([
+          ...prodigiColorNames,
+          ...specificationColors,
+        ]);
+
         return selectedColors.some(selectedColor => {
-          const colorName = colors.find(c => c.id === selectedColor)?.name || '';
-          return productColors.some(productColor => 
-            productColor.name.toLowerCase().includes(colorName.toLowerCase()) ||
-            colorName.toLowerCase().includes(productColor.name.toLowerCase())
+          const paletteColor =
+            colors.find(c => c.id === selectedColor)?.name.toLowerCase() || '';
+          if (!paletteColor) {
+            return false;
+          }
+          return Array.from(allProductColors).some(productColor =>
+            productColor.includes(paletteColor) ||
+            paletteColor.includes(productColor)
           );
         });
       });
@@ -1012,9 +1235,16 @@ export default function ProductsPage() {
 
           {/* Product Grid */}
           <div className="flex-1">
+            {loadError && (
+              <div className="mb-4 rounded-md border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
+                {loadError}
+              </div>
+            )}
             <div className="mb-4 flex items-center justify-between">
               <p className="text-sm" style={{ color: COLORS.gray600 }}>
-                Showing {filteredProducts.length} of {rawProducts.length} products
+                {isLoadingProducts
+                  ? 'Loading products...'
+                  : `Showing ${filteredProducts.length} of ${rawProducts.length} products`}
               </p>
             </div>
 
@@ -1071,9 +1301,34 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
   const [showColorOptions, setShowColorOptions] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [currentColorIndex, setCurrentColorIndex] = useState(0);
-  // Get color options from the original tshirt details
-  const originalProduct = Object.values(tshirtDetails).find(p => p.sku === product.sku);
-  const colorOptions = originalProduct?.colorOptions || [];
+
+  const formatColorForUrl = (colorName: string) =>
+    colorName.replace(/\s+/g, '-').toLowerCase();
+
+  const prodigiColorOptions =
+    product.prodigiVariants?.colorOptions ?? [];
+  const fallbackColorOptions =
+    product.specifications?.color?.map((name) => ({
+      name,
+      filename: `${formatColorForUrl(name)}.png`,
+    })) ?? [];
+  const colorOptions =
+    prodigiColorOptions.length > 0
+      ? prodigiColorOptions
+      : fallbackColorOptions;
+  const imageBase =
+    product.prodigiVariants?.imageUrls?.base || product.imageUrls.base;
+  const defaultImage =
+    product.imageUrls.cover ||
+    (imageBase
+      ? `${imageBase}/cover.png`
+      : product.imageUrls.base || IMAGE_PLACEHOLDER);
+  const selectedColorLabel = selectedColor
+    ? selectedColor.replace(/-/g, ' ')
+    : null;
+  const prettySelectedColor = selectedColorLabel
+    ? selectedColorLabel.replace(/\b\w/g, (letter) => letter.toUpperCase())
+    : null;
   
   // Create product URL using the same logic as the existing ProductCard
   const categorySlug = createSlug(product.category?.name || 'all');
@@ -1082,34 +1337,35 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
   
   // Get current image based on selected color or current index
   const getCurrentImage = () => {
-    // If user has selected a color, show that color's image
-    if (selectedColor && originalProduct) {
-      const colorOption = colorOptions.find(c => formatColorForUrl(c.name) === selectedColor);
+    if (selectedColor && imageBase) {
+      const colorOption = colorOptions.find(
+        (option) => formatColorForUrl(option.name) === selectedColor
+      );
       if (colorOption) {
-        return `${originalProduct.imageUrls.base}/${colorOption.filename}`;
+        const filename =
+          'filename' in colorOption && colorOption.filename
+            ? colorOption.filename
+            : `${formatColorForUrl(colorOption.name)}.png`;
+        return `${imageBase}/${filename}`;
       }
     }
 
-    // If hovering (but no color selected), show current color index
-    if (isHovered && !selectedColor && colorOptions.length > 0 && originalProduct) {
+    if (isHovered && !selectedColor && colorOptions.length > 0 && imageBase) {
       const currentColorOption = colorOptions[currentColorIndex];
       if (currentColorOption) {
-        return `${originalProduct.imageUrls.base}/${currentColorOption.filename}`;
+        const filename =
+          'filename' in currentColorOption && currentColorOption.filename
+            ? currentColorOption.filename
+            : `${formatColorForUrl(currentColorOption.name)}.png`;
+        return `${imageBase}/${filename}`;
       }
     }
 
-    // Default: show productImage thumbnail
-    return product.imageUrls.cover;
+    return defaultImage;
   };
   
-  // Function to convert color name to URL-safe format
-  const formatColorForUrl = (colorName: string) => {
-    return colorName.replace(/\s+/g, '-').toLowerCase();
-  };
-
   // Handle color selection
   const handleColorSelect = (colorName: string) => {
-    // Store the formatted color name
     const formattedColorName = formatColorForUrl(colorName);
     setSelectedColor(selectedColor === formattedColorName ? null : formattedColorName);
     // Update the current color index to match the selected color
@@ -1186,8 +1442,8 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
                 {product.name}
               </h3>
             </Link>
-            {selectedColor && (
-              <p className="text-sm text-gray-500 mt-1">Color: {selectedColor}</p>
+            {prettySelectedColor && (
+              <p className="text-sm text-gray-500 mt-1">Color: {prettySelectedColor}</p>
             )}
             <p className="text-sm mt-1 line-clamp-2" style={{ color: colors.gray600 }}>
               {product.description}
@@ -1230,8 +1486,8 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
                       boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
                     }}
                   >
-                    {selectedColor 
-                      ? `Design in ${selectedColor.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`
+                    {prettySelectedColor
+                      ? `Design in ${prettySelectedColor}`
                       : 'Design Now'
                     }
                   </button>
@@ -1246,9 +1502,12 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
           <div className="px-6 pb-4">
             <div className="flex flex-wrap items-center gap-2">
               {colorOptions.map((colorOption, index) => {
-                const colorKey = formatColorForUrl(colorOption.name);
+                const colorSlug = formatColorForUrl(colorOption.name);
                 const colorHex = getColorHex(colorOption.name) || '#CCCCCC';
-                const isSelected = selectedColor === colorOption.name || (!selectedColor && index === currentColorIndex);
+                const isSelected =
+                  selectedColor
+                    ? selectedColor === colorSlug
+                    : index === currentColorIndex;
                 
                 return (
                   <button
@@ -1388,9 +1647,12 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
         <div className="px-4 pt-2 pb-1">
           <div className="flex flex-wrap items-center justify-center gap-2">
             {colorOptions.map((colorOption, index) => {
-                  const colorKey = formatColorForUrl(colorOption.name);
-                  const colorHex = getColorHex(colorOption.name) || '#CCCCCC';
-                  const isSelected = selectedColor === colorOption.name || (!selectedColor && index === currentColorIndex);
+              const colorSlug = formatColorForUrl(colorOption.name);
+              const colorHex = getColorHex(colorOption.name) || '#CCCCCC';
+              const isSelected =
+                selectedColor
+                  ? selectedColor === colorSlug
+                  : index === currentColorIndex;
                   
               return (
                 <button
@@ -1443,9 +1705,9 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
             {product.name}
           </h3>
         </Link>
-        {selectedColor && (
+        {prettySelectedColor && (
           <p className="text-xs text-gray-500 mt-1">
-            Color: {selectedColor}
+            Color: {prettySelectedColor}
           </p>
         )}
 
@@ -1492,8 +1754,8 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
           >
             {product.stock === 0 
               ? 'Out of Stock' 
-              : selectedColor 
-                ? `Design in ${selectedColor.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`
+              : prettySelectedColor
+                ? `Design in ${prettySelectedColor}`
                 : 'Design Now'
             }
           </button>

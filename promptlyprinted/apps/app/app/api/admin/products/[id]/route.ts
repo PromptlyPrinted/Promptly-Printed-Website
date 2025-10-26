@@ -78,7 +78,7 @@ export async function PATCH(
     } = body;
 
     // Optional: Validate SKU with Prodigi API if environment variables are set
-    if (process.env.PRODIGI_API_KEY && process.env.PRODIGI_API) {
+    if (sku && process.env.PRODIGI_API_KEY && process.env.PRODIGI_API) {
       try {
         const prodigiResponse = await fetch(
           `${process.env.PRODIGI_API}/v4.0/products/${sku}`,
@@ -97,22 +97,36 @@ export async function PATCH(
       }
     }
 
+    const updateData: Record<string, unknown> = {};
+    if (name !== undefined) updateData.name = name;
+    if (sku !== undefined) updateData.sku = sku;
+    if (description !== undefined) updateData.description = description;
+    if (price !== undefined) updateData.price = price;
+    if (customerPrice !== undefined) updateData.customerPrice = customerPrice;
+    if (currency !== undefined) updateData.currency = currency;
+    if (stock !== undefined) updateData.stock = stock;
+    if (listed !== undefined) updateData.listed = listed;
+    if (productType !== undefined) updateData.productType = productType;
+    if (categoryId !== undefined) {
+      updateData.categoryId =
+        categoryId === null
+          ? null
+          : typeof categoryId === 'string'
+            ? Number.parseInt(categoryId, 10)
+            : categoryId;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return new NextResponse('No fields provided to update', {
+        status: 400,
+      });
+    }
+
     const product = await db.product.update({
       where: {
         id: Number.parseInt(id),
       },
-      data: {
-        name,
-        sku,
-        description,
-        price,
-        customerPrice,
-        currency,
-        stock,
-        listed,
-        categoryId,
-        productType,
-      },
+      data: updateData,
     });
 
     revalidatePath('/admin/products');

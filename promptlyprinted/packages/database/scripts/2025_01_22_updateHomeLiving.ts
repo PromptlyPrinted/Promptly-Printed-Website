@@ -116,6 +116,12 @@ const homeLivingGroups = {
   ],
 };
 
+const CATEGORY_MAP: Record<string, string> = {
+  Drinkware: 'Home & Living - Drinkware',
+  Kitchen: 'Home & Living - Kitchen',
+  Decor: 'Home & Living - Decor',
+};
+
 interface ProdigiProduct {
   sku: string;
   description: string;
@@ -238,6 +244,7 @@ async function updateHomeLiving(
     }
 
     const priceUSD = Number.parseFloat(price);
+    const categoryName = CATEGORY_MAP[groupName] ?? groupName;
 
     // For each supported country that the product ships to
     for (const country of SUPPORTED_COUNTRIES) {
@@ -272,7 +279,7 @@ async function updateHomeLiving(
       const productData = {
         name: product.description,
         description: product.description,
-        sku: `${sku}-${countryCode}`,
+        sku,
         price: priceUSD,
         customerPrice: localPrice,
         currency,
@@ -299,14 +306,24 @@ async function updateHomeLiving(
 
       // Upsert the product
       await prisma.product.upsert({
-        where: { sku: productData.sku },
-        update: productData,
+        where: {
+          sku_countryCode: {
+            sku,
+            countryCode,
+          },
+        },
+        update: {
+          ...productData,
+          category: {
+            connect: { name: categoryName },
+          },
+        },
         create: {
           ...productData,
           category: {
             connectOrCreate: {
-              where: { name: groupName },
-              create: { name: groupName },
+              where: { name: categoryName },
+              create: { name: categoryName },
             },
           },
         },

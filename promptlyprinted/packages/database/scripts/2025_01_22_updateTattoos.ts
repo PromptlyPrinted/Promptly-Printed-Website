@@ -49,6 +49,11 @@ const tattooGroups = {
   ],
 };
 
+const CATEGORY_MAP: Record<string, string> = {
+  'Small Tattoos': 'Others - Tattoos',
+  'Medium Tattoos': 'Others - Tattoos',
+};
+
 interface ProdigiProduct {
   sku: string;
   description: string;
@@ -150,6 +155,7 @@ async function updateTattoo(
     console.log(`Processing ${groupName} - ${sku}`);
 
     const priceUSD = Number.parseFloat(price);
+    const categoryName = CATEGORY_MAP[groupName] ?? groupName;
 
     // For each supported country
     for (const country of SUPPORTED_COUNTRIES) {
@@ -159,10 +165,15 @@ async function updateTattoo(
       const localPrice = convertPrice(priceUSD, exchangeRates[currency] || 1);
 
       try {
-        await prisma.product.upsert({
-          where: {
-            sku: sku,
+        const whereUnique = {
+          sku_countryCode: {
+            sku,
+            countryCode,
           },
+        };
+
+        await prisma.product.upsert({
+          where: whereUnique,
           update: {
             name,
             description,
@@ -185,10 +196,7 @@ async function updateTattoo(
             style: 'Standard',
             countryCode,
             category: {
-              connectOrCreate: {
-                where: { name: groupName },
-                create: { name: groupName },
-              },
+              connect: { name: categoryName },
             },
             updatedAt: new Date(),
           },
@@ -216,8 +224,8 @@ async function updateTattoo(
             countryCode,
             category: {
               connectOrCreate: {
-                where: { name: groupName },
-                create: { name: groupName },
+                where: { name: categoryName },
+                create: { name: categoryName },
               },
             },
           },

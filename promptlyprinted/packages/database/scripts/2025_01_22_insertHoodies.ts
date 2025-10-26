@@ -122,6 +122,7 @@ async function main() {
             totalCost: priceObj.amount,
             edge: 'standard', // Default value
             style: 'casual', // Default value
+            listed: true,
             prodigiAttributes: {
               features: details.features,
               materials: details.materials,
@@ -166,6 +167,7 @@ async function main() {
             totalCost: priceObj.amount,
             edge: 'standard', // Default value
             style: 'casual', // Default value
+            listed: true,
             prodigiAttributes: {
               features: details.features,
               materials: details.materials,

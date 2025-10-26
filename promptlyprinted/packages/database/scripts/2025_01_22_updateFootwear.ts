@@ -66,6 +66,11 @@ const footwearGroups = {
   ],
 };
 
+const CATEGORY_MAP: Record<string, string> = {
+  Socks: 'Accessories - Socks',
+  'Flip-Flops': 'Accessories - Flip-Flops',
+};
+
 interface ProdigiProduct {
   sku: string;
   description: string;
@@ -188,6 +193,7 @@ async function updateFootwear(
     }
 
     const priceUSD = Number.parseFloat(price);
+    const categoryName = CATEGORY_MAP[groupName] ?? groupName;
 
     // For each supported country that the product ships to
     for (const country of SUPPORTED_COUNTRIES) {
@@ -225,7 +231,7 @@ async function updateFootwear(
       const productData = {
         name: product.description,
         description: product.description,
-        sku: `${sku}-${countryCode}`,
+        sku,
         price: priceUSD,
         customerPrice: localPrice,
         currency,
@@ -252,14 +258,24 @@ async function updateFootwear(
 
       // Upsert the product
       await prisma.product.upsert({
-        where: { sku: productData.sku },
-        update: productData,
+        where: {
+          sku_countryCode: {
+            sku,
+            countryCode,
+          },
+        },
+        update: {
+          ...productData,
+          category: {
+            connect: { name: categoryName },
+          },
+        },
         create: {
           ...productData,
           category: {
             connectOrCreate: {
-              where: { name: groupName },
-              create: { name: groupName },
+              where: { name: categoryName },
+              create: { name: categoryName },
             },
           },
         },

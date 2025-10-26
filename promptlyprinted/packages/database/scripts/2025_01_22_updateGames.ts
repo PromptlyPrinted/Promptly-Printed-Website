@@ -70,6 +70,10 @@ const gameGroups = {
   ],
 };
 
+const CATEGORY_MAP: Record<string, string> = {
+  Games: 'Others - Games',
+};
+
 interface ProdigiProduct {
   sku: string;
   description: string;
@@ -192,6 +196,7 @@ async function updateGame(
     }
 
     const priceUSD = Number.parseFloat(price);
+    const categoryName = CATEGORY_MAP[groupName] ?? groupName;
 
     // For each supported country that the product ships to
     for (const country of SUPPORTED_COUNTRIES) {
@@ -231,7 +236,7 @@ async function updateGame(
       const productData = {
         name: product.description,
         description: product.description,
-        sku: `${sku}-${countryCode}`,
+        sku,
         price: priceUSD,
         customerPrice: localPrice,
         currency,
@@ -258,14 +263,24 @@ async function updateGame(
 
       // Upsert the product
       await prisma.product.upsert({
-        where: { sku: productData.sku },
-        update: productData,
+        where: {
+          sku_countryCode: {
+            sku,
+            countryCode,
+          },
+        },
+        update: {
+          ...productData,
+          category: {
+            connect: { name: categoryName },
+          },
+        },
         create: {
           ...productData,
           category: {
             connectOrCreate: {
-              where: { name: groupName },
-              create: { name: groupName },
+              where: { name: categoryName },
+              create: { name: categoryName },
             },
           },
         },
