@@ -612,6 +612,21 @@ export default function ProductsPage() {
 
     // Sort products
     filtered.sort((a, b) => {
+      // Helper to get category order
+      const getCategoryOrder = (product: DisplayProduct) => {
+        const categoryName = product.category?.name?.toLowerCase() || '';
+        if ((categoryName.includes('men') && !categoryName.includes('women')) || categoryName.includes("men's")) return 0;
+        if (categoryName.includes('women') || categoryName.includes("women's")) return 1;
+        if (categoryName.includes('kids') || categoryName.includes('baby') || categoryName.includes('kid')) return 2;
+        if (categoryName.includes('accessories') || categoryName.includes('watch') || categoryName.includes('bag') ||
+            categoryName.includes('mat') || categoryName.includes('sleeve') || categoryName.includes('sock') ||
+            categoryName.includes('flip') || categoryName.includes('keyring') || categoryName.includes('pendant')) return 3;
+        if (categoryName.includes('home') || categoryName.includes('cushion') || categoryName.includes('gallery') ||
+            categoryName.includes('acrylic') || categoryName.includes('print') || categoryName.includes('poster') ||
+            categoryName.includes('mug') || categoryName.includes('cutting board')) return 4;
+        return 5; // Others
+      };
+
       switch (sortBy) {
         case 'price-low':
           return (a.price || 0) - (b.price || 0);
@@ -624,6 +639,9 @@ export default function ProductsPage() {
         case 'bestseller':
           return (b.badge === 'bestseller' ? 1 : 0) - (a.badge === 'bestseller' ? 1 : 0);
         default:
+          // Default 'relevance' - sort by category order first, then by name
+          const categoryDiff = getCategoryOrder(a) - getCategoryOrder(b);
+          if (categoryDiff !== 0) return categoryDiff;
           return a.name.localeCompare(b.name);
       }
     });
