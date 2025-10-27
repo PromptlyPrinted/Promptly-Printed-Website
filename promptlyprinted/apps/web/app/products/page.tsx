@@ -2043,6 +2043,20 @@ function getColorHex(colorName: string): string | null {
     'glossy': '#E8F4F8',
     'matte': '#D3D3D3',
 
+    // Hoodie-specific colors
+    'airforce blue': '#5D8AA8',
+    'candy pink': '#FFB3D9',
+    'fire red': '#DC143C',
+    'hawaiian blue': '#1E90FF',
+    'hot pink': '#FF69B4',
+    'jade': '#00A86B',
+    'lime green': '#32CD32',
+    'new french navy': '#000080',
+    'orange crush': '#FF8C00',
+    'plum': '#8E4585',
+    'red hot chilli': '#E23D28',
+    'sapphire blue': '#0F52BA',
+
     // Greys
     'anthracite': '#36454F',
     'charcoal': '#36454F',

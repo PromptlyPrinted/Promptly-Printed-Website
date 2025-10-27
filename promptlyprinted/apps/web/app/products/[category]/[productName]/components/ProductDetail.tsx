@@ -111,7 +111,9 @@ const colorHexMap: Record<string, string> = {
   // Pinks
   'cotton-pink': '#FFB3BA',
   'pink': '#FF69B4',
-  
+  'candy-pink': '#FFB3D9',
+  'hot-pink': '#FF69B4',
+
   // Greens
   'glazed-green': '#8FBC8F',
   'irish-green': '#009A49',
@@ -119,7 +121,9 @@ const colorHexMap: Record<string, string> = {
   'kelly-green': '#4CBB17',
   'military-green-triblend': '#4B5320',
   'apple': '#8DB600',
-  
+  'jade': '#00A86B',
+  'lime-green': '#32CD32',
+
   // Yellows
   'khaki': '#F0E68C',
   'desert-dust': '#EDC9AF',
@@ -128,6 +132,16 @@ const colorHexMap: Record<string, string> = {
   'sun-yellow': '#FFD700',
   'butter': '#FFDB58',
   'daisy': '#FFFF31',
+
+  // Hoodie-specific colors
+  'airforce-blue': '#5D8AA8',
+  'fire-red': '#DC143C',
+  'hawaiian-blue': '#1E90FF',
+  'new-french-navy': '#000080',
+  'orange-crush': '#FF8C00',
+  'plum': '#8E4585',
+  'red-hot-chilli': '#E23D28',
+  'sapphire-blue': '#0F52BA',
   
   // Special colors
   'azalea': '#F56FA1',

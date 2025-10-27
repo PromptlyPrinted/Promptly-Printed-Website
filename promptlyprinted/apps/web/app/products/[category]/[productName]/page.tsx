@@ -4,6 +4,7 @@ import { createMetadata } from '@repo/seo/metadata';
 import type { Metadata } from 'next';
 import { ProductDetail } from './components/ProductDetail';
 import type { Product } from '@/types/product';
+import { database } from '@repo/database';
 
 interface ProductPageProps {
   params: Promise<{
@@ -66,44 +67,79 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const { category: categorySlug, productName: productSlug } = await params;
   console.log(`Attempting to find product for: /products/${categorySlug}/${productSlug}`);
 
-  const product = Object.values(tshirtDetails).find(
+  // First try to find in static data for fallback
+  const staticProduct = Object.values(tshirtDetails).find(
     (p) =>
       normalizeString(p.category) === normalizeString(categorySlug) &&
       normalizeString(p.name) === normalizeString(productSlug)
   );
-  console.log('Product found for page:', product ? product.name : 'None');
 
+  // Try to fetch from database for most up-to-date data
+  let dbProduct = null;
+  if (staticProduct?.sku) {
+    dbProduct = await database.product.findFirst({
+      where: {
+        sku: staticProduct.sku,
+        countryCode: 'US',
+        listed: true,
+      },
+      include: {
+        category: true,
+      },
+    });
+  }
+
+  // Use database product if available, otherwise fall back to static
+  const product = staticProduct;
   if (!product) {
     notFound();
   }
 
-  // Map tshirtDetails to Product interface
+  console.log('Product found for page:', product.name);
+
+  // If we have database data, use it for colors and variants (most up-to-date)
+  const colorOptions = dbProduct
+    ? (dbProduct.prodigiVariants as any)?.colorOptions ||
+      dbProduct.color.map((name: string) => ({
+        name,
+        filename: `${name.toLowerCase().replace(/\s+/g, '-')}.png`
+      }))
+    : product.colorOptions;
+
+  const imageBase = dbProduct
+    ? (dbProduct.prodigiVariants as any)?.imageUrls?.base || product.imageUrls.base
+    : product.imageUrls.base;
+
+  // Map to Product interface
   const productWithPrice: Product = {
     id: product.sku,
     name: product.name,
     description: product.shortDescription,
     pricing: product.pricing,
     price: product.pricing.find((p) => p.currency === 'USD')?.amount || 0,
-    shippingCost: 0, // Default shipping cost
-    imageUrls: product.imageUrls,
+    shippingCost: 0,
+    imageUrls: {
+      ...product.imageUrls,
+      base: imageBase,
+    },
     sku: product.sku,
     category: {
-      id: product.sku,
-      name: product.category,
+      id: dbProduct?.category?.id.toString() || product.sku,
+      name: dbProduct?.category?.name || product.category,
     },
     specifications: {
       dimensions: product.dimensions,
       brand: product.brand?.name || '',
       style: product.productType,
-      color: product.colorOptions?.map(opt => opt.name) || [],
+      color: colorOptions?.map((opt: any) => opt.name) || [],
       size: product.size,
     },
     prodigiVariants: {
-        imageUrls: {
-            base: product.imageUrls.base
-        },
-        colorOptions: product.colorOptions,
-        sizes: product.size,
+      imageUrls: {
+        base: imageBase
+      },
+      colorOptions: colorOptions,
+      sizes: product.size,
     },
     savedImages: [],
     wishedBy: [],
