@@ -166,7 +166,6 @@ const colors = [
   { id: 'bottle-green', name: 'Bottle Green', hex: '#006A4E' },
 ];
 
-const brands = ['Promptly Printed', 'Premium Collection', 'Eco-Friendly Line'];
 const sortOptions = [
   { value: 'relevance', label: 'Relevance' },
   { value: 'price-low', label: 'Price: Low to High' },
@@ -396,7 +395,6 @@ export default function ProductsPage() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>(getInitialCategory);
   const [selectedSubcategories, setSelectedSubcategories] = useState<string[]>([]);
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
-  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [showAllColors, setShowAllColors] = useState(false);
   const [priceRange, setPriceRange] = useState([0, 200]);
   const priceInitialized = useRef(false);
@@ -492,17 +490,35 @@ export default function ProductsPage() {
     if (!selectedCategories.includes('all')) {
       filtered = filtered.filter(product => {
         const categoryName = product.category?.name?.toLowerCase() || '';
+        const productName = product.name?.toLowerCase() || '';
         return selectedCategories.some(cat => {
           switch (cat) {
-            case 'mens': return (categoryName.includes('men') && !categoryName.includes('women')) || categoryName.includes("men's");
-            case 'womens': return categoryName.includes('women') || categoryName.includes("women's");
-            case 'kids': return categoryName.includes('kids') || categoryName.includes('baby') || categoryName.includes('kid');
+            case 'mens':
+              return (categoryName.includes("men's") ||
+                     (categoryName.includes('men') && !categoryName.includes('women')) ||
+                     productName.includes("men's") ||
+                     (productName.includes('men') && !productName.includes('women')));
+            case 'womens':
+              return (categoryName.includes("women's") ||
+                     categoryName.includes('women') ||
+                     productName.includes("women's") ||
+                     productName.includes('women'));
+            case 'kids':
+              return (categoryName.includes('kids') ||
+                     categoryName.includes('baby') ||
+                     categoryName.includes('kid') ||
+                     productName.includes('kids') ||
+                     productName.includes('kid'));
             case 'accessories': return categoryName.includes('accessories');
             case 'home': return categoryName.includes('home');
-            case 'others': return !categoryName.includes('men') && !categoryName.includes('women') && 
-                                !categoryName.includes('kids') && !categoryName.includes('baby') &&
-                                !categoryName.includes('accessories') && !categoryName.includes('home') &&
-                                !categoryName.includes('kid');
+            case 'others': {
+              const isMens = categoryName.includes("men's") || (categoryName.includes('men') && !categoryName.includes('women')) || productName.includes("men's") || (productName.includes('men') && !productName.includes('women'));
+              const isWomens = categoryName.includes("women's") || categoryName.includes('women') || productName.includes("women's") || productName.includes('women');
+              const isKids = categoryName.includes('kids') || categoryName.includes('baby') || categoryName.includes('kid') || productName.includes('kids') || productName.includes('kid');
+              const isAccessories = categoryName.includes('accessories');
+              const isHome = categoryName.includes('home');
+              return !isMens && !isWomens && !isKids && !isAccessories && !isHome;
+            }
             default: return true;
           }
         });
@@ -583,13 +599,6 @@ export default function ProductsPage() {
       );
     }
 
-    // Brand filter
-    if (selectedBrands.length > 0) {
-      filtered = filtered.filter(product =>
-        selectedBrands.some(brand => product.name.includes(brand))
-      );
-    }
-
     // Price filter
     filtered = filtered.filter(product =>
       (product.price || 0) >= priceRange[0] && (product.price || 0) <= priceRange[1]
@@ -615,15 +624,30 @@ export default function ProductsPage() {
       // Helper to get category order
       const getCategoryOrder = (product: DisplayProduct) => {
         const categoryName = product.category?.name?.toLowerCase() || '';
-        if ((categoryName.includes('men') && !categoryName.includes('women')) || categoryName.includes("men's")) return 0;
-        if (categoryName.includes('women') || categoryName.includes("women's")) return 1;
-        if (categoryName.includes('kids') || categoryName.includes('baby') || categoryName.includes('kid')) return 2;
+        const productName = product.name?.toLowerCase() || '';
+
+        // Check Men's first (before Women's to avoid "women" matching "men")
+        if (categoryName.includes("men's") || (categoryName.includes('men') && !categoryName.includes('women')) ||
+            productName.includes("men's") || (productName.includes('men') && !productName.includes('women'))) return 0;
+
+        // Check Women's
+        if (categoryName.includes("women's") || categoryName.includes('women') ||
+            productName.includes("women's") || productName.includes('women')) return 1;
+
+        // Check Kids
+        if (categoryName.includes('kids') || categoryName.includes('baby') || categoryName.includes('kid') ||
+            productName.includes('kids') || productName.includes('kid')) return 2;
+
+        // Check Accessories
         if (categoryName.includes('accessories') || categoryName.includes('watch') || categoryName.includes('bag') ||
             categoryName.includes('mat') || categoryName.includes('sleeve') || categoryName.includes('sock') ||
             categoryName.includes('flip') || categoryName.includes('keyring') || categoryName.includes('pendant')) return 3;
+
+        // Check Home & Living
         if (categoryName.includes('home') || categoryName.includes('cushion') || categoryName.includes('gallery') ||
             categoryName.includes('acrylic') || categoryName.includes('print') || categoryName.includes('poster') ||
             categoryName.includes('mug') || categoryName.includes('cutting board')) return 4;
+
         return 5; // Others
       };
 
@@ -647,7 +671,7 @@ export default function ProductsPage() {
     });
 
     return filtered;
-  }, [rawProducts, selectedCategories, selectedSubcategories, selectedColors, searchTerm, selectedBrands, priceRange, minRating, inStockOnly, onSaleOnly, sortBy]);
+  }, [rawProducts, selectedCategories, selectedSubcategories, selectedColors, searchTerm, priceRange, minRating, inStockOnly, onSaleOnly, sortBy]);
 
   // Active filters count
   const activeFiltersCount = useMemo(() => {
@@ -655,13 +679,12 @@ export default function ProductsPage() {
     if (!selectedCategories.includes('all')) count++;
     if (selectedSubcategories.length > 0) count++;
     if (selectedColors.length > 0) count++;
-    if (selectedBrands.length > 0) count++;
     if (priceRange[0] > minPrice || priceRange[1] < maxPrice) count++;
     if (minRating > 0) count++;
     if (inStockOnly) count++;
     if (onSaleOnly) count++;
     return count;
-  }, [selectedCategories, selectedSubcategories, selectedColors, selectedBrands, priceRange, minRating, inStockOnly, onSaleOnly, minPrice, maxPrice]);
+  }, [selectedCategories, selectedSubcategories, selectedColors, priceRange, minRating, inStockOnly, onSaleOnly, minPrice, maxPrice]);
 
   // Update URL with current filters
   const updateURL = useCallback((filters: {
@@ -743,7 +766,6 @@ export default function ProductsPage() {
     setSelectedSubcategories([]);
     setSelectedColors([]);
     setShowAllColors(false);
-    setSelectedBrands([]);
     setPriceRange([minPrice, maxPrice]);
     priceInitialized.current = true;
     setMinRating(0);
@@ -770,15 +792,6 @@ export default function ProductsPage() {
     setSelectedCategories(newCategories);
     updateURL({ categories: newCategories });
   }, [selectedCategories, updateURL]);
-
-  // Toggle brand
-  const toggleBrand = useCallback((brand: string) => {
-    const newBrands = selectedBrands.includes(brand)
-      ? selectedBrands.filter(b => b !== brand)
-      : [...selectedBrands, brand];
-    setSelectedBrands(newBrands);
-    updateURL({ brands: newBrands });
-  }, [selectedBrands, updateURL]);
 
   // Toggle subcategory
   const toggleSubcategory = useCallback((subcategory: string) => {
@@ -972,29 +985,13 @@ export default function ProductsPage() {
                   <span
                     key={colorId}
                     className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
-                    style={{ 
-                      backgroundColor: COLORS.lightMint, 
-                      color: COLORS.dark 
+                    style={{
+                      backgroundColor: COLORS.lightMint,
+                      color: COLORS.dark
                     }}
                   >
                     {colors.find(c => c.id === colorId)?.name}
                     <button onClick={() => toggleColor(colorId)}>
-                      <X className="h-3 w-3" />
-                    </button>
-                  </span>
-                ))}
-
-                {selectedBrands.map(brand => (
-                  <span
-                    key={brand}
-                    className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
-                    style={{ 
-                      backgroundColor: COLORS.lightMint, 
-                      color: COLORS.dark 
-                    }}
-                  >
-                    {brand}
-                    <button onClick={() => toggleBrand(brand)}>
                       <X className="h-3 w-3" />
                     </button>
                   </span>
@@ -1169,31 +1166,6 @@ export default function ProductsPage() {
                         </Button>
                       </div>
                     )}
-                  </div>
-
-                  {/* Brands */}
-                  <div>
-                    <h4 className="text-sm font-medium mb-3" style={{ color: COLORS.dark }}>
-                      Brands
-                    </h4>
-                    <div className="space-y-2">
-                      {brands.map((brand) => (
-                        <div key={brand} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={brand}
-                            checked={selectedBrands.includes(brand)}
-                            onCheckedChange={() => toggleBrand(brand)}
-                          />
-                          <label
-                            htmlFor={brand}
-                            className="text-sm cursor-pointer"
-                            style={{ color: COLORS.gray700 }}
-                          >
-                            {brand}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
                   </div>
 
                   {/* Rating */}
