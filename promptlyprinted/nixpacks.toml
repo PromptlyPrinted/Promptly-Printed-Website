@@ -1,3 +1,6 @@
+[settings]
+providers = ["node"]
+
 [phases.setup]
 nixPkgs = ["nodejs_22", "pnpm"]
 
