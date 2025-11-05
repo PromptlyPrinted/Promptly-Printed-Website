@@ -5,33 +5,36 @@ providers = ["node"]
 nixPkgs = ["nodejs_22", "pnpm"]
 
 [phases.install]
-cmd = "corepack enable && pnpm install --frozen-lockfile"
+cmds = [
+  "corepack enable",
+  "pnpm install --frozen-lockfile"
+]
 
-[profiles.web.build]
-cmd = "pnpm --filter web build"
+[profiles.web.phases.build]
+cmds = ["pnpm --filter web build"]
 
 [profiles.web.start]
-cmd = "cd apps/web && pnpm start"
+cmd = "pnpm --filter web start"
 
 [profiles.web.env]
 PORT = "3000"
 APP_DIR = "apps/web"
 
-[profiles.app.build]
-cmd = "pnpm --filter app build"
+[profiles.app.phases.build]
+cmds = ["pnpm --filter app build"]
 
 [profiles.app.start]
-cmd = "cd apps/app && pnpm start"
+cmd = "pnpm --filter app start"
 
 [profiles.app.env]
 PORT = "3000"
 APP_DIR = "apps/app"
 
-[profiles.api.build]
-cmd = "pnpm --filter api build"
+[profiles.api.phases.build]
+cmds = ["pnpm --filter api build"]
 
 [profiles.api.start]
-cmd = "cd apps/api && pnpm start"
+cmd = "pnpm --filter api start"
 
 [profiles.api.env]
 PORT = "3000"
