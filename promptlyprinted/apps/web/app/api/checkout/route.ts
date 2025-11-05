@@ -5,11 +5,14 @@ import { OrderStatus, ShippingMethod } from '@repo/database';
 import { prisma } from '@repo/database';
 import type { User } from '@repo/database';
 import { type NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
+import { Client as SquareClient, Environment } from 'square';
 import { ZodError, z } from 'zod';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-02-24.acacia',
+const squareClient = new SquareClient({
+  accessToken: process.env.SQUARE_ACCESS_TOKEN!,
+  environment: process.env.SQUARE_ENVIRONMENT === 'production'
+    ? Environment.Production
+    : Environment.Sandbox,
 });
 
 /**
@@ -345,106 +348,86 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // Prepare Stripe session metadata
-      const stripeMetadata: Record<string, string> = {
+      // Prepare Square order metadata
+      const squareMetadata: Record<string, string> = {
         isGuestCheckout: isGuestCheckout.toString(),
       };
 
       if (order) {
-        stripeMetadata.orderId = order.id.toString();
+        squareMetadata.orderId = order.id.toString();
       } else {
         // For guest checkout, store order data in metadata to create after payment
-        stripeMetadata.orderData = JSON.stringify({
+        squareMetadata.orderData = JSON.stringify({
           items: orderItems.items,
           totalPrice: total,
         });
       }
 
-      // Create Stripe checkout session
-      const stripeSession = await stripe.checkout.sessions.create({
-        customer_email: dbUser?.email || undefined, // Allow Stripe to collect email for guests
-        allow_promotion_codes: true, // Enable discount code field at checkout
-        line_items: await Promise.all(orderItems.items.map(async (item) => {
-          // TEMPORARY: Hard-code a test image URL to test if localhost is the issue
-          const hardcodedTestImage = 'https://files.stripe.com/links/MDB8YWNjdF8xUWZLWEVGaVVvWGRXcFFOfGZsX3Rlc3RfNGF0VVdJWk5jNDdHSDBGOHd6V1Y2cHoz00CgkmPw0R';
+      // Create Square checkout (Payment Link)
+      const checkoutApi = squareClient.checkoutApi;
 
-          console.log('USING HARDCODED TEST IMAGE FOR DEBUGGING');
-          const images = [hardcodedTestImage];
-
-          // Original code (commented out for testing):
-          // const images = await Promise.all(item.images
-          //   .map(async (img) => {
-          //     const resolvedUrl = await getImageUrl(img.url);
-          //     if (!resolvedUrl) {
-          //       console.error('Failed to resolve image URL:', img.url);
-          //       return '';
-          //     }
-          //     console.log('Resolved image URL:', {
-          //       original: img.url,
-          //       resolved: resolvedUrl,
-          //     });
-          //     return resolvedUrl;
-          //   }))
-          //   .then(urls => urls.filter(Boolean));
-
-          // if (images.length === 0) {
-          //   console.error('No valid images found for item:', item.productId);
-          //   throw new Error(`No valid images found for item ${item.productId}`);
-          // }
-
-          return {
-            price_data: {
-              currency: 'usd',
-              product_data: {
-                name: item.name,
-                images: images,
-              },
-              unit_amount: Math.round(item.price * 100), // Convert to cents
-            },
-            quantity: item.copies,
-          };
-        })),
-        mode: 'payment',
-        success_url: `${process.env.NEXT_PUBLIC_WEB_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.NEXT_PUBLIC_WEB_URL}/cancel`,
-        metadata: stripeMetadata,
-        shipping_address_collection: {
-          allowed_countries: ['US', 'CA', 'GB', 'AU', 'NZ'],
+      // Prepare line items for Square
+      const lineItems = orderItems.items.map((item) => ({
+        name: item.name,
+        quantity: item.copies.toString(),
+        basePriceMoney: {
+          amount: BigInt(Math.round(item.price * 100)), // Convert to cents
+          currency: 'USD',
         },
-        payment_method_types: ['card', 'link', 'paypal'],
-        shipping_options: [
-          {
-            shipping_rate_data: {
-              type: 'fixed_amount',
-              fixed_amount: {
-                amount: 0,
-                currency: 'usd',
-              },
-              display_name: 'Free shipping',
-              delivery_estimate: {
-                minimum: {
-                  unit: 'business_day',
-                  value: 5,
-                },
-                maximum: {
-                  unit: 'business_day',
-                  value: 7,
-                },
-              },
-            },
-          },
-        ],
+        // Note: Square doesn't support product images in checkout directly
+      }));
+
+      // Create Square order first
+      const squareOrderResponse = await squareClient.ordersApi.createOrder({
+        order: {
+          locationId: process.env.SQUARE_LOCATION_ID!,
+          lineItems: lineItems,
+          metadata: squareMetadata,
+        },
+        idempotencyKey: randomUUID(),
       });
 
-      if (!stripeSession.url) {
-        throw new Error('Failed to create Stripe checkout session');
+      if (!squareOrderResponse.result.order) {
+        throw new Error('Failed to create Square order');
       }
 
-      // Update order with Stripe session ID (only for authenticated users)
+      const squareOrderId = squareOrderResponse.result.order.id!;
+
+      // Create payment link for the order
+      const paymentLinkResponse = await squareClient.checkoutApi.createPaymentLink({
+        idempotencyKey: randomUUID(),
+        order: {
+          locationId: process.env.SQUARE_LOCATION_ID!,
+          lineItems: lineItems,
+        },
+        checkoutOptions: {
+          redirectUrl: `${process.env.NEXT_PUBLIC_WEB_URL}/checkout/success`,
+          askForShippingAddress: true,
+          allowedPaymentMethods: {
+            card: true,
+            applePay: true,
+            googlePay: true,
+          },
+        },
+        prePopulatedData: {
+          buyerEmail: dbUser?.email || undefined,
+        },
+      });
+
+      if (!paymentLinkResponse.result.paymentLink?.url) {
+        throw new Error('Failed to create Square payment link');
+      }
+
+      const paymentLinkUrl = paymentLinkResponse.result.paymentLink.url;
+      const paymentLinkId = paymentLinkResponse.result.paymentLink.id!;
+
+      // Update order with Square order ID (only for authenticated users)
       if (order) {
         await prisma.order.update({
           where: { id: order.id },
-          data: { stripeSessionId: stripeSession.id },
+          data: {
+            stripeSessionId: paymentLinkId, // Using same field for now, will rename in schema update
+          },
         });
       }
 
@@ -458,13 +441,14 @@ export async function POST(req: NextRequest) {
         });
       });
 
-      console.log('Checkout session created successfully', {
-        sessionId: stripeSession.id,
+      console.log('Square checkout created successfully', {
+        paymentLinkId,
+        squareOrderId,
         isGuestCheckout,
         orderId: order?.id || 'N/A (will be created after payment)',
       });
 
-      return NextResponse.json({ url: stripeSession.url });
+      return NextResponse.json({ url: paymentLinkUrl });
     } catch (error: unknown) {
       console.error('Error during checkout process:', error);
       if (error instanceof Error) {

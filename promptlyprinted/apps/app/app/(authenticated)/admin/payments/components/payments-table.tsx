@@ -11,7 +11,11 @@ const columns = [
   },
   {
     accessorKey: 'stripeId',
-    header: 'Stripe ID',
+    header: 'Payment ID',
+    cell: ({ row }: { row: any }) => {
+      const paymentId = row.getValue('stripeId');
+      return paymentId || 'N/A';
+    },
   },
   {
     accessorKey: 'status',

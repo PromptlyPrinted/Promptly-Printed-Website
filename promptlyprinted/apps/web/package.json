@@ -60,6 +60,7 @@
     "sqip-plugin-data-uri": "1.0.0-alpha.52",
     "sqip-plugin-primitive": "1.0.0-alpha.53",
     "sqip-plugin-svgo": "1.0.0-alpha.54",
+    "square": "^43.2.0",
     "stripe": "^17.4.0",
     "three": "^0.179.1",
     "together-ai": "^0.13.0",

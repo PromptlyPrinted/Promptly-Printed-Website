@@ -9,6 +9,7 @@
   "dependencies": {
     "@repo/env": "workspace:*",
     "@stripe/agent-toolkit": "^0.2.0",
+    "square": "^43.2.0",
     "stripe": "^17.4.0"
   },
   "devDependencies": {

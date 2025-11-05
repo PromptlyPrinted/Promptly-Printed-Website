@@ -3,11 +3,18 @@ import { getImageUrl } from '@/lib/get-image-url';
 import { prodigiService } from '@/lib/prodigi';
 import { prisma } from '@repo/database';
 import { env } from '@repo/env';
-import { stripe } from '@repo/payments';
+import { Client as SquareClient, Environment } from 'square';
 import { CheckCircle } from 'lucide-react';
 import { ClearCart } from './ClearCart';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+
+const squareClient = new SquareClient({
+  accessToken: process.env.SQUARE_ACCESS_TOKEN!,
+  environment: process.env.SQUARE_ENVIRONMENT === 'production'
+    ? Environment.Production
+    : Environment.Sandbox,
+});
 
 interface OrderItem {
   id: number;
@@ -48,48 +55,69 @@ interface ProdigiOrderItem {
 export default async function CheckoutSuccessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ session_id: string }>;
+  searchParams: Promise<{ checkout_id?: string; order_id?: string }>;
 }) {
-  const { session_id: sessionId } = await searchParams;
-  if (!sessionId) {
+  const params = await searchParams;
+  const checkoutId = params.checkout_id;
+  const orderId = params.order_id;
+
+  if (!checkoutId && !orderId) {
     redirect('/');
   }
 
-  // Get checkout session
-  const session = await stripe.checkout.sessions.retrieve(sessionId);
-  if (!session) {
-    redirect('/');
+  let squareOrder: any = null;
+  let paymentStatus = 'unknown';
+
+  // Get Square order details
+  if (orderId) {
+    try {
+      const orderResponse = await squareClient.ordersApi.retrieveOrder(orderId);
+      squareOrder = orderResponse.result.order;
+      // Check if order has payment
+      if (squareOrder?.tenders && squareOrder.tenders.length > 0) {
+        paymentStatus = squareOrder.tenders[0].cardDetails ? 'paid' : 'pending';
+      }
+    } catch (error) {
+      console.error('Error retrieving Square order:', error);
+      redirect('/');
+    }
   }
 
   // Update order status if payment was successful
-  if (session.payment_status === 'paid' && session.metadata?.orderId) {
+  if (paymentStatus === 'paid' && squareOrder?.metadata?.orderId) {
     try {
-      // First, check if a payment with this stripeId already exists
+      const dbOrderId = Number.parseInt(squareOrder.metadata.orderId);
+
+      // First, check if a payment with this Square order ID already exists
       const existingPayment = await prisma.payment.findUnique({
-        where: { stripeId: session.id },
+        where: { stripeId: orderId },
       });
 
+      // Get fulfillment info from Square order (shipping address)
+      const fulfillment = squareOrder.fulfillments?.[0];
+      const shipmentDetails = fulfillment?.shipmentDetails;
+      const recipient = shipmentDetails?.recipient;
+
       if (existingPayment) {
-        console.log('Payment already exists for session:', session.id);
+        console.log('Payment already exists for Square order:', orderId);
         // Update the order without creating a new payment
         const order = await prisma.order.update({
           where: {
-            id: Number.parseInt(session.metadata.orderId),
+            id: dbOrderId,
           },
           data: {
             status: 'COMPLETED',
             recipient: {
               update: {
-                name: session.customer_details?.name || 'Pending',
-                email: session.customer_details?.email || 'pending@example.com',
-                phoneNumber: session.customer_details?.phone || undefined,
-                addressLine1: session.customer_details?.address?.line1 || 'Pending',
-                addressLine2: session.customer_details?.address?.line2 || undefined,
-                postalCode:
-                  session.customer_details?.address?.postal_code || '00000',
-                countryCode: session.customer_details?.address?.country || 'US',
-                city: session.customer_details?.address?.city || 'Pending',
-                state: session.customer_details?.address?.state || undefined,
+                name: recipient?.displayName || 'Pending',
+                email: recipient?.emailAddress || 'pending@example.com',
+                phoneNumber: recipient?.phoneNumber || undefined,
+                addressLine1: recipient?.address?.addressLine1 || 'Pending',
+                addressLine2: recipient?.address?.addressLine2 || undefined,
+                postalCode: recipient?.address?.postalCode || '00000',
+                countryCode: recipient?.address?.country || 'US',
+                city: recipient?.address?.locality || 'Pending',
+                state: recipient?.address?.administrativeDistrictLevel1 || undefined,
               },
             },
           },
@@ -100,35 +128,35 @@ export default async function CheckoutSuccessPage({
         });
 
         // Continue with Prodigi order creation...
-        await handleProdigiOrderCreation(order, session);
+        await handleProdigiOrderCreation(order, squareOrder);
       } else {
         // Create new payment record
+        const totalMoney = squareOrder.totalMoney;
         const order = await prisma.order.update({
           where: {
-            id: Number.parseInt(session.metadata.orderId),
+            id: dbOrderId,
           },
           data: {
             status: 'COMPLETED',
             payment: {
               create: {
-                stripeId: session.id,
+                stripeId: orderId!, // Using same field for now
                 status: 'completed',
-                amount: session.amount_total ? session.amount_total / 100 : 0,
-                currency: session.currency || 'usd',
+                amount: totalMoney ? Number(totalMoney.amount) / 100 : 0,
+                currency: totalMoney?.currency?.toLowerCase() || 'usd',
               },
             },
             recipient: {
               update: {
-                name: session.customer_details?.name || 'Pending',
-                email: session.customer_details?.email || 'pending@example.com',
-                phoneNumber: session.customer_details?.phone || undefined,
-                addressLine1: session.customer_details?.address?.line1 || 'Pending',
-                addressLine2: session.customer_details?.address?.line2 || undefined,
-                postalCode:
-                  session.customer_details?.address?.postal_code || '00000',
-                countryCode: session.customer_details?.address?.country || 'US',
-                city: session.customer_details?.address?.city || 'Pending',
-                state: session.customer_details?.address?.state || undefined,
+                name: recipient?.displayName || 'Pending',
+                email: recipient?.emailAddress || 'pending@example.com',
+                phoneNumber: recipient?.phoneNumber || undefined,
+                addressLine1: recipient?.address?.addressLine1 || 'Pending',
+                addressLine2: recipient?.address?.addressLine2 || undefined,
+                postalCode: recipient?.address?.postalCode || '00000',
+                countryCode: recipient?.address?.country || 'US',
+                city: recipient?.address?.locality || 'Pending',
+                state: recipient?.address?.administrativeDistrictLevel1 || undefined,
               },
             },
           },
@@ -139,7 +167,7 @@ export default async function CheckoutSuccessPage({
         });
 
         // Continue with Prodigi order creation...
-        await handleProdigiOrderCreation(order, session);
+        await handleProdigiOrderCreation(order, squareOrder);
       }
     } catch (error) {
       console.error('Error updating order:', error);
@@ -149,8 +177,8 @@ export default async function CheckoutSuccessPage({
           level: 'ERROR',
           message: 'Failed to update order after payment',
           metadata: {
-            sessionId: session.id,
-            orderId: session.metadata?.orderId,
+            squareOrderId: orderId,
+            dbOrderId: squareOrder?.metadata?.orderId,
             error: error instanceof Error ? error.message : 'Unknown error',
             stack: error instanceof Error ? error.stack : undefined,
           },
@@ -170,7 +198,7 @@ export default async function CheckoutSuccessPage({
             Your order has been successfully placed. We'll send you an email
             with your order details.
           </p>
-          {session.payment_status === 'paid' && session.metadata?.orderId && (
+          {paymentStatus === 'paid' && squareOrder?.metadata?.orderId && (
             <p className="mt-4 text-yellow-600">
               Your payment was successful, but there was an issue processing
               your order. Our team has been notified and will handle this for
@@ -195,7 +223,7 @@ export default async function CheckoutSuccessPage({
 }
 
 // Helper function to handle Prodigi order creation
-async function handleProdigiOrderCreation(order: any, session: any) {
+async function handleProdigiOrderCreation(order: any, squareOrder: any) {
   if (!order.recipient) {
     console.error('No recipient found for order:', order.id);
     return;
@@ -273,7 +301,7 @@ async function handleProdigiOrderCreation(order: any, session: any) {
           },
           recipientCost: {
             amount: item.price.toString(),
-            currency: session.currency?.toUpperCase() || 'USD',
+            currency: squareOrder.totalMoney?.currency || 'USD',
           },
           assets: [
             {
@@ -317,7 +345,7 @@ async function handleProdigiOrderCreation(order: any, session: any) {
       metadata: {
         orderId: order.id,
         userId: order.userId,
-        stripeSessionId: session.id,
+        squareOrderId: squareOrder.id,
       },
     });
 
