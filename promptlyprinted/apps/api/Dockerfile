@@ -4,6 +4,7 @@ FROM node:22-bookworm-slim AS base
 
 ENV PNPM_HOME="/usr/local/share/pnpm" \
     PATH="/usr/local/share/pnpm:$PATH" \
+    PNPM_STORE_DIR="/root/.pnpm-store" \
     NEXT_TELEMETRY_DISABLED=1
 
 RUN corepack enable && \
@@ -20,7 +21,8 @@ COPY turbo ./turbo
 COPY packages ./packages
 COPY apps ./apps
 
-RUN pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=promptlyprinted-pnpm-store,target=/root/.pnpm-store \
+    pnpm install --frozen-lockfile
 
 FROM deps AS build
 
@@ -127,7 +129,8 @@ ENV BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET} \
 ENV NODE_ENV=production
 
 COPY . .
-RUN pnpm --filter api build && \
+RUN --mount=type=cache,id=promptlyprinted-pnpm-store,target=/root/.pnpm-store \
+    pnpm --filter api build && \
     pnpm deploy --filter api --prod /app
 
 FROM node:22-bookworm-slim AS runner
@@ -135,6 +138,7 @@ FROM node:22-bookworm-slim AS runner
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PNPM_HOME="/usr/local/share/pnpm" \
+    PNPM_STORE_DIR="/root/.pnpm-store" \
     PATH="/usr/local/share/pnpm:$PATH"
 
 RUN corepack enable && \
