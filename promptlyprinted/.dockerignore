@@ -1,0 +1,16 @@
+.git
+.github
+.vscode
+node_modules
+.turbo
+.next
+dist
+tmp
+*.log
+**/.DS_Store
+
+# local env and secrets
+.env*
+
+# build artifacts from pnpm
+pnpm-debug.log
