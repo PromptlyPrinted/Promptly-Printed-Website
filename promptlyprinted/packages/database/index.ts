@@ -24,3 +24,4 @@ if (process.env.NODE_ENV !== 'production') {
 
 export * from '@prisma/client';
 export type { User, Product, SavedImage, Analytics } from '@prisma/client';
+export { OrderStatus, ShippingMethod, Role, AddressType } from '@prisma/client';
