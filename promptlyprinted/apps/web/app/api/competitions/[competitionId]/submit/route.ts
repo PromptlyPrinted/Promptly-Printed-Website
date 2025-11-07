@@ -5,9 +5,10 @@ import { awardCompetitionPoints, COMPETITION_POINTS } from '@/lib/gamification';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { competitionId: string } }
+  { params }: { params: Promise<{ competitionId: string }> }
 ) {
   try {
+    const { competitionId } = await params;
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json(
@@ -27,7 +28,7 @@ export async function POST(
 
     // Check if competition exists and is active
     const competition = await prisma.competition.findUnique({
-      where: { id: params.competitionId },
+      where: { id: competitionId },
     });
 
     if (!competition) {
@@ -67,7 +68,7 @@ export async function POST(
     const existingEntry = await prisma.competitionEntry.findUnique({
       where: {
         competitionId_designId: {
-          competitionId: params.competitionId,
+          competitionId,
           designId: BigInt(designId),
         },
       },
@@ -83,7 +84,7 @@ export async function POST(
     // Create competition entry
     const entry = await prisma.competitionEntry.create({
       data: {
-        competitionId: params.competitionId,
+        competitionId,
         userId: session.user.id,
         designId: BigInt(designId),
       },

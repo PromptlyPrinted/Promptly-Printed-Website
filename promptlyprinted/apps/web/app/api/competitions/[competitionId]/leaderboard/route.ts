@@ -3,14 +3,15 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { competitionId: string } }
+  { params }: { params: Promise<{ competitionId: string }> }
 ) {
   try {
+    const { competitionId } = await params;
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '10');
 
     const entries = await prisma.competitionEntry.findMany({
-      where: { competitionId: params.competitionId },
+      where: { competitionId },
       include: {
         user: {
           select: {

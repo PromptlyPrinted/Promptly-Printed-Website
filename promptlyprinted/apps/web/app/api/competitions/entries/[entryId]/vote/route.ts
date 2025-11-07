@@ -6,9 +6,10 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(
   _request: NextRequest,
-  { params }: { params: { entryId: string } }
+  { params }: { params: Promise<{ entryId: string }> }
 ) {
   try {
+    const { entryId } = await params;
     const session = await auth();
     const userId = session?.user?.id;
 
@@ -17,7 +18,7 @@ export async function POST(
     }
 
     const entry = await prisma.competitionEntry.findUnique({
-      where: { id: params.entryId },
+      where: { id: entryId },
       select: {
         id: true,
         userId: true,
