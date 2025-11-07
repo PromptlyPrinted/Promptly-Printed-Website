@@ -1,28 +1,6 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:16-alpine
-    container_name: promptly-db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: promptly
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: promptlyprinted
-      PGDATA: /var/lib/postgresql/data/pgdata
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U promptly"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - promptly-network
-
   # API Service
   api:
     build:
@@ -88,7 +66,7 @@ services:
     environment:
       # Runtime environment variables
       NODE_ENV: production
-      DATABASE_URL: postgresql://promptly:${POSTGRES_PASSWORD}@postgres:5432/promptlyprinted
+      DATABASE_URL: ${DATABASE_URL}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL}
       PULSE_API_KEY: ${PULSE_API_KEY}
@@ -120,9 +98,6 @@ services:
       NEXT_PUBLIC_POSTHOG_KEY: ${NEXT_PUBLIC_POSTHOG_KEY}
       NEXT_PUBLIC_POSTHOG_HOST: ${NEXT_PUBLIC_POSTHOG_HOST}
       NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL: ${NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL}
-    depends_on:
-      postgres:
-        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
@@ -135,7 +110,3 @@ services:
 networks:
   promptly-network:
     driver: bridge
-
-volumes:
-  postgres_data:
-    driver: local
