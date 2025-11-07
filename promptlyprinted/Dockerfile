@@ -36,7 +36,6 @@ FROM base AS deps
 
 # Copy workspace configuration files
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json ./
-COPY .npmrc* ./ 2>/dev/null || true
 
 # Copy all source code for proper workspace resolution
 # This is necessary for pnpm workspace detection
@@ -265,7 +264,8 @@ RUN corepack enable && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
         libvips \
-        ca-certificates && \
+        ca-certificates \
+        postgresql-client && \
     rm -rf /var/lib/apt/lists/* && \
     addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
@@ -275,8 +275,12 @@ WORKDIR /app
 # Copy built application from build stage
 COPY --from=build --chown=nextjs:nodejs /app ./
 
+# Copy entrypoint script
+COPY --chown=nextjs:nodejs docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 USER nextjs
 
 EXPOSE 3000
 
-CMD ["pnpm", "start"]
+ENTRYPOINT ["docker-entrypoint.sh"]
