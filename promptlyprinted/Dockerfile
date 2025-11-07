@@ -11,7 +11,7 @@ ENV PNPM_HOME="/usr/local/share/pnpm" \
     PNPM_STORE_DIR="/root/.pnpm-store" \
     NEXT_TELEMETRY_DISABLED=1 \
     # Conservative memory limit for 4GB server (leaves 1.5GB for system)
-    NODE_OPTIONS="--max-old-space-size=2048 --gc-interval=100"
+    NODE_OPTIONS="--max-old-space-size=2048"
 
 # Install build dependencies in one layer
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -223,7 +223,7 @@ ENV NODE_ENV=production \
     PNPM_HOME="/usr/local/share/pnpm" \
     PATH="/usr/local/share/pnpm:$PATH" \
     # Runtime optimization: 1.5GB heap for API workload on 4GB server
-    NODE_OPTIONS="--max-old-space-size=1536 --gc-interval=100" \
+    NODE_OPTIONS="--max-old-space-size=1536" \
     # Application environment variables
     BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET} \
     BETTER_AUTH_URL=${BETTER_AUTH_URL} \
