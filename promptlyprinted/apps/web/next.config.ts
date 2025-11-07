@@ -10,6 +10,11 @@ let nextConfig: NextConfig = {
     domains: ['localhost'],
     unoptimized: process.env.NODE_ENV === 'development',
   },
+  experimental: {
+    ...(config.experimental || {}),
+    // Optimize memory usage during builds
+    webpackBuildWorker: true,
+  },
 };
 
 nextConfig.images?.remotePatterns?.push({
