@@ -13,6 +13,10 @@ const baseConfig: NextConfig = {
   // Disable source maps in production to reduce memory usage during build
   productionBrowserSourceMaps: false,
 
+  // Acknowledge Turbopack config requirement (Next.js 16+)
+  // We're keeping webpack config for compatibility with @prisma/nextjs-monorepo-workaround-plugin
+  turbopack: {},
+
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [
