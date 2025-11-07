@@ -49,9 +49,12 @@ RUN --mount=type=cache,id=promptlyprinted-pnpm-store,target=/root/.pnpm-store \
     pnpm install --frozen-lockfile
 
 # ================================================================
-# Build stage - build the API
+# Build stage - build the specified app
 # ================================================================
 FROM deps AS build
+
+# Argument to specify which app to build (api, app, or web)
+ARG APP_NAME=api
 
 # Build arguments for environment variables
 ARG BETTER_AUTH_SECRET
@@ -161,7 +164,7 @@ ENV BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET} \
 # Copy source and build
 COPY . .
 
-# Generate Prisma client and build API
+# Generate Prisma client and build the specified app
 # Best practices for 4GB server:
 # - Sequential builds prevent memory spikes
 # - Limit Next.js workers to prevent memory issues
@@ -172,13 +175,18 @@ RUN --mount=type=cache,id=promptlyprinted-pnpm-store,target=/root/.pnpm-store \
     set -e && \
     echo "Building database package..." && \
     pnpm --filter @repo/database run build && \
-    echo "Building API..." && \
+    echo "Building ${APP_NAME}..." && \
+    # For web app, build cms first
+    if [ "$APP_NAME" = "web" ]; then \
+        echo "Building CMS for web..." && \
+        pnpm --filter @repo/cms build; \
+    fi && \
     # Limit Next.js workers and reduce memory for constrained environment
     NODE_OPTIONS="--max-old-space-size=1536" \
     NEXT_PRIVATE_WORKER_THREADS=1 \
-    pnpm --filter api build && \
+    pnpm --filter ${APP_NAME} build && \
     echo "Deploying production dependencies..." && \
-    pnpm deploy --filter api --prod /app && \
+    pnpm deploy --filter ${APP_NAME} --prod /app && \
     echo "Build complete!"
 
 # ================================================================
