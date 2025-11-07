@@ -5,14 +5,18 @@
 # ================================================================
 FROM node:22-bookworm-slim AS base
 
+# Set memory limits appropriate for 4GB server
 ENV PNPM_HOME="/usr/local/share/pnpm" \
     PATH="/usr/local/share/pnpm:$PATH" \
     PNPM_STORE_DIR="/root/.pnpm-store" \
     NEXT_TELEMETRY_DISABLED=1 \
-    # Memory optimization for Node.js build (2.5GB for 4GB server)
-    NODE_OPTIONS="--max-old-space-size=2560"
+    # Conservative memory limit for 4GB server (leaves 1.5GB for system)
+    NODE_OPTIONS="--max-old-space-size=2048 --gc-interval=100"
 
-RUN corepack enable && \
+# Install build dependencies in one layer
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    corepack enable && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
         python3 \
@@ -159,16 +163,21 @@ ENV BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET} \
 COPY . .
 
 # Generate Prisma client and build API
-# Memory optimizations for 4GB server:
-# - NODE_OPTIONS limits heap to 2.5GB (set in base stage)
-# - Sequential builds to avoid parallel memory spikes
-# - Cache mounts for faster rebuilds
-# - Recommended: Enable swap if build fails (docker build --memory-swap=6g)
+# Best practices for 4GB server:
+# - Sequential builds prevent memory spikes
+# - Explicit GC to free memory between steps
+# - Conservative heap limit with headroom
+# - Turbo cache for incremental builds
 RUN --mount=type=cache,id=promptlyprinted-pnpm-store,target=/root/.pnpm-store \
     --mount=type=cache,id=promptlyprinted-turbo,target=.turbo \
+    set -e && \
+    echo "Building database package..." && \
     pnpm --filter @repo/database run build && \
-    NODE_OPTIONS="--max-old-space-size=2560" pnpm --filter api build && \
-    pnpm deploy --filter api --prod /app
+    echo "Building API..." && \
+    pnpm --filter api build && \
+    echo "Deploying production dependencies..." && \
+    pnpm deploy --filter api --prod /app && \
+    echo "Build complete!"
 
 # ================================================================
 # Runner stage - minimal production image
@@ -213,8 +222,8 @@ ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PNPM_HOME="/usr/local/share/pnpm" \
     PATH="/usr/local/share/pnpm:$PATH" \
-    # Runtime memory optimization for 4GB server (1GB heap)
-    NODE_OPTIONS="--max-old-space-size=1024" \
+    # Runtime optimization: 1.5GB heap for API workload on 4GB server
+    NODE_OPTIONS="--max-old-space-size=1536 --gc-interval=100" \
     # Application environment variables
     BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET} \
     BETTER_AUTH_URL=${BETTER_AUTH_URL} \
