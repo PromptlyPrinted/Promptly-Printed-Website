@@ -5,12 +5,12 @@ import type { Product } from '@/types/product';
 import { DesignThemeProvider } from '@/contexts/DesignThemeContext';
 
 interface DesignPageProps {
-  params: {
+  params: Promise<{
     productSku: string;
-  };
-  searchParams?: {
+  }>;
+  searchParams?: Promise<{
     campaign?: string;
-  };
+  }>;
 }
 
 // Utility to normalize strings for comparison - handles apostrophes and special characters
@@ -21,9 +21,10 @@ const normalizeString = (str: string) =>
 const createSlug = (str: string) =>
   str.toLowerCase().replace(/[''"]/g, '').replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
 
-export default function DesignPage({ params, searchParams }: DesignPageProps) {
-  const { productSku } = params;
-  const campaign = searchParams?.campaign || 'default';
+export default async function DesignPage({ params, searchParams }: DesignPageProps) {
+  const { productSku } = await params;
+  const resolvedSearchParams = await searchParams;
+  const campaign = resolvedSearchParams?.campaign || 'default';
 
   // Get product from tshirt details - support both SKU and name-based lookup for backward compatibility
   let product = tshirtDetails[productSku as keyof typeof tshirtDetails];
