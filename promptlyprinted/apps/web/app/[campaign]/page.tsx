@@ -3,18 +3,19 @@ import { activeCampaigns } from '@/lib/campaigns';
 import { CampaignLandingPage } from './components/CampaignLandingPage';
 
 interface CampaignPageProps {
-  params: {
+  params: Promise<{
     campaign: string;
-  };
-  searchParams: {
+  }>;
+  searchParams: Promise<{
     utm_source?: string;
     utm_medium?: string;
     utm_content?: string;
-  };
+  }>;
 }
 
-export default function CampaignPage({ params, searchParams }: CampaignPageProps) {
-  const { campaign: campaignSlug } = params;
+export default async function CampaignPage({ params, searchParams }: CampaignPageProps) {
+  const { campaign: campaignSlug } = await params;
+  const utmParams = await searchParams;
 
   // Find campaign by slug or redirect patterns
   let campaign = Object.values(activeCampaigns).find(c =>
@@ -54,7 +55,7 @@ export default function CampaignPage({ params, searchParams }: CampaignPageProps
   return (
     <CampaignLandingPage
       campaign={campaign}
-      utmParams={searchParams}
+      utmParams={utmParams}
     />
   );
 }
