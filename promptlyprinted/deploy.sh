@@ -79,7 +79,7 @@ export $(cat .env.production | grep -v '^#' | xargs)
 
 # Stop existing containers
 echo "Stopping existing containers..."
-docker-compose -f docker-compose.prod.yml down
+docker-compose down
 
 # Remove old images to save space (optional)
 echo "Cleaning up old images..."
@@ -87,10 +87,10 @@ docker image prune -af --filter "until=72h"
 
 # Build and start services
 echo "Building new images..."
-docker-compose -f docker-compose.prod.yml build --no-cache
+docker-compose build --no-cache
 
 echo "Starting services..."
-docker-compose -f docker-compose.prod.yml up -d
+docker-compose up -d
 
 # Wait for services to be healthy
 echo "Waiting for services to be healthy..."
@@ -98,14 +98,14 @@ sleep 10
 
 # Show status
 echo "Service status:"
-docker-compose -f docker-compose.prod.yml ps
+docker-compose ps
 
 # Show logs
 echo "Recent logs:"
-docker-compose -f docker-compose.prod.yml logs --tail=50
+docker-compose logs --tail=50
 
 ENDSSH
 
 print_info "✅ Deployment complete!"
-print_info "Check status: ssh ${SERVER_USER}@${SERVER_HOST} 'cd ${REMOTE_DIR} && docker-compose -f docker-compose.prod.yml ps'"
-print_info "View logs: ssh ${SERVER_USER}@${SERVER_HOST} 'cd ${REMOTE_DIR} && docker-compose -f docker-compose.prod.yml logs -f api'"
+print_info "Check status: ssh ${SERVER_USER}@${SERVER_HOST} 'cd ${REMOTE_DIR} && docker-compose ps'"
+print_info "View logs: ssh ${SERVER_USER}@${SERVER_HOST} 'cd ${REMOTE_DIR} && docker-compose logs -f api'"
