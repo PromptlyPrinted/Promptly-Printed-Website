@@ -8,7 +8,9 @@ FROM node:22-bookworm-slim AS base
 ENV PNPM_HOME="/usr/local/share/pnpm" \
     PATH="/usr/local/share/pnpm:$PATH" \
     PNPM_STORE_DIR="/root/.pnpm-store" \
-    NEXT_TELEMETRY_DISABLED=1
+    NEXT_TELEMETRY_DISABLED=1 \
+    # Memory optimization for Node.js
+    NODE_OPTIONS="--max-old-space-size=4096"
 
 RUN corepack enable && \
     apt-get update && \
@@ -24,17 +26,22 @@ RUN corepack enable && \
 WORKDIR /workspace
 
 # ================================================================
-# Dependencies stage - install all packages
+# Dependencies stage - install all packages (Turborepo optimized)
 # ================================================================
 FROM base AS deps
 
-# Copy package files
+# Copy workspace configuration files
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json ./
+COPY .npmrc* ./ 2>/dev/null || true
+
+# Copy all source code for proper workspace resolution
+# This is necessary for pnpm workspace detection
 COPY turbo ./turbo
 COPY packages ./packages
 COPY apps ./apps
 
-# Install dependencies with cache mount for faster rebuilds
+# Install ALL dependencies first (needed for turborepo to work correctly)
+# pnpm will use the lockfile to ensure consistent installs
 RUN --mount=type=cache,id=promptlyprinted-pnpm-store,target=/root/.pnpm-store \
     pnpm install --frozen-lockfile
 
@@ -152,7 +159,12 @@ ENV BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET} \
 COPY . .
 
 # Generate Prisma client and build API
+# Memory optimizations applied:
+# - NODE_OPTIONS limits heap to 4GB (set in base stage)
+# - Sequential builds to avoid parallel memory spikes
+# - Cache mounts for faster rebuilds
 RUN --mount=type=cache,id=promptlyprinted-pnpm-store,target=/root/.pnpm-store \
+    --mount=type=cache,id=promptlyprinted-turbo,target=.turbo \
     pnpm --filter @repo/database run build && \
     pnpm --filter api build && \
     pnpm deploy --filter api --prod /app
@@ -165,7 +177,9 @@ FROM node:22-bookworm-slim AS runner
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PNPM_HOME="/usr/local/share/pnpm" \
-    PATH="/usr/local/share/pnpm:$PATH"
+    PATH="/usr/local/share/pnpm:$PATH" \
+    # Runtime memory optimization (adjust based on your server RAM)
+    NODE_OPTIONS="--max-old-space-size=2048"
 
 # Install runtime dependencies only
 RUN corepack enable && \
