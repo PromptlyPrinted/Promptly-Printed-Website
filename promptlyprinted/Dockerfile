@@ -9,8 +9,8 @@ ENV PNPM_HOME="/usr/local/share/pnpm" \
     PATH="/usr/local/share/pnpm:$PATH" \
     PNPM_STORE_DIR="/root/.pnpm-store" \
     NEXT_TELEMETRY_DISABLED=1 \
-    # Memory optimization for Node.js
-    NODE_OPTIONS="--max-old-space-size=4096"
+    # Memory optimization for Node.js build (2.5GB for 4GB server)
+    NODE_OPTIONS="--max-old-space-size=2560"
 
 RUN corepack enable && \
     apt-get update && \
@@ -159,14 +159,15 @@ ENV BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET} \
 COPY . .
 
 # Generate Prisma client and build API
-# Memory optimizations applied:
-# - NODE_OPTIONS limits heap to 4GB (set in base stage)
+# Memory optimizations for 4GB server:
+# - NODE_OPTIONS limits heap to 2.5GB (set in base stage)
 # - Sequential builds to avoid parallel memory spikes
 # - Cache mounts for faster rebuilds
+# - Recommended: Enable swap if build fails (docker build --memory-swap=6g)
 RUN --mount=type=cache,id=promptlyprinted-pnpm-store,target=/root/.pnpm-store \
     --mount=type=cache,id=promptlyprinted-turbo,target=.turbo \
     pnpm --filter @repo/database run build && \
-    pnpm --filter api build && \
+    NODE_OPTIONS="--max-old-space-size=2560" pnpm --filter api build && \
     pnpm deploy --filter api --prod /app
 
 # ================================================================
@@ -212,8 +213,8 @@ ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PNPM_HOME="/usr/local/share/pnpm" \
     PATH="/usr/local/share/pnpm:$PATH" \
-    # Runtime memory optimization (adjust based on your server RAM)
-    NODE_OPTIONS="--max-old-space-size=2048" \
+    # Runtime memory optimization for 4GB server (1GB heap)
+    NODE_OPTIONS="--max-old-space-size=1024" \
     # Application environment variables
     BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET} \
     BETTER_AUTH_URL=${BETTER_AUTH_URL} \
