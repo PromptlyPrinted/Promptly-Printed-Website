@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import { temporaryImageStore } from '@/lib/temp-image-store';
 import { getSession } from '@/lib/session-utils';
-import { OrderStatus, ShippingMethod } from '@repo/database';
+import { OrderStatus, ShippingMethod } from '@prisma/client';
 import { prisma } from '@repo/database';
 import type { User } from '@repo/database';
 import { type NextRequest, NextResponse } from 'next/server';
