@@ -10,6 +10,9 @@ import type { NextConfig } from 'next';
 const otelRegex = /@opentelemetry\/instrumentation/;
 
 const baseConfig: NextConfig = {
+  // Disable source maps in production to reduce memory usage during build
+  productionBrowserSourceMaps: false,
+
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [

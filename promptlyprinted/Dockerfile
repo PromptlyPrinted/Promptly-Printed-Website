@@ -164,7 +164,7 @@ COPY . .
 # Generate Prisma client and build API
 # Best practices for 4GB server:
 # - Sequential builds prevent memory spikes
-# - Explicit GC to free memory between steps
+# - Limit Next.js workers to prevent memory issues
 # - Conservative heap limit with headroom
 # - Turbo cache for incremental builds
 RUN --mount=type=cache,id=promptlyprinted-pnpm-store,target=/root/.pnpm-store \
@@ -173,6 +173,9 @@ RUN --mount=type=cache,id=promptlyprinted-pnpm-store,target=/root/.pnpm-store \
     echo "Building database package..." && \
     pnpm --filter @repo/database run build && \
     echo "Building API..." && \
+    # Limit Next.js workers and reduce memory for constrained environment
+    NODE_OPTIONS="--max-old-space-size=1536" \
+    NEXT_PRIVATE_WORKER_THREADS=1 \
     pnpm --filter api build && \
     echo "Deploying production dependencies..." && \
     pnpm deploy --filter api --prod /app && \
