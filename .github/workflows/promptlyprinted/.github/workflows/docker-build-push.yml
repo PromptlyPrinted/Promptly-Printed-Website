@@ -1,0 +1,105 @@
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Image tag'
+        required: false
+        default: 'latest'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/promptly-printed-website
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      matrix:
+        app: [web, app, api]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_PREFIX }}/${{ matrix.app }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            APP_NAME=${{ matrix.app }}
+            BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET }}
+            BETTER_AUTH_URL=${{ secrets.BETTER_AUTH_URL }}
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            PULSE_API_KEY=${{ secrets.PULSE_API_KEY }}
+            ARCJET_KEY=${{ secrets.ARCJET_KEY }}
+            BASEHUB_TOKEN=${{ secrets.BASEHUB_TOKEN }}
+            BASEHUB_ADMIN_TOKEN=${{ secrets.BASEHUB_ADMIN_TOKEN }}
+            PRODIGI_API_KEY=${{ secrets.PRODIGI_API_KEY }}
+            PRODIGI_API=${{ secrets.PRODIGI_API }}
+            SQUARE_ACCESS_TOKEN=${{ secrets.SQUARE_ACCESS_TOKEN }}
+            SQUARE_LOCATION_ID=${{ secrets.SQUARE_LOCATION_ID }}
+            SQUARE_ENVIRONMENT=${{ secrets.SQUARE_ENVIRONMENT }}
+            SQUARE_WEBHOOK_SIGNATURE_KEY=${{ secrets.SQUARE_WEBHOOK_SIGNATURE_KEY }}
+            GOOGLE_GEMINI_API_KEY=${{ secrets.GOOGLE_GEMINI_API_KEY }}
+            TOGETHER_API_KEY=${{ secrets.TOGETHER_API_KEY }}
+            RESEND_TOKEN=${{ secrets.RESEND_TOKEN }}
+            RESEND_FROM=${{ secrets.RESEND_FROM }}
+            RESEND_AUDIENCE_ID=${{ secrets.RESEND_AUDIENCE_ID }}
+            BETTERSTACK_API_KEY=${{ secrets.BETTERSTACK_API_KEY }}
+            BETTERSTACK_URL=${{ secrets.BETTERSTACK_URL }}
+            FLAGS_SECRET=${{ secrets.FLAGS_SECRET }}
+            SVIX_TOKEN=${{ secrets.SVIX_TOKEN }}
+            LIVEBLOCKS_SECRET=${{ secrets.LIVEBLOCKS_SECRET }}
+            NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_APP_URL=${{ vars.NEXT_PUBLIC_APP_URL }}
+            NEXT_PUBLIC_WEB_URL=${{ vars.NEXT_PUBLIC_WEB_URL }}
+            NEXT_PUBLIC_BETTER_AUTH_URL=${{ vars.NEXT_PUBLIC_BETTER_AUTH_URL }}
+            NEXT_PUBLIC_DOCS_URL=${{ vars.NEXT_PUBLIC_DOCS_URL }}
+            NEXT_PUBLIC_GA_MEASUREMENT_ID=${{ vars.NEXT_PUBLIC_GA_MEASUREMENT_ID }}
+            NEXT_PUBLIC_POSTHOG_KEY=${{ vars.NEXT_PUBLIC_POSTHOG_KEY }}
+            NEXT_PUBLIC_POSTHOG_HOST=${{ vars.NEXT_PUBLIC_POSTHOG_HOST }}
+            NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL=${{ vars.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Image digest
+        run: echo ${{ steps.meta.outputs.tags }}
