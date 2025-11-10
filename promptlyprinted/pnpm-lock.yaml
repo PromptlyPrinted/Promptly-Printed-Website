@@ -806,6 +806,9 @@ importers:
       server-only:
         specifier: ^0.0.1
         version: 0.0.1
+      prisma:
+        specifier: 6.5.0
+        version: 6.5.0(typescript@5.8.3)
     devDependencies:
       '@prisma/ppg-tunnel':
         specifier: ^0.3.0
@@ -825,9 +828,6 @@ importers:
       eslint:
         specifier: ^8.56.0
         version: 8.57.1
-      prisma:
-        specifier: 6.5.0
-        version: 6.5.0(typescript@5.8.3)
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@20.17.30)(typescript@5.8.3)
