@@ -9,6 +9,14 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
     environment:
       NODE_ENV: production
       DATABASE_URL: ${DATABASE_URL}
