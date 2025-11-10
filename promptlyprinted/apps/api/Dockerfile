@@ -130,6 +130,7 @@ ENV NODE_ENV=production
 
 COPY . .
 RUN --mount=type=cache,id=promptlyprinted-pnpm-store,target=/root/.pnpm-store \
+    pnpm --filter @repo/database prisma generate && \
     pnpm --filter api build && \
     pnpm deploy --filter api --prod /app
 
