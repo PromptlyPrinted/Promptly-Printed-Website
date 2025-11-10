@@ -49,7 +49,7 @@ export async function GET(
 
     // Calculate points: votes * 10 + likes * 5
     const leaderboard = entries
-      .map((entry, index) => {
+      .map((entry: any, index: number) => {
         const competitionPoints = entry._count.votes * 10 + entry._count.likes * 5;
         return {
           rank: index + 1,
