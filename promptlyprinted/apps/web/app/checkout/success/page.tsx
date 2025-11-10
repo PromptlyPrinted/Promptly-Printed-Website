@@ -3,17 +3,17 @@ import { getImageUrl } from '@/lib/get-image-url';
 import { prodigiService } from '@/lib/prodigi';
 import { prisma } from '@repo/database';
 import { env } from '@repo/env';
-import { Client as SquareClient, Environment } from 'square';
+import { SquareClient, SquareEnvironment } from 'square';
 import { CheckCircle } from 'lucide-react';
 import { ClearCart } from './ClearCart';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 const squareClient = new SquareClient({
-  accessToken: process.env.SQUARE_ACCESS_TOKEN!,
+  token: process.env.SQUARE_ACCESS_TOKEN!,
   environment: process.env.SQUARE_ENVIRONMENT === 'production'
-    ? Environment.Production
-    : Environment.Sandbox,
+    ? SquareEnvironment.Production
+    : SquareEnvironment.Sandbox,
 });
 
 interface OrderItem {
@@ -71,8 +71,8 @@ export default async function CheckoutSuccessPage({
   // Get Square order details
   if (orderId) {
     try {
-      const orderResponse = await squareClient.ordersApi.retrieveOrder(orderId);
-      squareOrder = orderResponse.result.order;
+      const orderResponse = await squareClient.orders.get({ orderId });
+      squareOrder = orderResponse.order;
       // Check if order has payment
       if (squareOrder?.tenders && squareOrder.tenders.length > 0) {
         paymentStatus = squareOrder.tenders[0].cardDetails ? 'paid' : 'pending';

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { QuizStep } from './components/QuizStep';
 import { StyleResult } from './components/StyleResult';
@@ -30,7 +30,7 @@ export type StyleQuizAnswers = {
 
 const TOTAL_STEPS = 8;
 
-export default function HalloweenQuizPage() {
+function HalloweenQuizContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const campaign = searchParams.get('campaign') || 'halloween-2025';
@@ -503,5 +503,17 @@ export default function HalloweenQuizPage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function HalloweenQuizPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">Loading quiz...</div>
+      </div>
+    }>
+      <HalloweenQuizContent />
+    </Suspense>
   );
 }

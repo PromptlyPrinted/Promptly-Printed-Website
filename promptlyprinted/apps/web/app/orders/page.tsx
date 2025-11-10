@@ -27,12 +27,12 @@ export default async function OrdersPage() {
     if (session) {
       console.log('👤 User ID:', session.user?.id);
       console.log('👤 User email:', session.user?.email);
-      console.log('📅 Session created:', session.createdAt);
-      console.log('📅 Session expires:', session.expiresAt);
+      console.log('📅 Session created:', session.session?.createdAt);
+      console.log('📅 Session expires:', session.session?.expiresAt);
     } else {
       console.log('❌ Session is null - no valid session found');
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Session validation error details:', {
       message: error.message,
       stack: error.stack,

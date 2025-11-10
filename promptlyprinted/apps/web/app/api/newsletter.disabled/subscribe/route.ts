@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy_key_for_build', {
   apiVersion: '2025-02-24.acacia',
 });
 
@@ -86,7 +86,7 @@ async function checkExistingSubscriber(email: string): Promise<string | null> {
 
     // Find a code that matches this email in metadata
     const existingCode = promoCodes.data.find(
-      (code) => code.metadata.email === email && code.metadata.source === 'newsletter_signup'
+      (code) => code.metadata?.email === email && code.metadata?.source === 'newsletter_signup'
     );
 
     if (existingCode) {

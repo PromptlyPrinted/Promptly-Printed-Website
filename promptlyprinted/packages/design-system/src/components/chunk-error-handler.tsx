@@ -60,23 +60,25 @@ export function ChunkErrorHandler({ children }: ChunkErrorHandlerProps) {
   const handleReload = () => {
     setIsReloading(true);
     // Clear browser cache and reload
-    if ('caches' in window) {
+    if (typeof window !== 'undefined' && 'caches' in window) {
       caches.keys().then(names => {
         names.forEach(name => {
           caches.delete(name);
         });
       }).finally(() => {
-        window.location.reload();
+        (window as Window).location.reload();
       });
-    } else {
-      window.location.reload();
+    } else if (typeof window !== 'undefined') {
+      (window as Window).location.reload();
     }
   };
 
   const handleRetry = () => {
     setHasChunkError(false);
     // Try to reload just the current page without full refresh
-    window.location.href = window.location.href;
+    if (typeof window !== 'undefined') {
+      (window as Window).location.href = (window as Window).location.href;
+    }
   };
 
   if (hasChunkError) {

@@ -9,7 +9,7 @@ export async function POST(
 ) {
   try {
     const { competitionId } = await params;
-    const session = await auth();
+    const session = await auth.api.getSession({ headers: request.headers });
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -47,7 +47,7 @@ export async function POST(
 
     // Check if design exists and belongs to user
     const design = await prisma.design.findUnique({
-      where: { id: BigInt(designId) },
+      where: { id: Number(designId) },
     });
 
     if (!design) {
@@ -69,7 +69,7 @@ export async function POST(
       where: {
         competitionId_designId: {
           competitionId,
-          designId: BigInt(designId),
+          designId: Number(designId),
         },
       },
     });
@@ -86,7 +86,7 @@ export async function POST(
       data: {
         competitionId,
         userId: session.user.id,
-        designId: BigInt(designId),
+        designId: Number(designId),
       },
       include: {
         design: {

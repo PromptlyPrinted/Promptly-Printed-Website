@@ -3,10 +3,10 @@
 import './products-background.css';
 import { tshirtDetails } from '@/data/products';
 import type { Product } from '@/types/product';
-import { 
-  Search, 
-  Filter, 
-  X, 
+import {
+  Search,
+  Filter,
+  X,
   Star,
   Heart,
   Eye,
@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { Suspense, useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@repo/design-system/components/ui/button';
 import { Input } from '@repo/design-system/components/ui/input';
@@ -258,7 +258,11 @@ function buildFallbackProducts(): DisplayProduct[] {
               height: product.dimensions.height,
               units: product.dimensions.units,
             }
-          : undefined,
+          : {
+              width: 0,
+              height: 0,
+              units: 'in',
+            },
         brand: product.brand?.name || 'Promptly Printed',
         style: 'Standard',
         color: product.colorOptions?.map((opt) => opt.name) || [],
@@ -375,7 +379,7 @@ function buildProductsFromApi(products: ApiProductResponse[]): DisplayProduct[] 
   });
 }
 
-export default function ProductsPage() {
+function ProductsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   
@@ -2118,7 +2122,6 @@ function getColorHex(colorName: string): string | null {
     'chocolate': '#7B3F00',
     'cranberry': '#DC143C',
     'forest': '#228B22',
-    'gold': '#DAA520',
     'heather blue': '#4682B4',
     'heather prism lilac': '#C8A2C8',
     'heather prism mint': '#98FB98',
@@ -2145,6 +2148,18 @@ function getColorHex(colorName: string): string | null {
     'grey': '#808080',
     'gray': '#808080'
   };
-  
+
   return colorMap[colorName.toLowerCase()] || null;
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">Loading products...</div>
+      </div>
+    }>
+      <ProductsPageContent />
+    </Suspense>
+  );
 }

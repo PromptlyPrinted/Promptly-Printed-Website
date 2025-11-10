@@ -1,6 +1,7 @@
 version: '3.8'
 
 # API Service - Standalone
+# Uses pre-built images from GitHub Container Registry
 services:
   api:
     image: ghcr.io/promptlyprinted/promptly-printed-website/api:${IMAGE_TAG:-latest}

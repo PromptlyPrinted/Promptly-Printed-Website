@@ -5,12 +5,12 @@ import { COMPETITION_POINTS, awardCompetitionPoints } from '@/lib/gamification';
 import { prisma } from '@/lib/prisma';
 
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ entryId: string }> }
 ) {
   try {
     const { entryId } = await params;
-    const session = await auth();
+    const session = await auth.api.getSession({ headers: request.headers });
     const userId = session?.user?.id;
 
     if (!userId) {

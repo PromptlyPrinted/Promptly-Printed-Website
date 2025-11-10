@@ -11,10 +11,12 @@ import AllArticlesContent from './components/AllArticlesContent';
 const title = 'All Articles | Promptly Printed Blog';
 const description = 'Browse every article on AI-powered design, apparel trends, sustainable printing, and more.';
 
-export const metadata: Metadata = createMetadata({ 
-  title, 
+export const metadata: Metadata = createMetadata({
+  title,
   description,
-  canonical: '/blog/all-articles'
+  alternates: {
+    canonical: '/blog/all-articles'
+  }
 });
 
 

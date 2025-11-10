@@ -25,7 +25,7 @@ temporaryImageStore.set = function (
     isPublic: value.isPublic ?? true,
   };
   console.log('Setting temporary image:', { key, entry });
-  return Map.prototype.set.call(this, key, entry);
+  return Map.prototype.set.call(this, key, entry) as TemporaryImageStore;
 };
 
 // Override get method to handle missing images

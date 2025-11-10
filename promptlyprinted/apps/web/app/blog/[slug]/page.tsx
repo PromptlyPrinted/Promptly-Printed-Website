@@ -27,7 +27,9 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
     return createMetadata({
       title: 'Blog Post | Promptly Printed',
       description: 'Read our latest insights on AI-powered design and custom apparel.',
-      canonical: `/blog/${slug}`
+      alternates: {
+        canonical: `/blog/${slug}`
+      }
     });
   } catch (error) {
     return createMetadata({
@@ -53,7 +55,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
           // Find the specific post by slug
           const posts = data?.blog?.posts?.items || [];
-          const post = posts.find((p: any) => p._slug === slug);
+          const post: any = posts.find((p: any) => p._slug === slug);
 
           if (!post) {
             notFound();
@@ -71,7 +73,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             image: post.image?.url ? {
               url: post.image.url,
               alt: post.image.alt || post._title || 'Blog post image'
-            } : null,
+            } : undefined,
             date: post.date || new Date().toISOString(),
             author: post.authors?.[0]?._title || 'Promptly Printed Team',
             category: post.categories?.[0]?._title || 'General',

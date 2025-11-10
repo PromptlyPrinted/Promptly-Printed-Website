@@ -1,4 +1,4 @@
-import { prisma, withRetry } from '@/app/lib/db';
+import { prisma } from '@/app/lib/db';
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
@@ -12,12 +12,8 @@ export async function GET(request: Request) {
       whereClause.categoryId = Number.parseInt(categoryId);
     }
 
-    // Use retry logic for better reliability with count queries
-    const count = await withRetry(
-      () => prisma.product.count({ where: whereClause }),
-      3, // number of retries
-      1000 // delay between retries
-    );
+    // Count products
+    const count = await prisma.product.count({ where: whereClause });
 
     return NextResponse.json({ count });
   } catch (error) {

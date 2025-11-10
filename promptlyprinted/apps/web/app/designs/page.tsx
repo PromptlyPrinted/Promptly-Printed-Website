@@ -44,7 +44,11 @@ export default async function DesignsPage() {
       ) : (
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {designs.map((design) => (
-            <DesignCard key={design.id} design={design} />
+            <DesignCard key={design.id} design={{
+              ...design,
+              createdAt: design.createdAt.toISOString(),
+              updatedAt: design.updatedAt.toISOString(),
+            }} />
           ))}
         </div>
       )}

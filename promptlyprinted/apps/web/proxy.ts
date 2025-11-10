@@ -20,5 +20,5 @@ export default function proxy(request: NextRequest) {
   // For apps/web (customer-facing), we don't redirect users away from customer pages
   // The authentication state is handled by the UI components and API routes
   // Only apply security headers for web app
-  return securityHeaders(request);
+  return securityHeaders();
 }

@@ -2,14 +2,14 @@ import { prisma } from '@repo/database';
 import { OrderStatus } from '@repo/database';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { Client as SquareClient, Environment } from 'square';
+import { SquareClient, SquareEnvironment } from 'square';
 import crypto from 'crypto';
 
 const squareClient = new SquareClient({
-  accessToken: process.env.SQUARE_ACCESS_TOKEN!,
+  token: process.env.SQUARE_ACCESS_TOKEN!,
   environment: process.env.SQUARE_ENVIRONMENT === 'production'
-    ? Environment.Production
-    : Environment.Sandbox,
+    ? SquareEnvironment.Production
+    : SquareEnvironment.Sandbox,
 });
 
 const webhookSignatureKey = process.env.SQUARE_WEBHOOK_SIGNATURE_KEY!;
@@ -59,8 +59,8 @@ export async function POST(req: Request) {
       }
 
       // Retrieve the Square order to get metadata
-      const squareOrderResponse = await squareClient.ordersApi.retrieveOrder(orderId);
-      const squareOrder = squareOrderResponse.result.order;
+      const squareOrderResponse = await squareClient.orders.get({ orderId });
+      const squareOrder = squareOrderResponse.order;
 
       if (!squareOrder || !squareOrder.metadata) {
         console.error('No metadata found in Square order');

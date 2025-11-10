@@ -187,9 +187,7 @@ export const HalloweenTracker = () => {
 
     // Cleanup on unmount
     return () => {
-      if (window.trackHalloweenEvent) {
-        delete (window as any).trackHalloweenEvent;
-      }
+      delete (window as any).trackHalloweenEvent;
     };
   }, [pathname, user, session]);
 

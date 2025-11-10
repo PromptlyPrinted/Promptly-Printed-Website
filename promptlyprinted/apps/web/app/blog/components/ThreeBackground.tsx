@@ -122,7 +122,7 @@ export default function ThreeBackground() {
     scene.add(particles);
 
     // Create floating geometric shapes
-    const shapes = [];
+    const shapes: Array<{ mesh: THREE.Mesh; rotationSpeed: { x: number; y: number; z: number } }> = [];
     for (let i = 0; i < 8; i++) {
       const geometries = [
         new THREE.TetrahedronGeometry(0.5),

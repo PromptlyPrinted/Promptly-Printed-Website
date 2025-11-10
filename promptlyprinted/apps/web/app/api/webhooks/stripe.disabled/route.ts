@@ -4,7 +4,7 @@ import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy_key_for_build', {
   apiVersion: '2025-02-24.acacia',
 });
 
@@ -43,8 +43,8 @@ export async function POST(req: Request) {
         }
 
         // Parse order data from metadata
-        const orderData = JSON.parse(session.metadata.orderData || '{}');
-        const customerEmail = session.customer_details.email;
+        const orderData = JSON.parse(session.metadata?.orderData || '{}');
+        const customerEmail = session.customer_details?.email;
 
         // Find or create guest user
         let user = await prisma.user.findUnique({

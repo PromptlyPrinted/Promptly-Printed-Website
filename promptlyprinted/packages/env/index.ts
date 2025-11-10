@@ -4,9 +4,9 @@ import { z } from 'zod';
 const server: Parameters<typeof createEnv>[0]['server'] = {
   BETTER_AUTH_SECRET: z.string().min(1),
   BETTER_AUTH_URL: z.string().min(1).url().optional(),
-  RESEND_FROM: z.string().min(1).email(),
+  RESEND_FROM: z.string().min(1).email().optional(),
   DATABASE_URL: z.string().min(1).url(),
-  RESEND_TOKEN: z.string().min(1).startsWith('re_'),
+  RESEND_TOKEN: z.string().min(1).startsWith('re_').optional(),
   // Square payment gateway
   SQUARE_ACCESS_TOKEN: z.string().min(1),
   SQUARE_LOCATION_ID: z.string().min(1),

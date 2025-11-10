@@ -27,8 +27,14 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
     .filter((product) => normalizeString(product.category) === normalizedCategoryName)
     .map(product => ({
       ...product,
+      id: product.sku,
       price: product.pricing.find(p => p.currency === 'USD')?.amount || 0,
-    }));
+      description: (product as any).shortDescription || '',
+      shippingCost: 0,
+      savedImages: [],
+      wishedBy: [],
+      category: undefined,
+    } as any));
 
   return (
     <div className="container mx-auto py-20">

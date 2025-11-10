@@ -33,7 +33,7 @@ export default async function DesignPage({ params, searchParams }: DesignPagePro
   if (!product) {
     product = Object.values(tshirtDetails).find(
       (p) => normalizeString(p.name) === normalizeString(productSku)
-    );
+    ) as any;
   }
 
   if (!product) {

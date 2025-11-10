@@ -53,7 +53,7 @@ export function DesignProductNavigation({ currentProductSku, onProductChange }: 
 
     currentProduct = Object.values(tshirtDetails).find(
       (p) => normalizeString(p.name) === normalizeString(currentProductSku)
-    );
+    ) as any;
   }
 
   const handleProductSelect = (sku: string, productName?: string) => {

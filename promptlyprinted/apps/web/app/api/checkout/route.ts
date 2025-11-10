@@ -4,14 +4,14 @@ import { getSession } from '@/lib/session-utils';
 import { prisma, OrderStatus, ShippingMethod } from '@repo/database';
 import type { User } from '@repo/database';
 import { type NextRequest, NextResponse } from 'next/server';
-import { Client as SquareClient, Environment } from 'square';
+import { SquareClient, SquareEnvironment, Currency } from 'square';
 import { ZodError, z } from 'zod';
 
 const squareClient = new SquareClient({
-  accessToken: process.env.SQUARE_ACCESS_TOKEN!,
+  token: process.env.SQUARE_ACCESS_TOKEN!,
   environment: process.env.SQUARE_ENVIRONMENT === 'production'
-    ? Environment.Production
-    : Environment.Sandbox,
+    ? SquareEnvironment.Production
+    : SquareEnvironment.Sandbox,
 });
 
 /**
@@ -362,22 +362,19 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // Create Square checkout (Payment Link)
-      const checkoutApi = squareClient.checkoutApi;
-
       // Prepare line items for Square
       const lineItems = orderItems.items.map((item) => ({
         name: item.name,
         quantity: item.copies.toString(),
         basePriceMoney: {
           amount: BigInt(Math.round(item.price * 100)), // Convert to cents
-          currency: 'USD',
+          currency: Currency.Usd,
         },
         // Note: Square doesn't support product images in checkout directly
       }));
 
       // Create Square order first
-      const squareOrderResponse = await squareClient.ordersApi.createOrder({
+      const squareOrderResponse = await squareClient.orders.create({
         order: {
           locationId: process.env.SQUARE_LOCATION_ID!,
           lineItems: lineItems,
@@ -386,14 +383,14 @@ export async function POST(req: NextRequest) {
         idempotencyKey: randomUUID(),
       });
 
-      if (!squareOrderResponse.result.order) {
+      if (!squareOrderResponse.order) {
         throw new Error('Failed to create Square order');
       }
 
-      const squareOrderId = squareOrderResponse.result.order.id!;
+      const squareOrderId = squareOrderResponse.order.id!;
 
       // Create payment link for the order
-      const paymentLinkResponse = await squareClient.checkoutApi.createPaymentLink({
+      const paymentLinkResponse = await squareClient.checkout.paymentLinks.create({
         idempotencyKey: randomUUID(),
         order: {
           locationId: process.env.SQUARE_LOCATION_ID!,
@@ -402,8 +399,7 @@ export async function POST(req: NextRequest) {
         checkoutOptions: {
           redirectUrl: `${process.env.NEXT_PUBLIC_WEB_URL}/checkout/success`,
           askForShippingAddress: true,
-          allowedPaymentMethods: {
-            card: true,
+          acceptedPaymentMethods: {
             applePay: true,
             googlePay: true,
           },
@@ -413,12 +409,12 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      if (!paymentLinkResponse.result.paymentLink?.url) {
+      if (!paymentLinkResponse.paymentLink?.url) {
         throw new Error('Failed to create Square payment link');
       }
 
-      const paymentLinkUrl = paymentLinkResponse.result.paymentLink.url;
-      const paymentLinkId = paymentLinkResponse.result.paymentLink.id!;
+      const paymentLinkUrl = paymentLinkResponse.paymentLink.url;
+      const paymentLinkId = paymentLinkResponse.paymentLink.id!;
 
       // Update order with Square order ID (only for authenticated users)
       if (order) {

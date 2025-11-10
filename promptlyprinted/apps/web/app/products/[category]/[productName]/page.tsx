@@ -5,6 +5,7 @@ import type { Metadata } from 'next';
 import { ProductDetail } from './components/ProductDetail';
 import type { Product } from '@/types/product';
 import { database } from '@repo/database';
+import { Suspense } from 'react';
 
 interface ProductPageProps {
   params: Promise<{
@@ -145,5 +146,13 @@ export default async function ProductPage({ params }: ProductPageProps) {
     wishedBy: [],
   };
 
-  return <ProductDetail product={productWithPrice} />;
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">Loading product...</div>
+      </div>
+    }>
+      <ProductDetail product={productWithPrice} />
+    </Suspense>
+  );
 }

@@ -44,8 +44,8 @@ const CustomLink = ({ href, children, ...props }: { href?: string; children: Rea
 
   if (isInternal) {
     return (
-      <Link 
-        href={href} 
+      <Link
+        href={href || '#'}
         className="text-teal-600 hover:text-teal-700 underline font-medium transition-colors"
         {...props}
       >

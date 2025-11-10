@@ -1,7 +1,8 @@
 import { prisma } from '@repo/database';
+import type { Product } from '@prisma/client';
 export { prisma };
 
-export async function getProductById(id: string): Promise<Product | null> {
+export async function getProductById(id: string): Promise<any> {
   const product = await prisma.product.findUnique({
     where: {
       id: Number.parseInt(id),
@@ -68,20 +69,21 @@ export async function getProductById(id: string): Promise<Product | null> {
       size: product.size,
     },
     shipping: {
-      methods:
-        product.quotes[0]?.costSummary?.shipping?.map(
-          (s: {
-            method: string;
-            cost: number;
-            currency: string;
-            estimatedDays: number;
-          }) => ({
-            method: s.method,
-            cost: s.cost,
-            currency: s.currency,
-            estimatedDays: s.estimatedDays,
-          })
-        ) || [],
+      methods: (product.quotes[0]?.costSummary?.shipping as any)?.map
+        ? ((product.quotes[0]?.costSummary?.shipping as unknown) as any[]).map(
+            (s: {
+              method: string;
+              cost: number;
+              currency: string;
+              estimatedDays: number;
+            }) => ({
+              method: s.method,
+              cost: s.cost,
+              currency: s.currency,
+              estimatedDays: s.estimatedDays,
+            })
+          )
+        : [],
     },
   };
 }

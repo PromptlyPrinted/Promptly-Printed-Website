@@ -47,7 +47,7 @@ export default function MDXRenderer({ source }: MDXRendererProps) {
 
   return (
     <div className="prose prose-lg max-w-none">
-      <Component components={mdxComponents} />
+      <Component components={mdxComponents as any} />
     </div>
   );
 }
@@ -59,11 +59,12 @@ export async function processMDX(markdown: string) {
   try {
     const { code } = await bundleMDX({
       source: markdown,
-      mdxOptions: {
-        remarkPlugins: [],
-        rehypePlugins: [],
+      mdxOptions: (options) => ({
+        ...options,
+        remarkPlugins: [...(options.remarkPlugins ?? [])],
+        rehypePlugins: [...(options.rehypePlugins ?? [])],
         development: process.env.NODE_ENV === 'development',
-      },
+      }),
     });
 
     return code;

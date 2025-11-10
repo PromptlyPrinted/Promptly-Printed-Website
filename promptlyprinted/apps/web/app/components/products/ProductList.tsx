@@ -243,11 +243,26 @@ export function ProductList({
           {products.map((product) => (
             <ProductCard
               key={product.id}
-              id={product.id}
-              name={product.name}
-              price={product.customerPrice}
-              imageUrl={product.images[0]?.url || '/placeholder.jpg'}
-              description={product.description}
+              product={{
+                ...product,
+                id: product.id.toString(),
+                price: product.customerPrice,
+                imageUrls: {
+                  base: product.images[0]?.url || '/placeholder.jpg',
+                  cover: product.images[0]?.url || '/placeholder.jpg',
+                  sizeChart: product.images[0]?.url || '/placeholder.jpg',
+                },
+                pricing: [{ amount: product.customerPrice, currency: 'USD' }],
+                savedImages: [],
+                wishedBy: [],
+                images: product.images?.map((img) => img.url) || [],
+                category: product.category ? {
+                  id: product.category.id.toString(),
+                  name: product.category.name,
+                  description: product.category.description || undefined,
+                } : undefined,
+                shippingCost: 0,
+              } as any}
             />
           ))}
         </div>

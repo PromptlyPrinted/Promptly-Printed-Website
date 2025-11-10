@@ -192,7 +192,7 @@ export default function AnalyticsClient({
         <div className="w-64">
           <Select
             value={selectedEvent || undefined}
-            onValueChange={(value) => {
+            onValueChange={(value: string) => {
               setSelectedEvent(value);
               trackFilterChange('event', value);
             }}

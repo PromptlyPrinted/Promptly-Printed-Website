@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { QuizStep } from './components/QuizStep';
 import { StyleResult } from './components/StyleResult';
@@ -30,7 +30,7 @@ export type StyleQuizAnswers = {
 
 const TOTAL_STEPS = 8;
 
-export default function StyleQuizPage() {
+function StyleQuizPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const campaign = searchParams.get('campaign') || 'general';
@@ -503,5 +503,17 @@ export default function StyleQuizPage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function StyleQuizPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">Loading quiz...</div>
+      </div>
+    }>
+      <StyleQuizPageContent />
+    </Suspense>
   );
 }

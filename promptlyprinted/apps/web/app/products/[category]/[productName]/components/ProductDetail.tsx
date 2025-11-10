@@ -311,7 +311,7 @@ function toKebabCase(str?: string) {
 // Function to crop transparent areas and return a tightly fitted image
 const cropTransparentAreas = async (imageDataUrl: string): Promise<string> => {
   return new Promise((resolve, reject) => {
-    const img = new Image();
+    const img = new (Image as any)();
     img.onload = () => {
       try {
         const canvas = document.createElement('canvas');
@@ -404,7 +404,7 @@ const cropTransparentAreas = async (imageDataUrl: string): Promise<string> => {
         reject(error);
       }
     };
-    img.onerror = (error) => {
+    img.onerror = (error: any) => {
       console.error('Error loading image for cropping:', error);
       reject(new Error('Failed to load image for cropping'));
     };
@@ -1516,7 +1516,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       discount: discountPercent > 0 ? Math.round(discountPercent * 100) : undefined, // Store discount %
       quantity: quantity,
       size: selectedSize,
-      color: selectedColor,
+      color: selectedColor || 'Default',
       imageUrl: generatedImage || product.imageUrls.cover,
       assets: [],
     };
@@ -1531,7 +1531,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       color: item.color,
       size: item.size,
       images: [{ url: item.imageUrl || product.imageUrls?.cover || '' }],
-      customization: item.customization,
+      customization: (item as any).customization,
       recipientCostAmount: item.price,
       currency: 'USD',
       merchantReference: `item_${item.productId}`,
@@ -1678,12 +1678,12 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
               console.log('Product data:', {
                 imageUrlMap: product.imageUrlMap,
                 colorValue: toKebabCase(selectedColor),
-                imageUrl: product.imageUrl,
+                imageUrl: (product as any).imageUrl || product.imageUrls?.base,
                 selectedColor: selectedColor,
                 availableColors: product.specifications?.color,
               });
 
-              if (product.imageUrlMap && product.imageUrlMap[selectedColor]) {
+              if (product.imageUrlMap && selectedColor && product.imageUrlMap[selectedColor]) {
                 console.log(
                   'Using imageUrlMap:',
                   product.prodigiVariants?.imageUrls?.base
@@ -1701,7 +1701,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
 
               if (product.prodigiVariants?.imageUrls?.base) {
                 console.log('Product details now:', {
-                  imageUrl: product.imageUrl,
+                  imageUrl: (product as any).imageUrl || product.imageUrls?.base,
                   prodigiVariants: product.prodigiVariants?.imageUrls?.base,
                   imageUrls: product.prodigiVariants?.imageUrls,
                   colorOptions: product.prodigiVariants?.colorOptions,
@@ -1715,7 +1715,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                 console.log('Using direct path:', {
                   imageUrl: imageUrl,
                   colorValue: colorValue,
-                  baseImageUrl: product.imageUrl,
+                  baseImageUrl: (product as any).imageUrl || product.imageUrls?.base,
                 });
                 return (
                   <Image
@@ -1746,7 +1746,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                   className="relative"
                   style={(() => {
                     const productCode = product.specifications?.style || product.sku || product.id.toString();
-                    const productType = product.productType;
+                    const productType = (product as any).productType;
                     const productName = product.name;
                     
                     // Check by product type and name for more reliable matching
@@ -2173,7 +2173,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                   setImageUrl(image.url);
                   // Clear any background removal processing since this is an existing image
                   setRemoveBackground(false);
-                  setProcessedImage(null);
+                  setProcessedImage('');
                   console.log('Selected existing image:', image.url);
                 }}
               />
@@ -2764,7 +2764,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                   price: product.pricing?.[0]?.amount || product.price || 0,
                   quantity: quantity,
                   size: selectedSize,
-                  color: selectedColor,
+                  color: selectedColor || 'Default',
                   imageUrl: generatedImage || product.imageUrls.cover,
                   assets: [],
                 };

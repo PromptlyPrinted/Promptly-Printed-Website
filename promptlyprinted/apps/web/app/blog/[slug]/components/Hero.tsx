@@ -14,6 +14,10 @@ interface BlogPost {
   author?: string;
   date?: string;
   readTime?: string;
+  image?: {
+    url: string;
+    alt: string | null;
+  };
 }
 
 interface HeroProps {
