@@ -1,6 +1,6 @@
 version: '3.8'
 
-# App Service (Main Application) - Standalone
+# App Service (Main Application) - Optimized for 4GB RAM
 # Builds from local source
 services:
   app:

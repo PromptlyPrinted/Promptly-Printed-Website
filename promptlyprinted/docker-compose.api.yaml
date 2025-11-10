@@ -1,6 +1,6 @@
 version: '3.8'
 
-# API Service - Standalone
+# API Service - Optimized for 4GB RAM
 # Builds from local source
 services:
   api:
