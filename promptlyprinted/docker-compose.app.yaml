@@ -1,10 +1,15 @@
 version: '3.8'
 
 # App Service (Main Application) - Standalone
-# Uses pre-built images from GitHub Container Registry
+# Builds from local source
 services:
   app:
-    image: ghcr.io/promptlyprinted/promptly-printed-website/app:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: apps/app/Dockerfile
+      args:
+        NODE_ENV: production
+    image: promptly-printed-website/app:latest
     container_name: promptly-app
     restart: unless-stopped
     ports:

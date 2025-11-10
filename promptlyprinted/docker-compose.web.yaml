@@ -1,10 +1,15 @@
 version: '3.8'
 
 # Web Service (Marketing Site) - Standalone
-# Uses pre-built images from GitHub Container Registry
+# Builds from local source
 services:
   web:
-    image: ghcr.io/promptlyprinted/promptly-printed-website/web:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NODE_ENV: production
+    image: promptly-printed-website/web:latest
     container_name: promptly-web
     restart: unless-stopped
     ports:
