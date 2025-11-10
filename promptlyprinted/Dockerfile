@@ -10,8 +10,8 @@ ENV PNPM_HOME="/usr/local/share/pnpm" \
     PATH="/usr/local/share/pnpm:$PATH" \
     PNPM_STORE_DIR="/root/.pnpm-store" \
     NEXT_TELEMETRY_DISABLED=1 \
-    # Conservative memory limit for 4GB server (leaves 1.5GB for system)
-    NODE_OPTIONS="--max-old-space-size=2048"
+    # Very conservative memory limit for constrained server
+    NODE_OPTIONS="--max-old-space-size=1024"
 
 # Install build dependencies in one layer
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
@@ -182,8 +182,9 @@ RUN --mount=type=cache,id=promptlyprinted-pnpm-store,target=/root/.pnpm-store \
         pnpm --filter @repo/cms build; \
     fi && \
     # Limit Next.js workers and reduce memory for constrained environment
-    NODE_OPTIONS="--max-old-space-size=1536" \
+    NODE_OPTIONS="--max-old-space-size=768" \
     NEXT_PRIVATE_WORKER_THREADS=1 \
+    NEXT_PRIVATE_STANDALONE=1 \
     pnpm --filter ${APP_NAME} build && \
     echo "Deploying production dependencies..." && \
     pnpm deploy --filter ${APP_NAME} --prod /app && \
@@ -232,8 +233,8 @@ ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PNPM_HOME="/usr/local/share/pnpm" \
     PATH="/usr/local/share/pnpm:$PATH" \
-    # Runtime optimization: 1.5GB heap for API workload on 4GB server
-    NODE_OPTIONS="--max-old-space-size=1536" \
+    # Runtime optimization: 1GB heap for constrained server
+    NODE_OPTIONS="--max-old-space-size=1024" \
     # Application environment variables
     BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET} \
     BETTER_AUTH_URL=${BETTER_AUTH_URL} \
