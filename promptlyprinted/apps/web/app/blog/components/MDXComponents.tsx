@@ -7,7 +7,7 @@ import { CheckCircleIcon, LightBulbIcon, ExclamationTriangleIcon, InformationCir
 // Custom heading components with anchor links
 const createHeading = (level: 1 | 2 | 3 | 4 | 5 | 6) => {
   const Component = ({ children, ...props }: { children: ReactNode }) => {
-    const Tag = `h${level}` as keyof JSX.IntrinsicElements;
+    const Tag = `h${level}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
     const sizes = {
       1: 'text-4xl md:text-5xl font-bold',
       2: 'text-3xl md:text-4xl font-bold',
