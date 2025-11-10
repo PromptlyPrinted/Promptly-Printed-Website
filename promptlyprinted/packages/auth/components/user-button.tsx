@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { signOut, useSession } from '../client';
-import { useRouter } from 'next/navigation';
 
 interface UserButtonProps {
   showName?: boolean;
@@ -18,7 +17,6 @@ interface UserButtonProps {
 export const UserButton = ({ showName = false, appearance }: UserButtonProps) => {
   const { data: session } = useSession();
   const [isOpen, setIsOpen] = useState(false);
-  const router = useRouter();
 
   if (!session?.user) {
     return null;
