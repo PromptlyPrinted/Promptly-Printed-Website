@@ -26,6 +26,7 @@ RUN --mount=type=cache,id=promptlyprinted-pnpm-store,target=/root/.pnpm-store \
 
 FROM deps AS build
 
+ARG DOCKER_BUILD=true
 ARG BETTER_AUTH_SECRET
 ARG BETTER_AUTH_URL
 ARG GOOGLE_CLIENT_ID
@@ -76,7 +77,8 @@ ARG SQUARE_WEBHOOK_SIGNATURE_KEY
 ARG GOOGLE_GEMINI_API_KEY
 ARG TOGETHER_API_KEY
 ARG POSTHOG_API_KEY
-ENV BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET} \
+ENV DOCKER_BUILD=${DOCKER_BUILD} \
+    BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET} \
     BETTER_AUTH_URL=${BETTER_AUTH_URL} \
     GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID} \
     GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET} \
@@ -144,7 +146,7 @@ RUN apt-get update && \
 
 WORKDIR /app
 
-# Copy the standalone output
+# Copy the standalone output with proper structure
 COPY --from=build /workspace/apps/web/.next/standalone ./
 COPY --from=build /workspace/apps/web/.next/static ./apps/web/.next/static
 COPY --from=build /workspace/apps/web/public ./apps/web/public
@@ -154,6 +156,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Start from the apps/web directory where server.js exists
-WORKDIR /app/apps/web
-CMD ["node", "server.js"]
+# The standalone output places server.js at apps/web/server.js relative to the copied root
+CMD ["node", "apps/web/server.js"]

@@ -6,6 +6,7 @@ import type { NextConfig } from 'next';
 let nextConfig: NextConfig = {
   ...config,
   output: 'standalone',
+  outputFileTracingRoot: process.env.DOCKER_BUILD === 'true' ? '/workspace' : undefined,
   images: {
     ...config.images,
     domains: ['localhost'],
