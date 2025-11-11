@@ -57,7 +57,7 @@ services:
       NEXT_PUBLIC_POSTHOG_HOST: ${NEXT_PUBLIC_POSTHOG_HOST}
       NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL: ${NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL}
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
