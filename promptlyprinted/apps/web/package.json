@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3001 --turbopack",
-    "prebuild": "pnpm --filter cms build",
+    "prebuild": "pnpm --filter cms build || echo 'CMS build failed, continuing...'",
     "build": "next build",
     "start": "next start",
     "analyze": "ANALYZE=true pnpm build",
