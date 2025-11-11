@@ -156,5 +156,7 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# The standalone output places server.js at apps/web/server.js relative to the copied root
+# The standalone output structure depends on outputFileTracingRoot
+# If DOCKER_BUILD=true, it will be at /app/apps/web/server.js
+# Otherwise it uses the local absolute path
 CMD ["node", "apps/web/server.js"]

@@ -6,7 +6,8 @@ import type { NextConfig } from 'next';
 let nextConfig: NextConfig = {
   ...config,
   output: 'standalone',
-  outputFileTracingRoot: process.env.DOCKER_BUILD === 'true' ? '/workspace' : undefined,
+  // Use workspace root for Docker builds, undefined for local development
+  outputFileTracingRoot: process.env.NODE_ENV === 'production' ? process.cwd() : undefined,
   images: {
     ...config.images,
     domains: ['localhost'],
