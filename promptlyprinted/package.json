@@ -17,7 +17,9 @@
     "bump-deps": "npx npm-check-updates --deep -u -x react-day-picker && pnpm install",
     "bump-ui": "npx shadcn@latest add --all --overwrite -c packages/design-system",
     "migrate": "cd packages/database && npx prisma format && npx prisma generate && npx prisma db push",
-    "clean": "git clean -xdf node_modules"
+    "clean": "git clean -xdf node_modules",
+    "docker:clean": "bash scripts/docker-cleanup.sh",
+    "docker:clean:aggressive": "bash scripts/docker-cleanup-aggressive.sh"
   },
   "devDependencies": {
     "@auto-it/all-contributors": "^11.3.0",
