@@ -5,6 +5,7 @@ import type { NextConfig } from 'next';
 
 let nextConfig: NextConfig = {
   ...config,
+  output: 'standalone',
   images: {
     ...config.images,
     domains: ['localhost'],

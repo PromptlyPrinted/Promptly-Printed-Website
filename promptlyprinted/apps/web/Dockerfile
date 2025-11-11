@@ -131,26 +131,27 @@ ENV NODE_ENV=production
 
 COPY . .
 RUN --mount=type=cache,id=promptlyprinted-pnpm-store,target=/root/.pnpm-store \
-    pnpm --filter web build && \
-    pnpm deploy --filter web --prod /app
+    pnpm --filter web build
 
 FROM node:22-bookworm-slim AS runner
 
 ENV NODE_ENV=production \
-    NEXT_TELEMETRY_DISABLED=1 \
-    PNPM_HOME="/usr/local/share/pnpm" \
-    PNPM_STORE_DIR="/root/.pnpm-store" \
-    PATH="/usr/local/share/pnpm:$PATH"
+    NEXT_TELEMETRY_DISABLED=1
 
-RUN corepack enable && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends libvips && \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libvips curl && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-COPY --from=build /app ./
+# Copy the standalone output
+COPY --from=build /workspace/apps/web/.next/standalone ./
+COPY --from=build /workspace/apps/web/.next/static ./apps/web/.next/static
+COPY --from=build /workspace/apps/web/public ./apps/web/public
 
 EXPOSE 3000
 
-CMD ["pnpm", "start"]
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+CMD ["node", "apps/web/server.js"]
