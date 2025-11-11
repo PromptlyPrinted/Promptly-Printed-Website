@@ -154,4 +154,6 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "apps/web/server.js"]
+# Start from the apps/web directory where server.js exists
+WORKDIR /app/apps/web
+CMD ["node", "server.js"]
