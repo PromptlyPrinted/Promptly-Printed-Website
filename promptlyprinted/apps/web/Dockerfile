@@ -26,7 +26,6 @@ RUN --mount=type=cache,id=promptlyprinted-pnpm-store,target=/root/.pnpm-store \
 
 FROM deps AS build
 
-ARG DOCKER_BUILD=true
 ARG BETTER_AUTH_SECRET
 ARG BETTER_AUTH_URL
 ARG GOOGLE_CLIENT_ID
@@ -77,8 +76,7 @@ ARG SQUARE_WEBHOOK_SIGNATURE_KEY
 ARG GOOGLE_GEMINI_API_KEY
 ARG TOGETHER_API_KEY
 ARG POSTHOG_API_KEY
-ENV DOCKER_BUILD=${DOCKER_BUILD} \
-    BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET} \
+ENV BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET} \
     BETTER_AUTH_URL=${BETTER_AUTH_URL} \
     GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID} \
     GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET} \
@@ -156,7 +154,6 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# The standalone output structure depends on outputFileTracingRoot
-# If DOCKER_BUILD=true, it will be at /app/apps/web/server.js
-# Otherwise it uses the local absolute path
-CMD ["node", "apps/web/server.js"]
+# Change to the directory where server.js is located and run it
+WORKDIR /app/apps/web
+CMD ["node", "server.js"]
