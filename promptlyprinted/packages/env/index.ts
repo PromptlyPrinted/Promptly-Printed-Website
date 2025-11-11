@@ -24,7 +24,7 @@ const server: Parameters<typeof createEnv>[0]['server'] = {
     .optional(),
   LIVEBLOCKS_SECRET: z.string().min(1).startsWith('sk_').optional(),
   OPENAI_API_KEY: z.string().min(1).startsWith('sk-').optional(),
-  BASEHUB_TOKEN: z.string().min(1),
+  BASEHUB_TOKEN: z.string().min(1).optional(),
   UPSTASH_REDIS_REST_URL: z.string().min(1).url().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().min(1).optional(),
   PRODIGI_API_KEY: z.string().min(1),
