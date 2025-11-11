@@ -11,7 +11,7 @@
     "@repo/database": "workspace:*",
     "@repo/tailwind-config": "workspace:*",
     "next-themes": "^0.4.4",
-    "react": "^19.0.0",
+    "react": "19.2.0",
     "server-only": "^0.0.1"
   },
   "devDependencies": {

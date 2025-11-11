@@ -12,7 +12,7 @@
     "@vercel/analytics": "^1.4.1",
     "posthog-js": "^1.195.0",
     "posthog-node": "^4.3.1",
-    "react": "^19.0.0",
+    "react": "19.2.0",
     "server-only": "^0.0.1"
   },
   "devDependencies": {

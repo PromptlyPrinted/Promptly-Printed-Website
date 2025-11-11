@@ -1,7 +1,5 @@
 import { checkAdmin } from '@/lib/auth-utils';
 import { database as db } from '@repo/database';
-import { Skeleton } from '@repo/design-system/components/ui/skeleton';
-import { Suspense } from 'react';
 import { ProductsClient } from './components/products-client';
 
 export const dynamic = 'force-dynamic';
@@ -159,16 +157,14 @@ export default async function ProductsPage({
           </p>
         </div>
       </div>
-      <Suspense fallback={<Skeleton className="h-[calc(100vh-12rem)]" />}>
-        <ProductsClient
-          initialProducts={products}
-          categories={categories}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          countries={SUPPORTED_COUNTRIES.map((c) => c.code)}
-          selectedCountry={countryCode}
-        />
-      </Suspense>
+      <ProductsClient
+        initialProducts={products}
+        categories={categories}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        countries={SUPPORTED_COUNTRIES.map((c) => c.code)}
+        selectedCountry={countryCode}
+      />
     </div>
   );
 }

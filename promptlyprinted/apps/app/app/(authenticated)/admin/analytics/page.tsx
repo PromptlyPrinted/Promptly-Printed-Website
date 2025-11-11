@@ -1,5 +1,4 @@
 import { prisma } from '@/lib/prisma';
-import { Suspense } from 'react';
 import AnalyticsClient from './components/analytics-client';
 
 async function getAnalytics() {
@@ -22,11 +21,9 @@ export default async function AnalyticsPage() {
   const { analytics, uniqueEventNames } = await getAnalytics();
 
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <AnalyticsClient
-        initialData={analytics}
-        uniqueEventNames={uniqueEventNames}
-      />
-    </Suspense>
+    <AnalyticsClient
+      initialData={analytics}
+      uniqueEventNames={uniqueEventNames}
+    />
   );
 }

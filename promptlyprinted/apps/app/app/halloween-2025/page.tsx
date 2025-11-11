@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { HalloweenHero } from './components/HalloweenHero';
 import { PhantomPointsTracker } from './components/PhantomPointsTracker';
 import { HowItWorks } from './components/HowItWorks';
@@ -40,7 +41,9 @@ const HalloweenLandingPage = () => {
       <SpookyFloatingElements />
 
       {/* Halloween Analytics Tracking */}
-      <HalloweenTracker />
+      <Suspense fallback={null}>
+        <HalloweenTracker />
+      </Suspense>
 
       {/* Phantom Points Tracker - Sticky */}
       <PhantomPointsTracker />

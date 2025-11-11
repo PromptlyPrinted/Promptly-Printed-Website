@@ -12,7 +12,7 @@
   "dependencies": {
     "@repo/env": "workspace:*",
     "basehub": "^7.5.28",
-    "react": "^19.0.0"
+    "react": "19.2.0"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
