@@ -78,16 +78,21 @@ export default async function ProductPage({ params }: ProductPageProps) {
   // Try to fetch from database for most up-to-date data
   let dbProduct = null;
   if (staticProduct?.sku) {
-    dbProduct = await database.product.findFirst({
-      where: {
-        sku: staticProduct.sku,
-        countryCode: 'US',
-        listed: true,
-      },
-      include: {
-        category: true,
-      },
-    });
+    try {
+      dbProduct = await database.product.findFirst({
+        where: {
+          sku: staticProduct.sku,
+          countryCode: 'US',
+          listed: true,
+        },
+        include: {
+          category: true,
+        },
+      });
+    } catch (error) {
+      // Database not available during build - use static data
+      console.log('Database not available, using static product data');
+    }
   }
 
   // Use database product if available, otherwise fall back to static
