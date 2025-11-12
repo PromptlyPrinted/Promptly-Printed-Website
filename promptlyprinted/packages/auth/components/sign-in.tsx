@@ -10,10 +10,11 @@ export const SignIn = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
+
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams.get('redirect') || 'http://localhost:3001';
+  const defaultRedirect = process.env.NEXT_PUBLIC_WEB_URL || process.env.NEXT_PUBLIC_APP_URL || '/';
+  const redirect = searchParams.get('redirect') || defaultRedirect;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

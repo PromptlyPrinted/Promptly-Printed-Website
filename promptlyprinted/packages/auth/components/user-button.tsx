@@ -25,7 +25,8 @@ export const UserButton = ({ showName = false, appearance }: UserButtonProps) =>
   const handleSignOut = async () => {
     await signOut();
     // Redirect to web app home after sign out
-    window.location.href = 'http://localhost:3001';
+    const redirectUrl = process.env.NEXT_PUBLIC_WEB_URL || process.env.NEXT_PUBLIC_APP_URL || '/';
+    window.location.href = redirectUrl;
   };
 
   return (

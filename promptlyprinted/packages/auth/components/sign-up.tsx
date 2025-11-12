@@ -11,8 +11,9 @@ export const SignUp = () => {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  
+
   const router = useRouter();
+  const redirectUrl = process.env.NEXT_PUBLIC_WEB_URL || process.env.NEXT_PUBLIC_APP_URL || '/';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +31,7 @@ export const SignUp = () => {
         setError(result.error.message || 'Sign up failed');
       } else {
         // Redirect to web app home after successful sign up
-        window.location.href = 'http://localhost:3001';
+        window.location.href = redirectUrl;
       }
     } catch (err) {
       setError('An unexpected error occurred');
@@ -44,7 +45,7 @@ export const SignUp = () => {
     try {
       await signIn.social({
         provider,
-        callbackURL: 'http://localhost:3001',
+        callbackURL: redirectUrl,
       });
     } catch (err) {
       setError(`Failed to sign up with ${provider}`);
