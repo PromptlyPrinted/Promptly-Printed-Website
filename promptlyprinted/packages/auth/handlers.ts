@@ -1,7 +1,6 @@
 import { toNextJsHandler } from 'better-auth/next-js';
 import { auth } from './server';
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
 
 const { GET: originalGET, POST: originalPOST } = toNextJsHandler(auth.handler);
 
@@ -34,21 +33,23 @@ function addCorsHeaders(response: Response, origin: string | null): Response {
 }
 
 // Wrap GET handler with CORS
-export async function GET(request: NextRequest) {
+export async function GET(...args: Parameters<typeof originalGET>) {
+  const [request] = args;
   const origin = request.headers.get('origin');
-  const response = await originalGET(request);
+  const response = await originalGET(...args);
   return addCorsHeaders(response, origin);
 }
 
 // Wrap POST handler with CORS
-export async function POST(request: NextRequest) {
+export async function POST(...args: Parameters<typeof originalPOST>) {
+  const [request] = args;
   const origin = request.headers.get('origin');
-  const response = await originalPOST(request);
+  const response = await originalPOST(...args);
   return addCorsHeaders(response, origin);
 }
 
 // Handle OPTIONS requests for CORS preflight
-export async function OPTIONS(request: NextRequest) {
+export async function OPTIONS(request: Request) {
   const origin = request.headers.get('origin');
   const response = new NextResponse(null, { status: 204 });
   return addCorsHeaders(response, origin);

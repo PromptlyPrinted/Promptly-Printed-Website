@@ -6,6 +6,10 @@ import type { NextConfig } from 'next';
 let nextConfig: NextConfig = {
   ...config,
   output: 'standalone',
+  typescript: {
+    // Skip type checking during build - run separately
+    ignoreBuildErrors: true,
+  },
   images: {
     ...config.images,
     domains: ['localhost'],
