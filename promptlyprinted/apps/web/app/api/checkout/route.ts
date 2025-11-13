@@ -528,10 +528,11 @@ export async function POST(req: NextRequest) {
       );
 
       // Create Square order first
+      const totalAmountCents = Math.round(total * 100);
       console.log('[Square Order Creation] Starting...', {
         locationId: process.env.SQUARE_LOCATION_ID,
         lineItemCount: lineItems.length,
-        totalAmount: lineItems.reduce((sum, item) => sum + Number(item.basePriceMoney.amount) * parseInt(item.quantity), 0),
+        totalAmount: totalAmountCents,
       });
 
       let squareOrderResponse;
