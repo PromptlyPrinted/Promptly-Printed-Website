@@ -27,7 +27,7 @@ const squareClient = new SquareClient({
 });
 
 /**
- * Save base64 image to file system and return URL
+ * Save base64 image to file system and return absolute URL
  */
 async function saveBase64Image(base64Data: string): Promise<string> {
   const { writeFile, mkdir } = await import('fs/promises');
@@ -53,8 +53,17 @@ async function saveBase64Image(base64Data: string): Promise<string> {
   const buffer = Buffer.from(data, 'base64');
   await writeFile(filePath, buffer);
 
-  // Return public URL
-  return `/uploads/checkout/${fileName}`;
+  // Return absolute public URL for external services (like Prodigi)
+  const webUrl = process.env.NEXT_PUBLIC_WEB_URL || 'http://localhost:3001';
+  const absoluteUrl = `${webUrl}/uploads/checkout/${fileName}`;
+
+  console.log('[Image Save]', {
+    fileName,
+    relativePath: `/uploads/checkout/${fileName}`,
+    absoluteUrl,
+  });
+
+  return absoluteUrl;
 }
 
 const ImageSchema = z.object({
@@ -162,10 +171,12 @@ async function getImageUrl(url: string): Promise<string | null> {
 
     // If it's a relative URL, make it absolute
     if (url.startsWith('/')) {
-      const absoluteUrl = `${process.env.NEXT_PUBLIC_APP_URL}${url}`;
+      const webUrl = process.env.NEXT_PUBLIC_WEB_URL || 'http://localhost:3001';
+      const absoluteUrl = `${webUrl}${url}`;
       console.log('Converted relative URL to absolute:', {
         relative: url,
         absolute: absoluteUrl,
+        baseUrl: webUrl,
       });
       return absoluteUrl;
     }
