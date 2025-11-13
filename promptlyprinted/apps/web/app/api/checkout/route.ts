@@ -7,11 +7,23 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { SquareClient, SquareEnvironment, Currency } from 'square';
 import { ZodError, z } from 'zod';
 
+// Log Square configuration on startup
+const squareEnvironment = process.env.SQUARE_ENVIRONMENT === 'production'
+  ? SquareEnvironment.Production
+  : SquareEnvironment.Sandbox;
+
+console.log('[Square Config]', {
+  hasToken: !!process.env.SQUARE_ACCESS_TOKEN,
+  tokenLength: process.env.SQUARE_ACCESS_TOKEN?.length || 0,
+  environment: process.env.SQUARE_ENVIRONMENT || 'not set',
+  resolvedEnvironment: squareEnvironment,
+  hasLocationId: !!process.env.SQUARE_LOCATION_ID,
+  locationId: process.env.SQUARE_LOCATION_ID ? `${process.env.SQUARE_LOCATION_ID.substring(0, 8)}...` : 'not set',
+});
+
 const squareClient = new SquareClient({
   token: process.env.SQUARE_ACCESS_TOKEN!,
-  environment: process.env.SQUARE_ENVIRONMENT === 'production'
-    ? SquareEnvironment.Production
-    : SquareEnvironment.Sandbox,
+  environment: squareEnvironment,
 });
 
 /**
@@ -174,6 +186,32 @@ async function getImageUrl(url: string): Promise<string | null> {
 
 export async function POST(req: NextRequest) {
   console.log('=== CHECKOUT API REQUEST START ===');
+
+  // Validate required environment variables
+  if (!process.env.SQUARE_ACCESS_TOKEN) {
+    console.error('[ENV CHECK] Missing SQUARE_ACCESS_TOKEN');
+    return NextResponse.json(
+      { error: 'Server configuration error: Missing Square access token' },
+      { status: 500 }
+    );
+  }
+  if (!process.env.SQUARE_LOCATION_ID) {
+    console.error('[ENV CHECK] Missing SQUARE_LOCATION_ID');
+    return NextResponse.json(
+      { error: 'Server configuration error: Missing Square location ID' },
+      { status: 500 }
+    );
+  }
+  if (!process.env.NEXT_PUBLIC_WEB_URL) {
+    console.error('[ENV CHECK] Missing NEXT_PUBLIC_WEB_URL');
+    return NextResponse.json(
+      { error: 'Server configuration error: Missing web URL' },
+      { status: 500 }
+    );
+  }
+
+  console.log('[ENV CHECK] All required environment variables present');
+
   try {
     const session = await getSession(req);
 
@@ -374,23 +412,50 @@ export async function POST(req: NextRequest) {
       }));
 
       // Create Square order first
-      const squareOrderResponse = await squareClient.orders.create({
-        order: {
-          locationId: process.env.SQUARE_LOCATION_ID!,
-          lineItems: lineItems,
-          metadata: squareMetadata,
-        },
-        idempotencyKey: randomUUID(),
+      console.log('[Square Order Creation] Starting...', {
+        locationId: process.env.SQUARE_LOCATION_ID,
+        lineItemCount: lineItems.length,
+        totalAmount: lineItems.reduce((sum, item) => sum + Number(item.basePriceMoney.amount) * parseInt(item.quantity), 0),
       });
 
+      let squareOrderResponse;
+      try {
+        squareOrderResponse = await squareClient.orders.create({
+          order: {
+            locationId: process.env.SQUARE_LOCATION_ID!,
+            lineItems: lineItems,
+            metadata: squareMetadata,
+          },
+          idempotencyKey: randomUUID(),
+        });
+        console.log('[Square Order Creation] Success', {
+          orderId: squareOrderResponse.order?.id,
+        });
+      } catch (squareError: any) {
+        console.error('[Square Order Creation] Failed', {
+          error: squareError.message,
+          statusCode: squareError.statusCode,
+          errors: squareError.errors,
+          body: squareError.body,
+        });
+        throw new Error(`Square order creation failed: ${squareError.message}`);
+      }
+
       if (!squareOrderResponse.order) {
-        throw new Error('Failed to create Square order');
+        throw new Error('Failed to create Square order - no order in response');
       }
 
       const squareOrderId = squareOrderResponse.order.id!;
 
       // Create payment link for the order
-      const paymentLinkResponse = await squareClient.checkout.paymentLinks.create({
+      console.log('[Square Payment Link] Creating...', {
+        orderId: squareOrderId,
+        redirectUrl: `${process.env.NEXT_PUBLIC_WEB_URL}/checkout/success`,
+      });
+
+      let paymentLinkResponse;
+      try {
+        paymentLinkResponse = await squareClient.checkout.paymentLinks.create({
         idempotencyKey: randomUUID(),
         order: {
           locationId: process.env.SQUARE_LOCATION_ID!,
@@ -408,9 +473,22 @@ export async function POST(req: NextRequest) {
           buyerEmail: dbUser?.email || undefined,
         },
       });
+        console.log('[Square Payment Link] Success', {
+          paymentLinkId: paymentLinkResponse.paymentLink?.id,
+          hasUrl: !!paymentLinkResponse.paymentLink?.url,
+        });
+      } catch (squareError: any) {
+        console.error('[Square Payment Link] Failed', {
+          error: squareError.message,
+          statusCode: squareError.statusCode,
+          errors: squareError.errors,
+          body: squareError.body,
+        });
+        throw new Error(`Square payment link creation failed: ${squareError.message}`);
+      }
 
       if (!paymentLinkResponse.paymentLink?.url) {
-        throw new Error('Failed to create Square payment link');
+        throw new Error('Failed to create Square payment link - no URL in response');
       }
 
       const paymentLinkUrl = paymentLinkResponse.paymentLink.url;
