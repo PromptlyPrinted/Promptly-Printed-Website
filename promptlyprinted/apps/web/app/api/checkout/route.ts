@@ -27,6 +27,82 @@ const squareClient = new SquareClient({
 });
 
 /**
+ * Create a Square catalog item with image for better checkout UX
+ * This allows Square to display product images in the checkout page
+ */
+async function createSquareCatalogItemWithImage(
+  item: ValidatedCheckoutItem,
+  imageUrl: string
+): Promise<string | null> {
+  try {
+    // Create catalog image first
+    const imageResponse = await squareClient.catalog.createCatalogImage({
+      idempotencyKey: randomUUID(),
+      image: {
+        type: 'IMAGE',
+        id: `#${randomUUID()}`,
+        imageData: {
+          name: `${item.name} - ${item.color} - ${item.size}`,
+          url: imageUrl, // Use the absolute URL we generated
+        },
+      },
+    });
+
+    if (!imageResponse.image?.id) {
+      console.error('[Square Catalog] Failed to create image');
+      return null;
+    }
+
+    const catalogImageId = imageResponse.image.id;
+    console.log('[Square Catalog] Image created:', catalogImageId);
+
+    // Create catalog item with the image
+    const itemResponse = await squareClient.catalog.upsertCatalogObject({
+      idempotencyKey: randomUUID(),
+      object: {
+        type: 'ITEM',
+        id: `#${randomUUID()}`,
+        itemData: {
+          name: item.name,
+          description: `${item.color} - ${item.size}${item.designUrl ? ' - Custom Design' : ''}`,
+          imageIds: [catalogImageId],
+          variations: [
+            {
+              type: 'ITEM_VARIATION',
+              id: `#${randomUUID()}`,
+              itemVariationData: {
+                itemId: `#${randomUUID()}`,
+                name: 'Standard',
+                pricingType: 'FIXED_PRICING',
+                priceMoney: {
+                  amount: BigInt(Math.round(item.price * 100)),
+                  currency: Currency.Usd,
+                },
+              },
+            },
+          ],
+        },
+      },
+    });
+
+    const catalogItemId = itemResponse.catalogObject?.itemData?.variations?.[0]?.id;
+    if (catalogItemId) {
+      console.log('[Square Catalog] Item created:', catalogItemId);
+      return catalogItemId;
+    }
+
+    return null;
+  } catch (error: any) {
+    console.error('[Square Catalog] Failed to create item:', {
+      error: error.message,
+      statusCode: error.statusCode,
+      errors: error.errors,
+    });
+    return null;
+  }
+}
+
+/**
  * Save base64 image to file system and return absolute URL
  */
 async function saveBase64Image(base64Data: string): Promise<string> {
@@ -412,16 +488,44 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // Prepare line items for Square
-      const lineItems = orderItems.items.map((item) => ({
-        name: item.name,
-        quantity: item.copies.toString(),
-        basePriceMoney: {
-          amount: BigInt(Math.round(item.price * 100)), // Convert to cents
-          currency: Currency.Usd,
-        },
-        // Note: Square doesn't support product images in checkout directly
-      }));
+      // Prepare line items for Square with catalog items (for images)
+      console.log('[Square Line Items] Creating catalog items with images...');
+      const lineItems = await Promise.all(
+        orderItems.items.map(async (item) => {
+          // Get the first image URL for this item (the custom design)
+          const imageUrl = item.images && item.images.length > 0
+            ? await getImageUrl(item.images[0].url)
+            : null;
+
+          let catalogObjectId: string | null = null;
+
+          // Try to create catalog item with image if we have one
+          if (imageUrl) {
+            catalogObjectId = await createSquareCatalogItemWithImage(item, imageUrl);
+          }
+
+          // If catalog creation succeeded, use it; otherwise fallback to basic line item
+          if (catalogObjectId) {
+            console.log(`[Square Line Items] Using catalog item for ${item.name}`);
+            return {
+              catalogObjectId,
+              quantity: item.copies.toString(),
+              note: `${item.color} - ${item.size}${item.designUrl ? ' - Custom Design' : ''}`,
+            };
+          } else {
+            console.log(`[Square Line Items] Using basic line item for ${item.name}`);
+            return {
+              name: item.name,
+              quantity: item.copies.toString(),
+              basePriceMoney: {
+                amount: BigInt(Math.round(item.price * 100)),
+                currency: Currency.Usd,
+              },
+              note: `${item.color} - ${item.size}${item.designUrl ? ' - Custom Design' : ''}`,
+            };
+          }
+        })
+      );
 
       // Create Square order first
       console.log('[Square Order Creation] Starting...', {
