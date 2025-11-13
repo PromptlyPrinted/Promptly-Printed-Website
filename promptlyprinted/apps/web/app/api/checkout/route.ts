@@ -393,9 +393,10 @@ export async function POST(req: NextRequest) {
       if (order) {
         squareMetadata.orderId = order.id.toString();
       } else {
-        // For guest checkout, store order data in metadata to create after payment
+        // For guest checkout, store minimal order data in metadata
+        // Square has a 500-character limit per metadata value
         squareMetadata.orderData = JSON.stringify({
-          items: orderItems.items,
+          itemCount: orderItems.items.length,
           totalPrice: total,
         });
       }
@@ -457,10 +458,7 @@ export async function POST(req: NextRequest) {
       try {
         paymentLinkResponse = await squareClient.checkout.paymentLinks.create({
         idempotencyKey: randomUUID(),
-        order: {
-          locationId: process.env.SQUARE_LOCATION_ID!,
-          lineItems: lineItems,
-        },
+        orderId: squareOrderId, // Use the existing order ID instead of creating a new order
         checkoutOptions: {
           redirectUrl: `${process.env.NEXT_PUBLIC_WEB_URL}/checkout/success`,
           askForShippingAddress: true,
