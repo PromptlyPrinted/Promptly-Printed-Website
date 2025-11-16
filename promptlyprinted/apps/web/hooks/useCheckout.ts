@@ -16,100 +16,38 @@ export function useCheckout() {
       setIsLoading(true);
       console.log('Starting checkout process...');
 
-      // Guest checkout is now allowed - no auth required
-      // The API will handle both authenticated and guest users
-
-      const itemsWithSavedImages = await Promise.all(
-        items.map(async (item) => {
-          console.log('Processing item:', item);
-
-          // Validate that images array exists and has a valid URL
-          if (!item.images || !item.images[0] || !item.images[0].url || item.images[0].url.trim() === '') {
-            console.error('Invalid item image:', item);
-            throw new Error(`Missing product image for "${item.name}". Please refresh the page and try again, or contact support if the issue persists.`);
-          }
-
-          const imageUrl = item.images[0].url;
-
-          if (imageUrl.includes('/api/save-temp-image')) {
-            console.log('Using existing saved image URL:', imageUrl);
-            return { ...item, images: [{ url: imageUrl }] };
-          }
-
-          console.log('Saving image URL:', imageUrl);
-          const response = await fetch('/api/save-temp-image', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ url: imageUrl }),
-          });
-          const data = await response.json();
-          if (!response.ok)
-            throw new Error(data.error || 'Failed to save image');
-
-          return {
-            ...item,
-            images: [{ url: `/api/save-temp-image?id=${data.id}` }],
-          };
-        })
-      );
-
-      console.log('Items processed:', itemsWithSavedImages);
-
-      const checkoutBody = {
-        items: itemsWithSavedImages.map((item) => ({
-          productId: Number.parseInt(item.productId, 10),
-          name: item.name,
-          price: Number(item.price),
-          copies: Number(item.copies || 1),
-          color: item.color,
-          size: item.size,
-          designUrl: item.designUrl,
-          customization: item.customization,
-          recipientCostAmount: Number(item.recipientCostAmount || item.price),
-          currency: item.currency || 'USD',
-          merchantReference: item.merchantReference || `item_${item.productId}`,
-          sku: item.sku,
-          images: [{ url: item.images[0].url }],
-        })),
-      };
-
-      console.log(
-        'Checkout request body:',
-        JSON.stringify(checkoutBody, null, 2)
-      );
-
-      const successUrl = `${window.location.origin}/success?session_id={CHECKOUT_SESSION_ID}`;
-      const cancelUrl = `${window.location.origin}/cancel`;
-      const response = await fetch(
-        `/api/checkout?successUrl=${encodeURIComponent(
-          successUrl
-        )}&cancelUrl=${encodeURIComponent(cancelUrl)}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(checkoutBody),
+      // Validate that all items have valid images
+      for (const item of items) {
+        if (!item.images || !item.images[0] || !item.images[0].url || item.images[0].url.trim() === '') {
+          console.error('Invalid item image:', item);
+          throw new Error(`Missing product image for "${item.name}". Please refresh the page and try again.`);
         }
-      );
-
-      const data = await response.json();
-      console.log('Checkout response:', data);
-
-      if (!response.ok) {
-        console.error('Checkout error details:', data);
-        throw new Error(data.error || 'Failed to create checkout session');
       }
 
-      window.location.href = data.url;
+      // Prepare items for checkout
+      const checkoutItems = items.map((item) => ({
+        productId: Number.parseInt(item.productId, 10),
+        name: item.name,
+        price: Number(item.price),
+        copies: Number(item.copies || 1),
+        color: item.color,
+        size: item.size,
+        designUrl: item.designUrl,
+        images: [{ url: item.images[0].url }],
+      }));
+
+      console.log('Storing items in localStorage:', checkoutItems);
+
+      // Store items in localStorage for the checkout page
+      localStorage.setItem('cartItems', JSON.stringify(checkoutItems));
+
+      // Navigate to the custom checkout page
+      router.push('/checkout');
     } catch (error) {
       console.error('Checkout error:', error);
       toast.error(
         error instanceof Error ? error.message : 'Failed to process checkout'
       );
-    } finally {
       setIsLoading(false);
     }
   };
