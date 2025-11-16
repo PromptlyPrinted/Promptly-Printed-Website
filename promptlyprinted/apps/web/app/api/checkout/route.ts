@@ -27,82 +27,6 @@ const squareClient = new SquareClient({
 });
 
 /**
- * Create a Square catalog item with image for better checkout UX
- * This allows Square to display product images in the checkout page
- */
-async function createSquareCatalogItemWithImage(
-  item: ValidatedCheckoutItem,
-  imageUrl: string
-): Promise<string | null> {
-  try {
-    // Create catalog image first
-    const imageResponse = await squareClient.catalog.createCatalogImage({
-      idempotencyKey: randomUUID(),
-      image: {
-        type: 'IMAGE',
-        id: `#${randomUUID()}`,
-        imageData: {
-          name: `${item.name} - ${item.color} - ${item.size}`,
-          url: imageUrl, // Use the absolute URL we generated
-        },
-      },
-    });
-
-    if (!imageResponse.image?.id) {
-      console.error('[Square Catalog] Failed to create image');
-      return null;
-    }
-
-    const catalogImageId = imageResponse.image.id;
-    console.log('[Square Catalog] Image created:', catalogImageId);
-
-    // Create catalog item with the image
-    const itemResponse = await squareClient.catalog.upsertCatalogObject({
-      idempotencyKey: randomUUID(),
-      object: {
-        type: 'ITEM',
-        id: `#${randomUUID()}`,
-        itemData: {
-          name: item.name,
-          description: `${item.color} - ${item.size}${item.designUrl ? ' - Custom Design' : ''}`,
-          imageIds: [catalogImageId],
-          variations: [
-            {
-              type: 'ITEM_VARIATION',
-              id: `#${randomUUID()}`,
-              itemVariationData: {
-                itemId: `#${randomUUID()}`,
-                name: 'Standard',
-                pricingType: 'FIXED_PRICING',
-                priceMoney: {
-                  amount: BigInt(Math.round(item.price * 100)),
-                  currency: Currency.Usd,
-                },
-              },
-            },
-          ],
-        },
-      },
-    });
-
-    const catalogItemId = itemResponse.catalogObject?.itemData?.variations?.[0]?.id;
-    if (catalogItemId) {
-      console.log('[Square Catalog] Item created:', catalogItemId);
-      return catalogItemId;
-    }
-
-    return null;
-  } catch (error: any) {
-    console.error('[Square Catalog] Failed to create item:', {
-      error: error.message,
-      statusCode: error.statusCode,
-      errors: error.errors,
-    });
-    return null;
-  }
-}
-
-/**
  * Save base64 image to file system and return absolute URL
  */
 async function saveBase64Image(base64Data: string): Promise<string> {
@@ -488,44 +412,21 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // Prepare line items for Square with catalog items (for images)
-      console.log('[Square Line Items] Creating catalog items with images...');
-      const lineItems = await Promise.all(
-        orderItems.items.map(async (item) => {
-          // Get the first image URL for this item (the custom design)
-          const imageUrl = item.images && item.images.length > 0
-            ? await getImageUrl(item.images[0].url)
-            : null;
-
-          let catalogObjectId: string | null = null;
-
-          // Try to create catalog item with image if we have one
-          if (imageUrl) {
-            catalogObjectId = await createSquareCatalogItemWithImage(item, imageUrl);
-          }
-
-          // If catalog creation succeeded, use it; otherwise fallback to basic line item
-          if (catalogObjectId) {
-            console.log(`[Square Line Items] Using catalog item for ${item.name}`);
-            return {
-              catalogObjectId,
-              quantity: item.copies.toString(),
-              note: `${item.color} - ${item.size}${item.designUrl ? ' - Custom Design' : ''}`,
-            };
-          } else {
-            console.log(`[Square Line Items] Using basic line item for ${item.name}`);
-            return {
-              name: item.name,
-              quantity: item.copies.toString(),
-              basePriceMoney: {
-                amount: BigInt(Math.round(item.price * 100)),
-                currency: Currency.Usd,
-              },
-              note: `${item.color} - ${item.size}${item.designUrl ? ' - Custom Design' : ''}`,
-            };
-          }
-        })
-      );
+      // Prepare line items for Square
+      // Note: Catalog items with images are disabled because Square's Catalog API
+      // requires direct file upload, not URL references. This will be implemented later.
+      console.log('[Square Line Items] Creating basic line items...');
+      const lineItems = orderItems.items.map((item) => {
+        return {
+          name: item.name,
+          quantity: item.copies.toString(),
+          basePriceMoney: {
+            amount: BigInt(Math.round(item.price * 100)),
+            currency: Currency.Gbp,
+          },
+          note: `${item.color} - ${item.size}${item.designUrl ? ' - Custom Design' : ''}`,
+        };
+      });
 
       // Create Square order first
       const totalAmountCents = Math.round(total * 100);
@@ -547,6 +448,10 @@ export async function POST(req: NextRequest) {
         });
         console.log('[Square Order Creation] Success', {
           orderId: squareOrderResponse.order?.id,
+          version: squareOrderResponse.order?.version,
+          fullOrder: JSON.stringify(squareOrderResponse.order, (key, value) =>
+            typeof value === 'bigint' ? value.toString() : value
+          ),
         });
       } catch (squareError: any) {
         console.error('[Square Order Creation] Failed', {
@@ -567,26 +472,40 @@ export async function POST(req: NextRequest) {
       // Create payment link for the order
       console.log('[Square Payment Link] Creating...', {
         orderId: squareOrderId,
+        orderVersion: squareOrderResponse.order.version,
         redirectUrl: `${process.env.NEXT_PUBLIC_WEB_URL}/checkout/success`,
       });
 
       let paymentLinkResponse;
       try {
-        paymentLinkResponse = await squareClient.checkout.paymentLinks.create({
-        idempotencyKey: randomUUID(),
-        orderId: squareOrderId, // Use the existing order ID instead of creating a new order
-        checkoutOptions: {
-          redirectUrl: `${process.env.NEXT_PUBLIC_WEB_URL}/checkout/success`,
-          askForShippingAddress: true,
-          acceptedPaymentMethods: {
-            applePay: true,
-            googlePay: true,
+        // Create payment link with only the order reference (id and version)
+        // We cannot pass the full order object as it contains read-only fields
+        const paymentLinkRequest = {
+          idempotencyKey: randomUUID(),
+          order: {
+            locationId: process.env.SQUARE_LOCATION_ID!,
+            referenceId: squareOrderId,
+            lineItems: lineItems,
+            metadata: squareMetadata,
           },
-        },
-        prePopulatedData: {
-          buyerEmail: dbUser?.email || undefined,
-        },
-      });
+          checkoutOptions: {
+            redirectUrl: `${process.env.NEXT_PUBLIC_WEB_URL}/checkout/success`,
+            askForShippingAddress: true,
+            acceptedPaymentMethods: {
+              applePay: true,
+              googlePay: true,
+            },
+          },
+          prePopulatedData: {
+            buyerEmail: dbUser?.email || undefined,
+          },
+        };
+
+        console.log('[Square Payment Link] Request payload:', JSON.stringify(paymentLinkRequest, (key, value) =>
+          typeof value === 'bigint' ? value.toString() : value
+        , 2));
+
+        paymentLinkResponse = await squareClient.checkout.paymentLinks.create(paymentLinkRequest);
         console.log('[Square Payment Link] Success', {
           paymentLinkId: paymentLinkResponse.paymentLink?.id,
           hasUrl: !!paymentLinkResponse.paymentLink?.url,
