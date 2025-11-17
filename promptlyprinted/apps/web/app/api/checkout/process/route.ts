@@ -171,12 +171,13 @@ export async function POST(request: NextRequest) {
         acceptedPaymentMethods: {
           applePay: true,
           googlePay: true,
+          cashAppPay: true,
+          afterpayClearpay: true,
         },
       },
       prePopulatedData: {
         buyerEmail: shippingAddress.email,
-        // Only include phone if it exists and looks valid
-        ...(shippingAddress.phone && shippingAddress.phone.length > 5 ? { buyerPhoneNumber: shippingAddress.phone } : {}),
+        // Skip phone number to avoid validation issues
         buyerAddress: {
           addressLine1: shippingAddress.addressLine1,
           addressLine2: shippingAddress.addressLine2,
