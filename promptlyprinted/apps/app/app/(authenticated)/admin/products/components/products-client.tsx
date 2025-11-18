@@ -52,6 +52,7 @@ type ProductWithBasicInfo = {
   currency: string;
   stock: number;
   listed: boolean;
+  isActive: boolean;
   productType: string;
   categoryId: number | null;
   countryCode: string;
@@ -240,6 +241,43 @@ export function ProductsClient({
     }
   };
 
+  const toggleProductActive = async (
+    product: ProductWithBasicInfo,
+    nextActive: boolean
+  ) => {
+    setUpdatingProductIds((ids) =>
+      ids.includes(product.id) ? ids : [...ids, product.id]
+    );
+    try {
+      const response = await fetch(`/api/admin/products/${product.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isActive: nextActive }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update product ${product.id}`);
+      }
+
+      setProducts((prev) =>
+        prev.map((item) =>
+          item.id === product.id ? { ...item, isActive: nextActive } : item
+        )
+      );
+      toast.success(
+        nextActive ? 'Product is now active.' : 'Product has been deactivated.'
+      );
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+      toast.error('Unable to update product active status. Please try again.');
+    } finally {
+      setUpdatingProductIds((ids) => ids.filter((id) => id !== product.id));
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Filter + controls row */}
@@ -345,7 +383,8 @@ export function ProductsClient({
                 {/* ADDED: Shipping column */}
                 <TableHead>Shipping</TableHead>
                 <TableHead>Stock</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Listed</TableHead>
+                <TableHead>Active</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -391,6 +430,27 @@ export function ProductsClient({
                       </div>
                     </TableCell>
                     <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={product.isActive}
+                          onCheckedChange={(checked) =>
+                            toggleProductActive(product, checked === true)
+                          }
+                          disabled={isUpdating}
+                          aria-label="Toggle product active status"
+                        />
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-medium text-xs ${
+                            product.isActive
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}
+                        >
+                          {product.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
                       <Button
                         variant="ghost"
                         onClick={() =>
@@ -406,7 +466,7 @@ export function ProductsClient({
 
               {filteredProducts.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={9} className="py-8 text-center">
+                  <TableCell colSpan={10} className="py-8 text-center">
                     No products found.
                   </TableCell>
                 </TableRow>
@@ -469,8 +529,10 @@ export function ProductsClient({
                       {product.shippingCost.toFixed(2)}
                     </p>
                   </div>
-                  <div className="mt-2 flex items-center justify-between">
-                    <span className="text-sm">Stock: {product.stock}</span>
+                  <div className="mt-2 flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">Stock: {product.stock}</span>
+                    </div>
                     <div
                       className="flex items-center gap-2"
                       onClick={(event) => event.stopPropagation()}
@@ -491,6 +553,28 @@ export function ProductsClient({
                         }`}
                       >
                         {product.listed ? 'Listed' : 'Unlisted'}
+                      </span>
+                    </div>
+                    <div
+                      className="flex items-center gap-2"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <Switch
+                        checked={product.isActive}
+                        onCheckedChange={(checked) =>
+                          toggleProductActive(product, checked === true)
+                        }
+                        disabled={isUpdating}
+                        aria-label="Toggle product active status"
+                      />
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 font-medium text-xs ${
+                          product.isActive
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {product.isActive ? 'Active' : 'Inactive'}
                       </span>
                     </div>
                   </div>

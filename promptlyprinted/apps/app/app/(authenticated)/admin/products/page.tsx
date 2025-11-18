@@ -113,6 +113,7 @@ export default async function ProductsPage({
         currency: true,
         stock: true,
         listed: true,
+        isActive: true,
         productType: true,
         categoryId: true,
         countryCode: true,

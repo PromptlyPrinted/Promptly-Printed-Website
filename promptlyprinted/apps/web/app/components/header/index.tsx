@@ -56,7 +56,7 @@ const ProductsDropdownMobileExpanded = ({
           Discover unique products that spark creativity and imagination.
         </p>
         <Link
-          href="/products/all"
+          href="/products/apparel/all"
           onClick={onLinkClick}
           className="mt-1 inline-flex items-center gap-2 font-medium text-gray-900 text-sm transition-colors duration-200 hover:text-gray-700"
         >
@@ -69,7 +69,7 @@ const ProductsDropdownMobileExpanded = ({
         <ul className="mt-2 space-y-2">
           <li>
             <Link
-              href="/products/all"
+              href="/products/apparel/all"
               onClick={onLinkClick}
               className="text-gray-600 hover:text-gray-900"
             >
@@ -78,7 +78,7 @@ const ProductsDropdownMobileExpanded = ({
           </li>
           <li>
             <Link
-              href="/products/mens"
+              href="/products/apparel/mens"
               onClick={onLinkClick}
               className="text-gray-600 hover:text-gray-900"
             >
@@ -87,7 +87,7 @@ const ProductsDropdownMobileExpanded = ({
           </li>
           <li>
             <Link
-              href="/products/womens"
+              href="/products/apparel/womens"
               onClick={onLinkClick}
               className="text-gray-600 hover:text-gray-900"
             >
@@ -96,7 +96,7 @@ const ProductsDropdownMobileExpanded = ({
           </li>
           <li>
             <Link
-              href="/products/kids+babies"
+              href="/products/apparel/kids+babies"
               onClick={onLinkClick}
               className="text-gray-600 hover:text-gray-900"
             >
@@ -111,7 +111,7 @@ const ProductsDropdownMobileExpanded = ({
         <ul className="mt-2 space-y-2">
           <li>
             <Link
-              href="/products/mats-sleeves"
+              href="/products/accessories/mats-sleeves"
               onClick={onLinkClick}
               className="text-gray-600 hover:text-gray-900"
             >
@@ -120,7 +120,7 @@ const ProductsDropdownMobileExpanded = ({
           </li>
           <li>
             <Link
-              href="/products/socks-flipflops"
+              href="/products/accessories/socks-flipflops"
               onClick={onLinkClick}
               className="text-gray-600 hover:text-gray-900"
             >
@@ -129,7 +129,7 @@ const ProductsDropdownMobileExpanded = ({
           </li>
           <li>
             <Link
-              href="/products/pendants-keyrings"
+              href="/products/accessories/pendants-keyrings"
               onClick={onLinkClick}
               className="text-gray-600 hover:text-gray-900"
             >
@@ -138,7 +138,7 @@ const ProductsDropdownMobileExpanded = ({
           </li>
           <li>
             <Link
-              href="/products/bags"
+              href="/products/accessories/bags"
               onClick={onLinkClick}
               className="text-gray-600 hover:text-gray-900"
             >
@@ -147,7 +147,7 @@ const ProductsDropdownMobileExpanded = ({
           </li>
           <li>
             <Link
-              href="/products/watch-straps"
+              href="/products/accessories/watch-straps"
               onClick={onLinkClick}
               className="text-gray-600 hover:text-gray-900"
             >
@@ -164,7 +164,7 @@ const ProductsDropdownMobileExpanded = ({
         <ul className="mt-2 space-y-2">
           <li>
             <Link
-              href="/products/cushions"
+              href="/products/home-living/cushions"
               onClick={onLinkClick}
               className="text-gray-600 hover:text-gray-900"
             >
@@ -173,7 +173,7 @@ const ProductsDropdownMobileExpanded = ({
           </li>
           <li>
             <Link
-              href="/products/gallery-boards"
+              href="/products/home-living/gallery-boards"
               onClick={onLinkClick}
               className="text-gray-600 hover:text-gray-900"
             >
@@ -182,7 +182,7 @@ const ProductsDropdownMobileExpanded = ({
           </li>
           <li>
             <Link
-              href="/products/acrylic-prisms"
+              href="/products/home-living/acrylic-prisms"
               onClick={onLinkClick}
               className="text-gray-600 hover:text-gray-900"
             >
@@ -191,7 +191,7 @@ const ProductsDropdownMobileExpanded = ({
           </li>
           <li>
             <Link
-              href="/products/prints-posters"
+              href="/products/home-living/prints-posters"
               onClick={onLinkClick}
               className="text-gray-600 hover:text-gray-900"
             >
@@ -206,7 +206,7 @@ const ProductsDropdownMobileExpanded = ({
         <ul className="mt-2 space-y-2">
           <li>
             <Link
-              href="/products/games"
+              href="/products/others/games"
               onClick={onLinkClick}
               className="text-gray-600 hover:text-gray-900"
             >
@@ -215,7 +215,7 @@ const ProductsDropdownMobileExpanded = ({
           </li>
           <li>
             <Link
-              href="/products/books"
+              href="/products/others/books"
               onClick={onLinkClick}
               className="text-gray-600 hover:text-gray-900"
             >
@@ -224,7 +224,7 @@ const ProductsDropdownMobileExpanded = ({
           </li>
           <li>
             <Link
-              href="/products/notebooks"
+              href="/products/others/notebooks"
               onClick={onLinkClick}
               className="text-gray-600 hover:text-gray-900"
             >
@@ -233,7 +233,7 @@ const ProductsDropdownMobileExpanded = ({
           </li>
           <li>
             <Link
-              href="/products/stickers"
+              href="/products/others/stickers"
               onClick={onLinkClick}
               className="text-gray-600 hover:text-gray-900"
             >
@@ -242,7 +242,7 @@ const ProductsDropdownMobileExpanded = ({
           </li>
           <li>
             <Link
-              href="/products/tattoos"
+              href="/products/others/tattoos"
               onClick={onLinkClick}
               className="text-gray-600 hover:text-gray-900"
             >

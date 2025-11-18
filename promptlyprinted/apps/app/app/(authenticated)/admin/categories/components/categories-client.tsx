@@ -10,6 +10,7 @@ import {
   DialogTrigger,
 } from '@repo/design-system/components/ui/dialog';
 import { Input } from '@repo/design-system/components/ui/input';
+import { Switch } from '@repo/design-system/components/ui/switch';
 import {
   Table,
   TableBody,
@@ -28,6 +29,7 @@ import { CategoryForm } from './category-form';
 interface Category {
   id: number;
   name: string;
+  isActive: boolean;
   _count: {
     products: number;
   };
@@ -45,9 +47,16 @@ export function CategoriesClient({ initialCategories }: CategoriesClientProps) {
   const [search, setSearch] = useState('');
   const router = useRouter();
 
-  const filteredCategories = categories.filter((category) =>
-    category.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredCategories = categories
+    .filter((category) => {
+      // Filter to show only Apparel (excluding Socks) for now
+      const isApparel = category.name.toLowerCase().includes('apparel');
+      const isSocks = category.name.toLowerCase().includes('socks');
+      return isApparel && !isSocks;
+    })
+    .filter((category) =>
+      category.name.toLowerCase().includes(search.toLowerCase())
+    );
 
   const handleSave = async (category: Partial<Category>) => {
     try {
@@ -104,6 +113,30 @@ export function CategoriesClient({ initialCategories }: CategoriesClientProps) {
     }
   };
 
+  const handleToggleActive = async (id: number, currentState: boolean) => {
+    try {
+      const response = await fetch(`/api/admin/categories/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !currentState }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to toggle category status');
+      }
+
+      const updatedCategory = await response.json();
+      setCategories(
+        categories.map((c) => (c.id === id ? updatedCategory : c))
+      );
+      toast.success(`Category ${!currentState ? 'activated' : 'deactivated'}`);
+      router.refresh();
+    } catch (error) {
+      console.error('Error toggling category:', error);
+      toast.error('Failed to toggle category status');
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -151,6 +184,7 @@ export function CategoriesClient({ initialCategories }: CategoriesClientProps) {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Products</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead>Updated</TableHead>
@@ -161,6 +195,19 @@ export function CategoriesClient({ initialCategories }: CategoriesClientProps) {
               {filteredCategories.map((category) => (
                 <TableRow key={category.id}>
                   <TableCell>{category.name}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={category.isActive}
+                        onCheckedChange={() =>
+                          handleToggleActive(category.id, category.isActive)
+                        }
+                      />
+                      <span className="text-sm text-muted-foreground">
+                        {category.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                  </TableCell>
                   <TableCell>{category._count.products}</TableCell>
                   <TableCell>
                     {new Date(category.createdAt).toLocaleDateString()}
@@ -214,9 +261,17 @@ export function CategoriesClient({ initialCategories }: CategoriesClientProps) {
             <Card key={category.id} className="p-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="font-semibold">{category.name}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold">{category.name}</h3>
+                    <Switch
+                      checked={category.isActive}
+                      onCheckedChange={() =>
+                        handleToggleActive(category.id, category.isActive)
+                      }
+                    />
+                  </div>
                   <p className="text-muted-foreground text-sm">
-                    {category._count.products} products
+                    {category._count.products} products • {category.isActive ? 'Active' : 'Inactive'}
                   </p>
                 </div>
                 <div className="flex gap-2">

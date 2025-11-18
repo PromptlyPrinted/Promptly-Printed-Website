@@ -73,6 +73,7 @@ export async function PATCH(
       currency,
       stock,
       listed,
+      isActive,
       categoryId,
       productType,
     } = body;
@@ -106,6 +107,7 @@ export async function PATCH(
     if (currency !== undefined) updateData.currency = currency;
     if (stock !== undefined) updateData.stock = stock;
     if (listed !== undefined) updateData.listed = listed;
+    if (isActive !== undefined) updateData.isActive = isActive;
     if (productType !== undefined) updateData.productType = productType;
     if (categoryId !== undefined) {
       updateData.categoryId =

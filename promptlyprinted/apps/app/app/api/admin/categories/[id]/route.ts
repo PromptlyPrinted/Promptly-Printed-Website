@@ -104,6 +104,47 @@ export async function PUT(
   }
 }
 
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user?.id) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    const user = await database.user.findUnique({
+      where: { id: session.user.id },
+    });
+
+    if (user?.role !== 'ADMIN') {
+      return new NextResponse('Forbidden', { status: 403 });
+    }
+
+    const body = await request.json();
+    const { isActive } = body;
+
+    const category = await database.category.update({
+      where: { id: Number.parseInt(id) },
+      data: { isActive },
+      include: {
+        _count: {
+          select: {
+            products: true,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json(category);
+  } catch (error) {
+    console.error('Error updating category status:', error);
+    return new NextResponse('Internal Server Error', { status: 500 });
+  }
+}
+
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
