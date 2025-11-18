@@ -46,6 +46,15 @@ export default function CheckoutPage() {
   const googlePayRef = useRef<any>(null);
   const [applePayAvailable, setApplePayAvailable] = useState(false);
   const [googlePayAvailable, setGooglePayAvailable] = useState(false);
+  const [discountCode, setDiscountCode] = useState('');
+  const [appliedDiscount, setAppliedDiscount] = useState<{
+    code: string;
+    type: string;
+    value: number;
+    discountAmount: number;
+  } | null>(null);
+  const [discountError, setDiscountError] = useState<string | null>(null);
+  const [validatingDiscount, setValidatingDiscount] = useState(false);
   const [shippingAddress, setShippingAddress] = useState<ShippingAddress>({
     firstName: '',
     lastName: '',
@@ -204,8 +213,59 @@ export default function CheckoutPage() {
     }
   };
 
-  const calculateTotal = () => {
+  const calculateSubtotal = () => {
     return items.reduce((total, item) => total + item.price * item.copies, 0);
+  };
+
+  const calculateTotal = () => {
+    const subtotal = calculateSubtotal();
+    const discount = appliedDiscount?.discountAmount || 0;
+    return subtotal - discount;
+  };
+
+  const handleApplyDiscount = async () => {
+    if (!discountCode.trim()) {
+      setDiscountError('Please enter a discount code');
+      return;
+    }
+
+    setValidatingDiscount(true);
+    setDiscountError(null);
+
+    try {
+      const response = await fetch('/api/checkout/validate-discount', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          code: discountCode.trim(),
+          orderAmount: calculateSubtotal(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.valid && data.discountCode) {
+        setAppliedDiscount(data.discountCode);
+        setDiscountError(null);
+      } else {
+        setDiscountError(data.error || 'Invalid discount code');
+        setAppliedDiscount(null);
+      }
+    } catch (err) {
+      console.error('Discount validation error:', err);
+      setDiscountError('Failed to validate discount code');
+      setAppliedDiscount(null);
+    } finally {
+      setValidatingDiscount(false);
+    }
+  };
+
+  const handleRemoveDiscount = () => {
+    setAppliedDiscount(null);
+    setDiscountCode('');
+    setDiscountError(null);
   };
 
   const handleShippingSubmit = (e: React.FormEvent) => {
@@ -244,6 +304,7 @@ export default function CheckoutPage() {
             sourceId: token,
             items,
             shippingAddress,
+            discountCode: appliedDiscount?.code,
           }),
         });
 
@@ -299,6 +360,7 @@ export default function CheckoutPage() {
             sourceId: tokenResult.token,
             items,
             shippingAddress,
+            discountCode: appliedDiscount?.code,
           }),
         });
 
@@ -451,11 +513,62 @@ export default function CheckoutPage() {
                 ))}
               </div>
 
+              {/* Discount Code Input */}
+              <div className="border-t border-gray-200 pt-4 mb-4">
+                <div className="space-y-2">
+                  {!appliedDiscount ? (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={discountCode}
+                        onChange={(e) => {
+                          setDiscountCode(e.target.value.toUpperCase());
+                          setDiscountError(null);
+                        }}
+                        placeholder="Discount code"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm"
+                      />
+                      <button
+                        onClick={handleApplyDiscount}
+                        disabled={validatingDiscount || !discountCode.trim()}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                      >
+                        {validatingDiscount ? 'Checking...' : 'Apply'}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg p-3">
+                      <div className="flex items-center gap-2">
+                        <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="text-sm font-medium text-green-900">{appliedDiscount.code}</span>
+                      </div>
+                      <button
+                        onClick={handleRemoveDiscount}
+                        className="text-sm text-red-600 hover:text-red-700 font-medium"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                  {discountError && (
+                    <p className="text-sm text-red-600">{discountError}</p>
+                  )}
+                </div>
+              </div>
+
               <div className="border-t border-gray-200 pt-4 space-y-2">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal</span>
-                  <span>{formatPrice(calculateTotal())}</span>
+                  <span>{formatPrice(calculateSubtotal())}</span>
                 </div>
+                {appliedDiscount && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Discount ({appliedDiscount.code})</span>
+                    <span>-{formatPrice(appliedDiscount.discountAmount)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-gray-600">
                   <span>Shipping</span>
                   <span>Calculated at next step</span>

@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import { getSession } from '@/lib/session-utils';
-import { prisma, OrderStatus, ShippingMethod } from '@repo/database';
+import { prisma, OrderStatus, ShippingMethod, DiscountType } from '@repo/database';
 import type { User } from '@repo/database';
 import { type NextRequest, NextResponse } from 'next/server';
 import { SquareClient, SquareEnvironment, Currency } from 'square';
@@ -44,6 +44,7 @@ const CompletePaymentSchema = z.object({
   sourceId: z.string(), // Payment token from Square Web SDK
   items: z.array(CheckoutItemSchema),
   shippingAddress: ShippingAddressSchema,
+  discountCode: z.string().optional(), // Optional discount code
 });
 
 export async function POST(request: NextRequest) {
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { sourceId, items, shippingAddress } = validation.data;
+    const { sourceId, items, shippingAddress, discountCode } = validation.data;
 
     // Get user session if exists
     const session = await getSession(request);
@@ -69,8 +70,79 @@ export async function POST(request: NextRequest) {
       ? await prisma.user.findUnique({ where: { id: session.user.id } })
       : null;
 
-    // Calculate total
-    const total = items.reduce((sum, item) => sum + item.price * item.copies, 0);
+    // Calculate subtotal
+    const subtotal = items.reduce((sum, item) => sum + item.price * item.copies, 0);
+
+    // Validate and apply discount code if provided
+    let discountAmount = 0;
+    let validatedDiscountCode = null;
+
+    if (discountCode) {
+      const discount = await prisma.discountCode.findUnique({
+        where: { code: discountCode.toUpperCase() },
+        include: {
+          usages: dbUser?.id ? {
+            where: { userId: dbUser.id },
+          } : false,
+        },
+      });
+
+      if (discount) {
+        const now = new Date();
+        let isValid = true;
+        let errorMessage = '';
+
+        // Validate discount code
+        if (!discount.isActive) {
+          isValid = false;
+          errorMessage = 'Discount code is no longer active';
+        } else if (discount.startsAt && discount.startsAt > now) {
+          isValid = false;
+          errorMessage = 'Discount code is not yet available';
+        } else if (discount.expiresAt && discount.expiresAt < now) {
+          isValid = false;
+          errorMessage = 'Discount code has expired';
+        } else if (discount.minOrderAmount && subtotal < discount.minOrderAmount) {
+          isValid = false;
+          errorMessage = `Minimum order amount of £${discount.minOrderAmount.toFixed(2)} required`;
+        } else if (discount.maxUses && discount.usedCount >= discount.maxUses) {
+          isValid = false;
+          errorMessage = 'Discount code has reached its usage limit';
+        } else if (dbUser?.id && discount.maxUsesPerUser) {
+          const userUsageCount = Array.isArray(discount.usages) ? discount.usages.length : 0;
+          if (userUsageCount >= discount.maxUsesPerUser) {
+            isValid = false;
+            errorMessage = 'You have already used this discount code';
+          }
+        }
+
+        if (!isValid) {
+          console.error('[Complete Payment] Invalid discount code:', errorMessage);
+          return NextResponse.json(
+            { error: 'Invalid discount code', message: errorMessage },
+            { status: 400 }
+          );
+        }
+
+        // Calculate discount amount
+        if (discount.type === DiscountType.PERCENTAGE) {
+          discountAmount = (subtotal * discount.value) / 100;
+        } else if (discount.type === DiscountType.FIXED_AMOUNT) {
+          discountAmount = Math.min(discount.value, subtotal);
+        }
+
+        validatedDiscountCode = discount;
+      } else {
+        console.error('[Complete Payment] Discount code not found:', discountCode);
+        return NextResponse.json(
+          { error: 'Invalid discount code', message: 'Discount code not found' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Calculate final total after discount
+    const total = subtotal - discountAmount;
     const amountInPence = Math.round(total * 100);
 
     // Create database order first
@@ -79,6 +151,8 @@ export async function POST(request: NextRequest) {
       data: {
         userId: dbUser?.id || 'guest',
         totalPrice: total,
+        discountCodeId: validatedDiscountCode?.id,
+        discountAmount: discountAmount > 0 ? discountAmount : null,
         shippingMethod: ShippingMethod.STANDARD,
         status: OrderStatus.PENDING,
         recipient: {
@@ -146,7 +220,7 @@ export async function POST(request: NextRequest) {
     const updatedOrder = await prisma.order.update({
       where: { id: order.id },
       data: {
-        status: paymentResponse.payment.status === 'COMPLETED' ? OrderStatus.CONFIRMED : OrderStatus.PENDING,
+        status: paymentResponse.payment.status === 'COMPLETED' ? OrderStatus.COMPLETED : OrderStatus.PENDING,
         metadata: {
           squarePaymentId: paymentResponse.payment.id,
           squarePaymentStatus: paymentResponse.payment.status,
@@ -162,12 +236,49 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log('[Complete Payment] Success', { orderId: order.id });
+    console.log('[Complete Payment] Success', {
+      orderId: order.id,
+      paymentStatus: paymentResponse.payment.status,
+      willCreateProdigiOrder: paymentResponse.payment.status === 'COMPLETED'
+    });
+
+    // Record discount usage if payment is completed and discount was applied
+    if (paymentResponse.payment.status === 'COMPLETED' && validatedDiscountCode && discountAmount > 0) {
+      try {
+        await prisma.$transaction([
+          // Create discount usage record
+          prisma.discountUsage.create({
+            data: {
+              discountCodeId: validatedDiscountCode.id,
+              orderId: order.id,
+              userId: dbUser?.id,
+              discountAmount,
+            },
+          }),
+          // Increment the used count
+          prisma.discountCode.update({
+            where: { id: validatedDiscountCode.id },
+            data: { usedCount: { increment: 1 } },
+          }),
+        ]);
+        console.log('[Discount] Usage recorded', {
+          discountCode: validatedDiscountCode.code,
+          discountAmount,
+        });
+      } catch (discountError) {
+        console.error('[Discount] Failed to record usage:', discountError);
+        // Don't fail the order if discount tracking fails
+      }
+    }
 
     // Create Prodigi order if payment is completed
     if (paymentResponse.payment.status === 'COMPLETED') {
       try {
-        console.log('[Prodigi Order] Creating for order:', order.id);
+        console.log('[Prodigi Order] Starting creation process...', {
+          orderId: order.id,
+          itemCount: items.length,
+          hasProdigiApiKey: !!process.env.PRODIGI_API_KEY,
+        });
 
         // Get product details for SKUs
         const productIds = items.map(item => item.productId);
@@ -178,6 +289,12 @@ export async function POST(request: NextRequest) {
 
         const productSkuMap = new Map(products.map(p => [p.id, p.sku]));
 
+        console.log('[Prodigi Order] Product SKU mapping:', {
+          requestedProductIds: productIds,
+          foundProducts: products.length,
+          skuMap: Array.from(productSkuMap.entries()),
+        });
+
         // Prepare Prodigi order items
         const prodigiItems = items.map((item, index) => {
           const sku = productSkuMap.get(item.productId);
@@ -185,11 +302,35 @@ export async function POST(request: NextRequest) {
             throw new Error(`Product SKU not found for product ID: ${item.productId}`);
           }
 
-          // Get design URL from item or use a placeholder
-          const designUrl = item.designUrl || updatedOrder.orderItems[index]?.assets?.url;
+          // Get design URL from item or order item assets
+          let designUrl = item.designUrl;
+
+          // If no design URL, try to get from order item assets
           if (!designUrl) {
-            throw new Error(`Design URL missing for item: ${item.name}`);
+            const orderItemAssets = updatedOrder.orderItems[index]?.assets;
+            if (orderItemAssets && typeof orderItemAssets === 'object' && !Array.isArray(orderItemAssets)) {
+              designUrl = (orderItemAssets as any).url;
+            } else if (Array.isArray(orderItemAssets) && orderItemAssets.length > 0) {
+              designUrl = (orderItemAssets[0] as any).url;
+            }
           }
+
+          if (!designUrl) {
+            console.error('[Prodigi Order] Missing design URL:', {
+              itemName: item.name,
+              itemIndex: index,
+              hasDesignUrlInItem: !!item.designUrl,
+              orderItemAssets: updatedOrder.orderItems[index]?.assets,
+            });
+            throw new Error(`Design URL missing for item: ${item.name}. Please ensure all products have custom designs uploaded.`);
+          }
+
+          console.log('[Prodigi Order] Item prepared:', {
+            index,
+            sku,
+            copies: item.copies,
+            hasDesignUrl: !!designUrl,
+          });
 
           return {
             sku: sku,
@@ -203,6 +344,10 @@ export async function POST(request: NextRequest) {
               },
             ],
           };
+        });
+
+        console.log('[Prodigi Order] All items prepared successfully:', {
+          itemCount: prodigiItems.length,
         });
 
         // Create Prodigi order
@@ -229,7 +374,14 @@ export async function POST(request: NextRequest) {
           },
         };
 
+        console.log('[Prodigi Order] Sending request to Prodigi API...');
         const prodigiOrder = await prodigiService.createOrder(prodigiOrderRequest);
+
+        console.log('[Prodigi Order] Response received:', {
+          hasOrder: !!prodigiOrder.order,
+          orderId: prodigiOrder.order?.id,
+          status: prodigiOrder.order?.status,
+        });
 
         // Update order with Prodigi details
         await prisma.order.update({
@@ -251,31 +403,48 @@ export async function POST(request: NextRequest) {
           prodigiOrderId: prodigiOrder.order?.id,
         });
       } catch (prodigiError: any) {
-        console.error('[Prodigi Order] Failed to create:', prodigiError);
+        console.error('[Prodigi Order] Failed to create:', {
+          error: prodigiError,
+          message: prodigiError.message,
+          stack: prodigiError.stack,
+          orderId: order.id,
+        });
 
         // Log the error but don't fail the payment
         // The order can be manually sent to Prodigi later
-        await prisma.orderProcessingError.create({
-          data: {
-            orderId: order.id,
-            error: prodigiError.message || 'Failed to create Prodigi order',
-            retryCount: 0,
-            lastAttempt: new Date(),
-          },
-        });
-
-        // Update order metadata with error info
-        await prisma.order.update({
-          where: { id: order.id },
-          data: {
-            metadata: {
-              ...(updatedOrder.metadata as object || {}),
-              prodigiError: prodigiError.message,
-              prodigiErrorTime: new Date().toISOString(),
+        try {
+          await prisma.orderProcessingError.create({
+            data: {
+              orderId: order.id,
+              error: prodigiError.message || 'Failed to create Prodigi order',
+              retryCount: 0,
+              lastAttempt: new Date(),
             },
-          },
-        });
+          });
+
+          // Update order metadata with error info
+          await prisma.order.update({
+            where: { id: order.id },
+            data: {
+              metadata: {
+                ...(updatedOrder.metadata as object || {}),
+                prodigiError: prodigiError.message,
+                prodigiErrorTime: new Date().toISOString(),
+                prodigiErrorDetails: JSON.stringify(prodigiError),
+              },
+            },
+          });
+
+          console.log('[Prodigi Order] Error logged successfully');
+        } catch (logError) {
+          console.error('[Prodigi Order] Failed to log error:', logError);
+        }
       }
+    } else {
+      console.log('[Prodigi Order] Skipped - payment not completed:', {
+        orderId: order.id,
+        paymentStatus: paymentResponse.payment.status,
+      });
     }
 
     return NextResponse.json({
@@ -283,6 +452,10 @@ export async function POST(request: NextRequest) {
       orderId: order.id,
       paymentId: paymentResponse.payment.id,
       status: paymentResponse.payment.status,
+      discountApplied: discountAmount > 0 ? {
+        code: validatedDiscountCode?.code,
+        amount: discountAmount,
+      } : null,
     });
 
   } catch (error: any) {
