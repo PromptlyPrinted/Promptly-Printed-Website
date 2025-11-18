@@ -82,9 +82,9 @@ export default function CheckoutPage() {
       setError('No items in cart');
     }
 
-    // Load Square SDK dynamically - use production or sandbox based on environment
+    // Load Square SDK dynamically - use production or sandbox based on SQUARE_ENVIRONMENT
     const script = document.createElement('script');
-    const isProduction = process.env.NODE_ENV === 'production';
+    const isProduction = process.env.NEXT_PUBLIC_SQUARE_ENVIRONMENT === 'production';
     script.src = isProduction
       ? 'https://web.squarecdn.com/v1/square.js'
       : 'https://sandbox.web.squarecdn.com/v1/square.js';

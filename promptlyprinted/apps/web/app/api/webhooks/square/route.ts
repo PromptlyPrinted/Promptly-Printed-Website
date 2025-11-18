@@ -40,6 +40,52 @@ export async function POST(req: Request) {
 
     const event = JSON.parse(body);
 
+    // Handle refund events
+    if (event.type === 'refund.created' || event.type === 'refund.updated') {
+      const refund = event.data.object.refund;
+
+      // Only process completed refunds
+      if (refund.status !== 'COMPLETED' && refund.status !== 'PENDING') {
+        console.log('Refund not in processable state:', refund.status);
+        return NextResponse.json({ received: true });
+      }
+
+      const paymentId = refund.payment_id;
+
+      if (!paymentId) {
+        console.error('No payment ID found in refund');
+        return NextResponse.json({ error: 'No payment ID' }, { status: 400 });
+      }
+
+      // Find the order by Square payment/order ID
+      const order = await prisma.order.findFirst({
+        where: {
+          stripeSessionId: paymentId, // Using same field for Square order ID
+        },
+      });
+
+      if (!order) {
+        console.error('No order found for payment ID:', paymentId);
+        return NextResponse.json({ error: 'Order not found' }, { status: 400 });
+      }
+
+      // Update order status to CANCELED
+      await prisma.order.update({
+        where: { id: order.id },
+        data: {
+          status: OrderStatus.CANCELED,
+        },
+      });
+
+      console.log('Order refunded:', {
+        orderId: order.id,
+        refundId: refund.id,
+        amount: refund.amount_money,
+      });
+
+      return NextResponse.json({ received: true });
+    }
+
     // Handle payment.updated event (when payment is completed)
     if (event.type === 'payment.updated' || event.type === 'payment.created') {
       const payment = event.data.object.payment;
