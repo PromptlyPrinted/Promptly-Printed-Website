@@ -24,7 +24,8 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
 
   if (!user || user.role !== 'ADMIN') {
     // Redirect to web app home - no flash since this is server-side
-    redirect('http://localhost:3001');
+    const webUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://promptlyprinted.com';
+    redirect(webUrl);
   }
 
   // Only render if user is admin

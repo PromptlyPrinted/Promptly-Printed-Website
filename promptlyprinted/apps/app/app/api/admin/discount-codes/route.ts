@@ -1,6 +1,7 @@
-import { getSession } from '@/lib/session-utils';
+import { auth } from '@repo/auth/server';
 import { prisma, DiscountType, Role } from '@repo/database';
 import { type NextRequest, NextResponse } from 'next/server';
+import { headers } from 'next/headers';
 import { z } from 'zod';
 
 const CreateDiscountCodeSchema = z.object({
@@ -17,8 +18,8 @@ const CreateDiscountCodeSchema = z.object({
 });
 
 // Middleware to check if user is admin
-async function requireAdmin(request: NextRequest) {
-  const session = await getSession(request);
+async function requireAdmin() {
+  const session = await auth.api.getSession({ headers: await headers() });
 
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -38,7 +39,7 @@ async function requireAdmin(request: NextRequest) {
 
 // GET - List all discount codes
 export async function GET(request: NextRequest) {
-  const authError = await requireAdmin(request);
+  const authError = await requireAdmin();
   if (authError) return authError;
 
   try {
@@ -67,7 +68,7 @@ export async function GET(request: NextRequest) {
 
 // POST - Create a new discount code
 export async function POST(request: NextRequest) {
-  const authError = await requireAdmin(request);
+  const authError = await requireAdmin();
   if (authError) return authError;
 
   try {
@@ -122,7 +123,7 @@ export async function POST(request: NextRequest) {
 
 // PATCH - Update a discount code
 export async function PATCH(request: NextRequest) {
-  const authError = await requireAdmin(request);
+  const authError = await requireAdmin();
   if (authError) return authError;
 
   try {
@@ -160,7 +161,7 @@ export async function PATCH(request: NextRequest) {
 
 // DELETE - Delete a discount code
 export async function DELETE(request: NextRequest) {
-  const authError = await requireAdmin(request);
+  const authError = await requireAdmin();
   if (authError) return authError;
 
   try {
