@@ -36,6 +36,7 @@ import {
   LogOutIcon,
   MoreHorizontalIcon,
   PackageIcon,
+  PercentIcon,
   ShoppingCartIcon,
   UsersIcon,
   ZapIcon,
@@ -129,6 +130,12 @@ const data = {
       title: 'Payments',
       url: '/admin/payments',
       icon: CreditCardIcon,
+      items: [],
+    },
+    {
+      title: 'Discount Codes',
+      url: '/admin/discount-codes',
+      icon: PercentIcon,
       items: [],
     },
     {
