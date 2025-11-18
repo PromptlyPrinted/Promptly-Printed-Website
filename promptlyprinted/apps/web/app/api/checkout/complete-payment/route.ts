@@ -5,6 +5,7 @@ import type { User } from '@repo/database';
 import { type NextRequest, NextResponse } from 'next/server';
 import { SquareClient, SquareEnvironment, Currency } from 'square';
 import { z } from 'zod';
+import { prodigiService } from '@/lib/prodigi';
 
 // Square client configuration
 const squareEnvironment = process.env.SQUARE_ENVIRONMENT === 'production'
@@ -142,7 +143,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Update order with payment info
-    await prisma.order.update({
+    const updatedOrder = await prisma.order.update({
       where: { id: order.id },
       data: {
         status: paymentResponse.payment.status === 'COMPLETED' ? OrderStatus.CONFIRMED : OrderStatus.PENDING,
@@ -151,9 +152,131 @@ export async function POST(request: NextRequest) {
           squarePaymentStatus: paymentResponse.payment.status,
         },
       },
+      include: {
+        recipient: true,
+        orderItems: {
+          include: {
+            customization: true,
+          },
+        },
+      },
     });
 
     console.log('[Complete Payment] Success', { orderId: order.id });
+
+    // Create Prodigi order if payment is completed
+    if (paymentResponse.payment.status === 'COMPLETED') {
+      try {
+        console.log('[Prodigi Order] Creating for order:', order.id);
+
+        // Get product details for SKUs
+        const productIds = items.map(item => item.productId);
+        const products = await prisma.product.findMany({
+          where: { id: { in: productIds } },
+          select: { id: true, sku: true },
+        });
+
+        const productSkuMap = new Map(products.map(p => [p.id, p.sku]));
+
+        // Prepare Prodigi order items
+        const prodigiItems = items.map((item, index) => {
+          const sku = productSkuMap.get(item.productId);
+          if (!sku) {
+            throw new Error(`Product SKU not found for product ID: ${item.productId}`);
+          }
+
+          // Get design URL from item or use a placeholder
+          const designUrl = item.designUrl || updatedOrder.orderItems[index]?.assets?.url;
+          if (!designUrl) {
+            throw new Error(`Design URL missing for item: ${item.name}`);
+          }
+
+          return {
+            sku: sku,
+            copies: item.copies,
+            merchantReference: `item_${order.id}_${index}`,
+            sizing: 'fillPrintArea' as const,
+            assets: [
+              {
+                printArea: 'default',
+                url: designUrl,
+              },
+            ],
+          };
+        });
+
+        // Create Prodigi order
+        const prodigiOrderRequest = {
+          shippingMethod: 'Standard' as const,
+          recipient: {
+            name: `${shippingAddress.firstName} ${shippingAddress.lastName}`,
+            email: shippingAddress.email,
+            phoneNumber: shippingAddress.phone,
+            address: {
+              line1: shippingAddress.addressLine1,
+              line2: shippingAddress.addressLine2,
+              postalOrZipCode: shippingAddress.postalCode,
+              countryCode: shippingAddress.country,
+              townOrCity: shippingAddress.city,
+            },
+          },
+          items: prodigiItems,
+          merchantReference: `ORDER-${order.id}`,
+          idempotencyKey: `order-${order.id}-${Date.now()}`,
+          metadata: {
+            orderId: order.id.toString(),
+            squarePaymentId: paymentResponse.payment.id,
+          },
+        };
+
+        const prodigiOrder = await prodigiService.createOrder(prodigiOrderRequest);
+
+        // Update order with Prodigi details
+        await prisma.order.update({
+          where: { id: order.id },
+          data: {
+            prodigiOrderId: prodigiOrder.order?.id,
+            metadata: {
+              ...(updatedOrder.metadata as object || {}),
+              squarePaymentId: paymentResponse.payment.id,
+              squarePaymentStatus: paymentResponse.payment.status,
+              prodigiOrderId: prodigiOrder.order?.id,
+              prodigiStatus: prodigiOrder.order?.status,
+            },
+          },
+        });
+
+        console.log('[Prodigi Order] Created successfully', {
+          orderId: order.id,
+          prodigiOrderId: prodigiOrder.order?.id,
+        });
+      } catch (prodigiError: any) {
+        console.error('[Prodigi Order] Failed to create:', prodigiError);
+
+        // Log the error but don't fail the payment
+        // The order can be manually sent to Prodigi later
+        await prisma.orderProcessingError.create({
+          data: {
+            orderId: order.id,
+            error: prodigiError.message || 'Failed to create Prodigi order',
+            retryCount: 0,
+            lastAttempt: new Date(),
+          },
+        });
+
+        // Update order metadata with error info
+        await prisma.order.update({
+          where: { id: order.id },
+          data: {
+            metadata: {
+              ...(updatedOrder.metadata as object || {}),
+              prodigiError: prodigiError.message,
+              prodigiErrorTime: new Date().toISOString(),
+            },
+          },
+        });
+      }
+    }
 
     return NextResponse.json({
       success: true,
