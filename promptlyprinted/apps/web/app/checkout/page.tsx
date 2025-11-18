@@ -42,6 +42,10 @@ export default function CheckoutPage() {
   const [squareLoaded, setSquareLoaded] = useState(false);
   const [paymentStep, setPaymentStep] = useState<'shipping' | 'payment'>('shipping');
   const cardRef = useRef<any>(null);
+  const applePayRef = useRef<any>(null);
+  const googlePayRef = useRef<any>(null);
+  const [applePayAvailable, setApplePayAvailable] = useState(false);
+  const [googlePayAvailable, setGooglePayAvailable] = useState(false);
   const [shippingAddress, setShippingAddress] = useState<ShippingAddress>({
     firstName: '',
     lastName: '',
@@ -69,9 +73,12 @@ export default function CheckoutPage() {
       setError('No items in cart');
     }
 
-    // Load Square SDK dynamically
+    // Load Square SDK dynamically - use production or sandbox based on environment
     const script = document.createElement('script');
-    script.src = 'https://sandbox.web.squarecdn.com/v1/square.js';
+    const isProduction = process.env.NODE_ENV === 'production';
+    script.src = isProduction
+      ? 'https://web.squarecdn.com/v1/square.js'
+      : 'https://sandbox.web.squarecdn.com/v1/square.js';
     script.async = true;
     script.crossOrigin = 'anonymous';
     script.onload = () => {
@@ -85,7 +92,25 @@ export default function CheckoutPage() {
     document.head.appendChild(script);
 
     return () => {
-      // Cleanup
+      // Cleanup payment instances per Square docs
+      const cleanup = async () => {
+        try {
+          if (cardRef.current) {
+            await cardRef.current.destroy();
+          }
+          if (applePayRef.current) {
+            await applePayRef.current.destroy();
+          }
+          if (googlePayRef.current) {
+            await googlePayRef.current.destroy();
+          }
+        } catch (e) {
+          console.error('Error cleaning up payment instances:', e);
+        }
+      };
+      cleanup();
+
+      // Remove script
       if (document.head.contains(script)) {
         document.head.removeChild(script);
       }
@@ -112,19 +137,71 @@ export default function CheckoutPage() {
     try {
       const payments = window.Square.payments(applicationId, locationId);
 
+      // Initialize Card payment
       const card = await payments.card();
       await card.attach('#card-container');
       cardRef.current = card;
+
+      // Create payment request for digital wallets
+      const paymentRequest = payments.paymentRequest({
+        countryCode: shippingAddress.country || 'GB',
+        currencyCode: 'GBP',
+        total: {
+          amount: calculateTotal().toFixed(2),
+          label: 'Total',
+        },
+      });
+
+      // Initialize Apple Pay if available
+      try {
+        const applePay = await payments.applePay(paymentRequest);
+        await applePay.attach('#apple-pay-button');
+        applePayRef.current = applePay;
+        setApplePayAvailable(true);
+        console.log('Apple Pay initialized successfully');
+
+        // Set up Apple Pay click handler per Square docs
+        const applePayButtonTarget = document.getElementById('apple-pay-button');
+        if (applePayButtonTarget) {
+          applePayButtonTarget.onclick = async (event) => {
+            event.preventDefault();
+            await handleDigitalWalletPayment('applePay');
+          };
+        }
+      } catch (e) {
+        console.log('Apple Pay not available:', e);
+      }
+
+      // Initialize Google Pay if available
+      try {
+        const googlePay = await payments.googlePay(paymentRequest);
+        // Attach with customization options per Square docs
+        await googlePay.attach('#google-pay-button', {
+          buttonColor: 'black',
+          buttonSizeMode: 'fill',
+          buttonType: 'long',
+        });
+        googlePayRef.current = googlePay;
+        setGooglePayAvailable(true);
+        console.log('Google Pay initialized successfully');
+
+        // Set up Google Pay click handler per Square docs
+        const googlePayButtonTarget = document.getElementById('google-pay-button');
+        if (googlePayButtonTarget) {
+          googlePayButtonTarget.onclick = async (event) => {
+            event.preventDefault();
+            await handleDigitalWalletPayment('googlePay');
+          };
+        }
+      } catch (e) {
+        console.log('Google Pay not available:', e);
+      }
 
       console.log('Square payment form initialized');
     } catch (e) {
       console.error('Failed to initialize Square payments:', e);
       setError('Direct card payment is not available in development mode due to CORS restrictions. Please use the secure payment link below.');
     }
-  };
-
-  const handleSquareLoaded = () => {
-    setSquareLoaded(true);
   };
 
   const calculateTotal = () => {
@@ -189,6 +266,64 @@ export default function CheckoutPage() {
     } catch (err) {
       console.error('Payment error:', err);
       setError(err instanceof Error ? err.message : 'Payment processing failed');
+      setLoading(false);
+    }
+  };
+
+  const handleDigitalWalletPayment = async (paymentMethod: 'applePay' | 'googlePay') => {
+    const paymentRef = paymentMethod === 'applePay' ? applePayRef : googlePayRef;
+    const paymentName = paymentMethod === 'applePay' ? 'Apple Pay' : 'Google Pay';
+
+    if (!paymentRef.current) {
+      setError(`${paymentName} not initialized`);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Tokenize per Square documentation
+      const tokenResult = await paymentRef.current.tokenize();
+
+      if (tokenResult.status === 'OK') {
+        console.log(`${paymentName} token:`, tokenResult.token);
+
+        // Send payment token to backend
+        const response = await fetch('/api/checkout/complete-payment', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            sourceId: tokenResult.token,
+            items,
+            shippingAddress,
+          }),
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.message || data.error || 'Payment failed');
+        }
+
+        const data = await response.json();
+
+        // Clear cart and redirect to success page
+        localStorage.removeItem('cartItems');
+        router.push(`/checkout/success?orderId=${data.orderId}`);
+      } else {
+        // Handle tokenization failure per Square docs
+        let errorMessage = `Tokenization failed: ${tokenResult.status}`;
+        if (tokenResult.errors) {
+          errorMessage += ` - ${JSON.stringify(tokenResult.errors)}`;
+          console.error(`${paymentName} tokenization errors:`, tokenResult.errors);
+        }
+        throw new Error(errorMessage);
+      }
+    } catch (err) {
+      console.error(`${paymentName} payment error:`, err);
+      setError(err instanceof Error ? err.message : `${paymentName} payment processing failed`);
       setLoading(false);
     }
   };
@@ -567,6 +702,45 @@ export default function CheckoutPage() {
                     </div>
                   ) : (
                     <form onSubmit={handlePaymentSubmit} className="space-y-6">
+                      {/* Digital Wallet Buttons */}
+                      {(applePayAvailable || googlePayAvailable) && (
+                        <div className="space-y-3">
+                          <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                              <div className="w-full border-t border-gray-300"></div>
+                            </div>
+                            <div className="relative flex justify-center text-sm">
+                              <span className="px-2 bg-white text-gray-500">Express Checkout</span>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 gap-3">
+                            {applePayAvailable && (
+                              <div
+                                id="apple-pay-button"
+                                className="h-12 rounded-lg overflow-hidden cursor-pointer"
+                              ></div>
+                            )}
+                            {googlePayAvailable && (
+                              <div
+                                id="google-pay-button"
+                                className="h-12 rounded-lg overflow-hidden cursor-pointer"
+                              ></div>
+                            )}
+                          </div>
+
+                          <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                              <div className="w-full border-t border-gray-300"></div>
+                            </div>
+                            <div className="relative flex justify-center text-sm">
+                              <span className="px-2 bg-white text-gray-500">Or pay with card</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Card Payment Form */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Card Details *
