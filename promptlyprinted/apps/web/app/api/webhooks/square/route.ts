@@ -4,6 +4,7 @@ import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { SquareClient, SquareEnvironment } from 'square';
 import crypto from 'crypto';
+import { prodigiService } from '@/lib/prodigi';
 
 const squareClient = new SquareClient({
   token: process.env.SQUARE_ACCESS_TOKEN!,
@@ -216,12 +217,25 @@ export async function POST(req: Request) {
         where: { id: dbOrderId },
         data: {
           status: OrderStatus.COMPLETED,
-          // Note: Square doesn't provide shipping address in webhook
-          // You may need to fetch it separately or update it in the success page
+          metadata: {
+            squarePaymentId: payment.id,
+            squarePaymentStatus: payment.status,
+            squareOrderId: orderId,
+          },
         },
         include: {
           recipient: true,
-          orderItems: true,
+          orderItems: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  sku: true,
+                  name: true,
+                },
+              },
+            },
+          },
         },
       });
 
@@ -229,6 +243,162 @@ export async function POST(req: Request) {
         orderId: updatedOrder.id,
         status: updatedOrder.status,
       });
+
+      // Create Prodigi order now that payment is completed
+      try {
+        console.log('[Prodigi Order] Starting creation from webhook...', {
+          orderId: updatedOrder.id,
+          itemCount: updatedOrder.orderItems.length,
+        });
+
+        // Prepare Prodigi order items
+        const prodigiItems = updatedOrder.orderItems.map((orderItem, index) => {
+          const sku = orderItem.product?.sku;
+          if (!sku) {
+            throw new Error(`Product SKU not found for order item ID: ${orderItem.id}`);
+          }
+
+          // Get design URL from order item assets
+          let designUrl: string | undefined;
+          const assets = orderItem.assets;
+
+          if (assets && typeof assets === 'object' && !Array.isArray(assets)) {
+            designUrl = (assets as any).url;
+          } else if (Array.isArray(assets) && assets.length > 0) {
+            designUrl = (assets[0] as any).url;
+          }
+
+          // Also check attributes for designUrl
+          if (!designUrl && orderItem.attributes) {
+            const attrs = orderItem.attributes as any;
+            designUrl = attrs.designUrl || attrs.design_url;
+          }
+
+          if (!designUrl) {
+            console.error('[Prodigi Order] Missing design URL:', {
+              orderItemId: orderItem.id,
+              orderItemAssets: assets,
+              orderItemAttributes: orderItem.attributes,
+            });
+            throw new Error(`Design URL missing for order item. Please ensure all products have custom designs uploaded.`);
+          }
+
+          console.log('[Prodigi Order] Item prepared:', {
+            index,
+            sku,
+            copies: orderItem.copies,
+            hasDesignUrl: !!designUrl,
+          });
+
+          return {
+            sku: sku,
+            copies: orderItem.copies,
+            merchantReference: `item_${updatedOrder.id}_${index}`,
+            sizing: 'fillPrintArea' as const,
+            assets: [
+              {
+                printArea: 'default',
+                url: designUrl,
+              },
+            ],
+          };
+        });
+
+        console.log('[Prodigi Order] All items prepared successfully:', {
+          itemCount: prodigiItems.length,
+        });
+
+        // Create Prodigi order
+        const prodigiOrderRequest = {
+          shippingMethod: 'Standard' as const,
+          recipient: {
+            name: updatedOrder.recipient.name,
+            email: updatedOrder.recipient.email,
+            phoneNumber: updatedOrder.recipient.phoneNumber || undefined,
+            address: {
+              line1: updatedOrder.recipient.addressLine1,
+              line2: updatedOrder.recipient.addressLine2 || undefined,
+              postalOrZipCode: updatedOrder.recipient.postalCode,
+              countryCode: updatedOrder.recipient.countryCode,
+              townOrCity: updatedOrder.recipient.city,
+              stateOrCounty: updatedOrder.recipient.state || undefined,
+            },
+          },
+          items: prodigiItems,
+          merchantReference: `ORDER-${updatedOrder.id}`,
+          idempotencyKey: `order-${updatedOrder.id}-${Date.now()}`,
+          metadata: {
+            orderId: updatedOrder.id.toString(),
+            squarePaymentId: payment.id,
+          },
+        };
+
+        console.log('[Prodigi Order] Sending request to Prodigi API...');
+        const prodigiOrder = await prodigiService.createOrder(prodigiOrderRequest);
+
+        console.log('[Prodigi Order] Response received:', {
+          hasOrder: !!prodigiOrder.order,
+          orderId: prodigiOrder.order?.id,
+          status: prodigiOrder.order?.status,
+        });
+
+        // Update order with Prodigi details
+        await prisma.order.update({
+          where: { id: updatedOrder.id },
+          data: {
+            prodigiOrderId: prodigiOrder.order?.id,
+            metadata: {
+              ...(updatedOrder.metadata as object || {}),
+              squarePaymentId: payment.id,
+              squarePaymentStatus: payment.status,
+              squareOrderId: orderId,
+              prodigiOrderId: prodigiOrder.order?.id,
+              prodigiStatus: prodigiOrder.order?.status,
+            },
+          },
+        });
+
+        console.log('[Prodigi Order] Created successfully', {
+          orderId: updatedOrder.id,
+          prodigiOrderId: prodigiOrder.order?.id,
+        });
+      } catch (prodigiError: any) {
+        console.error('[Prodigi Order] Failed to create:', {
+          error: prodigiError,
+          message: prodigiError.message,
+          stack: prodigiError.stack,
+          orderId: updatedOrder.id,
+        });
+
+        // Log the error but don't fail the webhook
+        try {
+          await prisma.orderProcessingError.create({
+            data: {
+              orderId: updatedOrder.id,
+              error: prodigiError.message || 'Failed to create Prodigi order',
+              retryCount: 0,
+              lastAttempt: new Date(),
+            },
+          });
+
+          // Update order metadata with error info
+          await prisma.order.update({
+            where: { id: updatedOrder.id },
+            data: {
+              metadata: {
+                ...(updatedOrder.metadata as object || {}),
+                prodigiError: prodigiError.message,
+                prodigiErrorTime: new Date().toISOString(),
+                prodigiErrorDetails: JSON.stringify(prodigiError),
+              },
+            },
+          });
+
+          console.log('[Prodigi Order] Error logged successfully');
+        } catch (logError) {
+          console.error('[Prodigi Order] Failed to log error:', logError);
+        }
+      }
     }
 
     return NextResponse.json({ received: true });

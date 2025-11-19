@@ -268,11 +268,10 @@ export default function CheckoutPage() {
     setDiscountError(null);
   };
 
-  const handleShippingSubmit = (e: React.FormEvent) => {
+  const handleShippingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setPaymentStep('payment');
-    // Initialize Square payments when moving to payment step
-    setTimeout(() => initializeSquarePayments(), 100);
+    // Skip the embedded payment form and go directly to Square's hosted checkout
+    await handleFallbackPayment();
   };
 
   const handlePaymentSubmit = async (e: React.FormEvent) => {
@@ -599,7 +598,7 @@ export default function CheckoutPage() {
                 <>
                   <h2 className="text-2xl font-bold text-gray-900 mb-6">Shipping Information</h2>
                   <form onSubmit={handleShippingSubmit} className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
                           First Name *
@@ -607,6 +606,8 @@ export default function CheckoutPage() {
                         <input
                           type="text"
                           id="firstName"
+                          name="given-name"
+                          autoComplete="given-name"
                           required
                           value={shippingAddress.firstName}
                           onChange={(e) => setShippingAddress({ ...shippingAddress, firstName: e.target.value })}
@@ -622,6 +623,8 @@ export default function CheckoutPage() {
                         <input
                           type="text"
                           id="lastName"
+                          name="family-name"
+                          autoComplete="family-name"
                           required
                           value={shippingAddress.lastName}
                           onChange={(e) => setShippingAddress({ ...shippingAddress, lastName: e.target.value })}
@@ -638,12 +641,15 @@ export default function CheckoutPage() {
                       <input
                         type="email"
                         id="email"
+                        name="email"
+                        autoComplete="email"
                         required
                         value={shippingAddress.email}
                         onChange={(e) => setShippingAddress({ ...shippingAddress, email: e.target.value })}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                         placeholder="john.doe@example.com"
                       />
+                      <p className="text-xs text-gray-500 mt-1">Order confirmation will be sent here</p>
                     </div>
 
                     <div>
@@ -653,6 +659,8 @@ export default function CheckoutPage() {
                       <input
                         type="tel"
                         id="phone"
+                        name="tel"
+                        autoComplete="tel"
                         required
                         value={shippingAddress.phone}
                         onChange={(e) => setShippingAddress({ ...shippingAddress, phone: e.target.value })}
@@ -661,16 +669,49 @@ export default function CheckoutPage() {
                         pattern="[+]?[0-9\s\-\(\)]+"
                         title="Please enter a valid phone number with country code"
                       />
-                      <p className="text-xs text-gray-500 mt-1">Include country code (e.g., +44 for UK)</p>
+                      <p className="text-xs text-gray-500 mt-1">For delivery updates and driver contact</p>
+                    </div>
+
+                    <div>
+                      <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-2">
+                        Country *
+                      </label>
+                      <select
+                        id="country"
+                        name="country"
+                        autoComplete="country"
+                        required
+                        value={shippingAddress.country}
+                        onChange={(e) => setShippingAddress({ ...shippingAddress, country: e.target.value })}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                      >
+                        <option value="GB">United Kingdom</option>
+                        <option value="US">United States</option>
+                        <option value="CA">Canada</option>
+                        <option value="AU">Australia</option>
+                        <option value="DE">Germany</option>
+                        <option value="FR">France</option>
+                        <option value="ES">Spain</option>
+                        <option value="IT">Italy</option>
+                        <option value="IE">Ireland</option>
+                        <option value="NL">Netherlands</option>
+                        <option value="BE">Belgium</option>
+                        <option value="AT">Austria</option>
+                        <option value="SE">Sweden</option>
+                        <option value="NO">Norway</option>
+                        <option value="DK">Denmark</option>
+                      </select>
                     </div>
 
                     <div>
                       <label htmlFor="addressLine1" className="block text-sm font-medium text-gray-700 mb-2">
-                        Address Line 1 *
+                        Street Address *
                       </label>
                       <input
                         type="text"
                         id="addressLine1"
+                        name="address-line1"
+                        autoComplete="address-line1"
                         required
                         value={shippingAddress.addressLine1}
                         onChange={(e) => setShippingAddress({ ...shippingAddress, addressLine1: e.target.value })}
@@ -681,19 +722,21 @@ export default function CheckoutPage() {
 
                     <div>
                       <label htmlFor="addressLine2" className="block text-sm font-medium text-gray-700 mb-2">
-                        Address Line 2 (Optional)
+                        Apartment, Suite, etc. (Optional)
                       </label>
                       <input
                         type="text"
                         id="addressLine2"
+                        name="address-line2"
+                        autoComplete="address-line2"
                         value={shippingAddress.addressLine2}
                         onChange={(e) => setShippingAddress({ ...shippingAddress, addressLine2: e.target.value })}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                        placeholder="Apartment, suite, etc."
+                        placeholder="Apt 4B, Floor 2, etc."
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
                           City *
@@ -701,6 +744,8 @@ export default function CheckoutPage() {
                         <input
                           type="text"
                           id="city"
+                          name="address-level2"
+                          autoComplete="address-level2"
                           required
                           value={shippingAddress.city}
                           onChange={(e) => setShippingAddress({ ...shippingAddress, city: e.target.value })}
@@ -716,42 +761,52 @@ export default function CheckoutPage() {
                         <input
                           type="text"
                           id="postalCode"
+                          name="postal-code"
+                          autoComplete="postal-code"
                           required
                           value={shippingAddress.postalCode}
-                          onChange={(e) => setShippingAddress({ ...shippingAddress, postalCode: e.target.value })}
+                          onChange={(e) => setShippingAddress({ ...shippingAddress, postalCode: e.target.value.toUpperCase() })}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                           placeholder="SW1A 1AA"
                         />
                       </div>
                     </div>
 
-                    <div>
-                      <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-2">
-                        Country *
-                      </label>
-                      <select
-                        id="country"
-                        required
-                        value={shippingAddress.country}
-                        onChange={(e) => setShippingAddress({ ...shippingAddress, country: e.target.value })}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                      >
-                        <option value="GB">United Kingdom</option>
-                        <option value="US">United States</option>
-                        <option value="CA">Canada</option>
-                        <option value="AU">Australia</option>
-                        <option value="DE">Germany</option>
-                        <option value="FR">France</option>
-                        <option value="ES">Spain</option>
-                        <option value="IT">Italy</option>
-                      </select>
+                    <div className="pt-4 border-t border-gray-200">
+                      <div className="flex items-start gap-3">
+                        <div className="flex items-center h-5">
+                          <input
+                            id="save-info"
+                            name="save-info"
+                            type="checkbox"
+                            className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div className="text-sm">
+                          <label htmlFor="save-info" className="font-medium text-gray-700">
+                            Save my information for faster checkout next time
+                          </label>
+                          <p className="text-gray-500">We'll securely save your details to your account</p>
+                        </div>
+                      </div>
                     </div>
 
                     <button
                       type="submit"
-                      className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:bg-blue-700 transition-colors shadow-lg hover:shadow-xl"
+                      disabled={loading}
+                      className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors shadow-lg hover:shadow-xl"
                     >
-                      Continue to Payment
+                      {loading ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          </svg>
+                          Processing...
+                        </span>
+                      ) : (
+                        `Continue to Secure Payment - ${formatPrice(calculateTotal())}`
+                      )}
                     </button>
                   </form>
                 </>

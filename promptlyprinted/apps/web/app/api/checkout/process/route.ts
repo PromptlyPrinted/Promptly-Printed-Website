@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
     };
 
     const lineItems = items.map((item) => {
-      return {
+      const lineItem: any = {
         name: item.name,
         quantity: item.copies.toString(),
         basePriceMoney: {
@@ -127,6 +127,13 @@ export async function POST(request: NextRequest) {
         },
         note: `${item.color} - ${item.size}${item.designUrl ? ' - Custom Design' : ''}`,
       };
+
+      // Add product image if available
+      if (item.images && item.images.length > 0 && item.images[0].url) {
+        lineItem.imageUrl = item.images[0].url;
+      }
+
+      return lineItem;
     });
 
     console.log('[Square Order] Creating...');
