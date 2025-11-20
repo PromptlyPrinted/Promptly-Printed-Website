@@ -11,6 +11,7 @@ const ALLOWED_ORIGINS = [
   'https://promptlyprinted.com',
   'https://app.promptlyprinted.com',
   'https://auth.promptlyprinted.com',
+  'https://api.promptlyprinted.com',
 ];
 
 // Helper to add CORS headers
