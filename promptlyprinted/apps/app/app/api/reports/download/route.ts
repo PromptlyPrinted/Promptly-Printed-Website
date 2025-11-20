@@ -1,10 +1,15 @@
 import { auth } from '@repo/auth/server';
+import { verifyCsrf } from '@repo/auth/csrf';
 import { database } from '@repo/database';
 import { NextResponse } from 'next/server';
 import { generateExcelReport } from '../../../lib/generate-report';
 import { calculateMetrics } from '../../../lib/metrics';
 
 export async function POST(request: Request) {
+  // CSRF protection for state-changing action
+  // @ts-ignore NextRequest type at runtime
+  const csrf = verifyCsrf(request as any);
+  if (!csrf.ok) return csrf.response;
   try {
     const session = await auth.api.getSession({ headers: request.headers });
     if (!session?.user?.id) {

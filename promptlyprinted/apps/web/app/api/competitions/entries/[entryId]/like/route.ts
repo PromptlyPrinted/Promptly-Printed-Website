@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyCsrf } from '@repo/auth/csrf';
 
 import { auth } from '@/lib/auth';
 import { COMPETITION_POINTS, awardCompetitionPoints } from '@/lib/gamification';
@@ -8,6 +9,8 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ entryId: string }> }
 ) {
+  const csrf = verifyCsrf(request);
+  if (!csrf.ok) return csrf.response;
   try {
     const { entryId } = await params;
     const session = await auth.api.getSession({ headers: request.headers });

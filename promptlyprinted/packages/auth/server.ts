@@ -75,7 +75,7 @@ export const auth = betterAuth({
       name: "better-auth.session-token",
       options: {
         httpOnly: true,
-        sameSite: "lax",
+        sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax",
         secure: process.env.NODE_ENV === 'production',
         domain: process.env.NODE_ENV === 'production'
           ? ".promptlyprinted.com"
@@ -88,7 +88,7 @@ export const auth = betterAuth({
       name: "better-auth.csrf-token",
       options: {
         httpOnly: true,
-        sameSite: "lax",
+        sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax",
         secure: process.env.NODE_ENV === 'production',
         domain: process.env.NODE_ENV === 'production'
           ? ".promptlyprinted.com"
@@ -124,6 +124,7 @@ export const auth = betterAuth({
     'https://promptlyprinted.com',
     'https://app.promptlyprinted.com',
     'https://auth.promptlyprinted.com',
+    'https://api.promptlyprinted.com',
     process.env.BETTER_AUTH_URL || 'http://localhost:3000'
   ],
 });

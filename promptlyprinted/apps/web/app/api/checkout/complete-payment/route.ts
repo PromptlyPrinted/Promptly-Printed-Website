@@ -3,6 +3,7 @@ import { getSession } from '@/lib/session-utils';
 import { prisma, OrderStatus, ShippingMethod, DiscountType } from '@repo/database';
 import type { User } from '@repo/database';
 import { type NextRequest, NextResponse } from 'next/server';
+import { verifyCsrf } from '@repo/auth/csrf';
 import { SquareClient, SquareEnvironment, Currency } from 'square';
 import { z } from 'zod';
 import { prodigiService } from '@/lib/prodigi';
@@ -48,6 +49,8 @@ const CompletePaymentSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  const csrf = verifyCsrf(request);
+  if (!csrf.ok) return csrf.response;
   try {
     const body = await request.json();
     console.log('[Complete Payment] Starting...', { hasSourceId: !!body.sourceId });
