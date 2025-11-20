@@ -75,7 +75,7 @@ export const auth = betterAuth({
       name: "better-auth.session-token",
       options: {
         httpOnly: true,
-        sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax",
+        sameSite: "lax", // Use 'lax' for same-site subdomain sharing
         secure: process.env.NODE_ENV === 'production',
         domain: process.env.NODE_ENV === 'production'
           ? ".promptlyprinted.com"
@@ -88,7 +88,7 @@ export const auth = betterAuth({
       name: "better-auth.csrf-token",
       options: {
         httpOnly: true,
-        sameSite: process.env.NODE_ENV === 'production' ? "none" : "lax",
+        sameSite: "lax", // Use 'lax' for same-site subdomain sharing
         secure: process.env.NODE_ENV === 'production',
         domain: process.env.NODE_ENV === 'production'
           ? ".promptlyprinted.com"
