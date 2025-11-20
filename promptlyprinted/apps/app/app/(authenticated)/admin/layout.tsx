@@ -11,7 +11,10 @@ type AdminLayoutProps = {
 export default async function AdminLayout({ children }: AdminLayoutProps) {
   // Server-side auth check
   const requestHeaders = await headers();
-  const session = await auth.api.getSession({ headers: requestHeaders });
+  const session = await auth.api.getSession({
+    headers: requestHeaders,
+    query: { disableCookieCache: true } // Always read fresh from database for admin checks
+  });
 
   console.log('[Admin Layout] Session check:', {
     hasSession: !!session,
