@@ -2,13 +2,12 @@ import { createAuthClient } from 'better-auth/react';
 import type { auth } from './server';
 
 export const authClient = createAuthClient({
-  // Each app uses its own local auth endpoint
-  // This is required by Better Auth for cookie-based sessions to work properly
-  // All endpoints share the same database and secret for session consistency
-  baseURL: typeof window !== 'undefined'
-    ? `${window.location.origin}/api/auth` // Use current domain's auth endpoint
-    : process.env.NEXT_PUBLIC_BETTER_AUTH_URL
-      ? `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/api/auth`
+  // Use centralized auth API server for all apps
+  // Cross-subdomain cookies allow session sharing across promptlyprinted.com subdomains
+  baseURL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL
+    ? `${process.env.NEXT_PUBLIC_BETTER_AUTH_URL}/api/auth`
+    : typeof window !== 'undefined'
+      ? `${window.location.origin}/api/auth` // Fallback to local auth endpoint
       : 'http://localhost:3000/api/auth', // Fallback for SSR
   fetchOptions: {
     credentials: 'include', // Include cookies for session sharing

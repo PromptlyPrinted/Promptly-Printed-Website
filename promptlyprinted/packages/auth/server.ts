@@ -8,6 +8,7 @@ import { admin, twoFactor, phoneNumber, username } from 'better-auth/plugins';
 import { prisma } from '@repo/database';
 
 export const auth = betterAuth({
+  // Use centralized API server for auth in production
   baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
   database: prismaAdapter(prisma, {
     provider: 'postgresql',
