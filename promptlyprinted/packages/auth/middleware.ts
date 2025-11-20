@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function authMiddleware(request: NextRequest) {
-  // Check for session cookie (using Better Auth configured name 'better-auth.session-token')
-  const sessionToken = request.cookies.get('better-auth.session-token');
+  // Better Auth used underscore-separated cookie names historically, so we
+  // check both just in case to keep session detection consistent across apps.
+  const sessionToken =
+    request.cookies.get('better-auth.session-token') ??
+    request.cookies.get('better-auth.session_token');
   const hasSession = !!sessionToken;
 
   // Define protected routes - root path should be protected too since it's in the authenticated layout

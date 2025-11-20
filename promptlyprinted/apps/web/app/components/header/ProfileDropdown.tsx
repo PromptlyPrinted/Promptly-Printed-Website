@@ -158,7 +158,7 @@ export function ProfileDropdown({
                 </Link>
                 {userRole === 'ADMIN' && (
                   <Link
-                    href="/admin"
+                    href={`${process.env.NEXT_PUBLIC_APP_URL}/admin`}
                     className="flex items-center space-x-3 rounded-md px-3 py-2 text-blue-700 bg-blue-50 transition-colors hover:bg-blue-100 border border-blue-200"
                   >
                     <Shield className="h-5 w-5" />
