@@ -18,10 +18,19 @@ const AppLayout = async ({ children }: AppLayoutProperties) => {
     await secure(['CATEGORY:PREVIEW']);
   }
 
-  const session = await auth.api.getSession({ headers: await headers() });
+  const requestHeaders = await headers();
+
+  // Debug: Log cookies being sent
+  const cookieHeader = requestHeaders.get('cookie');
+  console.log('[AppLayout] Cookies received:', cookieHeader?.split(';').map(c => c.trim().split('=')[0]));
+
+  const session = await auth.api.getSession({ headers: requestHeaders });
   const betaFeature = await showBetaFeature();
 
+  console.log('[AppLayout] Session result:', { hasSession: !!session, userId: session?.user?.id });
+
   if (!session?.user) {
+    console.log('[AppLayout] No session, redirecting to sign-in');
     redirect('/sign-in');
   }
 

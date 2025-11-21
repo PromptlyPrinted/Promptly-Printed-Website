@@ -72,27 +72,30 @@ export const auth = betterAuth({
   },
   cookies: {
     sessionToken: {
-      name: "better-auth.session-token",
+      // Use underscore to match Better Auth's default naming convention
+      name: "better-auth.session_token",
       options: {
         httpOnly: true,
-        sameSite: "lax", // Use 'lax' for same-site subdomain sharing
+        // "lax" works for same-site subdomains (top-level navigation)
+        // Both promptlyprinted.com and app.promptlyprinted.com are same-site
+        sameSite: "lax" as const,
         secure: process.env.NODE_ENV === 'production',
         domain: process.env.NODE_ENV === 'production'
           ? ".promptlyprinted.com"
-          : "localhost",
+          : undefined, // Let browser handle localhost
         path: "/",
         maxAge: 60 * 60 * 24 * 7 // 7 days
       }
     },
     csrfToken: {
-      name: "better-auth.csrf-token",
+      name: "better-auth.csrf_token",
       options: {
         httpOnly: true,
-        sameSite: "lax", // Use 'lax' for same-site subdomain sharing
+        sameSite: "lax" as const,
         secure: process.env.NODE_ENV === 'production',
         domain: process.env.NODE_ENV === 'production'
           ? ".promptlyprinted.com"
-          : "localhost",
+          : undefined, // Let browser handle localhost
         path: "/",
         maxAge: 60 * 60 * 24 * 7
       }

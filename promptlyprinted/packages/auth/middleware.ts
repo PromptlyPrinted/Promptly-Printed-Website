@@ -3,9 +3,13 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function authMiddleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
+  console.log('[Middleware] Path:', pathname);
+  console.log('[Middleware] All cookies:', request.cookies.getAll().map(c => c.name));
+
   // Skip auth API routes entirely - let Better Auth handle them
   // This prevents cookie timing issues during OAuth callbacks
   if (pathname.startsWith('/api/auth')) {
+    console.log('[Middleware] Skipping - auth API route');
     return NextResponse.next();
   }
 
@@ -17,15 +21,21 @@ export async function authMiddleware(request: NextRequest) {
     referer.includes('appleid.apple.com') ||
     referer.includes('github.com/login')
   )) {
+    console.log('[Middleware] Skipping - OAuth referer');
     return NextResponse.next();
   }
 
-  // Better Auth used underscore-separated cookie names historically, so we
-  // check both just in case to keep session detection consistent across apps.
+  // Better Auth cookie names vary based on configuration:
+  // - Production adds "__Secure-" prefix when secure: true
+  // - Can use hyphen or underscore separator
   const sessionToken =
-    request.cookies.get('better-auth.session-token') ??
-    request.cookies.get('better-auth.session_token');
+    request.cookies.get('__Secure-better-auth.session_token') ??
+    request.cookies.get('__Secure-better-auth.session-token') ??
+    request.cookies.get('better-auth.session_token') ??
+    request.cookies.get('better-auth.session-token');
   const hasSession = !!sessionToken;
+
+  console.log('[Middleware] Session token found:', hasSession, sessionToken?.name);
 
   // Define protected routes - root path should be protected too since it's in the authenticated layout
   const protectedRoutes = ['/', '/admin', '/dashboard', '/profile', '/my-images', '/my-designs', '/orders', '/settings'];
@@ -35,10 +45,13 @@ export async function authMiddleware(request: NextRequest) {
 
   // If trying to access protected route without session, redirect to sign-in
   if (isProtectedRoute && !hasSession) {
+    console.log('[Middleware] No session for protected route, redirecting to sign-in');
     const signInUrl = new URL('/sign-in', request.url);
     signInUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(signInUrl);
   }
+
+  console.log('[Middleware] Allowing request through');
 
   // If signed in and trying to access sign-in/sign-up, redirect to dashboard
   if (hasSession) {
