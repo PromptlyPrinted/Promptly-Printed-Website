@@ -192,9 +192,18 @@ export async function POST(request: NextRequest) {
     console.log('[Database Order] Created', { orderId: order.id });
 
     // Create payment with Square
-    console.log('[Square Payment] Creating...', { amountInPence });
+    console.log('[Square Payment] Creating...', { amountInPence, discountAmount });
 
     const idempotencyKey = randomUUID();
+
+    // Build payment note with discount info if applicable
+    let paymentNote = `Order #${order.id} - ${items.length} item(s)`;
+    if (validatedDiscountCode && discountAmount > 0) {
+      paymentNote += ` | Discount: ${validatedDiscountCode.code} (-£${discountAmount.toFixed(2)})`;
+    }
+
+    // Build statement description (max 20 characters for card statements)
+    const statementDescription = `PP Order #${order.id}`;
 
     const paymentResponse = await squareClient.payments.create({
       sourceId: sourceId,
@@ -205,8 +214,9 @@ export async function POST(request: NextRequest) {
       },
       locationId: process.env.SQUARE_LOCATION_ID,
       referenceId: order.id.toString(),
-      note: `Order #${order.id} - ${items.length} item(s)`,
+      note: paymentNote,
       buyerEmailAddress: shippingAddress.email,
+      statementDescriptionIdentifier: statementDescription,
     });
 
     if (!paymentResponse.payment) {
@@ -227,6 +237,13 @@ export async function POST(request: NextRequest) {
         metadata: {
           squarePaymentId: paymentResponse.payment.id,
           squarePaymentStatus: paymentResponse.payment.status,
+          subtotal: subtotal,
+          ...(validatedDiscountCode && discountAmount > 0 ? {
+            discountCode: validatedDiscountCode.code,
+            discountType: validatedDiscountCode.type,
+            discountValue: validatedDiscountCode.value,
+            discountAmount: discountAmount,
+          } : {}),
         },
       },
       include: {

@@ -89,6 +89,7 @@ const productSchema = z.object({
   currency: z.string().min(1, 'Currency is required'),
   stock: z.number().min(0, 'Stock must be non-negative'),
   listed: z.boolean(),
+  isActive: z.boolean(),
   categoryId: z
     .string()
     .min(1, 'Category is required')
@@ -131,6 +132,7 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
           categoryId: initialData.categoryId?.toString(),
           supplierPrice: initialData.price,
           customerPrice: initialData.customerPrice,
+          isActive: initialData.isActive ?? true,
         }
       : {
           name: '',
@@ -141,6 +143,7 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
           currency: 'USD',
           stock: 0,
           listed: false,
+          isActive: true,
           categoryId: '',
           productType: '',
         },
@@ -582,7 +585,27 @@ export function ProductForm({ initialData, categories }: ProductFormProps) {
                 <div className="space-y-0.5">
                   <FormLabel className="text-base">Listed</FormLabel>
                   <FormDescription>
-                    Make this product visible in the store
+                    Show this product in the storefront catalog
+                  </FormDescription>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="isActive"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <FormLabel className="text-base">Active</FormLabel>
+                  <FormDescription>
+                    Allow customers to purchase this product (even via direct links)
                   </FormDescription>
                 </div>
                 <FormControl>

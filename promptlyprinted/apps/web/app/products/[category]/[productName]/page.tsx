@@ -84,6 +84,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
           sku: staticProduct.sku,
           countryCode: 'US',
           listed: true,
+          isActive: true,
         },
         include: {
           category: true,

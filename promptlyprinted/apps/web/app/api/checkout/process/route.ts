@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import { getSession } from '@/lib/session-utils';
-import { prisma, OrderStatus, ShippingMethod } from '@repo/database';
+import { prisma, OrderStatus, ShippingMethod, DiscountType } from '@repo/database';
 import type { User } from '@repo/database';
 import { type NextRequest, NextResponse } from 'next/server';
 import { SquareClient, SquareEnvironment, Currency, Country } from 'square';
@@ -42,6 +42,7 @@ const CheckoutItemSchema = z.object({
 const ProcessCheckoutSchema = z.object({
   items: z.array(CheckoutItemSchema),
   shippingAddress: ShippingAddressSchema,
+  discountCode: z.string().optional(), // Optional discount code
 });
 
 export async function POST(request: NextRequest) {
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { items, shippingAddress } = validation.data;
+    const { items, shippingAddress, discountCode } = validation.data;
 
     // Get user session if exists
     const session = await getSession(request);
@@ -67,8 +68,85 @@ export async function POST(request: NextRequest) {
       ? await prisma.user.findUnique({ where: { id: session.user.id } })
       : null;
 
-    // Calculate total
-    const total = items.reduce((sum, item) => sum + item.price * item.copies, 0);
+    // Calculate subtotal
+    const subtotal = items.reduce((sum, item) => sum + item.price * item.copies, 0);
+
+    // Validate and apply discount code if provided
+    let discountAmount = 0;
+    let validatedDiscountCode = null;
+
+    if (discountCode) {
+      const discount = await prisma.discountCode.findUnique({
+        where: { code: discountCode.toUpperCase() },
+        include: {
+          usages: dbUser?.id ? {
+            where: { userId: dbUser.id },
+          } : false,
+        },
+      });
+
+      if (discount) {
+        const now = new Date();
+        let isValid = true;
+        let errorMessage = '';
+
+        // Validate discount code
+        if (!discount.isActive) {
+          isValid = false;
+          errorMessage = 'Discount code is no longer active';
+        } else if (discount.startsAt && discount.startsAt > now) {
+          isValid = false;
+          errorMessage = 'Discount code is not yet available';
+        } else if (discount.expiresAt && discount.expiresAt < now) {
+          isValid = false;
+          errorMessage = 'Discount code has expired';
+        } else if (discount.minOrderAmount && subtotal < discount.minOrderAmount) {
+          isValid = false;
+          errorMessage = `Minimum order amount of £${discount.minOrderAmount.toFixed(2)} required`;
+        } else if (discount.maxUses && discount.usedCount >= discount.maxUses) {
+          isValid = false;
+          errorMessage = 'Discount code has reached its usage limit';
+        } else if (dbUser?.id && discount.maxUsesPerUser) {
+          const userUsageCount = Array.isArray(discount.usages) ? discount.usages.length : 0;
+          if (userUsageCount >= discount.maxUsesPerUser) {
+            isValid = false;
+            errorMessage = 'You have already used this discount code';
+          }
+        }
+
+        if (!isValid) {
+          console.error('[Checkout Process] Invalid discount code:', errorMessage);
+          return NextResponse.json(
+            { error: 'Invalid discount code', message: errorMessage },
+            { status: 400 }
+          );
+        }
+
+        // Calculate discount amount
+        if (discount.type === DiscountType.PERCENTAGE) {
+          discountAmount = (subtotal * discount.value) / 100;
+        } else if (discount.type === DiscountType.FIXED_AMOUNT) {
+          discountAmount = Math.min(discount.value, subtotal);
+        }
+
+        validatedDiscountCode = discount;
+        console.log('[Checkout Process] Discount applied:', {
+          code: discount.code,
+          type: discount.type,
+          value: discount.value,
+          discountAmount,
+        });
+      } else {
+        console.error('[Checkout Process] Discount code not found:', discountCode);
+        return NextResponse.json(
+          { error: 'Invalid discount code', message: 'Discount code not found' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Calculate final total after discount
+    const total = subtotal - discountAmount;
 
     // Create database order first
     console.log('[Database Order] Creating...');
@@ -76,6 +154,8 @@ export async function POST(request: NextRequest) {
       data: {
         userId: dbUser?.id || 'guest',
         totalPrice: total,
+        discountCodeId: validatedDiscountCode?.id,
+        discountAmount: discountAmount > 0 ? discountAmount : null,
         shippingMethod: ShippingMethod.STANDARD,
         status: OrderStatus.PENDING,
         recipient: {
@@ -112,10 +192,17 @@ export async function POST(request: NextRequest) {
     console.log('[Database Order] Created', { orderId: order.id });
 
     // Create Square order
-    const squareMetadata = {
+    const squareMetadata: Record<string, string> = {
       orderId: order.id.toString(),
       isGuestCheckout: (!dbUser).toString(),
     };
+
+    // Add discount info to metadata if applicable
+    if (validatedDiscountCode && discountAmount > 0) {
+      squareMetadata.discountCode = validatedDiscountCode.code;
+      squareMetadata.discountAmount = discountAmount.toFixed(2);
+      squareMetadata.discountType = validatedDiscountCode.type;
+    }
 
     const lineItems = items.map((item) => {
       const lineItem: any = {
@@ -136,7 +223,23 @@ export async function POST(request: NextRequest) {
       return lineItem;
     });
 
-    console.log('[Square Order] Creating...');
+    // Add discount as a negative line item if applicable
+    if (validatedDiscountCode && discountAmount > 0) {
+      lineItems.push({
+        name: `Discount (${validatedDiscountCode.code})`,
+        quantity: '1',
+        basePriceMoney: {
+          amount: BigInt(-Math.round(discountAmount * 100)), // Negative amount for discount
+          currency: Currency.Gbp,
+        },
+        note: `${validatedDiscountCode.type === DiscountType.PERCENTAGE ? `${validatedDiscountCode.value}% off` : `£${validatedDiscountCode.value} off`}`,
+      });
+    }
+
+    console.log('[Square Order] Creating...', {
+      itemCount: lineItems.length,
+      hasDiscount: discountAmount > 0,
+    });
     const squareOrderResponse = await squareClient.orders.create({
       order: {
         locationId: process.env.SQUARE_LOCATION_ID!,
@@ -207,7 +310,7 @@ export async function POST(request: NextRequest) {
       url: paymentLinkResponse.paymentLink.url,
     });
 
-    // Update order metadata with payment link ID
+    // Update order metadata with payment link ID and discount info
     await prisma.order.update({
       where: { id: order.id },
       data: {
@@ -215,6 +318,13 @@ export async function POST(request: NextRequest) {
           ...(order.metadata as object || {}),
           squareOrderId: squareOrderId,
           squarePaymentLinkId: paymentLinkResponse.paymentLink.id,
+          subtotal: subtotal,
+          ...(validatedDiscountCode && discountAmount > 0 ? {
+            discountCode: validatedDiscountCode.code,
+            discountType: validatedDiscountCode.type,
+            discountValue: validatedDiscountCode.value,
+            discountAmount: discountAmount,
+          } : {}),
         },
       },
     });
@@ -223,6 +333,10 @@ export async function POST(request: NextRequest) {
       success: true,
       orderId: order.id,
       checkoutUrl: paymentLinkResponse.paymentLink.url,
+      discountApplied: discountAmount > 0 ? {
+        code: validatedDiscountCode?.code,
+        amount: discountAmount,
+      } : null,
     });
 
   } catch (error: any) {

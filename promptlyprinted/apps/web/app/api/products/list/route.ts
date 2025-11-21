@@ -3,10 +3,12 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    // First fetch all listed products (both variant parents and regular products)
+    // First fetch all listed AND active products (both variant parents and regular products)
+    // listed = shows in catalog, isActive = can be purchased
     const allProducts = await database.product.findMany({
       where: {
         listed: true,
+        isActive: true,
         countryCode: 'US',
       },
       include: {

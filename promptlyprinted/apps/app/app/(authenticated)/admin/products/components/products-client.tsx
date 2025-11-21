@@ -278,6 +278,46 @@ export function ProductsClient({
     }
   };
 
+  const updateProductStock = async (
+    product: ProductWithBasicInfo,
+    newStock: number
+  ) => {
+    if (newStock < 0) {
+      toast.error('Stock cannot be negative');
+      return;
+    }
+
+    setUpdatingProductIds((ids) =>
+      ids.includes(product.id) ? ids : [...ids, product.id]
+    );
+    try {
+      const response = await fetch(`/api/admin/products/${product.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ stock: newStock }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update product ${product.id}`);
+      }
+
+      setProducts((prev) =>
+        prev.map((item) =>
+          item.id === product.id ? { ...item, stock: newStock } : item
+        )
+      );
+      toast.success(`Stock updated to ${newStock}`);
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+      toast.error('Unable to update stock. Please try again.');
+    } finally {
+      setUpdatingProductIds((ids) => ids.filter((id) => id !== product.id));
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Filter + controls row */}
@@ -407,7 +447,36 @@ export function ProductsClient({
                     <TableCell>
                       {product.currency} {product.shippingCost.toFixed(2)}
                     </TableCell>
-                    <TableCell>{product.stock}</TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={product.stock}
+                        onChange={(e) => {
+                          const newStock = parseInt(e.target.value, 10);
+                          if (!isNaN(newStock)) {
+                            setProducts((prev) =>
+                              prev.map((item) =>
+                                item.id === product.id ? { ...item, stock: newStock } : item
+                              )
+                            );
+                          }
+                        }}
+                        onBlur={(e) => {
+                          const newStock = parseInt(e.target.value, 10);
+                          if (!isNaN(newStock) && newStock !== product.stock) {
+                            updateProductStock(product, newStock);
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.currentTarget.blur();
+                          }
+                        }}
+                        className="w-20"
+                        disabled={isUpdating}
+                      />
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Switch
@@ -530,8 +599,39 @@ export function ProductsClient({
                     </p>
                   </div>
                   <div className="mt-2 flex flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Stock: {product.stock}</span>
+                    <div
+                      className="flex items-center justify-between gap-2"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <span className="text-sm">Stock:</span>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={product.stock}
+                        onChange={(e) => {
+                          const newStock = parseInt(e.target.value, 10);
+                          if (!isNaN(newStock)) {
+                            setProducts((prev) =>
+                              prev.map((item) =>
+                                item.id === product.id ? { ...item, stock: newStock } : item
+                              )
+                            );
+                          }
+                        }}
+                        onBlur={(e) => {
+                          const newStock = parseInt(e.target.value, 10);
+                          if (!isNaN(newStock) && newStock !== product.stock) {
+                            updateProductStock(product, newStock);
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.currentTarget.blur();
+                          }
+                        }}
+                        className="w-20"
+                        disabled={isUpdating}
+                      />
                     </div>
                     <div
                       className="flex items-center gap-2"

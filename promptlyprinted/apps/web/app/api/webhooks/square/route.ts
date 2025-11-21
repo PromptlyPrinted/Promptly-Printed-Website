@@ -225,6 +225,7 @@ export async function POST(req: Request) {
         },
         include: {
           recipient: true,
+          discountCode: true,
           orderItems: {
             include: {
               product: {
@@ -243,6 +244,49 @@ export async function POST(req: Request) {
         orderId: updatedOrder.id,
         status: updatedOrder.status,
       });
+
+      // Record discount usage if discount was applied
+      if (updatedOrder.discountCodeId && updatedOrder.discountAmount && updatedOrder.discountAmount > 0) {
+        try {
+          // Check if usage already recorded (prevent duplicates)
+          const existingUsage = await prisma.discountUsage.findFirst({
+            where: {
+              discountCodeId: updatedOrder.discountCodeId,
+              orderId: updatedOrder.id,
+            },
+          });
+
+          if (!existingUsage) {
+            await prisma.$transaction([
+              // Create discount usage record
+              prisma.discountUsage.create({
+                data: {
+                  discountCodeId: updatedOrder.discountCodeId,
+                  orderId: updatedOrder.id,
+                  userId: updatedOrder.userId !== 'guest' ? updatedOrder.userId : undefined,
+                  discountAmount: updatedOrder.discountAmount,
+                },
+              }),
+              // Increment the used count
+              prisma.discountCode.update({
+                where: { id: updatedOrder.discountCodeId },
+                data: { usedCount: { increment: 1 } },
+              }),
+            ]);
+            console.log('[Discount] Usage recorded via webhook', {
+              discountCode: updatedOrder.discountCode?.code,
+              discountAmount: updatedOrder.discountAmount,
+            });
+          } else {
+            console.log('[Discount] Usage already recorded, skipping', {
+              discountCode: updatedOrder.discountCode?.code,
+            });
+          }
+        } catch (discountError) {
+          console.error('[Discount] Failed to record usage via webhook:', discountError);
+          // Don't fail the webhook if discount tracking fails
+        }
+      }
 
       // Create Prodigi order now that payment is completed
       try {
