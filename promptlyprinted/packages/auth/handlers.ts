@@ -9,6 +9,7 @@ const ALLOWED_ORIGINS = [
   'http://localhost:3000',
   'http://localhost:3001',
   'https://promptlyprinted.com',
+  'https://www.promptlyprinted.com',
   'https://app.promptlyprinted.com',
   'https://auth.promptlyprinted.com',
   'https://api.promptlyprinted.com',
@@ -26,7 +27,7 @@ function addCorsHeaders(response: Response, origin: string | null): Response {
     headers.set('Access-Control-Allow-Origin', origin);
     headers.set('Access-Control-Allow-Credentials', 'true');
     headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-CSRF-Token');
+    headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-CSRF-Token, Cookie, X-Requested-With');
     headers.set('Access-Control-Max-Age', '86400');
     console.log('[CORS] Headers added for origin:', origin);
   } else {

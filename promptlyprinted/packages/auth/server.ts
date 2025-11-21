@@ -122,6 +122,7 @@ export const auth = betterAuth({
     'http://localhost:3001',
     // Production
     'https://promptlyprinted.com',
+    'https://www.promptlyprinted.com',
     'https://app.promptlyprinted.com',
     'https://auth.promptlyprinted.com',
     'https://api.promptlyprinted.com',
