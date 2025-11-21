@@ -393,7 +393,7 @@ export const tshirtDetails = {
     colorOptions: [
       { name: 'Black', filename: 'black.png' },
       { name: 'Irish Green', filename: 'irish-green.png' },
-      { name: 'Sport Grey', filename: 'sports-grey.png' },
+      { name: 'Sport Grey', filename: 'sport-grey.png' },
       { name: 'Charcoal', filename: 'charcoal.png' },
       { name: 'Navy', filename: 'navy.png' },
       { name: 'White', filename: 'white.png' },
@@ -465,7 +465,7 @@ export const tshirtDetails = {
       { name: 'White', filename: 'white.png' },
       { name: 'Irish Green', filename: 'irish-green.png' },
       { name: 'Red', filename: 'red.png' },
-      { name: 'Sport Grey', filename: 'sports-grey.png' },
+      { name: 'Sport Grey', filename: 'sport-grey.png' },
     ],
     brand: {
       name: 'Gildan',

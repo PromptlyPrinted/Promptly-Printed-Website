@@ -289,13 +289,14 @@ const productDetailsMap: Record<string, ProductDetails> = {
     productType: 'T_SHIRT',
     category: "Men's T-shirts",
     imageUrls: {
+      base: '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-BC-3413/Blanks/png',
       front:
-        '/assets/images/Apparel/Mens/GLOBAL-TEE-BC-3413/GLOBAL-TEE-BC-3413_front.jpg',
-      back: '/assets/images/Apparel/Mens/GLOBAL-TEE-BC-3413/GLOBAL-TEE-BC-3413_back.jpg',
+        '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-BC-3413/GLOBAL-TEE-BC-3413_front.jpg',
+      back: '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-BC-3413/GLOBAL-TEE-BC-3413_back.jpg',
       closeup:
-        '/assets/images/Apparel/Mens/GLOBAL-TEE-BC-3413/GLOBAL-TEE-BC-3413_closeup.jpg',
+        '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-BC-3413/GLOBAL-TEE-BC-3413_closeup.jpg',
       lifestyle:
-        '/assets/images/Apparel/Mens/GLOBAL-TEE-BC-3413/GLOBAL-TEE-BC-3413_lifestyle.jpg',
+        '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-BC-3413/GLOBAL-TEE-BC-3413_lifestyle.jpg',
     },
     brand: {
       name: 'Bella+Canvas',
@@ -347,12 +348,13 @@ const productDetailsMap: Record<string, ProductDetails> = {
     productType: 'TANK_TOP',
     category: "Men's T-shirts",
     imageUrls: {
-      front: '/assets/images/Apparel/Mens/TT-GIL-64200/TT-GIL-64200_front.jpg',
-      back: '/assets/images/Apparel/Mens/TT-GIL-64200/TT-GIL-64200_back.jpg',
+      base: '/assets/images/Apparel/Mens/T-Shirts/TT-GIL-64200/Blanks/png',
+      front: '/assets/images/Apparel/Mens/T-Shirts/TT-GIL-64200/TT-GIL-64200_front.jpg',
+      back: '/assets/images/Apparel/Mens/T-Shirts/TT-GIL-64200/TT-GIL-64200_back.jpg',
       closeup:
-        '/assets/images/Apparel/Mens/TT-GIL-64200/TT-GIL-64200_closeup.jpg',
+        '/assets/images/Apparel/Mens/T-Shirts/TT-GIL-64200/TT-GIL-64200_closeup.jpg',
       lifestyle:
-        '/assets/images/Apparel/Mens/TT-GIL-64200/TT-GIL-64200_lifestyle.jpg',
+        '/assets/images/Apparel/Mens/T-Shirts/TT-GIL-64200/TT-GIL-64200_lifestyle.jpg',
     },
     brand: {
       name: 'Gildan',
@@ -404,13 +406,14 @@ const productDetailsMap: Record<string, ProductDetails> = {
     productType: 'T_SHIRT',
     category: "Men's T-shirts",
     imageUrls: {
+      base: '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/Blanks/png',
       front:
-        '/assets/images/Apparel/Mens/GLOBAL-TEE-GIL-64V00/GLOBAL-TEE-GIL-64V00_front.jpg',
-      back: '/assets/images/Apparel/Mens/GLOBAL-TEE-GIL-64V00/GLOBAL-TEE-GIL-64V00_back.jpg',
+        '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/GLOBAL-TEE-GIL-64V00_front.jpg',
+      back: '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/GLOBAL-TEE-GIL-64V00_back.jpg',
       closeup:
-        '/assets/images/Apparel/Mens/GLOBAL-TEE-GIL-64V00/GLOBAL-TEE-GIL-64V00_closeup.jpg',
+        '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/GLOBAL-TEE-GIL-64V00_closeup.jpg',
       lifestyle:
-        '/assets/images/Apparel/Mens/GLOBAL-TEE-GIL-64V00/GLOBAL-TEE-GIL-64V00_lifestyle.jpg',
+        '/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-GIL-64V00/GLOBAL-TEE-GIL-64V00_lifestyle.jpg',
     },
     brand: {
       name: 'Gildan',
@@ -462,12 +465,13 @@ const productDetailsMap: Record<string, ProductDetails> = {
     productType: 'LONG_SLEEVE_T_SHIRT',
     category: "Men's T-shirts",
     imageUrls: {
-      front: '/assets/images/Apparel/Mens/A-ML-GD2400/A-ML-GD2400_front.jpg',
-      back: '/assets/images/Apparel/Mens/A-ML-GD2400/A-ML-GD2400_back.jpg',
+      base: '/assets/images/Apparel/Mens/T-Shirts/A-ML-GD2400/Blanks/png',
+      front: '/assets/images/Apparel/Mens/T-Shirts/A-ML-GD2400/A-ML-GD2400_front.jpg',
+      back: '/assets/images/Apparel/Mens/T-Shirts/A-ML-GD2400/A-ML-GD2400_back.jpg',
       closeup:
-        '/assets/images/Apparel/Mens/A-ML-GD2400/A-ML-GD2400_closeup.jpg',
+        '/assets/images/Apparel/Mens/T-Shirts/A-ML-GD2400/A-ML-GD2400_closeup.jpg',
       lifestyle:
-        '/assets/images/Apparel/Mens/A-ML-GD2400/A-ML-GD2400_lifestyle.jpg',
+        '/assets/images/Apparel/Mens/T-Shirts/A-ML-GD2400/A-ML-GD2400_lifestyle.jpg',
     },
     brand: {
       name: 'Gildan',
