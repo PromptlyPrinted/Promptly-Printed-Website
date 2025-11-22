@@ -1389,7 +1389,18 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
       }
     }
 
-    return defaultImage;
+    // Debug: log the default image being used
+    if (typeof window !== 'undefined' && !defaultImage) {
+      console.warn(`No default image for product: ${product.name}`, {
+        cover: product.imageUrls?.cover,
+        base: product.imageUrls?.base,
+        imageBase,
+        defaultImage
+      });
+    }
+
+    // Ensure we always return a valid image path, never empty string
+    return defaultImage || IMAGE_PLACEHOLDER;
   };
   
   // Handle color selection

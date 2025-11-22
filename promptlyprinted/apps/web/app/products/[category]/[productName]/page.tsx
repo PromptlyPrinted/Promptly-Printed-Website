@@ -44,11 +44,20 @@ export async function generateMetadata({
   const { category: categorySlug, productName: productSlug } = await params;
   console.log(`Generating Metadata for: /products/${categorySlug}/${productSlug}`);
 
-  const product = Object.values(tshirtDetails).find(
+  // Try to find by both category and name first
+  let product = Object.values(tshirtDetails).find(
     (p) =>
       normalizeString(p.category) === normalizeString(categorySlug) &&
       normalizeString(p.name) === normalizeString(productSlug)
   );
+
+  // If not found, try by name only (category in DB may differ from tshirtDetails)
+  if (!product) {
+    product = Object.values(tshirtDetails).find(
+      (p) => normalizeString(p.name) === normalizeString(productSlug)
+    );
+  }
+
   console.log('Product found for metadata:', product ? product.name : 'None');
 
   if (!product) {
@@ -68,43 +77,68 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const { category: categorySlug, productName: productSlug } = await params;
   console.log(`Attempting to find product for: /products/${categorySlug}/${productSlug}`);
 
-  // First try to find in static data for reference
-  const staticProduct = Object.values(tshirtDetails).find(
+  // First try to find in static data by matching BOTH category AND name
+  let staticProduct = Object.values(tshirtDetails).find(
     (p) =>
       normalizeString(p.category) === normalizeString(categorySlug) &&
       normalizeString(p.name) === normalizeString(productSlug)
   );
 
+  // If not found, try matching by name only (category in DB may differ from tshirtDetails)
+  if (!staticProduct) {
+    staticProduct = Object.values(tshirtDetails).find(
+      (p) => normalizeString(p.name) === normalizeString(productSlug)
+    );
+  }
+
   // Try to fetch from database - only show products that are listed AND active
   let dbProduct = null;
-  if (staticProduct?.sku) {
-    try {
-      dbProduct = await database.product.findFirst({
-        where: {
-          sku: staticProduct.sku,
-          countryCode: 'US',
-          listed: true,
-          isActive: true,
-        },
-        include: {
-          category: true,
-        },
-      });
+  try {
+    // First try to find by product name slug in the database
+    const allListedProducts = await database.product.findMany({
+      where: {
+        countryCode: 'US',
+        listed: true,
+        isActive: true,
+        parentProductId: null, // Only parent products
+      },
+      include: {
+        category: true,
+      },
+    });
 
-      // If product exists in static data but is NOT listed/active in database, don't show it
-      if (!dbProduct) {
-        console.log(`Product ${staticProduct.sku} is not listed or not active`);
-        notFound();
-      }
-    } catch (error) {
-      // Database not available during build - use static data
-      console.log('Database not available, using static product data');
+    // Find product by matching the name slug
+    dbProduct = allListedProducts.find(
+      (p) => normalizeString(p.name) === normalizeString(productSlug)
+    ) || null;
+
+    // If not found by name, try by SKU from static product
+    if (!dbProduct && staticProduct?.sku) {
+      dbProduct = allListedProducts.find(
+        (p) => p.sku === staticProduct!.sku || p.sku === `US-${staticProduct!.sku}`
+      ) || null;
     }
+
+    // If product is not in database as listed/active, don't show it
+    if (!dbProduct) {
+      console.log(`Product not found as listed/active in database`);
+      notFound();
+    }
+  } catch (error) {
+    // Database not available during build - use static data
+    console.log('Database not available, using static product data');
   }
 
   // Use static product for display (it has the full details needed for the page)
+  // If no static product but we have dbProduct, we can still proceed
   const product = staticProduct;
+  if (!product && !dbProduct) {
+    notFound();
+  }
+
+  // At this point, we have either staticProduct or dbProduct (or both)
   if (!product) {
+    // This case shouldn't happen since we check above, but TypeScript needs this
     notFound();
   }
 
