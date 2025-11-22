@@ -1,7 +1,6 @@
 'use client';
 
 import './products-background.css';
-import { tshirtDetails } from '@/data/products';
 import type { Product } from '@/types/product';
 import {
   Search,
@@ -222,81 +221,8 @@ type ApiProductResponse = {
   }>;
 };
 
-const FALLBACK_PRODUCTS: DisplayProduct[] = buildFallbackProducts();
-
-function buildFallbackProducts(): DisplayProduct[] {
-  return Object.values(tshirtDetails).map((product, index): DisplayProduct => {
-    const usdPrice =
-      product.pricing.find((p) => p.currency === 'USD')?.amount ||
-      product.pricing[0]?.amount ||
-      0;
-
-    const imageBase = product.imageUrls?.base || '';
-    const coverImage =
-      product.imageUrls?.productImage ||
-      product.imageUrls?.cover ||
-      (imageBase ? `${imageBase}/cover.png` : '');
-
-    return {
-      id: product.sku,
-      name: product.name,
-      description: product.shortDescription,
-      category: { id: product.category, name: product.category },
-      price: usdPrice,
-      pricing: product.pricing,
-      shippingCost: 0,
-      imageUrls: {
-        base: imageBase,
-        cover: coverImage,
-        sizeChart: product.imageUrls?.sizeChart || '',
-      },
-      sku: product.sku,
-      specifications: {
-        dimensions: product.dimensions
-          ? {
-              width: product.dimensions.width,
-              height: product.dimensions.height,
-              units: product.dimensions.units,
-            }
-          : {
-              width: 0,
-              height: 0,
-              units: 'in',
-            },
-        brand: product.brand?.name || 'Promptly Printed',
-        style: 'Standard',
-        color: product.colorOptions?.map((opt) => opt.name) || [],
-        size: product.size || [],
-      },
-      prodigiVariants: {
-        imageUrls: {
-          base: imageBase,
-        },
-        colorOptions: product.colorOptions || [],
-      },
-      savedImages: [],
-      wishedBy: [],
-      badge:
-        index % 5 === 0
-          ? 'bestseller'
-          : index % 7 === 0
-            ? 'new'
-            : index % 3 === 0
-              ? 'sale'
-              : undefined,
-      originalPrice: index % 3 === 0 ? usdPrice * 1.2 : undefined,
-      rating: 3.5 + (index % 3) * 0.5,
-      reviewCount: 12 + (index * 7) % 89,
-      stock:
-        index % 10 === 0
-          ? 2
-          : index % 15 === 0
-            ? 0
-            : 25 + ((index * 3) % 50),
-      isWishlisted: false,
-    };
-  });
-}
+// No fallback products - only show products from database that are listed and active
+const FALLBACK_PRODUCTS: DisplayProduct[] = [];
 
 function buildProductsFromApi(products: ApiProductResponse[]): DisplayProduct[] {
   return products.map((product, index) => {
@@ -433,23 +359,16 @@ function ProductsPageContent() {
 
         if (!cancelled) {
           priceInitialized.current = false;
-          if (fetchedProducts.length > 0) {
-            setRawProducts(fetchedProducts);
-            setLoadError(null);
-          } else {
-            setRawProducts([...FALLBACK_PRODUCTS]);
-            setLoadError(
-              'Showing fallback catalog because no products were returned from the database.'
-            );
-          }
+          setRawProducts(fetchedProducts);
+          setLoadError(null);
         }
       } catch (error) {
         console.error('Failed to fetch products list:', error);
         if (!cancelled) {
           priceInitialized.current = false;
-          setRawProducts([...FALLBACK_PRODUCTS]);
+          setRawProducts([]);
           setLoadError(
-            'Unable to fetch live product data. Showing fallback catalog.'
+            'Unable to fetch products. Please try again later.'
           );
         }
       } finally {

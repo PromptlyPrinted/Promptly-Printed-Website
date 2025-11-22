@@ -1,4 +1,5 @@
 import { tshirtDetails } from '@repo/database/scripts/tshirt-details';
+import { database } from '@repo/database';
 import { notFound, redirect } from 'next/navigation';
 import { DesignProductDetail } from './components/DesignProductDetail';
 import type { Product } from '@/types/product';
@@ -38,6 +39,27 @@ export default async function DesignPage({ params, searchParams }: DesignPagePro
 
   if (!product) {
     notFound();
+  }
+
+  // Verify product is listed and active in the database
+  try {
+    const dbProduct = await database.product.findFirst({
+      where: {
+        sku: product.sku,
+        countryCode: 'US',
+        listed: true,
+        isActive: true,
+      },
+    });
+
+    // If product is not listed or not active in database, don't allow designing
+    if (!dbProduct) {
+      console.log(`Product ${product.sku} is not listed or not active - blocking design page access`);
+      notFound();
+    }
+  } catch (error) {
+    // Database not available - allow access for development/build time
+    console.log('Database not available for design page verification');
   }
 
   // Map tshirtDetails to Product interface

@@ -1,6 +1,5 @@
-import { tshirtDetails } from '@/data/products';
 import { ProductCard } from '@/app/components/products/ProductCard';
-import { Input } from '@repo/design-system/components/ui/input';
+import { database } from '@repo/database';
 import { Search } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -9,29 +8,52 @@ interface SearchPageProps {
   searchParams: Promise<{ q: string }>;
 }
 
-export default async function SearchPage({ searchParams }: SearchPageProps) {
-  const { q: query } = await searchParams;
-  
-  if (!query || query.trim() === '') {
-    redirect('/');
-  }
-
-  // Normalize the search query
+async function searchProducts(query: string) {
   const normalizedQuery = query.toLowerCase().trim();
 
+  // Fetch all listed and active products from the database
+  const allProducts = await database.product.findMany({
+    where: {
+      listed: true,
+      isActive: true,
+      countryCode: 'US',
+    },
+    include: {
+      category: true,
+    },
+  });
+
+  // Filter to show only parent products (not variants)
+  const parentProducts = allProducts.filter(
+    (p) => p.isVariantProduct || (!p.parentProductId && !p.isVariantProduct)
+  );
+
   // Search through products
-  const searchResults = Object.values(tshirtDetails).filter((product) => {
+  return parentProducts.filter((product) => {
+    const prodigiVariants = product.prodigiVariants as Record<string, any> | null;
+    const colorOptions = prodigiVariants?.colorOptions || [];
+
     const searchableText = [
       product.name.toLowerCase(),
-      product.category.toLowerCase(),
-      product.shortDescription.toLowerCase(),
+      (product.category?.name || '').toLowerCase(),
+      (product.description || '').toLowerCase(),
       product.sku.toLowerCase(),
-      ...product.colorOptions?.map(opt => opt.name.toLowerCase()) || [],
-      ...product.size.map(size => size.toLowerCase()),
+      ...colorOptions.map((opt: { name: string }) => opt.name.toLowerCase()),
+      ...product.size.map((size: string) => size.toLowerCase()),
     ].join(' ');
 
     return searchableText.includes(normalizedQuery);
   });
+}
+
+export default async function SearchPage({ searchParams }: SearchPageProps) {
+  const { q: query } = await searchParams;
+
+  if (!query || query.trim() === '') {
+    redirect('/');
+  }
+
+  const searchResults = await searchProducts(query);
 
   return (
     <div className="container mx-auto py-8">
@@ -51,32 +73,47 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {searchResults.map((product) => {
             // Create clean slugs for the product
-            const categorySlug = product.category.toLowerCase().replace(/[''"]/g, '').replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
+            const categoryName = product.category?.name || 'all';
+            const categorySlug = categoryName.toLowerCase().replace(/[''"]/g, '').replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
             const productSlug = product.name.toLowerCase().replace(/[''"]/g, '').replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
-            
+
+            const prodigiVariants = product.prodigiVariants as Record<string, any> | null;
+            const imageUrls = prodigiVariants?.imageUrls as Record<string, string> | undefined;
+
             return (
               <Link key={product.sku} href={`/products/${categorySlug}/${productSlug}`}>
                 <ProductCard
                   product={{
                     id: product.sku,
                     name: product.name,
-                    description: product.shortDescription,
-                    pricing: product.pricing,
-                    price: product.pricing.find((p) => p.currency === 'USD')?.amount || 0,
-                    shippingCost: 0,
-                    imageUrls: product.imageUrls,
-                    sku: product.sku,
-                    category: {
-                      id: product.sku,
-                      name: product.category,
+                    description: product.description || '',
+                    pricing: [{ amount: product.customerPrice || product.price, currency: product.currency }],
+                    price: product.customerPrice || product.price,
+                    shippingCost: product.shippingCost,
+                    imageUrls: {
+                      base: imageUrls?.base || '',
+                      cover: imageUrls?.productImage || imageUrls?.cover || (imageUrls?.base ? `${imageUrls.base}/cover.png` : ''),
+                      sizeChart: imageUrls?.sizeChart || '',
                     },
+                    sku: product.sku,
+                    category: product.category
+                      ? {
+                          id: product.category.id.toString(),
+                          name: product.category.name,
+                        }
+                      : { id: 'all', name: 'All' },
                     specifications: {
-                      dimensions: product.dimensions,
-                      brand: product.brand?.name || '',
-                      style: product.productType,
-                      color: product.colorOptions?.map(opt => opt.name) || [],
+                      dimensions: {
+                        width: product.width,
+                        height: product.height,
+                        units: product.units,
+                      },
+                      brand: product.brand || '',
+                      style: product.style,
+                      color: product.color,
                       size: product.size,
                     },
+                    prodigiVariants,
                     savedImages: [],
                     wishedBy: [],
                   }}

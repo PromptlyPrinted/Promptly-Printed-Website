@@ -68,14 +68,14 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const { category: categorySlug, productName: productSlug } = await params;
   console.log(`Attempting to find product for: /products/${categorySlug}/${productSlug}`);
 
-  // First try to find in static data for fallback
+  // First try to find in static data for reference
   const staticProduct = Object.values(tshirtDetails).find(
     (p) =>
       normalizeString(p.category) === normalizeString(categorySlug) &&
       normalizeString(p.name) === normalizeString(productSlug)
   );
 
-  // Try to fetch from database for most up-to-date data
+  // Try to fetch from database - only show products that are listed AND active
   let dbProduct = null;
   if (staticProduct?.sku) {
     try {
@@ -90,13 +90,19 @@ export default async function ProductPage({ params }: ProductPageProps) {
           category: true,
         },
       });
+
+      // If product exists in static data but is NOT listed/active in database, don't show it
+      if (!dbProduct) {
+        console.log(`Product ${staticProduct.sku} is not listed or not active`);
+        notFound();
+      }
     } catch (error) {
       // Database not available during build - use static data
       console.log('Database not available, using static product data');
     }
   }
 
-  // Use database product if available, otherwise fall back to static
+  // Use static product for display (it has the full details needed for the page)
   const product = staticProduct;
   if (!product) {
     notFound();
