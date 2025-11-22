@@ -182,6 +182,7 @@ export async function POST(request: NextRequest) {
             attributes: {
               color: item.color,
               size: item.size,
+              designUrl: item.designUrl, // Store in attributes as fallback
             },
             assets: item.designUrl ? [{ url: item.designUrl }] : undefined,
           })),
