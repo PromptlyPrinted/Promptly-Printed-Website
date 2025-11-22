@@ -284,10 +284,16 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Create payment link using the existing Square order
+    // Create payment link
     const paymentLinkRequest = {
       idempotencyKey: randomUUID(),
-      orderId: squareOrderId, // Use the existing order instead of creating a new one
+      order: {
+        locationId: process.env.SQUARE_LOCATION_ID!,
+        referenceId: squareOrderId,
+        lineItems: lineItems,
+        discounts: discounts.length > 0 ? discounts : undefined,
+        metadata: squareMetadata,
+      },
       checkoutOptions: {
         redirectUrl: `${process.env.NEXT_PUBLIC_WEB_URL}/checkout/success?orderId=${order.id}`,
         askForShippingAddress: false, // We already collected it
