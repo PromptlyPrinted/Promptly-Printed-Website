@@ -491,6 +491,7 @@ export async function POST(req: NextRequest) {
           checkoutOptions: {
             redirectUrl: `${process.env.NEXT_PUBLIC_WEB_URL}/checkout/success`,
             askForShippingAddress: true,
+            enableCoupon: false, // Disable Square's coupon field - we handle discounts on our checkout page
             acceptedPaymentMethods: {
               applePay: true,
               googlePay: true,

@@ -402,6 +402,7 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           items,
           shippingAddress,
+          discountCode: appliedDiscount?.code, // Pass discount code to backend
         }),
       });
 

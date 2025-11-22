@@ -223,27 +223,40 @@ export async function POST(request: NextRequest) {
       return lineItem;
     });
 
-    // Add discount as a negative line item if applicable
+    // Build discounts array for Square (discounts must be separate, not negative line items)
+    const discounts: any[] = [];
     if (validatedDiscountCode && discountAmount > 0) {
-      lineItems.push({
-        name: `Discount (${validatedDiscountCode.code})`,
-        quantity: '1',
-        basePriceMoney: {
-          amount: BigInt(-Math.round(discountAmount * 100)), // Negative amount for discount
-          currency: Currency.Gbp,
-        },
-        note: `${validatedDiscountCode.type === DiscountType.PERCENTAGE ? `${validatedDiscountCode.value}% off` : `£${validatedDiscountCode.value} off`}`,
-      });
+      if (validatedDiscountCode.type === DiscountType.PERCENTAGE) {
+        discounts.push({
+          uid: `discount-${validatedDiscountCode.id}`,
+          name: `Discount: ${validatedDiscountCode.code}`,
+          percentage: validatedDiscountCode.value.toString(),
+          scope: 'ORDER',
+        });
+      } else {
+        // Fixed amount discount
+        discounts.push({
+          uid: `discount-${validatedDiscountCode.id}`,
+          name: `Discount: ${validatedDiscountCode.code}`,
+          amountMoney: {
+            amount: BigInt(Math.round(discountAmount * 100)),
+            currency: Currency.Gbp,
+          },
+          scope: 'ORDER',
+        });
+      }
     }
 
     console.log('[Square Order] Creating...', {
       itemCount: lineItems.length,
       hasDiscount: discountAmount > 0,
+      discountCount: discounts.length,
     });
     const squareOrderResponse = await squareClient.orders.create({
       order: {
         locationId: process.env.SQUARE_LOCATION_ID!,
         lineItems: lineItems,
+        discounts: discounts.length > 0 ? discounts : undefined,
         metadata: squareMetadata,
       },
       idempotencyKey: randomUUID(),
@@ -273,11 +286,13 @@ export async function POST(request: NextRequest) {
         locationId: process.env.SQUARE_LOCATION_ID!,
         referenceId: squareOrderId,
         lineItems: lineItems,
+        discounts: discounts.length > 0 ? discounts : undefined,
         metadata: squareMetadata,
       },
       checkoutOptions: {
         redirectUrl: `${process.env.NEXT_PUBLIC_WEB_URL}/checkout/success?orderId=${order.id}`,
         askForShippingAddress: false, // We already collected it
+        enableCoupon: false, // Disable Square's coupon field - we handle discounts on our checkout page
         acceptedPaymentMethods: {
           applePay: true,
           googlePay: true,
