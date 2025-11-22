@@ -16,7 +16,7 @@ const squareClient = new SquareClient({
   environment: squareEnvironment,
 });
 
-const ShippingAddressSchema = z.object({
+const AddressSchema = z.object({
   firstName: z.string(),
   lastName: z.string(),
   email: z.string().email(),
@@ -41,7 +41,8 @@ const CheckoutItemSchema = z.object({
 
 const ProcessCheckoutSchema = z.object({
   items: z.array(CheckoutItemSchema),
-  shippingAddress: ShippingAddressSchema,
+  billingAddress: AddressSchema,
+  shippingAddress: AddressSchema.optional(), // Optional separate shipping address
   discountCode: z.string().optional(), // Optional discount code
 });
 
@@ -60,7 +61,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { items, shippingAddress, discountCode } = validation.data;
+    const { items, billingAddress, shippingAddress, discountCode } = validation.data;
+    
+    // Use shipping address if provided, otherwise use billing address for shipping
+    const deliveryAddress = shippingAddress || billingAddress;
 
     // Get user session if exists
     const session = await getSession(request);
@@ -160,14 +164,14 @@ export async function POST(request: NextRequest) {
         status: OrderStatus.PENDING,
         recipient: {
           create: {
-            name: `${shippingAddress.firstName} ${shippingAddress.lastName}`,
-            email: shippingAddress.email,
-            phoneNumber: shippingAddress.phone,
-            addressLine1: shippingAddress.addressLine1,
-            addressLine2: shippingAddress.addressLine2 || null,
-            city: shippingAddress.city,
-            postalCode: shippingAddress.postalCode,
-            countryCode: shippingAddress.country,
+            name: `${deliveryAddress.firstName} ${deliveryAddress.lastName}`,
+            email: deliveryAddress.email,
+            phoneNumber: deliveryAddress.phone,
+            addressLine1: deliveryAddress.addressLine1,
+            addressLine2: deliveryAddress.addressLine2 || null,
+            city: deliveryAddress.city,
+            postalCode: deliveryAddress.postalCode,
+            countryCode: deliveryAddress.country,
           },
         },
         orderItems: {
@@ -301,14 +305,14 @@ export async function POST(request: NextRequest) {
         },
       },
       prePopulatedData: {
-        buyerEmail: shippingAddress.email,
-        // Skip phone number to avoid validation issues
+        buyerEmail: billingAddress.email,
+        buyerPhoneNumber: billingAddress.phone,
         buyerAddress: {
-          addressLine1: shippingAddress.addressLine1,
-          addressLine2: shippingAddress.addressLine2,
-          locality: shippingAddress.city,
-          postalCode: shippingAddress.postalCode,
-          country: shippingAddress.country as Country,
+          addressLine1: billingAddress.addressLine1,
+          addressLine2: billingAddress.addressLine2,
+          locality: billingAddress.city,
+          postalCode: billingAddress.postalCode,
+          country: billingAddress.country as Country,
         },
       },
     };

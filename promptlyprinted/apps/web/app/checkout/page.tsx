@@ -15,7 +15,7 @@ interface CheckoutItem {
   designUrl?: string;
 }
 
-interface ShippingAddress {
+interface Address {
   firstName: string;
   lastName: string;
   email: string;
@@ -55,7 +55,19 @@ export default function CheckoutPage() {
   } | null>(null);
   const [discountError, setDiscountError] = useState<string | null>(null);
   const [validatingDiscount, setValidatingDiscount] = useState(false);
-  const [shippingAddress, setShippingAddress] = useState<ShippingAddress>({
+  const [useDifferentShipping, setUseDifferentShipping] = useState(false);
+  const [billingAddress, setBillingAddress] = useState<Address>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    addressLine1: '',
+    addressLine2: '',
+    city: '',
+    postalCode: '',
+    country: 'GB',
+  });
+  const [shippingAddress, setShippingAddress] = useState<Address>({
     firstName: '',
     lastName: '',
     email: '',
@@ -153,7 +165,7 @@ export default function CheckoutPage() {
 
       // Create payment request for digital wallets
       const paymentRequest = payments.paymentRequest({
-        countryCode: shippingAddress.country || 'GB',
+        countryCode: billingAddress.country || 'GB',
         currencyCode: 'GBP',
         total: {
           amount: calculateTotal().toFixed(2),
@@ -302,7 +314,8 @@ export default function CheckoutPage() {
           body: JSON.stringify({
             sourceId: token,
             items,
-            shippingAddress,
+            billingAddress,
+            shippingAddress: useDifferentShipping ? shippingAddress : undefined,
             discountCode: appliedDiscount?.code,
           }),
         });
@@ -358,7 +371,8 @@ export default function CheckoutPage() {
           body: JSON.stringify({
             sourceId: tokenResult.token,
             items,
-            shippingAddress,
+            billingAddress,
+            shippingAddress: useDifferentShipping ? shippingAddress : undefined,
             discountCode: appliedDiscount?.code,
           }),
         });
@@ -401,7 +415,8 @@ export default function CheckoutPage() {
         },
         body: JSON.stringify({
           items,
-          shippingAddress,
+          billingAddress,
+          shippingAddress: useDifferentShipping ? shippingAddress : undefined,
           discountCode: appliedDiscount?.code, // Pass discount code to backend
         }),
       });
@@ -455,7 +470,7 @@ export default function CheckoutPage() {
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900">Secure Checkout</h1>
             <p className="text-gray-600 mt-2">
-              {paymentStep === 'shipping' ? 'Shipping Information' : 'Payment Details'}
+              {paymentStep === 'shipping' ? 'Billing & Shipping Information' : 'Payment Details'}
             </p>
 
             {/* Progress indicator */}
@@ -597,7 +612,8 @@ export default function CheckoutPage() {
 
               {paymentStep === 'shipping' ? (
                 <>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Shipping Information</h2>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Billing Information</h2>
+                  <p className="text-sm text-gray-600 mb-6">This address will be used for payment verification.</p>
                   <form onSubmit={handleShippingSubmit} className="space-y-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
@@ -610,8 +626,8 @@ export default function CheckoutPage() {
                           name="given-name"
                           autoComplete="given-name"
                           required
-                          value={shippingAddress.firstName}
-                          onChange={(e) => setShippingAddress({ ...shippingAddress, firstName: e.target.value })}
+                          value={billingAddress.firstName}
+                          onChange={(e) => setBillingAddress({ ...billingAddress, firstName: e.target.value })}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                           placeholder="John"
                         />
@@ -627,8 +643,8 @@ export default function CheckoutPage() {
                           name="family-name"
                           autoComplete="family-name"
                           required
-                          value={shippingAddress.lastName}
-                          onChange={(e) => setShippingAddress({ ...shippingAddress, lastName: e.target.value })}
+                          value={billingAddress.lastName}
+                          onChange={(e) => setBillingAddress({ ...billingAddress, lastName: e.target.value })}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                           placeholder="Doe"
                         />
@@ -645,8 +661,8 @@ export default function CheckoutPage() {
                         name="email"
                         autoComplete="email"
                         required
-                        value={shippingAddress.email}
-                        onChange={(e) => setShippingAddress({ ...shippingAddress, email: e.target.value })}
+                        value={billingAddress.email}
+                        onChange={(e) => setBillingAddress({ ...billingAddress, email: e.target.value })}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                         placeholder="john.doe@example.com"
                       />
@@ -663,14 +679,14 @@ export default function CheckoutPage() {
                         name="tel"
                         autoComplete="tel"
                         required
-                        value={shippingAddress.phone}
-                        onChange={(e) => setShippingAddress({ ...shippingAddress, phone: e.target.value })}
+                        value={billingAddress.phone}
+                        onChange={(e) => setBillingAddress({ ...billingAddress, phone: e.target.value })}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                         placeholder="+44 7700 900000"
                         pattern="[+]?[0-9\s\-\(\)]+"
                         title="Please enter a valid phone number with country code"
                       />
-                      <p className="text-xs text-gray-500 mt-1">For delivery updates and driver contact</p>
+                      <p className="text-xs text-gray-500 mt-1">For payment verification and order updates</p>
                     </div>
 
                     <div>
@@ -682,8 +698,8 @@ export default function CheckoutPage() {
                         name="country"
                         autoComplete="country"
                         required
-                        value={shippingAddress.country}
-                        onChange={(e) => setShippingAddress({ ...shippingAddress, country: e.target.value })}
+                        value={billingAddress.country}
+                        onChange={(e) => setBillingAddress({ ...billingAddress, country: e.target.value })}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                       >
                         <option value="GB">United Kingdom</option>
@@ -714,8 +730,8 @@ export default function CheckoutPage() {
                         name="address-line1"
                         autoComplete="address-line1"
                         required
-                        value={shippingAddress.addressLine1}
-                        onChange={(e) => setShippingAddress({ ...shippingAddress, addressLine1: e.target.value })}
+                        value={billingAddress.addressLine1}
+                        onChange={(e) => setBillingAddress({ ...billingAddress, addressLine1: e.target.value })}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                         placeholder="123 Main Street"
                       />
@@ -730,8 +746,8 @@ export default function CheckoutPage() {
                         id="addressLine2"
                         name="address-line2"
                         autoComplete="address-line2"
-                        value={shippingAddress.addressLine2}
-                        onChange={(e) => setShippingAddress({ ...shippingAddress, addressLine2: e.target.value })}
+                        value={billingAddress.addressLine2}
+                        onChange={(e) => setBillingAddress({ ...billingAddress, addressLine2: e.target.value })}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                         placeholder="Apt 4B, Floor 2, etc."
                       />
@@ -748,8 +764,8 @@ export default function CheckoutPage() {
                           name="address-level2"
                           autoComplete="address-level2"
                           required
-                          value={shippingAddress.city}
-                          onChange={(e) => setShippingAddress({ ...shippingAddress, city: e.target.value })}
+                          value={billingAddress.city}
+                          onChange={(e) => setBillingAddress({ ...billingAddress, city: e.target.value })}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                           placeholder="London"
                         />
@@ -765,8 +781,8 @@ export default function CheckoutPage() {
                           name="postal-code"
                           autoComplete="postal-code"
                           required
-                          value={shippingAddress.postalCode}
-                          onChange={(e) => setShippingAddress({ ...shippingAddress, postalCode: e.target.value.toUpperCase() })}
+                          value={billingAddress.postalCode}
+                          onChange={(e) => setBillingAddress({ ...billingAddress, postalCode: e.target.value.toUpperCase() })}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
                           placeholder="SW1A 1AA"
                         />
@@ -777,20 +793,202 @@ export default function CheckoutPage() {
                       <div className="flex items-start gap-3">
                         <div className="flex items-center h-5">
                           <input
-                            id="save-info"
-                            name="save-info"
+                            id="different-shipping"
+                            name="different-shipping"
                             type="checkbox"
+                            checked={useDifferentShipping}
+                            onChange={(e) => setUseDifferentShipping(e.target.checked)}
                             className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                           />
                         </div>
                         <div className="text-sm">
-                          <label htmlFor="save-info" className="font-medium text-gray-700">
-                            Save my information for faster checkout next time
+                          <label htmlFor="different-shipping" className="font-medium text-gray-700">
+                            Ship to a different address
                           </label>
-                          <p className="text-gray-500">We'll securely save your details to your account</p>
+                          <p className="text-gray-500">Check this if your shipping address is different from your billing address</p>
                         </div>
                       </div>
                     </div>
+
+                    {/* Conditional Shipping Address Fields */}
+                    {useDifferentShipping && (
+                      <div className="pt-6 border-t border-gray-200 space-y-6">
+                        <h3 className="text-lg font-semibold text-gray-900">Shipping Address</h3>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label htmlFor="shipping-firstName" className="block text-sm font-medium text-gray-700 mb-2">
+                              First Name *
+                            </label>
+                            <input
+                              type="text"
+                              id="shipping-firstName"
+                              name="shipping-given-name"
+                              autoComplete="shipping given-name"
+                              required={useDifferentShipping}
+                              value={shippingAddress.firstName}
+                              onChange={(e) => setShippingAddress({ ...shippingAddress, firstName: e.target.value })}
+                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                              placeholder="John"
+                            />
+                          </div>
+
+                          <div>
+                            <label htmlFor="shipping-lastName" className="block text-sm font-medium text-gray-700 mb-2">
+                              Last Name *
+                            </label>
+                            <input
+                              type="text"
+                              id="shipping-lastName"
+                              name="shipping-family-name"
+                              autoComplete="shipping family-name"
+                              required={useDifferentShipping}
+                              value={shippingAddress.lastName}
+                              onChange={(e) => setShippingAddress({ ...shippingAddress, lastName: e.target.value })}
+                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                              placeholder="Doe"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label htmlFor="shipping-phone" className="block text-sm font-medium text-gray-700 mb-2">
+                            Phone Number *
+                          </label>
+                          <input
+                            type="tel"
+                            id="shipping-phone"
+                            name="shipping-tel"
+                            autoComplete="shipping tel"
+                            required={useDifferentShipping}
+                            value={shippingAddress.phone}
+                            onChange={(e) => setShippingAddress({ ...shippingAddress, phone: e.target.value })}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                            placeholder="+44 7700 900000"
+                            pattern="[+]?[0-9\s\-\(\)]+"
+                            title="Please enter a valid phone number with country code"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">For delivery updates and driver contact</p>
+                        </div>
+
+                        <div>
+                          <label htmlFor="shipping-country" className="block text-sm font-medium text-gray-700 mb-2">
+                            Country *
+                          </label>
+                          <select
+                            id="shipping-country"
+                            name="shipping-country"
+                            autoComplete="shipping country"
+                            required={useDifferentShipping}
+                            value={shippingAddress.country}
+                            onChange={(e) => setShippingAddress({ ...shippingAddress, country: e.target.value })}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                          >
+                            <option value="GB">United Kingdom</option>
+                            <option value="US">United States</option>
+                            <option value="CA">Canada</option>
+                            <option value="AU">Australia</option>
+                            <option value="DE">Germany</option>
+                            <option value="FR">France</option>
+                            <option value="ES">Spain</option>
+                            <option value="IT">Italy</option>
+                            <option value="IE">Ireland</option>
+                            <option value="NL">Netherlands</option>
+                            <option value="BE">Belgium</option>
+                            <option value="AT">Austria</option>
+                            <option value="SE">Sweden</option>
+                            <option value="NO">Norway</option>
+                            <option value="DK">Denmark</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label htmlFor="shipping-addressLine1" className="block text-sm font-medium text-gray-700 mb-2">
+                            Street Address *
+                          </label>
+                          <input
+                            type="text"
+                            id="shipping-addressLine1"
+                            name="shipping-address-line1"
+                            autoComplete="shipping address-line1"
+                            required={useDifferentShipping}
+                            value={shippingAddress.addressLine1}
+                            onChange={(e) => setShippingAddress({ ...shippingAddress, addressLine1: e.target.value })}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                            placeholder="123 Main Street"
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="shipping-addressLine2" className="block text-sm font-medium text-gray-700 mb-2">
+                            Apartment, Suite, etc. (Optional)
+                          </label>
+                          <input
+                            type="text"
+                            id="shipping-addressLine2"
+                            name="shipping-address-line2"
+                            autoComplete="shipping address-line2"
+                            value={shippingAddress.addressLine2}
+                            onChange={(e) => setShippingAddress({ ...shippingAddress, addressLine2: e.target.value })}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                            placeholder="Apt 4B, Floor 2, etc."
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label htmlFor="shipping-city" className="block text-sm font-medium text-gray-700 mb-2">
+                              City *
+                            </label>
+                            <input
+                              type="text"
+                              id="shipping-city"
+                              name="shipping-address-level2"
+                              autoComplete="shipping address-level2"
+                              required={useDifferentShipping}
+                              value={shippingAddress.city}
+                              onChange={(e) => setShippingAddress({ ...shippingAddress, city: e.target.value })}
+                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                              placeholder="London"
+                            />
+                          </div>
+
+                          <div>
+                            <label htmlFor="shipping-postalCode" className="block text-sm font-medium text-gray-700 mb-2">
+                              Postal Code *
+                            </label>
+                            <input
+                              type="text"
+                              id="shipping-postalCode"
+                              name="shipping-postal-code"
+                              autoComplete="shipping postal-code"
+                              required={useDifferentShipping}
+                              value={shippingAddress.postalCode}
+                              onChange={(e) => setShippingAddress({ ...shippingAddress, postalCode: e.target.value.toUpperCase() })}
+                              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                              placeholder="SW1A 1AA"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label htmlFor="shipping-email" className="block text-sm font-medium text-gray-700 mb-2">
+                            Email Address (Optional)
+                          </label>
+                          <input
+                            type="email"
+                            id="shipping-email"
+                            name="shipping-email"
+                            autoComplete="shipping email"
+                            value={shippingAddress.email}
+                            onChange={(e) => setShippingAddress({ ...shippingAddress, email: e.target.value })}
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                            placeholder="recipient@example.com"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">If different from billing email, for delivery notifications</p>
+                        </div>
+                      </div>
+                    )}
 
                     <button
                       type="submit"
