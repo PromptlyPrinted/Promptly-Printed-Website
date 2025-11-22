@@ -55,11 +55,12 @@ interface ProdigiOrderItem {
 export default async function CheckoutSuccessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ checkout_id?: string; order_id?: string }>;
+  searchParams: Promise<{ checkout_id?: string; order_id?: string; orderId?: string }>;
 }) {
   const params = await searchParams;
   const checkoutId = params.checkout_id;
-  const orderId = params.order_id;
+  // Support both order_id (from Square) and orderId (from our routes)
+  const orderId = params.order_id || params.orderId;
 
   if (!checkoutId && !orderId) {
     redirect('/');

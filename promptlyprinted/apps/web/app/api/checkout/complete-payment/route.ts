@@ -323,10 +323,10 @@ export async function POST(request: NextRequest) {
             throw new Error(`Product SKU not found for product ID: ${item.productId}`);
           }
 
-          // Get design URL from item or order item assets
+          // Get design URL from item or order item assets/attributes
           let designUrl = item.designUrl;
 
-          // If no design URL, try to get from order item assets
+          // If no design URL in item, try to get from order item assets
           if (!designUrl) {
             const orderItemAssets = updatedOrder.orderItems[index]?.assets;
             if (orderItemAssets && typeof orderItemAssets === 'object' && !Array.isArray(orderItemAssets)) {
@@ -336,12 +336,21 @@ export async function POST(request: NextRequest) {
             }
           }
 
+          // If still no design URL, check attributes as fallback
+          if (!designUrl) {
+            const orderItemAttributes = updatedOrder.orderItems[index]?.attributes;
+            if (orderItemAttributes && typeof orderItemAttributes === 'object') {
+              designUrl = (orderItemAttributes as any).designUrl;
+            }
+          }
+
           if (!designUrl) {
             console.error('[Prodigi Order] Missing design URL:', {
               itemName: item.name,
               itemIndex: index,
               hasDesignUrlInItem: !!item.designUrl,
               orderItemAssets: updatedOrder.orderItems[index]?.assets,
+              orderItemAttributes: updatedOrder.orderItems[index]?.attributes,
             });
             throw new Error(`Design URL missing for item: ${item.name}. Please ensure all products have custom designs uploaded.`);
           }

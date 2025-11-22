@@ -106,11 +106,24 @@ export async function POST(req: Request) {
       }
 
       // Retrieve the Square order to get metadata
+      console.log('[Webhook] Retrieving Square order:', orderId);
       const squareOrderResponse = await squareClient.orders.get({ orderId });
       const squareOrder = squareOrderResponse.order;
 
+      console.log('[Webhook] Square order metadata:', {
+        hasOrder: !!squareOrder,
+        hasMetadata: !!squareOrder?.metadata,
+        metadata: squareOrder?.metadata,
+        orderId: squareOrder?.id,
+      });
+
       if (!squareOrder || !squareOrder.metadata) {
-        console.error('No metadata found in Square order');
+        console.error('[Webhook] No metadata found in Square order - this might be a payment link order');
+        console.error('[Webhook] Square order details:', {
+          id: squareOrder?.id,
+          metadata: squareOrder?.metadata,
+          referenceId: squareOrder?.referenceId,
+        });
         return NextResponse.json({ error: 'No metadata' }, { status: 400 });
       }
 

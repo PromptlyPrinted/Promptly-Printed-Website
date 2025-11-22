@@ -284,16 +284,10 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Create payment link (we'll still use this for now, but eventually replace with Web SDK)
+    // Create payment link using the existing Square order
     const paymentLinkRequest = {
       idempotencyKey: randomUUID(),
-      order: {
-        locationId: process.env.SQUARE_LOCATION_ID!,
-        referenceId: squareOrderId,
-        lineItems: lineItems,
-        discounts: discounts.length > 0 ? discounts : undefined,
-        metadata: squareMetadata,
-      },
+      orderId: squareOrderId, // Use the existing order instead of creating a new one
       checkoutOptions: {
         redirectUrl: `${process.env.NEXT_PUBLIC_WEB_URL}/checkout/success?orderId=${order.id}`,
         askForShippingAddress: false, // We already collected it
