@@ -152,6 +152,17 @@ export async function POST(request: NextRequest) {
     // Calculate final total after discount
     const total = subtotal - discountAmount;
 
+    // Fetch product SKUs for all items
+    console.log('[Product SKUs] Fetching...');
+    const productIds = items.map(item => item.productId);
+    const products = await prisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, sku: true },
+    });
+    
+    const productSkuMap = new Map(products.map(p => [p.id, p.sku]));
+    console.log('[Product SKUs] Fetched:', { count: products.length });
+
     // Create database order first
     console.log('[Database Order] Creating...');
     const order = await prisma.order.create({
@@ -175,17 +186,25 @@ export async function POST(request: NextRequest) {
           },
         },
         orderItems: {
-          create: items.map((item) => ({
-            productId: item.productId,
-            copies: item.copies,
-            price: item.price,
-            attributes: {
-              color: item.color,
-              size: item.size,
-              designUrl: item.designUrl, // Store in attributes as fallback
-            },
-            assets: item.designUrl ? [{ url: item.designUrl }] : undefined,
-          })),
+          create: items.map((item) => {
+            const sku = productSkuMap.get(item.productId);
+            if (!sku) {
+              throw new Error(`SKU not found for product ID: ${item.productId}`);
+            }
+            
+            return {
+              productId: item.productId,
+              copies: item.copies,
+              price: item.price,
+              attributes: {
+                color: item.color,
+                size: item.size,
+                sku: sku, // Store SKU for Prodigi order creation
+                designUrl: item.designUrl, // Store in attributes as fallback
+              },
+              assets: item.designUrl ? [{ url: item.designUrl }] : undefined,
+            };
+          }),
         },
       },
       include: {

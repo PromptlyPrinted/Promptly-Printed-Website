@@ -171,17 +171,32 @@ export async function POST(request: NextRequest) {
           },
         },
         orderItems: {
-          create: items.map((item) => ({
-            productId: item.productId,
-            copies: item.copies,
-            price: item.price,
-            attributes: {
-              color: item.color,
-              size: item.size,
-              designUrl: item.designUrl, // Store in attributes as fallback
-            },
-            assets: item.designUrl ? [{ url: item.designUrl }] : undefined,
-          })),
+          create: await Promise.all(
+            items.map(async (item) => {
+              // Fetch product SKU
+              const product = await prisma.product.findUnique({
+                where: { id: item.productId },
+                select: { sku: true },
+              });
+              
+              if (!product?.sku) {
+                throw new Error(`SKU not found for product ID: ${item.productId}`);
+              }
+              
+              return {
+                productId: item.productId,
+                copies: item.copies,
+                price: item.price,
+                attributes: {
+                  color: item.color,
+                  size: item.size,
+                  sku: product.sku, // Store SKU for Prodigi order creation
+                  designUrl: item.designUrl, // Store in attributes as fallback
+                },
+                assets: item.designUrl ? [{ url: item.designUrl }] : undefined,
+              };
+            })
+          ),
         },
       },
       include: {
