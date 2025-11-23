@@ -1509,7 +1509,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
 
     const itemToAdd = {
       id: `${product.id}-${selectedSize}-${selectedColor}`,
-      productId: product.id.toString(),
+      productId: Number(product.id), // Keep as number for backend
       name: product.name,
       price: finalPrice, // Apply discount to cart price
       originalPrice: basePrice, // Store original price for reference
@@ -1524,7 +1524,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
 
     const allItems = [...cartItems, itemToAdd];
     const allItemsAsCheckoutItems = allItems.map(item => ({
-      productId: item.productId,
+      productId: Number(item.productId), // Ensure it's a number
       name: item.name,
       price: item.price,
       copies: item.quantity,
@@ -1536,6 +1536,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       currency: 'USD',
       merchantReference: `item_${item.productId}`,
       sku: item.productId,
+      designUrl: generatedImage, // Add design URL for Prodigi
     }));
     initiateCheckout(allItemsAsCheckoutItems);
   };
@@ -2759,7 +2760,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                 }
                                 const itemToAdd = {
                   id: `${product.id}-${selectedSize}-${selectedColor}`,
-                  productId: product.id.toString(),
+                  productId: Number(product.id), // Keep as number
                   name: product.name,
                   price: product.pricing?.[0]?.amount || product.price || 0,
                   quantity: quantity,
