@@ -376,6 +376,11 @@ export async function POST(req: Request) {
             throw new Error(`Design URL missing for order item. Please ensure all products have custom designs uploaded.`);
           }
 
+          // Clean the design URL - remove double https:// if present
+          designUrl = designUrl.replace(/^https:\/\/https:\/\//, 'https://');
+          
+          console.log('[Prodigi Order] Cleaned design URL:', designUrl);
+
           // Get color and size from attributes for Prodigi
           const color = attrs?.color;
           const size = attrs?.size;
@@ -400,7 +405,7 @@ export async function POST(req: Request) {
             },
             assets: [
               {
-                printArea: 'default',
+                printArea: 'front', // Changed from 'default' to 'front' for t-shirts
                 url: designUrl,
               },
             ],
