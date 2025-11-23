@@ -382,8 +382,24 @@ export async function POST(req: Request) {
           console.log('[Prodigi Order] Cleaned design URL:', designUrl);
 
           // Get color and size from attributes for Prodigi
-          const color = attrs?.color;
-          const size = attrs?.size;
+          let color = attrs?.color;
+          let size = attrs?.size;
+
+          // Format color: convert kebab-case to space-separated (e.g., "spectra-yellow" -> "spectra yellow")
+          if (color) {
+            color = color.replace(/-/g, ' ').toLowerCase();
+          }
+
+          // Format size: convert to lowercase and handle special cases
+          // Prodigi expects: xs, s, m, l, xl, 2xl, 3xl, 4xl, 5xl, 2xs
+          if (size) {
+            size = size.toLowerCase();
+            // Convert XXS to 2xs, XXXL to 3xl, etc.
+            if (size === 'xxs') size = '2xs';
+            if (size === 'xxxl') size = '3xl';
+            if (size === 'xxxxl') size = '4xl';
+            if (size === 'xxxxxl') size = '5xl';
+          }
 
           console.log('[Prodigi Order] Item prepared:', {
             index,
