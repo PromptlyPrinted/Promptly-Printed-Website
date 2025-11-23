@@ -29,7 +29,7 @@ const AddressSchema = z.object({
 });
 
 const CheckoutItemSchema = z.object({
-  productId: z.coerce.number().int(),
+  productId: z.coerce.number().int().positive('Product ID must be a positive integer'),
   name: z.string(),
   price: z.number(),
   copies: z.number().int().min(1),
@@ -49,7 +49,14 @@ const ProcessCheckoutSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    console.log('[Checkout Process] Starting...', { itemCount: body.items?.length });
+    console.log('[Checkout Process] Starting...', {
+      itemCount: body.items?.length,
+      items: body.items?.map((item: any) => ({
+        productId: item.productId,
+        productIdType: typeof item.productId,
+        name: item.name
+      }))
+    });
 
     // Validate request
     const validation = ProcessCheckoutSchema.safeParse(body);
