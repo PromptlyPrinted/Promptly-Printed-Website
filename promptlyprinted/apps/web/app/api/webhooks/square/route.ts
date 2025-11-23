@@ -13,13 +13,43 @@ const squareClient = new SquareClient({
     : SquareEnvironment.Sandbox,
 });
 
-const webhookSignatureKey = process.env.SQUARE_WEBHOOK_SIGNATURE_KEY!;
+const webhookSignatureKey = process.env.SQUARE_WEBHOOK_SIGNATURE_KEY;
+
+// Log webhook configuration on startup
+console.log('[Webhook Config]', {
+  hasSignatureKey: !!webhookSignatureKey,
+  signatureKeyLength: webhookSignatureKey?.length || 0,
+  signatureKeyPreview: webhookSignatureKey ? `${webhookSignatureKey.substring(0, 8)}...` : 'NOT SET',
+});
+
+if (!webhookSignatureKey) {
+  console.error('[Webhook] CRITICAL: SQUARE_WEBHOOK_SIGNATURE_KEY is not set!');
+}
 
 // Verify Square webhook signature
-function verifySquareWebhook(body: string, signature: string): boolean {
+// Per Square docs: signature = HMAC-SHA256(notification_url + request_body)
+function verifySquareWebhook(body: string, signature: string, notificationUrl: string): boolean {
+  if (!webhookSignatureKey) {
+    console.error('[Webhook] Cannot verify signature - key not configured');
+    return false;
+  }
+  
+  // Square requires: HMAC-SHA256(notification_url + request_body)
+  const signaturePayload = notificationUrl + body;
   const hmac = crypto.createHmac('sha256', webhookSignatureKey);
-  const hash = hmac.update(body).digest('base64');
-  return hash === signature;
+  const hash = hmac.update(signaturePayload).digest('base64');
+  const isValid = hash === signature;
+  
+  console.log('[Webhook] Signature verification:', {
+    isValid,
+    notificationUrl,
+    bodyLength: body.length,
+    receivedSignaturePreview: signature.substring(0, 20) + '...',
+    computedHashPreview: hash.substring(0, 20) + '...',
+    signaturesMatch: hash === signature,
+  });
+  
+  return isValid;
 }
 
 export async function POST(req: Request) {
@@ -33,8 +63,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'No signature' }, { status: 400 });
     }
 
+    // Get the notification URL from environment or construct it
+    const notificationUrl = process.env.SQUARE_WEBHOOK_URL || 
+                           `${process.env.NEXT_PUBLIC_WEB_URL}/api/webhooks/square`;
+
     // Verify webhook signature
-    if (!verifySquareWebhook(body, signature)) {
+    if (!verifySquareWebhook(body, signature, notificationUrl)) {
       console.error('Webhook signature verification failed');
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }

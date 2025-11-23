@@ -59,20 +59,23 @@ export default async function CheckoutSuccessPage({
 }) {
   const params = await searchParams;
   const checkoutId = params.checkout_id;
-  // Support both order_id (from Square) and orderId (from our routes)
-  const orderId = params.order_id || params.orderId;
+  
+  // orderId = our database order ID (number)
+  // order_id = Square order ID (string starting with letters)
+  const dbOrderId = params.orderId;
+  const squareOrderId = params.order_id;
 
-  if (!checkoutId && !orderId) {
+  if (!checkoutId && !squareOrderId && !dbOrderId) {
     redirect('/');
   }
 
   let squareOrder: any = null;
   let paymentStatus = 'unknown';
 
-  // Get Square order details
-  if (orderId) {
+  // Get Square order details using Square order ID
+  if (squareOrderId) {
     try {
-      const orderResponse = await squareClient.orders.get({ orderId });
+      const orderResponse = await squareClient.orders.get({ orderId: squareOrderId });
       squareOrder = orderResponse.order;
       // Check if order has payment
       if (squareOrder?.tenders && squareOrder.tenders.length > 0) {
@@ -91,7 +94,7 @@ export default async function CheckoutSuccessPage({
 
       // First, check if a payment with this Square order ID already exists
       const existingPayment = await prisma.payment.findUnique({
-        where: { stripeId: orderId },
+        where: { stripeId: squareOrderId },
       });
 
       // Get fulfillment info from Square order (shipping address)
@@ -100,7 +103,7 @@ export default async function CheckoutSuccessPage({
       const recipient = shipmentDetails?.recipient;
 
       if (existingPayment) {
-        console.log('Payment already exists for Square order:', orderId);
+        console.log('Payment already exists for Square order:', squareOrderId);
         // Update the order without creating a new payment
         const order = await prisma.order.update({
           where: {
@@ -141,7 +144,7 @@ export default async function CheckoutSuccessPage({
             status: 'COMPLETED',
             payment: {
               create: {
-                stripeId: orderId!, // Using same field for now
+                stripeId: squareOrderId!, // Using same field for now
                 status: 'completed',
                 amount: totalMoney ? Number(totalMoney.amount) / 100 : 0,
                 currency: totalMoney?.currency?.toLowerCase() || 'usd',
@@ -178,7 +181,7 @@ export default async function CheckoutSuccessPage({
           level: 'ERROR',
           message: 'Failed to update order after payment',
           metadata: {
-            squareOrderId: orderId,
+            squareOrderId: squareOrderId,
             dbOrderId: squareOrder?.metadata?.orderId,
             error: error instanceof Error ? error.message : 'Unknown error',
             stack: error instanceof Error ? error.stack : undefined,
