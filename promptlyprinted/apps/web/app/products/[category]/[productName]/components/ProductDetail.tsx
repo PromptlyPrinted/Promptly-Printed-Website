@@ -1507,27 +1507,33 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
     const basePrice = product.pricing?.[0]?.amount || product.price || 0;
     const finalPrice = discountPercent > 0 ? basePrice * (1 - discountPercent) : basePrice;
 
-    // Debug logging
-    console.log('[Buy Now] Product ID:', { 
-      rawId: product.id, 
-      type: typeof product.id,
-      converted: Number(product.id),
-      productName: product.name 
-    });
-
-    if (!product.id || Number(product.id) === 0 || isNaN(Number(product.id))) {
+    // Fetch the numeric product ID from the database using SKU
+    // product.id is actually the SKU (e.g., "TEE-SS-STTU755"), not a numeric ID
+    let numericProductId: number;
+    try {
+      const response = await fetch(`/api/products/by-sku/${product.id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch product ID');
+      }
+      const data = await response.json();
+      numericProductId = data.id;
+      
+      if (!numericProductId || numericProductId === 0) {
+        throw new Error('Invalid product ID returned');
+      }
+    } catch (error) {
+      console.error('[Buy Now] Failed to fetch product ID:', error);
       toast({
         title: 'Error',
-        description: 'Invalid product ID. Please refresh the page and try again.',
+        description: 'Failed to load product information. Please try again.',
         variant: 'destructive',
       });
-      console.error('[Buy Now] Invalid product ID:', product);
       return;
     }
 
     const itemToAdd = {
-      id: `${product.id}-${selectedSize}-${selectedColor}`,
-      productId: Number(product.id), // Keep as number for backend
+      id: `${numericProductId}-${selectedSize}-${selectedColor}`,
+      productId: numericProductId, // Use numeric database ID
       name: product.name,
       price: finalPrice, // Apply discount to cart price
       originalPrice: basePrice, // Store original price for reference
@@ -1557,7 +1563,6 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       designUrl: generatedImage, // Add design URL for Prodigi
     }));
     
-    console.log('[Buy Now] Checkout items:', allItemsAsCheckoutItems);
     initiateCheckout(allItemsAsCheckoutItems);
   };
 
@@ -2769,7 +2774,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
             <Button
               className="w-full bg-teal-600 text-white hover:bg-teal-700 sm:flex-1"
               size="default"
-              onClick={() => {
+              onClick={async () => {
                 if (!selectedSize) {
                   toast({
                     title: 'Error',
@@ -2778,9 +2783,27 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                   });
                   return;
                 }
-                                const itemToAdd = {
-                  id: `${product.id}-${selectedSize}-${selectedColor}`,
-                  productId: Number(product.id), // Keep as number
+                
+                // Fetch numeric product ID from SKU
+                let numericProductId: number;
+                try {
+                  const response = await fetch(`/api/products/by-sku/${product.id}`);
+                  if (!response.ok) throw new Error('Failed to fetch product ID');
+                  const data = await response.json();
+                  numericProductId = data.id;
+                } catch (error) {
+                  console.error('[Add to Cart] Failed to fetch product ID:', error);
+                  toast({
+                    title: 'Error',
+                    description: 'Failed to add item to cart. Please try again.',
+                    variant: 'destructive',
+                  });
+                  return;
+                }
+                
+                const itemToAdd = {
+                  id: `${numericProductId}-${selectedSize}-${selectedColor}`,
+                  productId: numericProductId, // Use numeric database ID
                   name: product.name,
                   price: product.pricing?.[0]?.amount || product.price || 0,
                   quantity: quantity,
