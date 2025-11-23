@@ -1507,6 +1507,24 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
     const basePrice = product.pricing?.[0]?.amount || product.price || 0;
     const finalPrice = discountPercent > 0 ? basePrice * (1 - discountPercent) : basePrice;
 
+    // Debug logging
+    console.log('[Buy Now] Product ID:', { 
+      rawId: product.id, 
+      type: typeof product.id,
+      converted: Number(product.id),
+      productName: product.name 
+    });
+
+    if (!product.id || Number(product.id) === 0 || isNaN(Number(product.id))) {
+      toast({
+        title: 'Error',
+        description: 'Invalid product ID. Please refresh the page and try again.',
+        variant: 'destructive',
+      });
+      console.error('[Buy Now] Invalid product ID:', product);
+      return;
+    }
+
     const itemToAdd = {
       id: `${product.id}-${selectedSize}-${selectedColor}`,
       productId: Number(product.id), // Keep as number for backend
@@ -1538,6 +1556,8 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       sku: item.productId,
       designUrl: generatedImage, // Add design URL for Prodigi
     }));
+    
+    console.log('[Buy Now] Checkout items:', allItemsAsCheckoutItems);
     initiateCheckout(allItemsAsCheckoutItems);
   };
 
