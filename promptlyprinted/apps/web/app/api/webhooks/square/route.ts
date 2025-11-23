@@ -273,17 +273,7 @@ export async function POST(req: Request) {
         include: {
           recipient: true,
           discountCode: true,
-          orderItems: {
-            include: {
-              product: {
-                select: {
-                  id: true,
-                  sku: true,
-                  name: true,
-                },
-              },
-            },
-          },
+          orderItems: true, // Just get order items without product relation
         },
       });
 
@@ -343,9 +333,16 @@ export async function POST(req: Request) {
         });
 
         // Prepare Prodigi order items
-        const prodigiItems = updatedOrder.orderItems.map((orderItem, index) => {
-          const sku = orderItem.product?.sku;
+        const prodigiItems = updatedOrder.orderItems.map((orderItem: any, index: number) => {
+          // Get SKU from attributes (stored during checkout)
+          const attrs = orderItem.attributes as any;
+          const sku = attrs?.sku;
+          
           if (!sku) {
+            console.error('[Prodigi Order] Missing SKU:', {
+              orderItemId: orderItem.id,
+              attributes: orderItem.attributes,
+            });
             throw new Error(`Product SKU not found for order item ID: ${orderItem.id}`);
           }
 
@@ -399,12 +396,18 @@ export async function POST(req: Request) {
           itemCount: prodigiItems.length,
         });
 
+        // Check if recipient exists
+        if (!updatedOrder.recipient) {
+          console.error('[Prodigi Order] No recipient found for order:', updatedOrder.id);
+          throw new Error('No recipient information available for order');
+        }
+
         // Create Prodigi order
         const prodigiOrderRequest = {
           shippingMethod: 'Standard' as const,
           recipient: {
             name: updatedOrder.recipient.name,
-            email: updatedOrder.recipient.email,
+            email: updatedOrder.recipient.email || 'noemail@example.com', // Fallback for null
             phoneNumber: updatedOrder.recipient.phoneNumber || undefined,
             address: {
               line1: updatedOrder.recipient.addressLine1,
