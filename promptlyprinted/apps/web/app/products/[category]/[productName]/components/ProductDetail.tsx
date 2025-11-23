@@ -1494,15 +1494,6 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       return;
     }
 
-    if (!generatedImage) {
-      toast({
-        title: 'Error',
-        description: 'Please generate a design first',
-        variant: 'destructive',
-      });
-      return;
-    }
-
     // Calculate final price with discount
     const basePrice = product.pricing?.[0]?.amount || product.price || 0;
     const finalPrice = discountPercent > 0 ? basePrice * (1 - discountPercent) : basePrice;
@@ -1560,7 +1551,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       currency: 'USD',
       merchantReference: `item_${item.productId}`,
       sku: item.productId,
-      designUrl: generatedImage, // Add design URL for Prodigi
+      designUrl: item.imageUrl, // Use each item's specific design URL
     }));
     
     initiateCheckout(allItemsAsCheckoutItems);
