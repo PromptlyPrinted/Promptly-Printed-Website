@@ -336,15 +336,20 @@ export async function POST(req: Request) {
         const prodigiItems = updatedOrder.orderItems.map((orderItem: any, index: number) => {
           // Get SKU from attributes (stored during checkout)
           const attrs = orderItem.attributes as any;
-          const sku = attrs?.sku;
-          
-          if (!sku) {
+          const dbSku = attrs?.sku;
+
+          if (!dbSku) {
             console.error('[Prodigi Order] Missing SKU:', {
               orderItemId: orderItem.id,
               attributes: orderItem.attributes,
             });
             throw new Error(`Product SKU not found for order item ID: ${orderItem.id}`);
           }
+
+          // Strip country prefix (US-, GB-, DE-, etc.) from SKU for Prodigi
+          // Database stores SKUs like "US-TEE-SS-STTU755" but Prodigi expects "TEE-SS-STTU755"
+          const sku = dbSku.replace(/^[A-Z]{2}-/, '');
+          console.log('[Prodigi Order] SKU conversion:', { dbSku, prodigiSku: sku });
 
           // Get design URL from order item assets
           let designUrl: string | undefined;
@@ -371,10 +376,16 @@ export async function POST(req: Request) {
             throw new Error(`Design URL missing for order item. Please ensure all products have custom designs uploaded.`);
           }
 
+          // Get color and size from attributes for Prodigi
+          const color = attrs?.color;
+          const size = attrs?.size;
+
           console.log('[Prodigi Order] Item prepared:', {
             index,
             sku,
             copies: orderItem.copies,
+            color,
+            size,
             hasDesignUrl: !!designUrl,
           });
 
@@ -383,6 +394,10 @@ export async function POST(req: Request) {
             copies: orderItem.copies,
             merchantReference: `item_${updatedOrder.id}_${index}`,
             sizing: 'fillPrintArea' as const,
+            attributes: {
+              ...(color && { color }),
+              ...(size && { size }),
+            },
             assets: [
               {
                 printArea: 'default',

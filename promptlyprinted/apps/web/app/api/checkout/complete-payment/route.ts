@@ -333,10 +333,15 @@ export async function POST(request: NextRequest) {
 
         // Prepare Prodigi order items
         const prodigiItems = items.map((item, index) => {
-          const sku = productSkuMap.get(item.productId);
-          if (!sku) {
+          const dbSku = productSkuMap.get(item.productId);
+          if (!dbSku) {
             throw new Error(`Product SKU not found for product ID: ${item.productId}`);
           }
+
+          // Strip country prefix (US-, GB-, DE-, etc.) from SKU for Prodigi
+          // Database stores SKUs like "US-TEE-SS-STTU755" but Prodigi expects "TEE-SS-STTU755"
+          const sku = dbSku.replace(/^[A-Z]{2}-/, '');
+          console.log('[Prodigi Order] SKU conversion:', { dbSku, prodigiSku: sku });
 
           // Get design URL from item or order item assets/attributes
           let designUrl = item.designUrl;
@@ -370,10 +375,16 @@ export async function POST(request: NextRequest) {
             throw new Error(`Design URL missing for item: ${item.name}. Please ensure all products have custom designs uploaded.`);
           }
 
+          // Get color and size from item for Prodigi attributes
+          const color = item.color;
+          const size = item.size;
+
           console.log('[Prodigi Order] Item prepared:', {
             index,
             sku,
             copies: item.copies,
+            color,
+            size,
             hasDesignUrl: !!designUrl,
           });
 
@@ -382,6 +393,10 @@ export async function POST(request: NextRequest) {
             copies: item.copies,
             merchantReference: `item_${order.id}_${index}`,
             sizing: 'fillPrintArea' as const,
+            attributes: {
+              ...(color && { color }),
+              ...(size && { size }),
+            },
             assets: [
               {
                 printArea: 'default',
