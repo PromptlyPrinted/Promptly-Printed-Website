@@ -3,12 +3,16 @@ import { prisma } from '@repo/database';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { sku: string } }
+  context: { params: Promise<{ sku: string }> }
 ) {
   try {
-    const { sku } = params;
+    // In Next.js 15, params is a Promise that needs to be awaited
+    const { sku } = await context.params;
+
+    console.log('[API by-sku] Received request for SKU:', sku);
 
     if (!sku) {
+      console.error('[API by-sku] No SKU provided in request');
       return NextResponse.json(
         { error: 'SKU is required' },
         { status: 400 }
