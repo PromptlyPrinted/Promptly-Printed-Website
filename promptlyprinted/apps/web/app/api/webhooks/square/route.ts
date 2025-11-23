@@ -376,8 +376,15 @@ export async function POST(req: Request) {
             throw new Error(`Design URL missing for order item. Please ensure all products have custom designs uploaded.`);
           }
 
-          // Clean the design URL - remove double https:// if present
-          designUrl = designUrl.replace(/^https:\/\/https:\/\//, 'https://');
+          // Ensure design URL is a proper absolute URL
+          if (designUrl.startsWith('/')) {
+            // Relative path - prepend domain
+            const baseUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://promptlyprinted.com';
+            designUrl = `${baseUrl}${designUrl}`;
+          } else if (designUrl.startsWith('https://https')) {
+            // Fix malformed double-https URLs
+            designUrl = designUrl.replace(/^https:\/\/https:?\/?\/?/, 'https://promptlyprinted.com/');
+          }
           
           console.log('[Prodigi Order] Cleaned design URL:', designUrl);
 
