@@ -122,7 +122,8 @@ export async function POST(req: Request) {
     }
 
     // Handle payment.updated event (when payment is completed)
-    if (event.type === 'payment.updated' || event.type === 'payment.created') {
+    // Only process payment.updated to avoid duplicates from payment.created
+    if (event.type === 'payment.updated') {
       const payment = event.data.object.payment;
 
       // Check if payment is completed
@@ -326,6 +327,19 @@ export async function POST(req: Request) {
       }
 
       // Create Prodigi order now that payment is completed
+      // Check if Prodigi order already exists to prevent duplicates
+      if (updatedOrder.prodigiOrderId) {
+        console.log('[Prodigi Order] Already exists, skipping creation', {
+          orderId: updatedOrder.id,
+          prodigiOrderId: updatedOrder.prodigiOrderId,
+        });
+        return NextResponse.json({ 
+          received: true, 
+          message: 'Prodigi order already exists',
+          prodigiOrderId: updatedOrder.prodigiOrderId 
+        });
+      }
+
       try {
         console.log('[Prodigi Order] Starting creation from webhook...', {
           orderId: updatedOrder.id,
