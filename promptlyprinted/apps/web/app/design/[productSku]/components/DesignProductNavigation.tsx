@@ -4,7 +4,7 @@ import { tshirtDetails } from '@repo/database/scripts/tshirt-details';
 import { Badge } from '@repo/design-system/components/ui/badge';
 import { cn } from '@repo/design-system/lib/utils';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useDesignTheme } from '@/contexts/DesignThemeContext';
 
@@ -42,6 +42,7 @@ const productCategories = {
 
 export function DesignProductNavigation({ currentProductSku, onProductChange }: DesignProductNavigationProps) {
   const [hoveredCategory, setHoveredCategory] = useState<keyof typeof productCategories | null>(null);
+  const [closeTimeout, setCloseTimeout] = useState<NodeJS.Timeout | null>(null);
   const { theme } = useDesignTheme();
 
   // Find current product by SKU or name
@@ -61,6 +62,30 @@ export function DesignProductNavigation({ currentProductSku, onProductChange }: 
       onProductChange(sku, productName);
     }
   };
+
+  const handleMouseEnter = (category: keyof typeof productCategories) => {
+    if (closeTimeout) {
+      clearTimeout(closeTimeout);
+      setCloseTimeout(null);
+    }
+    setHoveredCategory(category);
+  };
+
+  const handleMouseLeave = () => {
+    const timeout = setTimeout(() => {
+      setHoveredCategory(null);
+    }, 300); // 300ms delay before closing
+    setCloseTimeout(timeout);
+  };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (closeTimeout) {
+        clearTimeout(closeTimeout);
+      }
+    };
+  }, [closeTimeout]);
 
   // Utility to create clean slugs for URLs
   const createSlug = (str: string) =>
@@ -90,8 +115,8 @@ export function DesignProductNavigation({ currentProductSku, onProductChange }: 
                 <div
                   key={category}
                   className="relative"
-                  onMouseEnter={() => setHoveredCategory(category as keyof typeof productCategories)}
-                  onMouseLeave={() => setHoveredCategory(null)}
+                  onMouseEnter={() => handleMouseEnter(category as keyof typeof productCategories)}
+                  onMouseLeave={handleMouseLeave}
                 >
                   <button
                     className={cn(
@@ -114,8 +139,8 @@ export function DesignProductNavigation({ currentProductSku, onProductChange }: 
         {hoveredCategory && (
           <div
             className={cn("absolute left-0 right-0 top-full shadow-xl border-t z-50", `bg-${theme.background}`, `border-${theme.borderLight}`)}
-            onMouseEnter={() => setHoveredCategory(hoveredCategory)}
-            onMouseLeave={() => setHoveredCategory(null)}
+            onMouseEnter={() => handleMouseEnter(hoveredCategory)}
+            onMouseLeave={handleMouseLeave}
           >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
               <div className="grid grid-cols-12 gap-8">
