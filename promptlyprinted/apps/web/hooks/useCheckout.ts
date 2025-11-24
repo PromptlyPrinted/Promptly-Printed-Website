@@ -25,16 +25,21 @@ export function useCheckout() {
       }
 
       // Prepare items for checkout
-      const checkoutItems = items.map((item) => ({
-        productId: Number.parseInt(item.productId, 10),
-        name: item.name,
-        price: Number(item.price),
-        copies: Number(item.copies || 1),
-        color: item.color,
-        size: item.size,
-        designUrl: item.designUrl,
-        images: [{ url: item.images[0].url }],
-      }));
+      const checkoutItems = items.map((item) => {
+        // Get design URL from either designUrl, imageUrl, or images array
+        const designUrl = item.designUrl || (item as any).imageUrl || item.images?.[0]?.url;
+
+        return {
+          productId: Number.parseInt(item.productId, 10),
+          name: item.name,
+          price: Number(item.price),
+          copies: Number(item.copies || 1),
+          color: item.color,
+          size: item.size,
+          designUrl: designUrl, // The actual design image to be printed
+          images: [{ url: item.images?.[0]?.url || designUrl }], // Product preview image
+        };
+      });
 
       console.log('Storing items in localStorage:', checkoutItems);
 
