@@ -5,72 +5,11 @@ import { NextResponse } from 'next/server';
 import { square } from '@repo/payments';
 import crypto from 'crypto';
 import { prodigiService } from '@/lib/prodigi';
-import sharp from 'sharp';
-import { storage } from '@/lib/storage';
 
-// Print-ready dimensions for 300 DPI at 15.6" x 19.3" (standard t-shirt print area)
-const PRINT_WIDTH = 4680;  // 15.6 inches * 300 DPI
-const PRINT_HEIGHT = 5790; // 19.3 inches * 300 DPI
-
-// Helper function to generate print-ready 300 DPI image
-async function generatePrintReadyImage(imageUrl: string, orderId: number, itemIndex: number): Promise<string> {
-  try {
-    console.log('[Print Image] Generating 300 DPI version for order item:', { orderId, itemIndex, imageUrl: imageUrl.substring(0, 100) });
-
-    // Fetch the source image
-    let imageBuffer: Buffer;
-    const baseUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://promptlyprinted.com';
-
-    if (imageUrl.startsWith('data:')) {
-      // Handle base64 data URLs
-      const base64Data = imageUrl.split(',')[1];
-      imageBuffer = Buffer.from(base64Data, 'base64');
-    } else {
-      // Fetch from URL
-      const fullUrl = imageUrl.startsWith('/') ? `${baseUrl}${imageUrl}` : imageUrl;
-
-      const response = await fetch(fullUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch image: ${response.status}`);
-      }
-      const arrayBuffer = await response.arrayBuffer();
-      imageBuffer = Buffer.from(arrayBuffer);
-    }
-
-    console.log('[Print Image] Source image fetched, size:', imageBuffer.length);
-
-    // Resize to 300 DPI print dimensions using sharp
-    const printReadyBuffer = await sharp(imageBuffer)
-      .resize(PRINT_WIDTH, PRINT_HEIGHT, {
-        fit: 'contain',
-        background: { r: 0, g: 0, b: 0, alpha: 0 }, // Transparent background
-        withoutEnlargement: false, // Allow upscaling for print quality
-      })
-      .png({
-        quality: 100,
-        compressionLevel: 6,
-      })
-      .toBuffer();
-
-    console.log('[Print Image] Resized to print dimensions:', {
-      width: PRINT_WIDTH,
-      height: PRINT_HEIGHT,
-      outputSize: printReadyBuffer.length,
-    });
-
-    // Upload to permanent storage
-    const filename = `order-${orderId}-item-${itemIndex}-300dpi-${Date.now()}.png`;
-    const publicUrl = await storage.uploadFromBuffer(printReadyBuffer, filename, 'image/png');
-
-    console.log('[Print Image] Uploaded to storage:', publicUrl);
-
-    return publicUrl;
-  } catch (error) {
-    console.error('[Print Image] Failed to generate print-ready image:', error);
-    // Return original URL as fallback
-    return imageUrl;
-  }
-}
+// Note: 300 DPI image generation is disabled until cloud storage is configured
+// When ready, uncomment sharp/storage imports and generatePrintReadyImage function
+// import sharp from 'sharp';
+// import { storage } from '@/lib/storage';
 
 const webhookSignatureKey = process.env.SQUARE_WEBHOOK_SIGNATURE_KEY;
 
@@ -405,8 +344,8 @@ export async function POST(req: Request) {
           itemCount: updatedOrder.orderItems.length,
         });
 
-        // Prepare Prodigi order items (using Promise.all for async image processing)
-        const prodigiItems = await Promise.all(updatedOrder.orderItems.map(async (orderItem: any, index: number) => {
+        // Prepare Prodigi order items
+        const prodigiItems = updatedOrder.orderItems.map((orderItem: any, index: number) => {
           // Get SKU from attributes (stored during checkout)
           const attrs = orderItem.attributes as any;
           const dbSku = attrs?.sku;
@@ -459,13 +398,11 @@ export async function POST(req: Request) {
             designUrl = designUrl.replace(/^https:\/\/https:?\/?\/?/, 'https://promptlyprinted.com/');
           }
 
-          console.log('[Prodigi Order] Original design URL:', designUrl);
+          console.log('[Prodigi Order] Using design URL:', designUrl);
 
-          // Generate 300 DPI print-ready version
-          console.log('[Prodigi Order] Generating 300 DPI print-ready image...');
-          designUrl = await generatePrintReadyImage(designUrl, updatedOrder.id, index);
-
-          console.log('[Prodigi Order] Print-ready design URL:', designUrl);
+          // Note: 300 DPI upscaling disabled until cloud storage (S3/Hetzner) is configured
+          // The local storage provider doesn't work in Docker production environment
+          // TODO: Enable generatePrintReadyImage() after setting up S3-compatible storage
 
           // Get color and size from attributes for Prodigi
           let color = attrs?.color;
@@ -512,7 +449,7 @@ export async function POST(req: Request) {
               },
             ],
           };
-        }));
+        });
 
         console.log('[Prodigi Order] All items prepared successfully:', {
           itemCount: prodigiItems.length,
