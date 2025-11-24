@@ -349,25 +349,34 @@ export default function CheckoutPage() {
 
   const handleShippingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Combine country code with phone number for billing address
+    // Create the full phone numbers here and pass directly to avoid async state issues
+    const fullBillingPhone = billingAddress.phone.startsWith('+')
+      ? billingAddress.phone
+      : `${billingPhoneCountryCode}${billingAddress.phone.replace(/\s/g, '')}`.trim();
+
     const billingWithFullPhone = {
       ...billingAddress,
-      phone: `${billingPhoneCountryCode} ${billingAddress.phone}`.trim(),
+      phone: fullBillingPhone,
     };
-    setBillingAddress(billingWithFullPhone);
-    
+
     // Combine country code with phone number for shipping address if different
+    let shippingWithFullPhone = billingWithFullPhone; // Default to billing if not using different shipping
     if (useDifferentShipping) {
-      const shippingWithFullPhone = {
+      const fullShippingPhone = shippingAddress.phone.startsWith('+')
+        ? shippingAddress.phone
+        : `${shippingPhoneCountryCode}${shippingAddress.phone.replace(/\s/g, '')}`.trim();
+
+      shippingWithFullPhone = {
         ...shippingAddress,
-        phone: `${shippingPhoneCountryCode} ${shippingAddress.phone}`.trim(),
+        phone: fullShippingPhone,
       };
-      setShippingAddress(shippingWithFullPhone);
     }
-    
+
     // Skip the embedded payment form and go directly to Square's hosted checkout
-    await handleFallbackPayment();
+    // Pass the addresses directly instead of relying on state
+    await handleFallbackPaymentWithAddresses(billingWithFullPhone, useDifferentShipping ? shippingWithFullPhone : undefined);
   };
 
   const handlePaymentSubmit = async (e: React.FormEvent) => {
@@ -508,6 +517,44 @@ export default function CheckoutPage() {
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || 'Checkout failed');
+      }
+
+      const data = await response.json();
+
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      } else {
+        throw new Error('No checkout URL returned');
+      }
+    } catch (err) {
+      console.error('Checkout error:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred during checkout');
+      setLoading(false);
+    }
+  };
+
+  // New function that accepts addresses directly to avoid async state issues
+  const handleFallbackPaymentWithAddresses = async (billing: Address, shipping?: Address) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/checkout/process', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          items,
+          billingAddress: billing,
+          shippingAddress: shipping,
+          discountCode: appliedDiscount?.code,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || data.message || 'Checkout failed');
       }
 
       const data = await response.json();
