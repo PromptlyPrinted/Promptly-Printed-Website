@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { Trash2, Plus, Minus } from 'lucide-react';
 
 interface CheckoutItem {
   productId: number;
@@ -26,6 +27,28 @@ interface Address {
   postalCode: string;
   country: string;
 }
+
+// Country codes for phone number input
+const COUNTRY_CODES = [
+  { code: 'GB', dialCode: '+44', name: 'United Kingdom' },
+  { code: 'US', dialCode: '+1', name: 'United States' },
+  { code: 'CA', dialCode: '+1', name: 'Canada' },
+  { code: 'AU', dialCode: '+61', name: 'Australia' },
+  { code: 'DE', dialCode: '+49', name: 'Germany' },
+  { code: 'FR', dialCode: '+33', name: 'France' },
+  { code: 'ES', dialCode: '+34', name: 'Spain' },
+  { code: 'IT', dialCode: '+39', name: 'Italy' },
+  { code: 'IE', dialCode: '+353', name: 'Ireland' },
+  { code: 'NL', dialCode: '+31', name: 'Netherlands' },
+  { code: 'BE', dialCode: '+32', name: 'Belgium' },
+  { code: 'AT', dialCode: '+43', name: 'Austria' },
+  { code: 'SE', dialCode: '+46', name: 'Sweden' },
+  { code: 'NO', dialCode: '+47', name: 'Norway' },
+  { code: 'DK', dialCode: '+45', name: 'Denmark' },
+];
+
+// Available sizes for products (this could be fetched from product data)
+const AVAILABLE_SIZES = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'];
 
 // Declare Square types
 declare global {
@@ -56,6 +79,8 @@ export default function CheckoutPage() {
   const [discountError, setDiscountError] = useState<string | null>(null);
   const [validatingDiscount, setValidatingDiscount] = useState(false);
   const [useDifferentShipping, setUseDifferentShipping] = useState(false);
+  const [billingPhoneCountryCode, setBillingPhoneCountryCode] = useState('+44');
+  const [shippingPhoneCountryCode, setShippingPhoneCountryCode] = useState('+44');
   const [billingAddress, setBillingAddress] = useState<Address>({
     firstName: '',
     lastName: '',
@@ -137,6 +162,48 @@ export default function CheckoutPage() {
       }
     };
   }, []);
+
+  // Auto-update phone country codes when address country changes
+  useEffect(() => {
+    const countryData = COUNTRY_CODES.find(c => c.code === billingAddress.country);
+    if (countryData) {
+      setBillingPhoneCountryCode(countryData.dialCode);
+    }
+  }, [billingAddress.country]);
+
+  useEffect(() => {
+    const countryData = COUNTRY_CODES.find(c => c.code === shippingAddress.country);
+    if (countryData) {
+      setShippingPhoneCountryCode(countryData.dialCode);
+    }
+  }, [shippingAddress.country]);
+
+  // Cart management handlers
+  const handleUpdateItemSize = (index: number, newSize: string) => {
+    const updatedItems = [...items];
+    updatedItems[index] = { ...updatedItems[index], size: newSize };
+    setItems(updatedItems);
+    localStorage.setItem('cartItems', JSON.stringify(updatedItems));
+  };
+
+  const handleUpdateItemQuantity = (index: number, newQuantity: number) => {
+    if (newQuantity < 1) return; // Prevent quantity less than 1
+    const updatedItems = [...items];
+    updatedItems[index] = { ...updatedItems[index], copies: newQuantity };
+    setItems(updatedItems);
+    localStorage.setItem('cartItems', JSON.stringify(updatedItems));
+  };
+
+  const handleRemoveItem = (index: number) => {
+    const updatedItems = items.filter((_, i) => i !== index);
+    setItems(updatedItems);
+    localStorage.setItem('cartItems', JSON.stringify(updatedItems));
+    
+    // If cart is empty, show error
+    if (updatedItems.length === 0) {
+      setError('Your cart is empty');
+    }
+  };
 
   const initializeSquarePayments = async () => {
     if (!window.Square) {
@@ -282,6 +349,23 @@ export default function CheckoutPage() {
 
   const handleShippingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Combine country code with phone number for billing address
+    const billingWithFullPhone = {
+      ...billingAddress,
+      phone: `${billingPhoneCountryCode} ${billingAddress.phone}`.trim(),
+    };
+    setBillingAddress(billingWithFullPhone);
+    
+    // Combine country code with phone number for shipping address if different
+    if (useDifferentShipping) {
+      const shippingWithFullPhone = {
+        ...shippingAddress,
+        phone: `${shippingPhoneCountryCode} ${shippingAddress.phone}`.trim(),
+      };
+      setShippingAddress(shippingWithFullPhone);
+    }
+    
     // Skip the embedded payment form and go directly to Square's hosted checkout
     await handleFallbackPayment();
   };
@@ -496,7 +580,7 @@ export default function CheckoutPage() {
 
               <div className="space-y-4 mb-6">
                 {items.map((item, index) => (
-                  <div key={index} className="flex gap-4 p-4 bg-gray-50 rounded-lg">
+                  <div key={index} className="flex gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group">
                     {item.images && item.images[0] && (
                       <div className="relative w-24 h-24 flex-shrink-0 bg-white rounded-lg overflow-hidden border border-gray-200">
                         <Image
@@ -507,11 +591,64 @@ export default function CheckoutPage() {
                         />
                       </div>
                     )}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900">{item.name}</h3>
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="font-semibold text-gray-900">{item.name}</h3>
+                        <button
+                          onClick={() => handleRemoveItem(index)}
+                          className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
+                          title="Remove item"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                       <p className="text-sm text-gray-600">Color: {item.color}</p>
-                      <p className="text-sm text-gray-600">Size: {item.size}</p>
-                      <p className="text-sm text-gray-600">Quantity: {item.copies}</p>
+                      
+                      {/* Size Selector */}
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm text-gray-600">Size:</label>
+                        <select
+                          value={item.size}
+                          onChange={(e) => handleUpdateItemSize(index, e.target.value)}
+                          className="text-sm border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                        >
+                          {AVAILABLE_SIZES.map((size) => (
+                            <option key={size} value={size}>
+                              {size}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      {/* Quantity Controls */}
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm text-gray-600">Quantity:</label>
+                        <div className="flex items-center gap-1 border border-gray-300 rounded">
+                          <button
+                            onClick={() => handleUpdateItemQuantity(index, item.copies - 1)}
+                            disabled={item.copies <= 1}
+                            className="p-1 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            title="Decrease quantity"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+                          <input
+                            type="number"
+                            min="1"
+                            value={item.copies}
+                            onChange={(e) => handleUpdateItemQuantity(index, parseInt(e.target.value) || 1)}
+                            className="w-12 text-center text-sm border-x border-gray-300 py-1 focus:outline-none"
+                          />
+                          <button
+                            onClick={() => handleUpdateItemQuantity(index, item.copies + 1)}
+                            className="p-1 hover:bg-gray-200 transition-colors"
+                            title="Increase quantity"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                      
                       {item.designUrl && (
                         <p className="text-sm text-blue-600">Custom Design</p>
                       )}
@@ -673,19 +810,32 @@ export default function CheckoutPage() {
                       <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
                         Phone Number *
                       </label>
-                      <input
-                        type="tel"
-                        id="phone"
-                        name="tel"
-                        autoComplete="tel"
-                        required
-                        value={billingAddress.phone}
-                        onChange={(e) => setBillingAddress({ ...billingAddress, phone: e.target.value })}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                        placeholder="+44 7700 900000"
-                        pattern="[+]?[0-9\s\-\(\)]+"
-                        title="Please enter a valid phone number with country code"
-                      />
+                      <div className="flex gap-2">
+                        <select
+                          value={billingPhoneCountryCode}
+                          onChange={(e) => setBillingPhoneCountryCode(e.target.value)}
+                          className="w-24 px-2 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm"
+                        >
+                          {COUNTRY_CODES.map((country) => (
+                            <option key={country.code} value={country.dialCode}>
+                              {country.dialCode}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="tel"
+                          id="phone"
+                          name="tel"
+                          autoComplete="tel"
+                          required
+                          value={billingAddress.phone}
+                          onChange={(e) => setBillingAddress({ ...billingAddress, phone: e.target.value.replace(/[^0-9\s]/g, '') })}
+                          className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                          placeholder="7700 900000"
+                          pattern="[0-9\s]+"
+                          title="Please enter your phone number without country code"
+                        />
+                      </div>
                       <p className="text-xs text-gray-500 mt-1">For payment verification and order updates</p>
                     </div>
 
@@ -855,19 +1005,32 @@ export default function CheckoutPage() {
                           <label htmlFor="shipping-phone" className="block text-sm font-medium text-gray-700 mb-2">
                             Phone Number *
                           </label>
-                          <input
-                            type="tel"
-                            id="shipping-phone"
-                            name="shipping-tel"
-                            autoComplete="shipping tel"
-                            required={useDifferentShipping}
-                            value={shippingAddress.phone}
-                            onChange={(e) => setShippingAddress({ ...shippingAddress, phone: e.target.value })}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                            placeholder="+44 7700 900000"
-                            pattern="[+]?[0-9\s\-\(\)]+"
-                            title="Please enter a valid phone number with country code"
-                          />
+                          <div className="flex gap-2">
+                            <select
+                              value={shippingPhoneCountryCode}
+                              onChange={(e) => setShippingPhoneCountryCode(e.target.value)}
+                              className="w-24 px-2 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm"
+                            >
+                              {COUNTRY_CODES.map((country) => (
+                                <option key={country.code} value={country.dialCode}>
+                                  {country.dialCode}
+                                </option>
+                              ))}
+                            </select>
+                            <input
+                              type="tel"
+                              id="shipping-phone"
+                              name="shipping-tel"
+                              autoComplete="shipping tel"
+                              required={useDifferentShipping}
+                              value={shippingAddress.phone}
+                              onChange={(e) => setShippingAddress({ ...shippingAddress, phone: e.target.value.replace(/[^0-9\s]/g, '') })}
+                              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                              placeholder="7700 900000"
+                              pattern="[0-9\s]+"
+                              title="Please enter your phone number without country code"
+                            />
+                          </div>
                           <p className="text-xs text-gray-500 mt-1">For delivery updates and driver contact</p>
                         </div>
 
@@ -992,7 +1155,7 @@ export default function CheckoutPage() {
 
                     <button
                       type="submit"
-                      disabled={loading}
+                      disabled={loading || items.length === 0}
                       className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors shadow-lg hover:shadow-xl"
                     >
                       {loading ? (
