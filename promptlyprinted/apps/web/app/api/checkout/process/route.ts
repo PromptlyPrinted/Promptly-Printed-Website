@@ -3,18 +3,9 @@ import { getSession } from '@/lib/session-utils';
 import { prisma, OrderStatus, ShippingMethod, DiscountType } from '@repo/database';
 import type { User } from '@repo/database';
 import { type NextRequest, NextResponse } from 'next/server';
-import { SquareClient, Currency, Country } from 'square';
+import { square } from '@repo/payments';
+import { Currency, Country } from 'square';
 import { z } from 'zod';
-
-// Square client configuration
-const environment = process.env.SQUARE_ENVIRONMENT === 'production'
-  ? 'production' as any
-  : 'sandbox' as any;
-
-const squareClient = new SquareClient({
-  token: process.env.SQUARE_ACCESS_TOKEN!,
-  environment: environment,
-});
 
 const AddressSchema = z.object({
   firstName: z.string(),
@@ -283,7 +274,7 @@ export async function POST(request: NextRequest) {
       hasDiscount: discountAmount > 0,
       discountCount: discounts.length,
     });
-    const squareOrderResponse = await squareClient.orders.create({
+    const squareOrderResponse = await square.orders.create({
       order: {
         locationId: process.env.SQUARE_LOCATION_ID!,
         lineItems: lineItems,
@@ -345,7 +336,7 @@ export async function POST(request: NextRequest) {
     };
 
     console.log('[Square Payment Link] Creating...');
-    const paymentLinkResponse = await squareClient.checkout.paymentLinks.create(paymentLinkRequest);
+    const paymentLinkResponse = await square.checkout.paymentLinks.create(paymentLinkRequest);
 
     if (!paymentLinkResponse.paymentLink?.url) {
       throw new Error('Failed to create payment link');

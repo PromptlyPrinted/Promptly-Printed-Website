@@ -4,26 +4,18 @@ import { getSession } from '@/lib/session-utils';
 import { prisma, OrderStatus, ShippingMethod } from '@repo/database';
 import type { User } from '@repo/database';
 import { type NextRequest, NextResponse } from 'next/server';
-import { SquareClient, Currency } from 'square';
+import { square } from '@repo/payments';
+import { Currency } from 'square';
 import { ZodError, z } from 'zod';
 
 // Log Square configuration on startup
-const environment = process.env.SQUARE_ENVIRONMENT === 'production'
-  ? 'production' as any
-  : 'sandbox' as any;
-
 console.log('[Square Config]', {
   hasToken: !!process.env.SQUARE_ACCESS_TOKEN,
   tokenLength: process.env.SQUARE_ACCESS_TOKEN?.length || 0,
   environment: process.env.SQUARE_ENVIRONMENT || 'not set',
-  resolvedEnvironment: environment,
+  resolvedEnvironment: process.env.SQUARE_ENVIRONMENT === 'production' ? 'production' : 'sandbox',
   hasLocationId: !!process.env.SQUARE_LOCATION_ID,
   locationId: process.env.SQUARE_LOCATION_ID ? `${process.env.SQUARE_LOCATION_ID.substring(0, 8)}...` : 'not set',
-});
-
-const squareClient = new SquareClient({
-  token: process.env.SQUARE_ACCESS_TOKEN!,
-  environment: environment,
 });
 
 /**
@@ -438,7 +430,7 @@ export async function POST(req: NextRequest) {
 
       let squareOrderResponse;
       try {
-        squareOrderResponse = await squareClient.orders.create({
+        squareOrderResponse = await square.orders.create({
           order: {
             locationId: process.env.SQUARE_LOCATION_ID!,
             lineItems: lineItems,
@@ -506,7 +498,7 @@ export async function POST(req: NextRequest) {
           typeof value === 'bigint' ? value.toString() : value
         , 2));
 
-        paymentLinkResponse = await squareClient.checkout.paymentLinks.create(paymentLinkRequest);
+        paymentLinkResponse = await square.checkout.paymentLinks.create(paymentLinkRequest);
         console.log('[Square Payment Link] Success', {
           paymentLinkId: paymentLinkResponse.paymentLink?.id,
           hasUrl: !!paymentLinkResponse.paymentLink?.url,

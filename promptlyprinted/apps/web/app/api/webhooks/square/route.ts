@@ -2,17 +2,9 @@ import { prisma } from '@repo/database';
 import { OrderStatus } from '@repo/database';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { SquareClient } from 'square';
+import { square } from '@repo/payments';
 import crypto from 'crypto';
 import { prodigiService } from '@/lib/prodigi';
-
-const squareClient = new SquareClient({
-  token: process.env.SQUARE_ACCESS_TOKEN!,
-  environment:
-  process.env.SQUARE_ENVIRONMENT === 'production'
-    ? 'production' as any
-    : 'sandbox' as any,
-});
 
 const webhookSignatureKey = process.env.SQUARE_WEBHOOK_SIGNATURE_KEY;
 
@@ -143,7 +135,7 @@ export async function POST(req: Request) {
 
       // Retrieve the Square order to get metadata
       console.log('[Webhook] Retrieving Square order:', orderId);
-      const squareOrderResponse = await squareClient.orders.get({ orderId });
+      const squareOrderResponse = await square.orders.get({ orderId });
       const squareOrder = squareOrderResponse.order;
 
       console.log('[Webhook] Square order metadata:', {

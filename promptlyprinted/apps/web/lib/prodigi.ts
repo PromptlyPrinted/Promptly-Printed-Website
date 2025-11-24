@@ -387,5 +387,24 @@ class ProdigiService {
   }
 }
 
-// Create a singleton instance
-export const prodigiService = new ProdigiService();
+// Lazy singleton initialization to avoid module evaluation errors during build
+let _prodigiService: ProdigiService | null = null;
+
+function getProdigiService(): ProdigiService {
+  if (!_prodigiService) {
+    _prodigiService = new ProdigiService();
+  }
+  return _prodigiService;
+}
+
+// Export a proxy that lazily initializes the service
+export const prodigiService = new Proxy({} as ProdigiService, {
+  get(_target, prop) {
+    const service = getProdigiService();
+    const value = (service as any)[prop];
+    if (typeof value === 'function') {
+      return value.bind(service);
+    }
+    return value;
+  },
+});
