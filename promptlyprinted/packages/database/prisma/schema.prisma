@@ -152,6 +152,8 @@ model Order {
   prodigiStatusJson  Json?
   shippingMethod     ShippingMethod?
   traceParent        String?
+  lastActionCheck    DateTime?
+  availableActions   Json?
   charges            Charge[]
   payment            Payment?               @relation(fields: [paymentId], references: [id])
   user               User                   @relation("UserOrders", fields: [userId], references: [id])
@@ -160,6 +162,7 @@ model Order {
   prodigiErrors      OrderProcessingError[]
   recipient          Recipient?
   shipments          Shipment[]             @relation("OrderShipments")
+  refunds            Refund[]
 }
 
 model OrderItem {
@@ -721,6 +724,23 @@ model DiscountUsage {
   @@index([discountCodeId])
   @@index([userId])
   @@index([orderId])
+}
+
+model Refund {
+  id             String   @id @default(cuid())
+  orderId        Int
+  squareRefundId String   @unique
+  amount         Float
+  currency       String   @default("USD")
+  reason         String
+  status         String   // PENDING, COMPLETED, FAILED
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  order          Order    @relation(fields: [orderId], references: [id])
+
+  @@index([orderId])
+  @@index([squareRefundId])
 }
 
 enum DiscountType {

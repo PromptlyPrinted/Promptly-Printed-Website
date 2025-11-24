@@ -1,4 +1,3 @@
-import { getProdigiProduct } from '@/lib/prodigi';
 import { auth } from '@repo/auth/server';
 import { database } from '@repo/database';
 import { headers } from 'next/headers';
@@ -17,6 +16,7 @@ import { ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import UpdateOrderStatus from './components/update-order-status';
+import { OrderActions } from './components/order-actions';
 
 async function getOrder(id: string) {
   const order = await database.order.findUnique({
@@ -27,11 +27,7 @@ async function getOrder(id: string) {
           email: true,
         },
       },
-      orderItems: {
-        include: {
-          product: true,
-        },
-      },
+      orderItems: true,
       recipient: true,
     },
   });
@@ -40,17 +36,7 @@ async function getOrder(id: string) {
     redirect('/admin/orders');
   }
 
-  // If there's a Prodigi order ID, fetch the Prodigi order details
-  let prodigiProduct = null;
-  if (order.prodigiSku) {
-    try {
-      prodigiProduct = await getProdigiProduct(order.prodigiSku);
-    } catch (error) {
-      console.error('Error fetching Prodigi product:', error);
-    }
-  }
-
-  return { order, prodigiProduct };
+  return { order };
 }
 
 export default async function AdminOrderDetailPage({
@@ -75,7 +61,7 @@ export default async function AdminOrderDetailPage({
     redirect('/');
   }
 
-  const { order, prodigiProduct } = await getOrder(id);
+  const { order } = await getOrder(id);
 
   return (
     <div className="space-y-6 p-6">
@@ -87,6 +73,18 @@ export default async function AdminOrderDetailPage({
         </Link>
         <h1 className="font-bold text-3xl">Order #{order.id}</h1>
       </div>
+
+      {/* Order Actions */}
+      <Card className="p-6">
+        <h2 className="mb-4 font-semibold text-xl">Order Actions</h2>
+        <OrderActions
+          orderId={order.id}
+          orderStatus={order.status}
+          prodigiOrderId={order.prodigiOrderId}
+          currentShippingMethod={order.shippingMethod || undefined}
+          totalPrice={order.totalPrice}
+        />
+      </Card>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <Card className="p-6">
@@ -117,42 +115,6 @@ export default async function AdminOrderDetailPage({
               <dt className="font-medium">Customer Email</dt>
               <dd>{order.user.email}</dd>
             </div>
-            {order.prodigiSku && (
-              <>
-                <div className="flex justify-between">
-                  <dt className="font-medium">Prodigi Product</dt>
-                  <dd>
-                    <a
-                      href={`https://dashboard.prodigi.com/products/${order.prodigiSku}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline"
-                    >
-                      View on Prodigi
-                    </a>
-                  </dd>
-                </div>
-                {prodigiProduct && (
-                  <div className="flex justify-between">
-                    <dt className="font-medium">Prodigi Product Status</dt>
-                    <dd>
-                      <span
-                        className={`rounded-full px-2 py-1 text-xs ${
-                          prodigiProduct.status === 'active'
-                            ? 'bg-green-100 text-green-800'
-                            : prodigiProduct.status === 'inactive' ||
-                                prodigiProduct.status === 'error'
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-yellow-100 text-yellow-800'
-                        }`}
-                      >
-                        {prodigiProduct.status.toUpperCase()}
-                      </span>
-                    </dd>
-                  </div>
-                )}
-              </>
-            )}
           </dl>
         </Card>
 
@@ -203,15 +165,18 @@ export default async function AdminOrderDetailPage({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {order.orderItems.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell>{item.product.name}</TableCell>
-                <TableCell>{item.product.sku}</TableCell>
-                <TableCell>{item.copies}</TableCell>
-                <TableCell>${item.price.toFixed(2)}</TableCell>
-                <TableCell>${(item.price * item.copies).toFixed(2)}</TableCell>
-              </TableRow>
-            ))}
+            {order.orderItems.map((item) => {
+              const attrs = item.attributes as any;
+              return (
+                <TableRow key={item.id}>
+                  <TableCell>{attrs?.productName || 'Product'}</TableCell>
+                  <TableCell>{attrs?.sku || 'N/A'}</TableCell>
+                  <TableCell>{item.copies}</TableCell>
+                  <TableCell>${item.price.toFixed(2)}</TableCell>
+                  <TableCell>${(item.price * item.copies).toFixed(2)}</TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </Card>
