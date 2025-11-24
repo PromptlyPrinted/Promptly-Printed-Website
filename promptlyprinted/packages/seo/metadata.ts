@@ -7,13 +7,14 @@ type MetadataGenerator = Omit<Metadata, 'description' | 'title'> & {
   image?: string;
 };
 
-const applicationName = 'next-forge';
+const applicationName = 'Promptly Printed';
 const author: Metadata['authors'] = {
-  name: 'Hayden Bleasel',
-  url: 'https://haydenbleasel.com/',
+  name: 'Promptly Printed',
+  url: 'https://promptlyprinted.com/',
 };
-const publisher = 'Hayden Bleasel';
-const twitterHandle = '@haydenbleasel';
+const publisher = 'Promptly Printed';
+const twitterHandle = '@promptlyprinted';
+const siteUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://promptlyprinted.com';
 
 export const createMetadata = ({
   title,
@@ -23,6 +24,7 @@ export const createMetadata = ({
 }: MetadataGenerator): Metadata => {
   const parsedTitle = `${title} | ${applicationName}`;
   const defaultMetadata: Metadata = {
+    metadataBase: new URL(siteUrl),
     title: parsedTitle,
     description,
     applicationName,

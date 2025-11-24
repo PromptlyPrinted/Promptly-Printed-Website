@@ -4,11 +4,12 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@repo/design-system/components/ui/button';
 import { Trophy, Star, Heart, ArrowLeft, Clock, Sparkles } from 'lucide-react';
+import { createMetadata } from '@repo/seo/metadata';
 
-export const metadata = {
-  title: 'Design Showcase | Promptly Printed',
+export const metadata = createMetadata({
+  title: 'Design Showcase',
   description: 'Browse and vote on amazing community designs',
-};
+});
 
 interface PageProps {
   searchParams: Promise<{ competition?: string }>;

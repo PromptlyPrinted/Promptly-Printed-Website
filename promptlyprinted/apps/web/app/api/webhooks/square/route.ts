@@ -2,15 +2,16 @@ import { prisma } from '@repo/database';
 import { OrderStatus } from '@repo/database';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { SquareClient, SquareEnvironment } from 'square';
+import { SquareClient } from 'square';
 import crypto from 'crypto';
 import { prodigiService } from '@/lib/prodigi';
 
 const squareClient = new SquareClient({
   token: process.env.SQUARE_ACCESS_TOKEN!,
-  environment: process.env.SQUARE_ENVIRONMENT === 'production'
-    ? SquareEnvironment.Production
-    : SquareEnvironment.Sandbox,
+  environment:
+  process.env.SQUARE_ENVIRONMENT === 'production'
+    ? 'production' as any
+    : 'sandbox' as any,
 });
 
 const webhookSignatureKey = process.env.SQUARE_WEBHOOK_SIGNATURE_KEY;

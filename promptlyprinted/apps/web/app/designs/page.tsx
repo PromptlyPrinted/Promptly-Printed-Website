@@ -1,13 +1,14 @@
 import { DesignCard } from '@/components/design-card';
 import { auth } from '@repo/auth/server';
 import { database } from '@repo/database';
+import { createMetadata } from '@repo/seo/metadata';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-export const metadata = {
-  title: 'My Designs | Promptly Printed',
+export const metadata = createMetadata({
+  title: 'My Designs',
   description: 'View and manage your saved designs',
-};
+});
 
 export default async function DesignsPage() {
   const session = await auth.api.getSession({ headers: await headers() });

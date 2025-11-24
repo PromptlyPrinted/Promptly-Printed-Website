@@ -1,15 +1,16 @@
 import 'server-only';
 import { env } from '@repo/env';
-import { Client, Environment } from 'square';
+import { SquareClient } from 'square';
 
 // Initialize Square client
-export const square = new Client({
-  accessToken: env.SQUARE_ACCESS_TOKEN,
+// Note: Square SDK's Environment enum doesn't export properly in some build contexts
+// Using string literals 'production' and 'sandbox' instead
+export const square = new SquareClient({
+  token: env.SQUARE_ACCESS_TOKEN,
   environment: env.SQUARE_ENVIRONMENT === 'production'
-    ? Environment.Production
-    : Environment.Sandbox,
+    ? 'production' as any
+    : 'sandbox' as any,
 });
 
 // Export Square types
 export type { Client as Square } from 'square';
-export { Environment as SquareEnvironment } from 'square';

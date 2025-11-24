@@ -3,7 +3,7 @@ import { getImageUrl } from '@/lib/get-image-url';
 import { prodigiService } from '@/lib/prodigi';
 import { prisma } from '@repo/database';
 import { env } from '@repo/env';
-import { SquareClient, SquareEnvironment } from 'square';
+import { SquareClient } from 'square';
 import { CheckCircle } from 'lucide-react';
 import { ClearCart } from './ClearCart';
 import Link from 'next/link';
@@ -12,8 +12,8 @@ import { redirect } from 'next/navigation';
 const squareClient = new SquareClient({
   token: process.env.SQUARE_ACCESS_TOKEN!,
   environment: process.env.SQUARE_ENVIRONMENT === 'production'
-    ? SquareEnvironment.Production
-    : SquareEnvironment.Sandbox,
+    ? 'production' as any
+    : 'sandbox' as any,
 });
 
 interface OrderItem {

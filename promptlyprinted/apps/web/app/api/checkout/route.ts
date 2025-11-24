@@ -4,26 +4,26 @@ import { getSession } from '@/lib/session-utils';
 import { prisma, OrderStatus, ShippingMethod } from '@repo/database';
 import type { User } from '@repo/database';
 import { type NextRequest, NextResponse } from 'next/server';
-import { SquareClient, SquareEnvironment, Currency } from 'square';
+import { SquareClient, Currency } from 'square';
 import { ZodError, z } from 'zod';
 
 // Log Square configuration on startup
-const squareEnvironment = process.env.SQUARE_ENVIRONMENT === 'production'
-  ? SquareEnvironment.Production
-  : SquareEnvironment.Sandbox;
+const environment = process.env.SQUARE_ENVIRONMENT === 'production'
+  ? 'production' as any
+  : 'sandbox' as any;
 
 console.log('[Square Config]', {
   hasToken: !!process.env.SQUARE_ACCESS_TOKEN,
   tokenLength: process.env.SQUARE_ACCESS_TOKEN?.length || 0,
   environment: process.env.SQUARE_ENVIRONMENT || 'not set',
-  resolvedEnvironment: squareEnvironment,
+  resolvedEnvironment: environment,
   hasLocationId: !!process.env.SQUARE_LOCATION_ID,
   locationId: process.env.SQUARE_LOCATION_ID ? `${process.env.SQUARE_LOCATION_ID.substring(0, 8)}...` : 'not set',
 });
 
 const squareClient = new SquareClient({
   token: process.env.SQUARE_ACCESS_TOKEN!,
-  environment: squareEnvironment,
+  environment: environment,
 });
 
 /**

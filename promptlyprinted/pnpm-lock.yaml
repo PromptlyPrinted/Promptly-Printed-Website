@@ -38,6 +38,7 @@ overrides:
   form-data@>=4.0.0 <4.0.4: '>=4.0.4'
   tar-fs@>=3.0.0 <3.0.9: '>=3.0.9'
   tar-fs@>=2.0.0 <2.1.3: '>=2.1.3'
+  import-in-the-middle: 1.15.0
 
 importers:
 
@@ -156,8 +157,8 @@ importers:
         specifier: ^8.43.0
         version: 8.55.0(@opentelemetry/context-async-hooks@1.30.1)(@opentelemetry/core@1.30.1)(@opentelemetry/instrumentation@0.57.2)(@opentelemetry/sdk-trace-base@1.30.1)(next@16.0.3)(react@19.2.0)(webpack@5.102.1)
       import-in-the-middle:
-        specifier: ^1.11.3
-        version: 1.13.1
+        specifier: 1.15.0
+        version: 1.15.0
       next:
         specifier: 16.0.3
         version: 16.0.3(@babel/core@7.26.10)(@opentelemetry/api@1.9.0)(react-dom@19.2.0)(react@19.2.0)
@@ -280,8 +281,8 @@ importers:
         specifier: ^1.3.1
         version: 1.3.1(next@16.0.3)
       import-in-the-middle:
-        specifier: ^1.11.3
-        version: 1.13.1
+        specifier: 1.15.0
+        version: 1.15.0
       jspdf:
         specifier: ^3.0.2
         version: 3.0.3
@@ -510,8 +511,8 @@ importers:
         specifier: ^1.11.13
         version: 1.11.13
       import-in-the-middle:
-        specifier: ^1.11.3
-        version: 1.13.1
+        specifier: 1.15.0
+        version: 1.15.0
       lucide-react:
         specifier: ^0.468.0
         version: 0.468.0(react@19.2.0)
@@ -4694,7 +4695,7 @@ packages:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/api-logs': 0.53.0
       '@types/shimmer': 1.2.0
-      import-in-the-middle: 1.13.1
+      import-in-the-middle: 1.15.0
       require-in-the-middle: 7.5.2
       semver: 7.7.3
       shimmer: 1.2.1
@@ -4711,7 +4712,7 @@ packages:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/api-logs': 0.57.1
       '@types/shimmer': 1.2.0
-      import-in-the-middle: 1.13.1
+      import-in-the-middle: 1.15.0
       require-in-the-middle: 7.5.2
       semver: 7.7.3
       shimmer: 1.2.1
@@ -4728,7 +4729,7 @@ packages:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/api-logs': 0.57.2
       '@types/shimmer': 1.2.0
-      import-in-the-middle: 1.13.1
+      import-in-the-middle: 1.15.0
       require-in-the-middle: 7.5.2
       semver: 7.7.3
       shimmer: 1.2.1
@@ -7432,7 +7433,7 @@ packages:
       '@prisma/instrumentation': 5.22.0
       '@sentry/core': 8.55.0
       '@sentry/opentelemetry': 8.55.0(@opentelemetry/api@1.9.0)(@opentelemetry/context-async-hooks@1.30.1)(@opentelemetry/core@1.30.1)(@opentelemetry/instrumentation@0.57.2)(@opentelemetry/sdk-trace-base@1.30.1)(@opentelemetry/semantic-conventions@1.32.0)
-      import-in-the-middle: 1.13.1
+      import-in-the-middle: 1.15.0
     transitivePeerDependencies:
       - supports-color
     dev: false
@@ -8810,12 +8811,12 @@ packages:
       negotiator: 0.6.3
     dev: false
 
-  /acorn-import-attributes@1.9.5(acorn@8.14.1):
+  /acorn-import-attributes@1.9.5(acorn@8.15.0):
     resolution: {integrity: sha512-n02Vykv5uA3eHGM/Z2dQrcD56kL8TyDb2p1+0P83PClMnC/nc+anbQRhIOWnSq4Ke/KvDPrY3C9hDtC/A3eHnQ==}
     peerDependencies:
       acorn: ^8
     dependencies:
-      acorn: 8.14.1
+      acorn: 8.15.0
     dev: false
 
   /acorn-import-phases@1.0.4(acorn@8.15.0):
@@ -12396,11 +12397,11 @@ packages:
       resolve-from: 5.0.0
     dev: true
 
-  /import-in-the-middle@1.13.1:
-    resolution: {integrity: sha512-k2V9wNm9B+ysuelDTHjI9d5KPc4l8zAZTGqj+pcynvWkypZd857ryzN8jNC7Pg2YZXNMJcHRPpaDyCBbNyVRpA==}
+  /import-in-the-middle@1.15.0:
+    resolution: {integrity: sha512-bpQy+CrsRmYmoPMAE/0G33iwRqwW4ouqdRg8jgbH3aKuCtOc8lxgmYXg2dMM92CRiGP660EtBcymH/eVUpCSaA==}
     dependencies:
-      acorn: 8.14.1
-      acorn-import-attributes: 1.9.5(acorn@8.14.1)
+      acorn: 8.15.0
+      acorn-import-attributes: 1.9.5(acorn@8.15.0)
       cjs-module-lexer: 1.4.3
       module-details-from-path: 1.0.3
     dev: false

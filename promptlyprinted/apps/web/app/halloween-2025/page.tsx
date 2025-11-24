@@ -1,10 +1,10 @@
-import type { Metadata } from 'next';
+import { createMetadata } from '@repo/seo/metadata';
 import { HalloweenFunnelExperience } from './components/HalloweenFunnelExperience';
 
-const title = 'Halloween 2025 - Create Your Hauntingly Unique Look | Promptly Printed';
+const title = 'Halloween 2025 - Create Your Hauntingly Unique Look';
 const description = 'Transform your Halloween vision into reality with our AI-powered design platform. Create wickedly wonderful hoodies, perfectly petrifying tees, and one-of-a-kind pieces that guarantee you\'ll be the talk of every Halloween gathering.';
 
-export const metadata: Metadata = {
+export const metadata = createMetadata({
   title,
   description,
   openGraph: {
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     'express halloween delivery',
     'eco-friendly halloween clothing'
   ],
-};
+});
 
 const HalloweenLandingPage = () => {
   return (

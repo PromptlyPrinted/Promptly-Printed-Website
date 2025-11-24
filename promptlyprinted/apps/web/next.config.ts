@@ -12,7 +12,13 @@ let nextConfig: NextConfig = {
   },
   images: {
     ...config.images,
-    domains: ['localhost'],
+    remotePatterns: [
+      ...(config.images?.remotePatterns || []),
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+      },
+    ],
     unoptimized: process.env.NODE_ENV === 'development',
   },
   experimental: {

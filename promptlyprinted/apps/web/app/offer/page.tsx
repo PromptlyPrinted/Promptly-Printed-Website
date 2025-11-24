@@ -1,10 +1,11 @@
+import { createMetadata } from '@repo/seo/metadata';
 import { Suspense } from 'react';
 import { OfferPageContent } from './components/OfferPageContent';
 
-export const metadata = {
-  title: 'Your Personalized Offer | Promptly Printed',
+export const metadata = createMetadata({
+  title: 'Your Personalized Offer',
   description: 'Exclusive first-drop discount on your AI-designed custom apparel',
-};
+});
 
 export default function OfferPage() {
   return (
