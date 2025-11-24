@@ -82,6 +82,8 @@ services:
       NEXT_PUBLIC_POSTHOG_KEY: ${NEXT_PUBLIC_POSTHOG_KEY}
       NEXT_PUBLIC_POSTHOG_HOST: ${NEXT_PUBLIC_POSTHOG_HOST}
       NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL: ${NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL}
+    volumes:
+      - web-uploads:/app/public/uploads
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
@@ -268,3 +270,7 @@ services:
 networks:
   promptly-network:
     driver: bridge
+
+volumes:
+  web-uploads:
+    driver: local

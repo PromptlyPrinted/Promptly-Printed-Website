@@ -13,8 +13,9 @@ export class LocalStorageProvider implements StorageProvider {
   private baseUrl: string;
 
   constructor() {
-    // Store in public/uploads so Next.js can serve them
-    this.uploadsDir = join(process.cwd(), 'public', 'uploads');
+    // Store in public/uploads/images so Next.js can serve them
+    // This matches the existing working URL format: /uploads/images/{uuid}.{ext}
+    this.uploadsDir = join(process.cwd(), 'public', 'uploads', 'images');
     this.baseUrl = process.env.NEXT_PUBLIC_WEB_URL || 'http://localhost:3001';
   }
 
@@ -33,8 +34,8 @@ export class LocalStorageProvider implements StorageProvider {
     // Write file to disk
     await writeFile(filePath, buffer);
 
-    // Return public URL
-    return `${this.baseUrl}/uploads/${uniqueFilename}`;
+    // Return public URL (matches /uploads/images/ path)
+    return `${this.baseUrl}/uploads/images/${uniqueFilename}`;
   }
 
   async uploadFromBase64(base64Data: string, filename: string): Promise<string> {
@@ -73,8 +74,8 @@ export class LocalStorageProvider implements StorageProvider {
 
   async delete(url: string): Promise<boolean> {
     try {
-      // Extract filename from URL
-      const filename = url.split('/uploads/').pop();
+      // Extract filename from URL (handles both /uploads/images/ and /uploads/)
+      const filename = url.split('/uploads/images/').pop() || url.split('/uploads/').pop();
       if (!filename) {
         return false;
       }
