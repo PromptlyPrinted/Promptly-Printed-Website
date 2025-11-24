@@ -413,16 +413,17 @@ model ShippingPrice {
 }
 
 model SavedImage {
-  id        String   @id @default(cuid())
-  url       String
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  userId    String
-  productId Int?
-  product   Product? @relation(fields: [productId], references: [id])
-  user      User     @relation(fields: [userId], references: [id])
-  designs   Design[]
+  id            String   @id @default(cuid())
+  url           String
+  printReadyUrl String?  // 300 DPI print-ready version for Prodigi
+  name          String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  userId        String
+  productId     Int?
+  product       Product? @relation(fields: [productId], references: [id])
+  user          User     @relation(fields: [userId], references: [id])
+  designs       Design[]
 
   @@index([userId])
   @@index([productId])

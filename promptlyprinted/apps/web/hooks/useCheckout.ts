@@ -28,6 +28,8 @@ export function useCheckout() {
       const checkoutItems = items.map((item) => {
         // Get design URL from either designUrl, imageUrl, or images array
         const designUrl = item.designUrl || (item as any).imageUrl || item.images?.[0]?.url;
+        // Get 300 DPI print-ready URL if available
+        const printReadyUrl = (item as any).printReadyUrl;
 
         return {
           productId: Number.parseInt(item.productId, 10),
@@ -37,6 +39,7 @@ export function useCheckout() {
           color: item.color,
           size: item.size,
           designUrl: designUrl, // The actual design image to be printed
+          printReadyUrl: printReadyUrl, // 300 DPI version for Prodigi
           images: [{ url: item.images?.[0]?.url || designUrl }], // Product preview image
         };
       });

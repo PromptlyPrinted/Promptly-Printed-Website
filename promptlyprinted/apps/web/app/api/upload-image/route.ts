@@ -1,6 +1,28 @@
 import { database } from '@repo/database';
 import { getSession } from '@/lib/session-utils';
 import { storage } from '@/lib/storage';
+import sharp from 'sharp';
+
+// Print-ready dimensions for 300 DPI at 15.6" x 19.3" (standard t-shirt print area)
+const PRINT_WIDTH = 4680;  // 15.6 inches * 300 DPI
+const PRINT_HEIGHT = 5790; // 19.3 inches * 300 DPI
+
+/**
+ * Generate a 300 DPI print-ready version of an image
+ */
+async function generatePrintReadyVersion(imageBuffer: Buffer): Promise<Buffer> {
+  return sharp(imageBuffer)
+    .resize(PRINT_WIDTH, PRINT_HEIGHT, {
+      fit: 'contain',
+      background: { r: 0, g: 0, b: 0, alpha: 0 }, // Transparent background
+      withoutEnlargement: false, // Allow upscaling for print quality
+    })
+    .png({
+      quality: 100,
+      compressionLevel: 6,
+    })
+    .toBuffer();
+}
 
 export async function POST(request: Request) {
   try {
@@ -39,9 +61,18 @@ export async function POST(request: Request) {
     }
 
     let publicUrl: string;
+    let printReadyUrl: string | null = null;
+    let imageBuffer: Buffer;
 
     if (imageData) {
-      // Handle base64 data URLs - use storage abstraction
+      // Handle base64 data URLs - extract buffer first
+      const matches = imageData.match(/^data:image\/(\w+);base64,(.+)$/);
+      if (matches) {
+        const [, , base64String] = matches;
+        imageBuffer = Buffer.from(base64String, 'base64');
+      } else {
+        imageBuffer = Buffer.from(imageData, 'base64');
+      }
       publicUrl = await storage.uploadFromBase64(imageData, name);
     } else if (imageUrl) {
       // Fetch image from URL and upload
@@ -54,7 +85,7 @@ export async function POST(request: Request) {
       }
 
       const arrayBuffer = await response.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
+      imageBuffer = Buffer.from(arrayBuffer);
 
       // Determine file extension from Content-Type
       const contentType = response.headers.get('content-type') || 'image/png';
@@ -66,7 +97,7 @@ export async function POST(request: Request) {
       }
 
       const filename = `${name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.${fileExtension}`;
-      publicUrl = await storage.uploadFromBuffer(buffer, filename, contentType);
+      publicUrl = await storage.uploadFromBuffer(imageBuffer, filename, contentType);
     } else {
       return new Response(JSON.stringify({ error: 'No valid image source provided' }), {
         status: 400,
@@ -74,23 +105,38 @@ export async function POST(request: Request) {
       });
     }
 
-    // Save to database
+    // Generate and upload 300 DPI print-ready version
+    try {
+      console.log('[Upload Image] Generating 300 DPI print-ready version...');
+      const printReadyBuffer = await generatePrintReadyVersion(imageBuffer);
+      const printReadyFilename = `${name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-300dpi.png`;
+      printReadyUrl = await storage.uploadFromBuffer(printReadyBuffer, printReadyFilename, 'image/png');
+      console.log('[Upload Image] 300 DPI version saved:', printReadyUrl);
+    } catch (printError) {
+      console.error('[Upload Image] Failed to generate 300 DPI version:', printError);
+      // Continue without 300 DPI version - original will be used as fallback
+    }
+
+    // Save to database with both URLs
     const savedImage = await database.savedImage.create({
       data: {
         name,
         url: publicUrl,
+        printReadyUrl: printReadyUrl, // 300 DPI version for Prodigi
         userId: dbUser.id,
       },
     });
 
     console.log('Image uploaded successfully:', {
       publicUrl,
+      printReadyUrl,
       savedImageId: savedImage.id
     });
 
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       id: savedImage.id,
       url: publicUrl,
+      printReadyUrl: printReadyUrl,
       success: true
     }), {
       headers: { 'Content-Type': 'application/json' },

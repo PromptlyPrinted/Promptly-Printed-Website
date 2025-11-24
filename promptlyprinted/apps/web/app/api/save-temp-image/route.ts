@@ -1,6 +1,28 @@
 import { database } from '@repo/database';
 import { getSession } from '../../../lib/session-utils';
 import { storage } from '@/lib/storage';
+import sharp from 'sharp';
+
+// Print-ready dimensions for 300 DPI at 15.6" x 19.3" (standard t-shirt print area)
+const PRINT_WIDTH = 4680;  // 15.6 inches * 300 DPI
+const PRINT_HEIGHT = 5790; // 19.3 inches * 300 DPI
+
+/**
+ * Generate a 300 DPI print-ready version of an image
+ */
+async function generatePrintReadyVersion(imageBuffer: Buffer): Promise<Buffer> {
+  return sharp(imageBuffer)
+    .resize(PRINT_WIDTH, PRINT_HEIGHT, {
+      fit: 'contain',
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+      withoutEnlargement: false,
+    })
+    .png({
+      quality: 100,
+      compressionLevel: 6,
+    })
+    .toBuffer();
+}
 
 export async function POST(request: Request) {
   try {
@@ -38,11 +60,34 @@ export async function POST(request: Request) {
       );
     }
 
-    // If URL is base64, upload it to storage first
+    // If URL is base64, upload it to storage first and generate 300 DPI version
     let finalUrl = url;
+    let printReadyUrl: string | null = null;
+
     if (url.startsWith('data:image')) {
       console.log('Converting base64 image to file storage');
-      finalUrl = await storage.uploadFromBase64(url, 'checkout-image');
+
+      // Extract buffer from base64
+      const matches = url.match(/^data:image\/(\w+);base64,(.+)$/);
+      if (matches) {
+        const [, , base64String] = matches;
+        const imageBuffer = Buffer.from(base64String, 'base64');
+
+        // Upload original
+        finalUrl = await storage.uploadFromBase64(url, 'checkout-image');
+
+        // Generate and upload 300 DPI print-ready version
+        try {
+          console.log('[Save Temp Image] Generating 300 DPI print-ready version...');
+          const printReadyBuffer = await generatePrintReadyVersion(imageBuffer);
+          printReadyUrl = await storage.uploadFromBuffer(printReadyBuffer, 'checkout-image-300dpi.png', 'image/png');
+          console.log('[Save Temp Image] 300 DPI version saved:', printReadyUrl);
+        } catch (printError) {
+          console.error('[Save Temp Image] Failed to generate 300 DPI version:', printError);
+        }
+      } else {
+        finalUrl = await storage.uploadFromBase64(url, 'checkout-image');
+      }
     }
 
     // Check if the image is already saved
@@ -51,16 +96,17 @@ export async function POST(request: Request) {
     });
 
     if (existingImage) {
-      return new Response(JSON.stringify({ id: existingImage.id }), {
+      return new Response(JSON.stringify({ id: existingImage.id, printReadyUrl: existingImage.printReadyUrl }), {
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    // Save the image to the database (now with file URL instead of base64)
+    // Save the image to the database with both URLs
     const savedImage = await database.savedImage.create({
       data: {
         name: 'Checkout Image',
         url: finalUrl,
+        printReadyUrl: printReadyUrl,
         userId: dbUser.id,
       },
     });

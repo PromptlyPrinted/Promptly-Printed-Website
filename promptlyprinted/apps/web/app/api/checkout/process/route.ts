@@ -28,6 +28,7 @@ const CheckoutItemSchema = z.object({
   color: z.string(),
   size: z.string(),
   designUrl: z.string().optional(),
+  printReadyUrl: z.string().optional(), // 300 DPI print-ready version for Prodigi
 });
 
 const ProcessCheckoutSchema = z.object({
@@ -199,6 +200,7 @@ export async function POST(request: NextRequest) {
                 size: item.size,
                 sku: sku, // Store SKU for Prodigi order creation
                 designUrl: item.designUrl, // Store in attributes as fallback
+                printReadyUrl: item.printReadyUrl, // 300 DPI version for Prodigi
               },
               assets: item.designUrl ? [{ url: item.designUrl }] : undefined,
             };
