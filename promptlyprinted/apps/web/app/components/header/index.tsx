@@ -3,7 +3,7 @@
 
 import { useSession, signOut } from '@repo/auth/client';
 import { Button } from '@repo/design-system/components/ui/button';
-import { ChevronDown, Menu, Search, ShoppingCart, User, X } from 'lucide-react';
+import { ChevronDown, Menu, Search, ShoppingCart, User, X, Globe } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
@@ -13,6 +13,8 @@ import { ProfileDropdown } from './ProfileDropdown';
 import PromptlyLogo from './PromptlyLogo.svg';
 import { ResourcesDropdown } from './ResourcesDropdown';
 import { SearchOverlay } from './SearchOverlay';
+import { useCountry } from '@/components/providers/CountryProvider';
+import { SUPPORTED_COUNTRIES } from '@/utils/currency';
 
 const navigationItems = [
   { name: 'Home', href: '/' },
@@ -390,6 +392,33 @@ const ResourcesDropdownMobileExpanded = ({
   );
 };
 
+
+
+const CountrySelector = ({ mobile = false }: { mobile?: boolean }) => {
+  const { countryCode, setCountry } = useCountry();
+
+  return (
+    <div className={`relative flex items-center ${mobile ? 'w-full justify-between px-3 py-2 rounded-md hover:bg-gray-100 mb-2' : 'mr-2'}`}>
+      {mobile && <span className="font-medium text-gray-700">Region</span>}
+      <div className="flex items-center gap-1">
+        <Globe className="h-4 w-4 text-gray-500" />
+        <select
+          value={countryCode}
+          onChange={(e) => setCountry(e.target.value)}
+          className="bg-transparent text-sm font-medium text-gray-700 focus:outline-none cursor-pointer border-none py-1"
+          aria-label="Select Country"
+        >
+          {SUPPORTED_COUNTRIES.map((country) => (
+            <option key={country.code} value={country.code}>
+              {country.code} ({country.currency})
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+};
+
 export const Header = () => {
   const { data: session } = useSession();
   const isSignedIn = !!session?.user;
@@ -621,6 +650,7 @@ export const Header = () => {
 
           {/* Desktop Icons */}
           <div className="hidden items-center space-x-4 lg:flex">
+            <CountrySelector />
             <button
               onClick={() => setSearchOpen(true)}
               className="rounded-md p-2 text-gray-700 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-900"
@@ -734,8 +764,10 @@ export const Header = () => {
                 <span className="mt-1 text-gray-700 text-sm">Basket</span>
               </button>
             )}
+
           </div>
           <nav className="mt-6 px-4">
+            <CountrySelector mobile />
             <ul className="space-y-4">
               {navigationItems.map((item) => {
                 if (item.isButton) {

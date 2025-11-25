@@ -4,6 +4,8 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Trash2, Plus, Minus } from 'lucide-react';
+import { useCountry } from '@/components/providers/CountryProvider';
+import { convertPrice, formatPrice as formatCurrency } from '@/utils/currency';
 
 interface CheckoutItem {
   productId: number;
@@ -59,6 +61,7 @@ declare global {
 
 export default function CheckoutPage() {
   const router = useRouter();
+  const { currency: userCurrency } = useCountry();
   const [items, setItems] = useState<CheckoutItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -774,8 +777,21 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex justify-between text-xl font-bold text-gray-900 pt-2 border-t border-gray-200">
                   <span>Total</span>
-                  <span>{formatPrice(calculateTotal())}</span>
+                  <div className="text-right">
+                    <div>{formatPrice(calculateTotal())}</div>
+                    {userCurrency !== 'GBP' && (
+                      <div className="text-sm font-normal text-gray-500 mt-1">
+                        Approx. {formatCurrency(convertPrice(calculateTotal(), 'GBP', userCurrency), userCurrency)}
+                      </div>
+                    )}
+                  </div>
                 </div>
+                {userCurrency !== 'GBP' && (
+                  <p className="text-xs text-gray-500 mt-2 text-center">
+                    Payment will be processed in GBP ({formatPrice(calculateTotal())}). 
+                    The amount in {userCurrency} is an estimate based on current exchange rates.
+                  </p>
+                )}
               </div>
 
               <div className="mt-6 flex items-center justify-center gap-2 text-sm text-gray-600">
