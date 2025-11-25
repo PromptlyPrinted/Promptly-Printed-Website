@@ -18,7 +18,7 @@ export type StyleQuizAnswers = {
     | 'bodysuit'
     | 'baseball-tee';
   theme?: 'halloween' | 'everyday' | 'christmas' | 'summer' | 'custom';
-  aiModel?: 'flux-dev' | 'lora-normal' | 'lora-context' | 'nano-banana' | 'seedance';
+  aiModel?: 'flux-dev' | 'lora-normal' | 'lora-context' | 'nano-banana' | 'nano-banana-pro';
   colorPreference?: string;
   vibe?: string;
   colorPalette?: string;

@@ -1,4 +1,13 @@
 import { NextResponse } from 'next/server';
+import { getAuthContext, generateSessionId } from '@/lib/auth-helper';
+import {
+  hasEnoughCredits,
+  deductCredits,
+  checkGuestLimit,
+  recordGuestGeneration,
+  recordImageGeneration,
+  MODEL_CREDIT_COSTS,
+} from '@/lib/credits';
 
 if (!process.env.GOOGLE_GEMINI_API_KEY) {
   console.warn('GOOGLE_GEMINI_API_KEY is not set - Nano Banana features will not work');
@@ -177,6 +186,8 @@ Critical guidelines:
  * Main API endpoint for Nano Banana image generation/editing
  */
 export async function POST(request: Request) {
+  const startTime = Date.now();
+
   try {
     if (!GEMINI_API_KEY) {
       return NextResponse.json(
@@ -213,6 +224,55 @@ export async function POST(request: Request) {
         { error: 'Maximum of 3 reference images allowed' },
         { status: 400 }
       );
+    }
+
+    // Get auth context (user or guest)
+    const authContext = await getAuthContext();
+    const sessionId = authContext.sessionId || generateSessionId(request);
+
+    // Nano Banana uses 0.5 credits
+    const modelName = 'nano-banana';
+    const creditsRequired = MODEL_CREDIT_COSTS[modelName];
+
+    // CREDIT CHECK: Authenticated users
+    if (authContext.isAuthenticated && authContext.userId) {
+      const creditCheck = await hasEnoughCredits(authContext.userId, modelName);
+
+      if (!creditCheck.hasCredits) {
+        return NextResponse.json(
+          {
+            error: 'Insufficient credits',
+            details: `You need ${creditCheck.required} credits but only have ${creditCheck.currentBalance}`,
+            creditsNeeded: creditCheck.required,
+            currentBalance: creditCheck.currentBalance,
+          },
+          { status: 402 }
+        );
+      }
+    } else {
+      // GUEST LIMIT CHECK: Unauthenticated users
+      const guestCheck = await checkGuestLimit(sessionId, authContext.ipAddress);
+
+      if (!guestCheck.allowed) {
+        const hoursUntilReset = Math.ceil(
+          (guestCheck.resetsAt!.getTime() - Date.now()) / (1000 * 60 * 60)
+        );
+
+        return NextResponse.json(
+          {
+            error: 'Daily limit reached',
+            details: `You've used all 3 free generations today. Sign up to get 50 free credits!`,
+            remaining: 0,
+            resetsIn: hoursUntilReset,
+            resetsAt: guestCheck.resetsAt,
+            signupOffer: {
+              credits: 50,
+              message: 'Create a free account to get 50 credits instantly',
+            },
+          },
+          { status: 429 }
+        );
+      }
     }
 
     console.log('Making request to Google Gemini Nano Banana with:', {
@@ -374,26 +434,115 @@ export async function POST(request: Request) {
 
       // Convert to data URL for return
       const finalImageUrl = `data:image/png;base64,${finalImageBase64}`;
+      const generationTimeMs = Date.now() - startTime;
 
-      // Return the EMBELLISHED image as the final result
-      return NextResponse.json({
-        data: [{
-          url: finalImageUrl, // Return embellished image, not the original generation
-          b64_json: null,
-        }],
-        editHistory: [
-          ...editHistory,
+      // DEDUCT CREDITS or RECORD GUEST GENERATION
+      if (authContext.isAuthenticated && authContext.userId) {
+        // Deduct credits from authenticated user
+        const deduction = await deductCredits(
+          authContext.userId,
+          modelName,
+          `Generated image using Nano Banana (Gemini 2.5 Flash)`,
           {
             prompt,
-            imageUrl: finalImageUrl, // Store embellished image in history
-            timestamp: Date.now(),
+            mode,
+            referenceImageCount: referenceImages.length,
+            embellished: true,
           }
-        ],
-        debug: {
-          referenceImageCount: referenceImages.length,
-          embellished: true,
+        );
+
+        if (!deduction.success) {
+          console.error('Failed to deduct credits after generation');
         }
-      });
+
+        // Record generation in database
+        await recordImageGeneration({
+          userId: authContext.userId,
+          prompt,
+          aiModel: modelName,
+          creditsUsed: creditsRequired,
+          status: 'COMPLETED',
+          imageUrl: finalImageUrl,
+          generationTimeMs,
+          metadata: {
+            mode,
+            referenceImageCount: referenceImages.length,
+            embellished: true,
+          },
+        });
+
+        return NextResponse.json({
+          data: [{
+            url: finalImageUrl,
+            b64_json: null,
+          }],
+          editHistory: [
+            ...editHistory,
+            {
+              prompt,
+              imageUrl: finalImageUrl,
+              timestamp: Date.now(),
+            }
+          ],
+          debug: {
+            referenceImageCount: referenceImages.length,
+            embellished: true,
+          },
+          credits: {
+            used: deduction.deducted,
+            remaining: deduction.newBalance,
+          },
+        });
+      } else {
+        // Record guest generation
+        await recordGuestGeneration(sessionId, authContext.ipAddress);
+
+        // Record in database (no user ID)
+        await recordImageGeneration({
+          sessionId,
+          prompt,
+          aiModel: modelName,
+          creditsUsed: 0, // Free for guests
+          status: 'COMPLETED',
+          imageUrl: finalImageUrl,
+          generationTimeMs,
+          metadata: {
+            mode,
+            referenceImageCount: referenceImages.length,
+            embellished: true,
+          },
+        });
+
+        // Check remaining generations
+        const updatedLimit = await checkGuestLimit(sessionId, authContext.ipAddress);
+
+        return NextResponse.json({
+          data: [{
+            url: finalImageUrl,
+            b64_json: null,
+          }],
+          editHistory: [
+            ...editHistory,
+            {
+              prompt,
+              imageUrl: finalImageUrl,
+              timestamp: Date.now(),
+            }
+          ],
+          debug: {
+            referenceImageCount: referenceImages.length,
+            embellished: true,
+          },
+          guestInfo: {
+            remaining: updatedLimit.remaining,
+            resetsAt: updatedLimit.resetsAt,
+            signupOffer: updatedLimit.remaining <= 1 ? {
+              credits: 50,
+              message: 'Sign up to get 50 free credits!',
+            } : undefined,
+          },
+        });
+      }
 
     } catch (apiError) {
       console.error('Google Gemini API error:', apiError);
@@ -401,6 +550,29 @@ export async function POST(request: Request) {
       let errorMessage = 'API error';
       if (apiError instanceof Error) {
         errorMessage = apiError.message;
+      }
+
+      // Record failed generation
+      if (authContext.isAuthenticated && authContext.userId) {
+        await recordImageGeneration({
+          userId: authContext.userId,
+          prompt,
+          aiModel: modelName,
+          creditsUsed: 0, // Don't charge for failed generations
+          status: 'FAILED',
+          errorMessage,
+          generationTimeMs: Date.now() - startTime,
+        });
+      } else {
+        await recordImageGeneration({
+          sessionId,
+          prompt,
+          aiModel: modelName,
+          creditsUsed: 0,
+          status: 'FAILED',
+          errorMessage,
+          generationTimeMs: Date.now() - startTime,
+        });
       }
 
       throw new Error(errorMessage);

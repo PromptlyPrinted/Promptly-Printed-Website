@@ -104,6 +104,13 @@ export const StyleResult = ({ answers }: StyleResultProps) => {
       clothingType: answers.styleType || 'tee',
     });
 
+    // Preserve UTM parameters if present in answers
+    if ((answers as any).utm_source) params.set('utm_source', (answers as any).utm_source);
+    if ((answers as any).utm_medium) params.set('utm_medium', (answers as any).utm_medium);
+    if ((answers as any).utm_campaign) params.set('utm_campaign', (answers as any).utm_campaign);
+    if ((answers as any).utm_content) params.set('utm_content', (answers as any).utm_content);
+    if ((answers as any).utm_term) params.set('utm_term', (answers as any).utm_term);
+
     // Go to offer page first (Step 4 in your flow)
     router.push(`/offer?${params.toString()}`);
   };

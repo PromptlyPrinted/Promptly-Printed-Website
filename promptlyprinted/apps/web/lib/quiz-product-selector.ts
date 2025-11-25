@@ -16,7 +16,7 @@ export type QuizAnswers = {
     | 'bodysuit'
     | 'baseball-tee';
   theme?: 'halloween' | 'everyday' | 'christmas' | 'summer' | 'custom';
-  aiModel?: 'flux-dev' | 'lora-normal' | 'lora-context' | 'nano-banana' | 'seedance';
+  aiModel?: 'flux-dev' | 'lora-normal' | 'lora-context' | 'nano-banana' | 'nano-banana-pro';
   colorPreference?: string; // Actual color name from product
   vibe?: string; // Existing quiz field
   designPersonality?: string; // Existing quiz field
@@ -62,30 +62,35 @@ export const AI_MODEL_INFO = {
     description: 'Versatile and balanced - great for most designs',
     strengths: 'General purpose, high quality, fast generation',
     bestFor: 'Everyday designs, logos, illustrations',
+    credits: 1, // Standard 1 credit per generation
   },
   'lora-normal': {
     name: 'LORA Normal',
     description: 'Enhanced detail and artistic flair',
     strengths: 'Artistic styles, intricate details, vibrant colors',
     bestFor: 'Complex artwork, character designs',
+    credits: 1, // Standard 1 credit per generation
   },
   'lora-context': {
     name: 'LORA Context',
     description: 'Smart contextual understanding',
     strengths: 'Scene composition, thematic coherence, storytelling',
     bestFor: 'Narrative designs, themed collections',
+    credits: 1, // Standard 1 credit per generation
   },
   'nano-banana': {
     name: 'Nano Banana',
-    description: 'Compact and efficient for quick results',
-    strengths: 'Fast generation, clean outputs, efficient',
+    description: 'Fast and efficient for quick results',
+    strengths: 'Ultra-fast generation, clean outputs, cost-effective',
     bestFor: 'Simple designs, text-heavy, minimalist',
+    credits: 0.5, // Half credit - budget option
   },
-  seedance: {
-    name: 'SeeDance',
-    description: 'Dynamic and expressive visuals',
-    strengths: 'Motion-inspired, dynamic compositions, energetic',
-    bestFor: 'Streetwear, bold graphics, action themes',
+  'nano-banana-pro': {
+    name: 'Nano Banana Pro',
+    description: 'Premium quality with enhanced detail and faster speed',
+    strengths: 'High-quality outputs, versatile, excellent prompt adherence',
+    bestFor: 'Professional designs, detailed artwork, commercial use',
+    credits: 2, // Premium tier - 2 credits per generation
   },
 };
 

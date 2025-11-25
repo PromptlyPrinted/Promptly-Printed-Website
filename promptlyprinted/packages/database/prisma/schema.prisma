@@ -44,6 +44,9 @@ model User {
   likes       Like[]
   userPoints  UserPoints?
   pointHistory PointHistory[]
+  credits     UserCredits?
+  creditTransactions CreditTransaction[]
+  imageGenerations ImageGeneration[]
 }
 
 model Page {
@@ -747,4 +750,133 @@ model Refund {
 enum DiscountType {
   PERCENTAGE
   FIXED_AMOUNT
+}
+
+// ========================================
+// AI CREDIT SYSTEM
+// ========================================
+
+// User credit balance and welcome credits tracking
+model UserCredits {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  credits            Float    @default(0)     // Current credit balance
+  monthlyCredits     Float    @default(50)    // Monthly credit allowance (resets each month)
+  monthlyCreditsUsed Float    @default(0)     // Credits used this month
+  lastMonthlyReset   DateTime @default(now()) // Last time monthly credits were reset
+  welcomeCredits     Float    @default(50)    // Welcome credits given on signup
+  welcomeCreditsUsed Float    @default(0)     // How many welcome credits have been used
+  lifetimeCredits    Float    @default(0)     // Total credits ever purchased/earned
+  lifetimeSpent      Float    @default(0)     // Total credits ever spent
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([credits])
+  @@index([lastMonthlyReset])
+}
+
+// Credit transaction history
+model CreditTransaction {
+  id             String               @id @default(cuid())
+  userId         String
+  amount         Float                // Positive for additions, negative for deductions
+  balance        Float                // Balance after transaction
+  type           CreditTransactionType
+  reason         String               // Description of why credits changed
+  metadata       Json?                // Additional data (e.g., pack purchased, generation details)
+  relatedOrderId Int?                 // If purchased via order
+  createdAt      DateTime             @default(now())
+
+  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([type])
+}
+
+enum CreditTransactionType {
+  WELCOME_BONUS       // Initial signup credits
+  PURCHASE            // Bought credit pack
+  GENERATION_USED     // Used for AI generation
+  REFUND              // Refund from cancelled order
+  ADMIN_ADJUSTMENT    // Manual admin adjustment
+  PROMOTIONAL         // Campaign/promo credits
+  REWARD              // Competition or achievement reward
+  MONTHLY_RESET       // Monthly credit reset
+  TSHIRT_BONUS        // Bonus credits from T-shirt purchase
+}
+
+// Track all AI image generations
+model ImageGeneration {
+  id                String              @id @default(cuid())
+  userId            String?             // Null for guest users
+  sessionId         String?             // For tracking guest sessions
+  prompt            String              @db.Text
+  aiModel           AIModelType
+  creditsUsed       Float               // Credits deducted for this generation
+  status            GenerationStatus
+  imageUrl          String?             // URL of generated image
+  printReadyUrl     String?             // 300 DPI version
+  errorMessage      String?
+  generationTimeMs  Int?                // How long generation took
+  metadata          Json?               // Model-specific params, aspect ratio, etc.
+  createdAt         DateTime            @default(now())
+
+  user              User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([sessionId, createdAt])
+  @@index([aiModel])
+  @@index([status])
+}
+
+enum AIModelType {
+  FLUX_DEV           // 1 credit - Standard model
+  LORA_NORMAL        // 1 credit - Artistic model
+  LORA_CONTEXT       // 1 credit - Contextual model
+  NANO_BANANA        // 0.5 credits - Budget model
+  NANO_BANANA_PRO    // 2 credits - Premium model
+  GEMINI_FLASH       // TBD pricing - Google's model
+}
+
+enum GenerationStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// Credit packs available for purchase
+model CreditPack {
+  id          String   @id @default(cuid())
+  name        String   // e.g., "Starter Pack", "Pro Pack"
+  credits     Float    // Number of credits in pack
+  price       Float    // Price in USD
+  currency    String   @default("USD")
+  bonusCredits Float   @default(0)     // Extra credits (e.g., buy 100 get 20 free)
+  isActive    Boolean  @default(true)
+  displayOrder Int     @default(0)     // Order to show in UI
+  isPopular   Boolean  @default(false) // Highlight as "most popular"
+  metadata    Json?    // For A/B testing, campaigns, etc.
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive, displayOrder])
+}
+
+// Guest user generation tracking
+model GuestGeneration {
+  id          String   @id @default(cuid())
+  sessionId   String   // Browser session/fingerprint
+  ipAddress   String?
+  count       Int      @default(1)
+  lastGenAt   DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@unique([sessionId])
+  @@index([sessionId, lastGenAt])
+  @@index([ipAddress, lastGenAt])
 }

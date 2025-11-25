@@ -6,7 +6,7 @@ The enhanced quiz system now dynamically selects products based on user preferen
 - **Gender/Audience** (Men's, Women's, Kids, Babies)
 - **Style Type** (Classic Tee, V-Neck, Triblend, Tank Top, Long Sleeve, Hoodie, etc.)
 - **Theme/Occasion** (Halloween, Christmas, Summer, Everyday, Custom)
-- **AI Model** (Flux Dev, LORA variants, Nano Banana, SeeDance)
+- **AI Model** (Flux Dev, LORA variants, Nano Banana, Nano Banana Pro)
 - **Color Preferences** from actual product inventory
 - **Design Vibe & Personality**
 
@@ -83,13 +83,13 @@ Options:
 
 Options with strengths:
 
-| Model | Icon | Description | Best For |
-|-------|------|-------------|----------|
-| **Flux Dev** | ⚡ | Balanced, versatile, high quality | General purpose, logos, illustrations |
-| **LORA Normal** | 🎨 | Artistic detail, vibrant colors | Complex artwork, character designs |
-| **LORA Context** | 📖 | Smart themes, storytelling | Narrative designs, themed collections |
-| **Nano Banana** | 🍌 | Fast, clean, minimalist | Simple designs, text-heavy, minimalist |
-| **SeeDance** | 💃 | Dynamic, energetic visuals | Streetwear, bold graphics, action themes |
+| Model | Icon | Description | Best For | Credits |
+|-------|------|-------------|----------|---------|
+| **Flux Dev** | ⚡ | Balanced, versatile, high quality | General purpose, logos, illustrations | 1 |
+| **LORA Normal** | 🎨 | Artistic detail, vibrant colors | Complex artwork, character designs | 1 |
+| **LORA Context** | 📖 | Smart themes, storytelling | Narrative designs, themed collections | 1 |
+| **Nano Banana** | 🍌 | Fast, clean, cost-effective | Simple designs, text-heavy, minimalist | 0.5 |
+| **Nano Banana Pro** | 🍌✨ | Premium quality, enhanced detail | Professional designs, detailed artwork | 2 |
 
 **Purpose:** Influences design generation and adds model-specific guidance to prompt
 
@@ -208,7 +208,7 @@ The system builds a comprehensive prompt from all quiz answers:
 - Audience: Men's
 - Style: Hoodie
 - Theme: Halloween
-- AI Model: SeeDance
+- AI Model: Flux Dev
 - Vibe: Streetwear
 - Color: Neon
 - Personality: Character
@@ -345,7 +345,7 @@ function determineGiveawayTier(context: {
 &audience=mens                 // Audience type
 &styleType=hoodie              // Style type
 &theme=halloween               // Theme selected
-&aiModel=seedance              // AI model choice
+&aiModel=flux-dev              // AI model choice
 &discount=0.30                 // Discount to apply (30%)
 &giveawayTier=standard         // Giveaway tier
 &clothingType=hoodie           // Legacy compatibility

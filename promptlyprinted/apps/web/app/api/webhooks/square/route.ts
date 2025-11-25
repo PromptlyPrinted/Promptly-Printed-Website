@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server';
 import { square } from '@repo/payments';
 import crypto from 'crypto';
 import { prodigiService } from '@/lib/prodigi';
+import { grantTshirtPurchaseBonus } from '@/lib/credits';
 
 const webhookSignatureKey = process.env.SQUARE_WEBHOOK_SIGNATURE_KEY;
 
@@ -243,6 +244,29 @@ export async function POST(req: Request) {
         });
 
         console.log('Created guest order:', order.id);
+
+        // Grant T-shirt purchase bonus credits for guest order
+        if (user && user.id !== 'guest') {
+          try {
+            const tshirtCount = orderData.items.length;
+            const creditBonus = await grantTshirtPurchaseBonus(
+              user.id,
+              order.id,
+              tshirtCount
+            );
+
+            console.log('[Credits] Guest T-shirt purchase bonus granted:', {
+              userId: user.id,
+              orderId: order.id,
+              tshirtCount,
+              creditsGranted: creditBonus.creditsGranted,
+              newBalance: creditBonus.newBalance,
+            });
+          } catch (creditError) {
+            console.error('[Credits] Failed to grant guest T-shirt bonus:', creditError);
+          }
+        }
+
         return NextResponse.json({ received: true, orderId: order.id });
       }
 
@@ -279,6 +303,29 @@ export async function POST(req: Request) {
         orderId: updatedOrder.id,
         status: updatedOrder.status,
       });
+
+      // Grant T-shirt purchase bonus credits (10 credits per T-shirt)
+      if (updatedOrder.userId && updatedOrder.userId !== 'guest') {
+        try {
+          const tshirtCount = updatedOrder.orderItems.length; // Each order item is typically 1 T-shirt
+          const creditBonus = await grantTshirtPurchaseBonus(
+            updatedOrder.userId,
+            updatedOrder.id,
+            tshirtCount
+          );
+
+          console.log('[Credits] T-shirt purchase bonus granted:', {
+            userId: updatedOrder.userId,
+            orderId: updatedOrder.id,
+            tshirtCount,
+            creditsGranted: creditBonus.creditsGranted,
+            newBalance: creditBonus.newBalance,
+          });
+        } catch (creditError) {
+          console.error('[Credits] Failed to grant T-shirt bonus:', creditError);
+          // Don't fail the webhook if credit granting fails
+        }
+      }
 
       // Record discount usage if discount was applied
       if (updatedOrder.discountCodeId && updatedOrder.discountAmount && updatedOrder.discountAmount > 0) {

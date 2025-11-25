@@ -18,7 +18,7 @@ export type StyleQuizAnswers = {
     | 'bodysuit'
     | 'baseball-tee';
   theme?: 'blackfriday' | 'everyday' | 'christmas' | 'summer' | 'custom';
-  aiModel?: 'flux-dev' | 'lora-normal' | 'lora-context' | 'nano-banana' | 'seedance';
+  aiModel?: 'flux-dev' | 'lora-normal' | 'lora-context' | 'nano-banana' | 'nano-banana-pro';
   colorPreference?: string;
   vibe?: string;
   colorPalette?: string;
@@ -28,6 +28,12 @@ export type StyleQuizAnswers = {
   campaign?: string;
   bundle?: string; // Black Friday bundle type
   bundleDiscount?: number; // Bundle discount percentage
+  // UTM tracking parameters
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_content?: string;
+  utm_term?: string;
 };
 
 const TOTAL_STEPS = 8;
@@ -39,12 +45,25 @@ function BlackFridayQuizContent() {
   const bundle = searchParams.get('bundle') || undefined;
   const discount = searchParams.get('discount') || undefined;
 
+  // Capture UTM parameters from URL
+  const utmSource = searchParams.get('utm_source') || undefined;
+  const utmMedium = searchParams.get('utm_medium') || undefined;
+  const utmCampaign = searchParams.get('utm_campaign') || undefined;
+  const utmContent = searchParams.get('utm_content') || undefined;
+  const utmTerm = searchParams.get('utm_term') || undefined;
+
   const [currentStep, setCurrentStep] = useState(1);
   const [answers, setAnswers] = useState<StyleQuizAnswers>({
     campaign,
     theme: 'blackfriday',
     bundle,
     bundleDiscount: discount ? parseFloat(discount) : undefined,
+    // Store UTM params in answers to pass through the flow
+    utm_source: utmSource,
+    utm_medium: utmMedium,
+    utm_campaign: utmCampaign,
+    utm_content: utmContent,
+    utm_term: utmTerm,
   });
   const [showResults, setShowResults] = useState(false);
 

@@ -98,6 +98,19 @@ export function OfferPageContent() {
       giveawayTier,
     });
 
+    // Preserve UTM parameters from current URL
+    const utmSource = searchParams.get('utm_source');
+    const utmMedium = searchParams.get('utm_medium');
+    const utmCampaign = searchParams.get('utm_campaign');
+    const utmContent = searchParams.get('utm_content');
+    const utmTerm = searchParams.get('utm_term');
+
+    if (utmSource) params.set('utm_source', utmSource);
+    if (utmMedium) params.set('utm_medium', utmMedium);
+    if (utmCampaign) params.set('utm_campaign', utmCampaign);
+    if (utmContent) params.set('utm_content', utmContent);
+    if (utmTerm) params.set('utm_term', utmTerm);
+
     // Navigate to design page using SKU
     // Format: /design/[productSku]
     router.push(`/design/${product.sku}?${params.toString()}`);

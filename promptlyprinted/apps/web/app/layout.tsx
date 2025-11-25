@@ -4,9 +4,10 @@ import { AuthProvider } from '@repo/auth/provider';
 import { DesignSystemProvider } from '@repo/design-system';
 import { fonts } from '@repo/design-system/lib/fonts';
 import { cn } from '@repo/design-system/lib/utils';
-import type { ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import { Footer } from './components/footer';
 import { Header } from './components/header';
+import { TrackingCapture } from '@/components/tracking/TrackingCapture';
 
 type RootLayoutProperties = {
   readonly children: ReactNode;
@@ -65,6 +66,10 @@ const RootLayout = ({ children }: RootLayoutProperties) => (
     <body>
       <AuthProvider>
         <DesignSystemProvider>
+          {/* Automatic UTM and campaign tracking */}
+          <Suspense fallback={null}>
+            <TrackingCapture />
+          </Suspense>
           <Header />
           {/* Your main content */}
           <main>{children}</main>

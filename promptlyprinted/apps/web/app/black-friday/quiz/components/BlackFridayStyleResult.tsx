@@ -17,7 +17,7 @@ type StyleQuizAnswers = {
   audience?: 'mens' | 'womens' | 'kids' | 'babies';
   styleType?: string;
   theme?: string;
-  aiModel?: 'flux-dev' | 'lora-normal' | 'lora-context' | 'nano-banana' | 'seedance';
+  aiModel?: 'flux-dev' | 'lora-normal' | 'lora-context' | 'nano-banana' | 'nano-banana-pro';
   vibe?: string;
   campaign?: string;
   bundle?: string;
@@ -102,6 +102,13 @@ export const BlackFridayStyleResult = ({ answers }: StyleResultProps) => {
       bundle: answers.bundle || 'design-stickers',
       clothingType: answers.styleType || 'tee',
     });
+
+    // Preserve UTM parameters through the flow
+    if (answers.utm_source) params.set('utm_source', answers.utm_source);
+    if (answers.utm_medium) params.set('utm_medium', answers.utm_medium);
+    if (answers.utm_campaign) params.set('utm_campaign', answers.utm_campaign);
+    if (answers.utm_content) params.set('utm_content', answers.utm_content);
+    if (answers.utm_term) params.set('utm_term', answers.utm_term);
 
     router.push(`/offer?${params.toString()}`);
   };
