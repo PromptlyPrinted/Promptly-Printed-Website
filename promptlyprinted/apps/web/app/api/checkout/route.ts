@@ -9,14 +9,7 @@ import { Currency } from 'square';
 import { ZodError, z } from 'zod';
 
 // Log Square configuration on startup
-console.log('[Square Config]', {
-  hasToken: !!process.env.SQUARE_ACCESS_TOKEN,
-  tokenLength: process.env.SQUARE_ACCESS_TOKEN?.length || 0,
-  environment: process.env.SQUARE_ENVIRONMENT || 'not set',
-  resolvedEnvironment: process.env.SQUARE_ENVIRONMENT === 'production' ? 'production' : 'sandbox',
-  hasLocationId: !!process.env.SQUARE_LOCATION_ID,
-  locationId: process.env.SQUARE_LOCATION_ID ? `${process.env.SQUARE_LOCATION_ID.substring(0, 8)}...` : 'not set',
-});
+
 
 /**
  * Save base64 image to file system and return absolute URL
@@ -49,11 +42,7 @@ async function saveBase64Image(base64Data: string): Promise<string> {
   const webUrl = process.env.NEXT_PUBLIC_WEB_URL || 'http://localhost:3001';
   const absoluteUrl = `${webUrl}/uploads/checkout/${fileName}`;
 
-  console.log('[Image Save]', {
-    fileName,
-    relativePath: `/uploads/checkout/${fileName}`,
-    absoluteUrl,
-  });
+
 
   return absoluteUrl;
 }
@@ -111,7 +100,7 @@ async function getImageUrl(url: string): Promise<string | null> {
 
     // If it's a base64 image, return it directly
     if (url.startsWith('data:image')) {
-      console.log('Using base64 image directly');
+
       return url;
     }
 
@@ -123,7 +112,7 @@ async function getImageUrl(url: string): Promise<string | null> {
         console.error('Temporary image not found:', tempId);
         return null;
       }
-      console.log('Resolved temp: image URL:', { tempId, url: tempImage.url });
+
       return tempImage.url;
     }
 
@@ -137,10 +126,7 @@ async function getImageUrl(url: string): Promise<string | null> {
         });
 
         if (savedImage) {
-          console.log('Found saved image in database:', {
-            id: idParam[1],
-            url: savedImage.url,
-          });
+
           return savedImage.url;
         }
 
@@ -153,10 +139,7 @@ async function getImageUrl(url: string): Promise<string | null> {
           );
           return null;
         }
-        console.log('Resolved save-temp-image URL from temporary store:', {
-          id: idParam[1],
-          url: tempImage.url,
-        });
+
         return tempImage.url;
       }
     }
@@ -165,17 +148,13 @@ async function getImageUrl(url: string): Promise<string | null> {
     if (url.startsWith('/')) {
       const webUrl = process.env.NEXT_PUBLIC_WEB_URL || 'http://localhost:3001';
       const absoluteUrl = `${webUrl}${url}`;
-      console.log('Converted relative URL to absolute:', {
-        relative: url,
-        absolute: absoluteUrl,
-        baseUrl: webUrl,
-      });
+
       return absoluteUrl;
     }
 
     // If it's already an absolute URL, return it
     if (url.startsWith('http')) {
-      console.log('Using absolute URL:', url);
+
       return url;
     }
 
@@ -188,7 +167,7 @@ async function getImageUrl(url: string): Promise<string | null> {
 }
 
 export async function POST(req: NextRequest) {
-  console.log('=== CHECKOUT API REQUEST START ===');
+
 
   // Validate required environment variables
   if (!process.env.SQUARE_ACCESS_TOKEN) {
@@ -213,7 +192,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  console.log('[ENV CHECK] All required environment variables present');
+
 
   try {
     const session = await getSession(req);
@@ -224,7 +203,7 @@ export async function POST(req: NextRequest) {
     // Determine base URL for building absolute image URLs
     const urlObj = new URL(req.url);
     const origin = process.env.NEXT_PUBLIC_WEB_URL ?? urlObj.origin;
-    console.log(`Authenticated User ID: ${userId}`);
+
 
     // Get success and cancel URLs from query parameters
     const successUrl =
@@ -237,10 +216,7 @@ export async function POST(req: NextRequest) {
     try {
       const body = await req.json();
       orderItems = CheckoutRequestSchema.parse(body);
-      console.log(
-        'Parsed Checkout Items:',
-        `${orderItems.items.length} items`
-      );
+
     } catch (error: unknown) {
       console.error('Failed to parse request body:', error);
       if (error instanceof ZodError) {
@@ -281,18 +257,18 @@ export async function POST(req: NextRequest) {
             { status: 500 }
           );
         }
-        console.log(`Found existing user with DB ID: ${dbUser.id}`);
+
       } else {
         // Guest checkout - we'll create user after payment with Stripe customer email
         isGuestCheckout = true;
-        console.log('Guest checkout - will create user after payment');
+
       }
 
       const total = orderItems.items.reduce(
         (acc, item) => acc + item.price * item.copies,
         0
       );
-      console.log(`Calculated Total Price: ${total}`);
+
 
       let order = null;
 
@@ -334,7 +310,7 @@ export async function POST(req: NextRequest) {
 
                     // If it's a base64 image, save it as a file first
                     if (img.url.startsWith('data:image')) {
-                      console.log('Converting base64 image to file for item:', item.productId);
+
                       finalUrl = await saveBase64Image(img.url);
                     } else {
                       // For non-base64 images, resolve the URL
@@ -407,7 +383,7 @@ export async function POST(req: NextRequest) {
       // Prepare line items for Square
       // Note: Catalog items with images are disabled because Square's Catalog API
       // requires direct file upload, not URL references. This will be implemented later.
-      console.log('[Square Line Items] Creating basic line items...');
+
       const lineItems = orderItems.items.map((item) => {
         return {
           name: item.name,
@@ -422,11 +398,7 @@ export async function POST(req: NextRequest) {
 
       // Create Square order first
       const totalAmountCents = Math.round(total * 100);
-      console.log('[Square Order Creation] Starting...', {
-        locationId: process.env.SQUARE_LOCATION_ID,
-        lineItemCount: lineItems.length,
-        totalAmount: totalAmountCents,
-      });
+
 
       let squareOrderResponse;
       try {
@@ -438,13 +410,7 @@ export async function POST(req: NextRequest) {
           },
           idempotencyKey: randomUUID(),
         });
-        console.log('[Square Order Creation] Success', {
-          orderId: squareOrderResponse.order?.id,
-          version: squareOrderResponse.order?.version,
-          fullOrder: JSON.stringify(squareOrderResponse.order, (key, value) =>
-            typeof value === 'bigint' ? value.toString() : value
-          ),
-        });
+
       } catch (squareError: any) {
         console.error('[Square Order Creation] Failed', {
           error: squareError.message,
@@ -462,11 +428,7 @@ export async function POST(req: NextRequest) {
       const squareOrderId = squareOrderResponse.order.id!;
 
       // Create payment link for the order
-      console.log('[Square Payment Link] Creating...', {
-        orderId: squareOrderId,
-        orderVersion: squareOrderResponse.order.version,
-        redirectUrl: `${process.env.NEXT_PUBLIC_WEB_URL}/checkout/success`,
-      });
+
 
       let paymentLinkResponse;
       try {
@@ -494,15 +456,10 @@ export async function POST(req: NextRequest) {
           },
         };
 
-        console.log('[Square Payment Link] Request payload:', JSON.stringify(paymentLinkRequest, (key, value) =>
-          typeof value === 'bigint' ? value.toString() : value
-        , 2));
+
 
         paymentLinkResponse = await square.checkout.paymentLinks.create(paymentLinkRequest);
-        console.log('[Square Payment Link] Success', {
-          paymentLinkId: paymentLinkResponse.paymentLink?.id,
-          hasUrl: !!paymentLinkResponse.paymentLink?.url,
-        });
+
       } catch (squareError: any) {
         console.error('[Square Payment Link] Failed', {
           error: squareError.message,
@@ -540,12 +497,7 @@ export async function POST(req: NextRequest) {
         });
       });
 
-      console.log('Square checkout created successfully', {
-        paymentLinkId,
-        squareOrderId,
-        isGuestCheckout,
-        orderId: order?.id || 'N/A (will be created after payment)',
-      });
+
 
       return NextResponse.json({ url: paymentLinkUrl });
     } catch (error: unknown) {

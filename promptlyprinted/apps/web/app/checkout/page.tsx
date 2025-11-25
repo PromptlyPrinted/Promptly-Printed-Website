@@ -128,7 +128,7 @@ export default function CheckoutPage() {
     script.async = true;
     script.crossOrigin = 'anonymous';
     script.onload = () => {
-      console.log('Square SDK loaded');
+
       setSquareLoaded(true);
     };
     script.onerror = () => {
@@ -246,7 +246,7 @@ export default function CheckoutPage() {
         await applePay.attach('#apple-pay-button');
         applePayRef.current = applePay;
         setApplePayAvailable(true);
-        console.log('Apple Pay initialized successfully');
+
 
         // Set up Apple Pay click handler per Square docs
         const applePayButtonTarget = document.getElementById('apple-pay-button');
@@ -257,7 +257,7 @@ export default function CheckoutPage() {
           };
         }
       } catch (e) {
-        console.log('Apple Pay not available:', e);
+
       }
 
       // Initialize Google Pay if available
@@ -271,7 +271,7 @@ export default function CheckoutPage() {
         });
         googlePayRef.current = googlePay;
         setGooglePayAvailable(true);
-        console.log('Google Pay initialized successfully');
+
 
         // Set up Google Pay click handler per Square docs
         const googlePayButtonTarget = document.getElementById('google-pay-button');
@@ -282,10 +282,10 @@ export default function CheckoutPage() {
           };
         }
       } catch (e) {
-        console.log('Google Pay not available:', e);
+
       }
 
-      console.log('Square payment form initialized');
+
     } catch (e) {
       console.error('Failed to initialize Square payments:', e);
       setError('Direct card payment is not available in development mode due to CORS restrictions. Please use the secure payment link below.');
@@ -396,7 +396,7 @@ export default function CheckoutPage() {
 
       if (result.status === 'OK') {
         const token = result.token;
-        console.log('Payment token:', token);
+
 
         // Send payment to backend
         const response = await fetch('/api/checkout/complete-payment', {
@@ -453,7 +453,7 @@ export default function CheckoutPage() {
       const tokenResult = await paymentRef.current.tokenize();
 
       if (tokenResult.status === 'OK') {
-        console.log(`${paymentName} token:`, tokenResult.token);
+
 
         // Send payment token to backend
         const response = await fetch('/api/checkout/complete-payment', {

@@ -41,14 +41,7 @@ const ProcessCheckoutSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    console.log('[Checkout Process] Starting...', {
-      itemCount: body.items?.length,
-      items: body.items?.map((item: any) => ({
-        productId: item.productId,
-        productIdType: typeof item.productId,
-        name: item.name
-      }))
-    });
+
 
     // Validate request
     const validation = ProcessCheckoutSchema.safeParse(body);
@@ -133,12 +126,7 @@ export async function POST(request: NextRequest) {
         }
 
         validatedDiscountCode = discount;
-        console.log('[Checkout Process] Discount applied:', {
-          code: discount.code,
-          type: discount.type,
-          value: discount.value,
-          discountAmount,
-        });
+
       } else {
         console.error('[Checkout Process] Discount code not found:', discountCode);
         return NextResponse.json(
@@ -152,7 +140,7 @@ export async function POST(request: NextRequest) {
     const total = subtotal - discountAmount;
 
     // Fetch product SKUs for all items
-    console.log('[Product SKUs] Fetching...');
+
     const productIds = items.map(item => item.productId);
     const products = await prisma.product.findMany({
       where: { id: { in: productIds } },
@@ -160,10 +148,10 @@ export async function POST(request: NextRequest) {
     });
     
     const productSkuMap = new Map(products.map(p => [p.id, p.sku]));
-    console.log('[Product SKUs] Fetched:', { count: products.length });
+
 
     // Create database order first
-    console.log('[Database Order] Creating...');
+
     const order = await prisma.order.create({
       data: {
         userId: dbUser?.id || 'guest',
@@ -213,7 +201,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log('[Database Order] Created', { orderId: order.id });
+
 
     // Create Square order
     const squareMetadata: Record<string, string> = {
@@ -271,11 +259,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('[Square Order] Creating...', {
-      itemCount: lineItems.length,
-      hasDiscount: discountAmount > 0,
-      discountCount: discounts.length,
-    });
+
     const squareOrderResponse = await square.orders.create({
       order: {
         locationId: process.env.SQUARE_LOCATION_ID!,
@@ -291,7 +275,7 @@ export async function POST(request: NextRequest) {
     }
 
     const squareOrderId = squareOrderResponse.order.id!;
-    console.log('[Square Order] Created', { squareOrderId });
+
 
     // Store Square order ID in metadata
     await prisma.order.update({
@@ -337,17 +321,14 @@ export async function POST(request: NextRequest) {
       },
     };
 
-    console.log('[Square Payment Link] Creating...');
+
     const paymentLinkResponse = await square.checkout.paymentLinks.create(paymentLinkRequest);
 
     if (!paymentLinkResponse.paymentLink?.url) {
       throw new Error('Failed to create payment link');
     }
 
-    console.log('[Square Payment Link] Created', {
-      paymentLinkId: paymentLinkResponse.paymentLink.id,
-      url: paymentLinkResponse.paymentLink.url,
-    });
+
 
     // Update order metadata with payment link ID and discount info
     await prisma.order.update({

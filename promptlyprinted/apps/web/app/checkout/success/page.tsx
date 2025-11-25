@@ -96,7 +96,7 @@ export default async function CheckoutSuccessPage({
       const recipient = shipmentDetails?.recipient;
 
       if (existingPayment) {
-        console.log('Payment already exists for Square order:', squareOrderId);
+
         // Update the order without creating a new payment
         const order = await prisma.order.update({
           where: {
@@ -227,17 +227,7 @@ async function handleProdigiOrderCreation(order: any, squareOrder: any) {
   }
 
   try {
-    console.log('Starting Prodigi order creation for order:', order.id);
-    console.log('Order details:', {
-      id: order.id,
-      recipient: order.recipient,
-      items: order.orderItems.map((item: any) => ({
-        id: item.id,
-        sku: item.attributes?.sku || 'UNKNOWN',
-        copies: item.copies,
-        assets: item.assets,
-      })),
-    });
+
 
     if (!env.PRODIGI_API_KEY) {
       throw new Error(
@@ -254,18 +244,12 @@ async function handleProdigiOrderCreation(order: any, squareOrder: any) {
           throw new Error(`No SKU found for order item: ${item.id}`);
         }
 
-        console.log(
-          'Processing item:',
-          item.id,
-          'with SKU:',
-          itemSku
-        );
-        console.log('Item assets:', item.assets);
+
 
         // FOR DEVELOPMENT ONLY: Hardcode test image URL
         // TODO: In production, use actual uploaded images from cloud storage
         const imageUrl = 'https://pwintyimages.blob.core.windows.net/samples/stars/test-sample-grey.png';
-        console.log('Using hardcoded test image URL for development:', imageUrl);
+
 
         // Map size to valid Prodigi size values
         const sizeMap: Record<string, string> = {
@@ -312,13 +296,9 @@ async function handleProdigiOrderCreation(order: any, squareOrder: any) {
       })
     );
 
-    console.log('Prepared items for Prodigi order:', items);
 
-    // FINAL DEBUG: Log the exact URLs being sent to Prodigi
-    items.forEach((item, index) => {
-      console.log(`[FINAL CHECK] Item ${index} URL:`, item.assets[0].url);
-      console.log(`[FINAL CHECK] Item ${index} URL includes localhost:`, item.assets[0].url.includes('localhost'));
-    });
+
+
 
     const prodigiOrder = await prodigiService.createOrder({
       shippingMethod: 'Standard',
@@ -346,7 +326,7 @@ async function handleProdigiOrderCreation(order: any, squareOrder: any) {
       },
     });
 
-    console.log('Created Prodigi order:', prodigiOrder);
+
 
     // Update order with Prodigi order ID and status
     await prisma.order.update({
@@ -361,7 +341,7 @@ async function handleProdigiOrderCreation(order: any, squareOrder: any) {
       },
     });
 
-    console.log('Updated order with Prodigi details');
+
   } catch (error) {
     const rawMessage = error instanceof Error ? error.message : 'Unknown error';
     const rawStack = error instanceof Error ? error.stack : undefined;

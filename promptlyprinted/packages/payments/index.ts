@@ -1,5 +1,5 @@
 import 'server-only';
-import { SquareClient, SquareEnvironment } from 'square';
+import { SquareClient } from 'square';
 
 // Lazy initialization to avoid module evaluation errors in build environments
 // where environment variables may not be available
@@ -11,8 +11,8 @@ function getSquareClient(): SquareClient {
     // SquareEnvironment.Production = "https://connect.squareup.com"
     // SquareEnvironment.Sandbox = "https://connect.squareupsandbox.com"
     const environment = process.env.SQUARE_ENVIRONMENT === 'production'
-      ? SquareEnvironment.Production
-      : SquareEnvironment.Sandbox;
+      ? "https://connect.squareup.com" // SquareEnvironment.Production
+      : "https://connect.squareupsandbox.com"; // SquareEnvironment.Sandbox
 
     if (!token) {
       throw new Error('SQUARE_ACCESS_TOKEN is not configured');
@@ -39,4 +39,4 @@ export const square = new Proxy({} as SquareClient, {
 });
 
 // Export Square types
-export type { Client as Square } from 'square';
+export type { SquareClient as Square } from 'square';

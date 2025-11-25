@@ -1,7 +1,7 @@
 'use client';
 
 import { Sparkles, Zap, TrendingUp, Crown } from 'lucide-react';
-import { MODEL_CREDIT_COSTS } from '@/lib/credits';
+import { MODEL_CREDIT_COSTS } from '@/lib/credits-shared';
 
 type ModelOption = {
   id: string;

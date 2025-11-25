@@ -36,13 +36,12 @@ const AuthLayout = ({ children }: AuthLayoutProps) => (
         />
       </div>
       <div className="relative z-20 mt-auto">
-        <blockquote className="space-y-2">
-          <p className="text-lg">
-            &ldquo;Promptly Printed has transformed the way we create custom apparel.
-            Fast, reliable, and stunning quality every time.&rdquo;
+        <div className="space-y-2 text-center">
+          <h2 className="text-2xl font-semibold">Create stunning designs instantly with AI</h2>
+          <p className="text-white/90">
+            Turn your designs into real products — printed on everything from shirts and mugs to totes and more.
           </p>
-          <footer className="text-sm">— Happy Customer</footer>
-        </blockquote>
+        </div>
       </div>
     </div>
     <div className="lg:p-8">

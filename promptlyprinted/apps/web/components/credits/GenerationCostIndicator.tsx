@@ -1,7 +1,7 @@
 'use client';
 
 import { Coins, AlertCircle, Sparkles } from 'lucide-react';
-import { MODEL_CREDIT_COSTS } from '@/lib/credits';
+import { MODEL_CREDIT_COSTS } from '@/lib/credits-shared';
 
 type GenerationCostIndicatorProps = {
   modelName: string;

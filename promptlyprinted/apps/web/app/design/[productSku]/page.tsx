@@ -54,12 +54,12 @@ export default async function DesignPage({ params, searchParams }: DesignPagePro
 
     // If product is not listed or not active in database, don't allow designing
     if (!dbProduct) {
-      console.log(`Product ${product.sku} is not listed or not active - blocking design page access`);
+
       notFound();
     }
   } catch (error) {
     // Database not available - allow access for development/build time
-    console.log('Database not available for design page verification');
+
   }
 
   // Map tshirtDetails to Product interface

@@ -24,6 +24,7 @@
     "@react-spring/web": "^10.0.1",
     "@react-three/drei": "^10.7.6",
     "@react-three/fiber": "^9.4.0",
+    "@repo/auth": "workspace:*",
     "@repo/cms": "workspace:*",
     "@repo/database": "workspace:^",
     "@repo/design-system": "workspace:*",

@@ -14,7 +14,7 @@ export function useCheckout() {
   const handleCheckout = async (items: CheckoutItem[]) => {
     try {
       setIsLoading(true);
-      console.log('Starting checkout process...');
+
 
       // Validate that all items have valid images
       for (const item of items) {
@@ -44,7 +44,7 @@ export function useCheckout() {
         };
       });
 
-      console.log('Storing items in localStorage:', checkoutItems);
+
 
       // Store items in localStorage for the checkout page
       // Exclude printReadyUrl from localStorage to avoid quota issues (it's only needed server-side)

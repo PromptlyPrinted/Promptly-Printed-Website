@@ -447,6 +447,9 @@ importers:
       '@react-three/fiber':
         specifier: ^9.4.0
         version: 9.4.0(@types/react@19.2.0)(react-dom@19.2.0)(react@19.2.0)(three@0.179.1)
+      '@repo/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       '@repo/cms':
         specifier: workspace:*
         version: link:../../packages/cms

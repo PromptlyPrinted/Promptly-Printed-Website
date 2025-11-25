@@ -24,7 +24,7 @@ temporaryImageStore.set = function (
     timestamp: value.timestamp || Date.now(),
     isPublic: value.isPublic ?? true,
   };
-  console.log('Setting temporary image:', { key, entry });
+
   return Map.prototype.set.call(this, key, entry) as TemporaryImageStore;
 };
 
@@ -32,18 +32,18 @@ temporaryImageStore.set = function (
 temporaryImageStore.get = function (key: string) {
   const value = Map.prototype.get.call(this, key);
   if (!value) {
-    console.error('Temporary image not found:', key);
+
     return undefined;
   }
 
   // Check if image has expired
   if (Date.now() - value.timestamp > temporaryImageStore.IMAGE_TTL) {
-    console.log('Image expired:', key);
+
     this.delete(key);
     return undefined;
   }
 
-  console.log('Getting temporary image:', { key, value });
+
   return value;
 };
 
@@ -54,7 +54,7 @@ function cleanupExpiredImages() {
 
   for (const [id, entry] of temporaryImageStore.entries()) {
     if (now - entry.timestamp > temporaryImageStore.IMAGE_TTL) {
-      console.log('Cleaning up old image:', id);
+
       temporaryImageStore.delete(id);
       count++;
     }

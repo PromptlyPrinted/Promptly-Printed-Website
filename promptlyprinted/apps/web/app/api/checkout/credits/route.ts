@@ -1,15 +1,15 @@
 import { NextResponse } from 'next/server';
-import { Client, Environment } from 'square';
+import { SquareClient } from 'square';
 import { randomUUID } from 'crypto';
 import { getAuthContext } from '@/lib/auth-helper';
 import { prisma } from '@repo/database';
 
 // Initialize Square client
-const squareClient = new Client({
-  accessToken: process.env.SQUARE_ACCESS_TOKEN,
+const squareClient = new SquareClient({
+  token: process.env.SQUARE_ACCESS_TOKEN,
   environment: process.env.SQUARE_ENVIRONMENT === 'production'
-    ? Environment.Production
-    : Environment.Sandbox,
+    ? "https://connect.squareup.com" as any // Environment.Production
+    : "https://connect.squareupsandbox.com" as any, // Environment.Sandbox
 });
 
 /**
