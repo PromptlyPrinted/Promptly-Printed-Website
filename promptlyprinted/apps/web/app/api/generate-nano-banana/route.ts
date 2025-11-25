@@ -201,7 +201,8 @@ export async function POST(request: Request) {
       imageUrl,
       editHistory = [],
       mode = 'edit', // 'edit' or 'generate'
-      referenceImages = [], // New: Array of 0-3 reference images
+      referenceImages = [], // New: Array of 0-3 (or 6 for Pro) reference images
+      aiModel = 'nano-banana', // 'nano-banana' or 'nano-banana-pro'
     } = await request.json();
 
     if (!prompt) {
@@ -219,9 +220,10 @@ export async function POST(request: Request) {
     }
 
     // Validate reference images count
-    if (referenceImages.length > 3) {
+    const maxRefImages = aiModel === 'nano-banana-pro' ? 6 : 3;
+    if (referenceImages.length > maxRefImages) {
       return NextResponse.json(
-        { error: 'Maximum of 3 reference images allowed' },
+        { error: `Maximum of ${maxRefImages} reference images allowed for ${aiModel}` },
         { status: 400 }
       );
     }
@@ -230,8 +232,8 @@ export async function POST(request: Request) {
     const authContext = await getAuthContext();
     const sessionId = authContext.sessionId || generateSessionId(request);
 
-    // Nano Banana uses 0.5 credits
-    const modelName = 'nano-banana';
+    // Nano Banana uses 0.5 credits, Pro uses 2
+    const modelName = aiModel === 'nano-banana-pro' ? 'nano-banana-pro' : 'nano-banana';
     const creditsRequired = MODEL_CREDIT_COSTS[modelName];
 
     // CREDIT CHECK: Authenticated users
@@ -251,7 +253,7 @@ export async function POST(request: Request) {
       }
     } else {
       // GUEST LIMIT CHECK: Unauthenticated users
-      const guestCheck = await checkGuestLimit(sessionId, authContext.ipAddress);
+      const guestCheck = await checkGuestLimit(sessionId, authContext.ipAddress || 'unknown');
 
       if (!guestCheck.allowed) {
         const hoursUntilReset = Math.ceil(
@@ -495,7 +497,7 @@ export async function POST(request: Request) {
         });
       } else {
         // Record guest generation
-        await recordGuestGeneration(sessionId, authContext.ipAddress);
+        await recordGuestGeneration(sessionId, authContext.ipAddress || 'unknown');
 
         // Record in database (no user ID)
         await recordImageGeneration({
@@ -514,7 +516,7 @@ export async function POST(request: Request) {
         });
 
         // Check remaining generations
-        const updatedLimit = await checkGuestLimit(sessionId, authContext.ipAddress);
+        const updatedLimit = await checkGuestLimit(sessionId, authContext.ipAddress || 'unknown');
 
         return NextResponse.json({
           data: [{

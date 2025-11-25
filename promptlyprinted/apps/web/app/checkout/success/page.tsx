@@ -166,6 +166,30 @@ export default async function CheckoutSuccessPage({
         // Continue with Prodigi order creation...
         await handleProdigiOrderCreation(order, squareOrder);
       }
+
+      // Add to Resend Audience (Marketing)
+      if (env.RESEND_AUDIENCE_ID && recipient?.emailAddress) {
+        try {
+          if (env.RESEND_API_KEY) {
+             await fetch(`https://api.resend.com/audiences/${env.RESEND_AUDIENCE_ID}/contacts`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                email: recipient.emailAddress,
+                first_name: recipient.displayName?.split(' ')[0],
+                last_name: recipient.displayName?.split(' ').slice(1).join(' '),
+                unsubscribed: false,
+              }),
+            });
+          }
+        } catch (err) {
+          console.error('Failed to add customer to Resend Audience:', err);
+        }
+      }
+
     } catch (error) {
       console.error('Error updating order:', error);
       // Log the error for monitoring

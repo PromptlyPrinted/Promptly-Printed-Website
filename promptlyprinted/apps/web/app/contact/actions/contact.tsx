@@ -31,6 +31,7 @@ export const contact = async (
       }
     }
 
+    // 1. Send email to admin
     await resend.emails.send({
       from: env.RESEND_FROM,
       to: env.RESEND_FROM,
@@ -38,6 +39,21 @@ export const contact = async (
       replyTo: email,
       react: <ContactTemplate name={name} email={email} message={message} />,
     });
+
+    // 2. Add to Resend Audience (Marketing)
+    if (env.RESEND_AUDIENCE_ID) {
+      try {
+        await resend.contacts.create({
+          email: email,
+          firstName: name,
+          unsubscribed: false,
+          audienceId: env.RESEND_AUDIENCE_ID,
+        });
+      } catch (err) {
+        console.error('Failed to add contact to Resend Audience:', err);
+        // Don't fail the request if marketing add fails
+      }
+    }
 
     return {};
   } catch (error) {

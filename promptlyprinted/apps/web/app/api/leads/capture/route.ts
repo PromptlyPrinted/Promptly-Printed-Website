@@ -64,8 +64,56 @@ export async function POST(request: NextRequest) {
 
 async function sendToEmailAutomation(leadData: any) {
   try {
-    // Beehiiv integration with publication_id
-    if (process.env.BEEHIIV_API_KEY && process.env.BEEHIIV_PUBLICATION_ID) {
+    // Resend Marketing (Audiences) - Preferred
+    if (process.env.RESEND_API_KEY) {
+      // 1. Add to Resend Audience (if Audience ID is configured)
+      if (process.env.RESEND_AUDIENCE_ID) {
+        try {
+          const audienceResponse = await fetch(`https://api.resend.com/audiences/${process.env.RESEND_AUDIENCE_ID}/contacts`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email: leadData.email,
+              first_name: leadData.metadata?.firstName,
+              last_name: leadData.metadata?.lastName,
+              unsubscribed: false,
+            }),
+          });
+
+          if (!audienceResponse.ok) {
+            console.error('Resend Audience API error:', await audienceResponse.text());
+          } else {
+            console.log('Added to Resend Audience');
+          }
+        } catch (err) {
+          console.error('Failed to add to Resend Audience:', err);
+        }
+      }
+
+      // 2. Send Welcome Email (Transactional)
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: 'hello@promptlyprinted.com',
+          to: leadData.email,
+          subject: `Welcome to ${leadData.campaignId} inspiration!`,
+          html: getWelcomeEmailTemplate(leadData),
+        }),
+      });
+
+      if (!response.ok) {
+        console.error('Resend API error:', await response.text());
+      }
+    } 
+    // Fallback to Beehiiv if Resend is not configured but Beehiiv is
+    else if (process.env.BEEHIIV_API_KEY && process.env.BEEHIIV_PUBLICATION_ID) {
       const response = await fetch(
         `https://api.beehiiv.com/v2/publications/${process.env.BEEHIIV_PUBLICATION_ID}/subscriptions`,
         {
@@ -100,27 +148,6 @@ async function sendToEmailAutomation(leadData: any) {
 
       if (!response.ok) {
         console.error('Beehiiv API error:', await response.text());
-      }
-    }
-
-    // Example Resend integration for welcome email
-    if (process.env.RESEND_API_KEY) {
-      const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: 'hello@promptlyprinted.com',
-          to: leadData.email,
-          subject: `Welcome to ${leadData.campaignId} inspiration!`,
-          html: getWelcomeEmailTemplate(leadData),
-        }),
-      });
-
-      if (!response.ok) {
-        console.error('Resend API error:', await response.text());
       }
     }
   } catch (error) {
