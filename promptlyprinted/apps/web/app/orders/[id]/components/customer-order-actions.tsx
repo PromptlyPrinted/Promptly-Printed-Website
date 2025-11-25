@@ -1,7 +1,13 @@
 'use client';
 
 import { Button } from '@repo/design-system/components/ui/button';
-import { AlertCircle, Ban, Edit, Truck, CheckCircle } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@repo/design-system/components/ui/tooltip';
+import { AlertCircle, Ban, Edit, Truck, CheckCircle, Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { CancelOrderDialog } from './cancel-order-dialog';
@@ -14,6 +20,7 @@ interface CustomerOrderActionsProps {
   prodigiOrderId: string | null;
   currentShippingMethod?: string;
   totalPrice: number;
+  orderCreatedAt: Date;
 }
 
 interface ActionAvailability {
@@ -37,12 +44,21 @@ export function CustomerOrderActions({
   prodigiOrderId,
   currentShippingMethod,
   totalPrice,
+  orderCreatedAt,
 }: CustomerOrderActionsProps) {
   const [actions, setActions] = useState<ActionAvailability | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showEditAddressDialog, setShowEditAddressDialog] = useState(false);
   const [showChangeShippingDialog, setShowChangeShippingDialog] = useState(false);
+
+  // Check 2-hour cancellation window (can only cancel WITHIN first 2 hours)
+  const now = new Date();
+  const createdAt = new Date(orderCreatedAt);
+  const hoursSinceCreation = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60);
+  const canCancelBasedOnTime = hoursSinceCreation < 2;
+  const minutesRemaining = Math.ceil((2 - hoursSinceCreation) * 60);
+  const hoursRemaining = (2 - hoursSinceCreation).toFixed(1);
 
   useEffect(() => {
     loadActions();
@@ -107,7 +123,8 @@ export function CustomerOrderActions({
     );
   }
 
-  const canCancel = actions?.cancel?.isAvailable === 'Yes';
+  const canCancelFromProdigi = actions?.cancel?.isAvailable === 'Yes';
+  const canCancel = canCancelFromProdigi && canCancelBasedOnTime;
   const canEditAddress = actions?.changeRecipientDetails?.isAvailable === 'Yes';
   const canChangeShipping = actions?.changeShippingMethod?.isAvailable === 'Yes';
 
@@ -134,21 +151,82 @@ export function CustomerOrderActions({
       <div className="rounded-md bg-blue-50 p-4 text-sm">
         <p className="font-semibold text-blue-900">You can still make changes!</p>
         <p className="mt-1 text-blue-700">
-          Your order hasn't started printing yet. You can cancel, fix your address, or change shipping speed.
+          Your order hasn't started printing yet. You can {canCancel ? 'cancel, ' : ''}fix your address{canChangeShipping ? ', or change shipping speed' : ''}.
         </p>
       </div>
 
+      {/* Show 2-hour restriction notice if cancellation window has expired */}
+      {canCancelFromProdigi && !canCancelBasedOnTime && (
+        <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-red-900">Cancellation Window Closed</p>
+              <p className="mt-1 text-red-700">
+                Orders can only be cancelled within 2 hours of being placed. Your order is now in production and cannot be cancelled or refunded.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Show time remaining if within cancellation window */}
+      {canCancelFromProdigi && canCancelBasedOnTime && minutesRemaining > 0 && (
+        <div className="rounded-md border border-yellow-200 bg-yellow-50 p-4 text-sm">
+          <div className="flex items-start gap-2">
+            <AlertCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-yellow-900">Cancellation Window: {minutesRemaining} minutes remaining</p>
+              <p className="mt-1 text-yellow-700">
+                You can cancel this order for a full refund, but only for the next {minutesRemaining} minute{minutesRemaining !== 1 ? 's' : ''}. After 2 hours, your order goes into production and cannot be cancelled.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-2">
-        {canCancel && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowCancelDialog(true)}
-            className="border-red-200 text-red-700 hover:bg-red-50"
-          >
-            <Ban className="mr-2 h-4 w-4" />
-            Cancel Order
-          </Button>
+        {canCancelFromProdigi && (
+          <TooltipProvider>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCancelDialog(true)}
+                disabled={!canCancelBasedOnTime}
+                className="border-red-200 text-red-700 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                title={!canCancelBasedOnTime ? 'Cancellation window closed - order is in production' : 'Cancel order'}
+              >
+                <Ban className="mr-2 h-4 w-4" />
+                Cancel Order
+                {canCancelBasedOnTime && minutesRemaining > 0 && minutesRemaining < 30 && (
+                  <span className="ml-2 text-xs">({minutesRemaining}m left)</span>
+                )}
+              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus:outline-none"
+                  >
+                    <Info className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="font-semibold">Cancellation Policy</p>
+                  <p className="mt-1 text-sm">
+                    Orders can only be cancelled within the first 2 hours of being placed.
+                    After 2 hours, your order enters production and cannot be cancelled or refunded.
+                  </p>
+                  {canCancelBasedOnTime && minutesRemaining > 0 && (
+                    <p className="mt-2 text-xs font-semibold text-yellow-200">
+                      ⏰ {minutesRemaining} minute{minutesRemaining !== 1 ? 's' : ''} remaining to cancel
+                    </p>
+                  )}
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
         )}
 
         {canEditAddress && (

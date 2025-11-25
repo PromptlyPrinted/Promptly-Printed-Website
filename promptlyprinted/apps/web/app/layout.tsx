@@ -19,6 +19,14 @@ const RootLayout = ({ children }: RootLayoutProperties) => (
     suppressHydrationWarning
   >
     <head>
+      {/* Preconnect to external domains for faster resource loading */}
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      <link rel="dns-prefetch" href="https://assets.basehub.com" />
+
+      {/* Preload critical resources */}
+      <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+
       <script
         dangerouslySetInnerHTML={{
           __html: `
@@ -30,10 +38,10 @@ const RootLayout = ({ children }: RootLayoutProperties) => (
                 localStorage.removeItem('next-themes');
                 localStorage.removeItem('theme-disabled');
               }
-              
+
               // Remove dark class from HTML element
               document.documentElement.classList.remove('dark');
-              
+
               // Prevent dark class from being added
               const observer = new MutationObserver(function(mutations) {
                 mutations.forEach(function(mutation) {
@@ -44,7 +52,7 @@ const RootLayout = ({ children }: RootLayoutProperties) => (
                   }
                 });
               });
-              
+
               observer.observe(document.documentElement, {
                 attributes: true,
                 attributeFilter: ['class']

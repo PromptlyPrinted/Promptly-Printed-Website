@@ -1,8 +1,14 @@
 import { database } from '@repo/database';
 import { NextResponse } from 'next/server';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    // Parse pagination parameters
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '50'); // Default 50 products per page
+    const skip = (page - 1) * limit;
+
     // First fetch all listed AND active products (both variant parents and regular products)
     // listed = shows in catalog, isActive = can be purchased
     const allProducts = await database.product.findMany({
@@ -10,6 +16,14 @@ export async function GET() {
         listed: true,
         isActive: true,
         countryCode: 'US',
+        NOT: {
+          OR: [
+            { name: { contains: 'Socks', mode: 'insensitive' } },
+            { name: { contains: 'Sock', mode: 'insensitive' } },
+            { productType: { contains: 'socks', mode: 'insensitive' } },
+            { category: { name: { contains: 'socks', mode: 'insensitive' } } },
+          ]
+        }
       },
       include: {
         category: true,
@@ -17,12 +31,18 @@ export async function GET() {
       orderBy: {
         name: 'asc',
       },
+      skip,
+      take: limit + 1, // Fetch one extra to check if there are more
     });
+
+    // Check if there are more products
+    const hasMore = allProducts.length > limit;
+    const productsToReturn = hasMore ? allProducts.slice(0, limit) : allProducts;
 
     // Filter to show only:
     // 1. Products that are variant parents (isVariantProduct: true)
     // 2. Products that are NOT variants themselves (parentProductId: null)
-    const products = allProducts.filter(
+    const products = productsToReturn.filter(
       (p) => p.isVariantProduct || (!p.parentProductId && !p.isVariantProduct)
     );
 
@@ -134,7 +154,20 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json({ products: normalized });
+    return NextResponse.json({
+      products: normalized,
+      pagination: {
+        page,
+        limit,
+        hasMore,
+        total: products.length,
+      }
+    }, {
+      headers: {
+        // Cache for 1 hour, revalidate in background for 24 hours
+        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+      },
+    });
   } catch (error) {
     console.error('Error fetching products list:', error);
     return NextResponse.json(

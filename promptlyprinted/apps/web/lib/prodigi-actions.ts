@@ -54,6 +54,37 @@ export async function checkOrderActions(
 }
 
 /**
+ * Check if an order can be cancelled based on time restrictions
+ * Orders can only be cancelled within the first 2 hours (before production starts)
+ * Returns an object with canCancel flag and relevant information
+ */
+export function checkCancellationEligibility(orderCreatedAt: Date): {
+  canCancel: boolean;
+  hoursSinceCreation: number;
+  minutesRemaining: number;
+  reason?: string;
+} {
+  const now = new Date();
+  const hoursSinceCreation = (now.getTime() - orderCreatedAt.getTime()) / (1000 * 60 * 60);
+  const minutesRemaining = Math.ceil((2 - hoursSinceCreation) * 60);
+
+  if (hoursSinceCreation >= 2) {
+    return {
+      canCancel: false,
+      hoursSinceCreation,
+      minutesRemaining: 0,
+      reason: 'Order cannot be cancelled. Orders can only be cancelled within 2 hours of being placed. Your order is now in production.',
+    };
+  }
+
+  return {
+    canCancel: true,
+    hoursSinceCreation,
+    minutesRemaining: minutesRemaining > 0 ? minutesRemaining : 0,
+  };
+}
+
+/**
  * Cancel an order with full refund
  */
 export async function cancelOrderWithRefund(orderId: number): Promise<{
@@ -82,6 +113,17 @@ export async function cancelOrderWithRefund(orderId: number): Promise<{
 
     if (order.status === OrderStatus.CANCELED) {
       throw new Error('Order is already cancelled');
+    }
+
+    // Check if order is within 2-hour cancellation window
+    const orderCreatedAt = new Date(order.createdAt);
+    const now = new Date();
+    const hoursSinceCreation = (now.getTime() - orderCreatedAt.getTime()) / (1000 * 60 * 60);
+
+    if (hoursSinceCreation >= 2) {
+      throw new Error(
+        'Order cannot be cancelled. Orders can only be cancelled within 2 hours of being placed. Your order is now in production and cannot be refunded.'
+      );
     }
 
     // Check if cancellation is available

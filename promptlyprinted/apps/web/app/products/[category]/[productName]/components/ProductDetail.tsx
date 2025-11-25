@@ -17,8 +17,21 @@ import '../product-detail-background.css';
  * - Checkout buttons and shipping/review tabs.
  */
 
-import { DesignPicker } from '@/components/design-picker';
+import dynamic from 'next/dynamic';
 import { PRODUCT_IMAGE_SIZES } from '@/constants/product-sizes';
+
+// Lazy load heavy components to reduce initial bundle size
+const DesignPicker = dynamic(
+  () => import('@/components/design-picker').then(mod => ({ default: mod.DesignPicker })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center h-48 bg-gray-100 rounded-lg">
+        <div className="text-gray-500">Loading design tools...</div>
+      </div>
+    )
+  }
+);
 import { useExchangeRates } from '@/hooks/useExchangeRates';
 import { useCheckout } from '@/hooks/useCheckout';
 import type { Product } from '@/types/product';
@@ -516,6 +529,22 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
   const [selectedModels, setSelectedModels] = useState<(number | string)[]>([
     LORAS[0].id,
   ]);
+
+  // Initialize selectedColor to white if not set from URL
+  useEffect(() => {
+    if (!selectedColor && product.specifications?.color) {
+      // Try to find white color first
+      const whiteColor = product.specifications.color.find((c: string) =>
+        c.toLowerCase().includes('white')
+      );
+      if (whiteColor) {
+        setSelectedColor(toKebabCase(whiteColor));
+      } else if (product.specifications.color.length > 0) {
+        // Fallback to first available color
+        setSelectedColor(toKebabCase(product.specifications.color[0]));
+      }
+    }
+  }, [product.specifications?.color, selectedColor]);
   const [selectedKontextModels, setSelectedKontextModels] = useState<(number | string)[]>([
     KONTEXT_LORAS[0].id,
   ]);
@@ -1723,11 +1752,18 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                   imageUrls: product.prodigiVariants?.imageUrls,
                   colorOptions: product.prodigiVariants?.colorOptions,
                 });
+                // Default to white for t-shirts and apparel, or the first available color
                 const colorValue =
                   selectedColor ||
-                  (product.specifications?.color?.[0]
-                    ? toKebabCase(product.specifications.color[0])
-                    : 'black');
+                  (product.specifications?.color?.find((c: string) =>
+                    c.toLowerCase().includes('white')
+                  )
+                    ? toKebabCase(product.specifications.color.find((c: string) =>
+                        c.toLowerCase().includes('white')
+                      )!)
+                    : product.specifications?.color?.[0]
+                      ? toKebabCase(product.specifications.color[0])
+                      : 'white');
                 const imageUrl = `${product.prodigiVariants?.imageUrls?.base}/${colorValue}.png`;
                 console.log('Using direct path:', {
                   imageUrl: imageUrl,

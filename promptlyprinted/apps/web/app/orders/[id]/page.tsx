@@ -89,6 +89,7 @@ export default async function CustomerOrderDetailPage({
           prodigiOrderId={order.prodigiOrderId}
           currentShippingMethod={order.shippingMethod || undefined}
           totalPrice={order.totalPrice}
+          orderCreatedAt={order.createdAt}
         />
       </Card>
 

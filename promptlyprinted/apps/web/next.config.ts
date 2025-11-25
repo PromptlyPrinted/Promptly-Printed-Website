@@ -6,6 +6,8 @@ import type { NextConfig } from 'next';
 let nextConfig: NextConfig = {
   ...config,
   output: 'standalone',
+  compress: true, // Enable gzip compression
+  poweredByHeader: false, // Remove X-Powered-By header
   typescript: {
     // Skip type checking during build - run separately
     ignoreBuildErrors: true,
@@ -19,12 +21,24 @@ let nextConfig: NextConfig = {
         hostname: 'localhost',
       },
     ],
+    // Enable image optimization in production, keep unoptimized in dev for speed
     unoptimized: process.env.NODE_ENV === 'development',
+    // Use modern image formats for better compression
+    formats: ['image/webp', 'image/avif'],
+    // Optimize for different device sizes
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    // Enable LQIP (Low Quality Image Placeholders)
+    dangerouslyAllowSVG: true,
+    contentDispositionType: 'attachment',
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   experimental: {
     ...(config.experimental || {}),
     // Optimize memory usage during builds
     webpackBuildWorker: true,
+    // Enable optimized package imports
+    optimizePackageImports: ['lucide-react', '@heroicons/react'],
   },
 };
 

@@ -3,7 +3,7 @@
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { QuizStep } from '../../halloween-2025/quiz/components/QuizStep';
-import { StyleResult } from '../../halloween-2025/quiz/components/StyleResult';
+import { BlackFridayStyleResult } from './components/BlackFridayStyleResult';
 
 export type StyleQuizAnswers = {
   audience?: 'mens' | 'womens' | 'kids' | 'babies';
@@ -26,6 +26,8 @@ export type StyleQuizAnswers = {
   wearLocation?: string;
   designPersonality?: string;
   campaign?: string;
+  bundle?: string; // Black Friday bundle type
+  bundleDiscount?: number; // Bundle discount percentage
 };
 
 const TOTAL_STEPS = 8;
@@ -34,9 +36,16 @@ function BlackFridayQuizContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const campaign = searchParams.get('campaign') || 'black-friday-2025';
+  const bundle = searchParams.get('bundle') || undefined;
+  const discount = searchParams.get('discount') || undefined;
 
   const [currentStep, setCurrentStep] = useState(1);
-  const [answers, setAnswers] = useState<StyleQuizAnswers>({ campaign, theme: 'blackfriday' });
+  const [answers, setAnswers] = useState<StyleQuizAnswers>({
+    campaign,
+    theme: 'blackfriday',
+    bundle,
+    bundleDiscount: discount ? parseFloat(discount) : undefined,
+  });
   const [showResults, setShowResults] = useState(false);
 
   const updateAnswer = (key: keyof StyleQuizAnswers, value: string) => {
@@ -62,7 +71,7 @@ function BlackFridayQuizContent() {
   const progressPercent = (currentStep / TOTAL_STEPS) * 100;
 
   if (showResults) {
-    return <StyleResult answers={answers} />;
+    return <BlackFridayStyleResult answers={answers} />;
   }
 
   return (

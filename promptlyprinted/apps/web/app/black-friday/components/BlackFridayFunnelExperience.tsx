@@ -8,10 +8,9 @@ import { ArrowRight, Sparkles } from 'lucide-react';
 import { EnhancedSocialProof } from '../../halloween-2025/components/EnhancedSocialProof';
 import { FinalCTA } from '../../halloween-2025/components/FinalCTA';
 import { HalloweenFAQ } from '../../halloween-2025/components/HalloweenFAQ';
-import { ProductBundlePreview } from '../../halloween-2025/components/ProductBundlePreview';
-import { LimitedTimeOffer } from '../../halloween-2025/components/LimitedTimeOffer';
 import { CompetitionLeaderboardSection } from '../../halloween-2025/components/CompetitionLeaderboardSection';
 import { BlackFridayHero } from './BlackFridayHero';
+import { BlackFridayBundles } from './BlackFridayBundles';
 
 type LeadStatus = 'idle' | 'submitting' | 'error' | 'submitted';
 
@@ -65,8 +64,11 @@ export const BlackFridayFunnelExperience = () => {
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
               Take the Black Friday Style Quiz
             </h2>
-            <p className="text-gray-300 mb-8">
+            <p className="text-gray-300 mb-6">
               Answer a few quick questions to get personalized apparel recommendations and enter our competition to win $200 cash!
+            </p>
+            <p className="text-yellow-400 text-sm mb-8">
+              *Competition entry only valid with purchase. Complete your order to be eligible for the prize.
             </p>
             <Link href="/black-friday/quiz">
               <Button className="bg-gradient-to-r from-yellow-500 to-red-600 hover:from-yellow-600 hover:to-red-700 text-white font-semibold px-8 py-4 rounded-xl shadow-lg flex items-center gap-2 mx-auto text-lg">
@@ -78,9 +80,7 @@ export const BlackFridayFunnelExperience = () => {
         </div>
       </section>
 
-      <ProductBundlePreview />
-
-      <LimitedTimeOffer />
+      <BlackFridayBundles />
 
       <CompetitionLeaderboardSection />
 

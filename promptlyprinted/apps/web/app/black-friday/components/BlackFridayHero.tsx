@@ -116,10 +116,15 @@ export const BlackFridayHero = ({ onLeadCaptured, status, defaultEmail }: BlackF
           </div>
         </div>
 
-        <div className="mt-10 flex flex-wrap justify-center items-center gap-6 text-gray-400 text-sm">
-          <div>🏆 $200 Cash Prize - Ends Nov 29th</div>
-          <div>🎨 AI-Powered Design Tools</div>
-          <div>⚡ Express Delivery Available</div>
+        <div className="mt-10 flex flex-col items-center gap-3">
+          <div className="flex flex-wrap justify-center items-center gap-6 text-gray-400 text-sm">
+            <div>🏆 $200 Cash Prize - Ends Nov 29th</div>
+            <div>🎨 AI-Powered Design Tools</div>
+            <div>⚡ Express Delivery Available</div>
+          </div>
+          <p className="text-xs text-gray-500 text-center max-w-md">
+            *Competition entry only valid with purchase. Buy a t-shirt to enter the $200 prize draw.
+          </p>
         </div>
       </div>
 
