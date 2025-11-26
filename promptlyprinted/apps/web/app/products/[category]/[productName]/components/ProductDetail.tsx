@@ -786,8 +786,17 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
   }, [removeBackground, generatedImage, processedImage]);
 
   // Helper function to upload image to permanent storage
-  const uploadImageToPermanentStorage = async (imageUrl: string): Promise<string> => {
+  const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: string; printReadyUrl?: string | null }> => {
     try {
+      // If it's already a permanent URL (starts with /uploads/), return it as is
+      // Note: We might not have the printReadyUrl if we just have the string, 
+      // but this case usually happens when loading saved designs which should have it.
+      // For now, we assume if it's already uploaded, we might need to re-fetch or just use it.
+      // However, this function is primarily called for NEW uploads.
+      if (imageUrl.startsWith('/uploads/')) {
+         return { url: imageUrl };
+      }
+
       const response = await fetch('/api/upload-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -803,11 +812,11 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
 
       const result = await response.json();
       console.log('Image uploaded to permanent storage:', result);
-      return result.url; // Return the permanent URL
+      return result; // Return the full result object { url, printReadyUrl, ... }
     } catch (error) {
       console.error('Failed to upload image:', error);
       // Return original URL as fallback
-      return imageUrl;
+      return { url: imageUrl };
     }
   };
 
@@ -1158,8 +1167,8 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
           console.log('Using permanent URL:', permanentUrl);
 
           // Upload to permanent storage
-          const uploadedUrl = await uploadImageToPermanentStorage(data.data[0].url);
-          setGeneratedImage(uploadedUrl);
+          const uploadedResult = await uploadImageToPermanentStorage(data.data[0].url);
+          setGeneratedImage(uploadedResult.url);
           toast({
             title: 'Success',
             description: 'Image generated and saved successfully!',
@@ -1271,8 +1280,8 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
         const data = await response.json();
         if (data.data?.[0]?.url) {
           // Upload to permanent storage instead of using proxy
-          const uploadedUrl = await uploadImageToPermanentStorage(data.data[0].url);
-          setGeneratedImage(uploadedUrl);
+          const uploadedResult = await uploadImageToPermanentStorage(data.data[0].url);
+          setGeneratedImage(uploadedResult.url);
           toast({
             title: 'Success',
             description: 'Image generated successfully!',
@@ -1414,7 +1423,8 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       if (!imageToSave.startsWith('/uploads/')) {
         // Upload to permanent storage if not already permanent
         console.log('Uploading image to permanent storage for saving...');
-        permanentUrl = await uploadImageToPermanentStorage(imageToSave);
+        const uploadedResult = await uploadImageToPermanentStorage(imageToSave);
+        permanentUrl = uploadedResult.url;
       } else {
         console.log('Image already in permanent storage:', imageToSave);
       }
@@ -1523,6 +1533,20 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       return;
     }
 
+    // Determine which image to use:
+    // If "Remove Background" is checked AND we have a processed image, use that.
+    // Otherwise, use the standard generated image.
+    const imageToUse = (removeBackground && processedImage) ? processedImage : generatedImage;
+
+    if (!imageToUse && !product.imageUrls.cover) {
+       toast({
+        title: 'Error',
+        description: 'No image to purchase. Please generate a design.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     // Calculate final price with discount
     const basePrice = product.pricing?.[0]?.amount || product.price || 0;
     const finalPrice = discountPercent > 0 ? basePrice * (1 - discountPercent) : basePrice;
@@ -1551,6 +1575,32 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       return;
     }
 
+    // Ensure the image is uploaded to permanent storage and we get the 300 DPI version
+    let finalImageUrl = imageToUse || product.imageUrls.cover;
+    let printReadyUrl = '';
+
+    // Only attempt upload if it's a generated image (data URL or temp URL)
+    // If it's the product cover image, we use it as is (though likely not print ready for custom print)
+    if (imageToUse) {
+        try {
+            toast({
+                title: 'Preparing Order',
+                description: 'Finalizing high-quality print file...',
+            });
+            const uploadResult = await uploadImageToPermanentStorage(imageToUse);
+            finalImageUrl = uploadResult.url;
+            printReadyUrl = uploadResult.printReadyUrl || uploadResult.url; // Fallback to standard URL if 300dpi fails
+        } catch (error) {
+            console.error('Failed to upload final image for checkout:', error);
+            // Fallback to the image we have, but warn
+             toast({
+                title: 'Warning',
+                description: 'Could not finalize high-res image. Using standard quality.',
+                variant: 'destructive',
+            });
+        }
+    }
+
     const itemToAdd = {
       id: `${numericProductId}-${selectedSize}-${selectedColor}`,
       productId: numericProductId, // Use numeric database ID
@@ -1561,27 +1611,36 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       quantity: quantity,
       size: selectedSize,
       color: selectedColor || 'Default',
-      imageUrl: generatedImage || product.imageUrls.cover,
+      imageUrl: finalImageUrl, // This is the display URL
       assets: [],
     };
     addItem(itemToAdd);
 
     const allItems = [...cartItems, itemToAdd];
-    const allItemsAsCheckoutItems = allItems.map(item => ({
-      productId: Number(item.productId), // Ensure it's a number
-      name: item.name,
-      price: item.price,
-      copies: item.quantity,
-      color: item.color,
-      size: item.size,
-      images: [{ url: item.imageUrl || product.imageUrls?.cover || '' }],
-      customization: (item as any).customization,
-      recipientCostAmount: item.price,
-      currency: 'USD',
-      merchantReference: `item_${item.productId}`,
-      sku: item.productId,
-      designUrl: item.imageUrl, // Use each item's specific design URL
-    }));
+    const allItemsAsCheckoutItems = allItems.map(item => {
+        // If this is the item we just added, use the printReadyUrl we just got
+        const isCurrentItem = item.id === itemToAdd.id;
+        const itemPrintUrl = isCurrentItem ? (printReadyUrl || item.imageUrl) : item.imageUrl;
+
+        return {
+            productId: Number(item.productId), // Ensure it's a number
+            name: item.name,
+            price: item.price,
+            copies: item.quantity,
+            color: item.color,
+            size: item.size,
+            images: [{ 
+                url: itemPrintUrl || '',
+                dpi: 300 // Explicitly signal this is intended to be 300 DPI
+            }],
+            customization: (item as any).customization,
+            recipientCostAmount: item.price,
+            currency: 'USD',
+            merchantReference: `item_${item.productId}`,
+            sku: item.productId,
+            designUrl: itemPrintUrl, // Use the high-res URL for the design
+        };
+    });
     
     initiateCheckout(allItemsAsCheckoutItems);
   };
