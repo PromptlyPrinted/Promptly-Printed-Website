@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
 
     const order = await prisma.order.create({
       data: {
-        userId: dbUser?.id || 'guest',
+        ...(dbUser?.id ? { userId: dbUser.id } : {}),
         totalPrice: total,
         discountCodeId: validatedDiscountCode?.id,
         discountAmount: discountAmount > 0 ? discountAmount : null,

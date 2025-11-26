@@ -131,6 +131,11 @@ async function handlePaymentUpdated(event: any) {
     return;
   }
 
+  if (!order.userId) {
+    console.error('Cannot add credits to order without user ID:', order.id);
+    return;
+  }
+
   try {
     // Add credits to user account
     const result = await addCredits(

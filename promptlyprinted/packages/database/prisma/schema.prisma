@@ -134,7 +134,7 @@ model Category {
 model Order {
   id                 Int                    @id @default(autoincrement())
   prodigiOrderId     String?                @unique
-  userId             String
+  userId             String?
   status             OrderStatus            @default(PENDING)
   totalPrice         Float
   discountCodeId     String?
@@ -159,7 +159,7 @@ model Order {
   availableActions   Json?
   charges            Charge[]
   payment            Payment?               @relation(fields: [paymentId], references: [id])
-  user               User                   @relation("UserOrders", fields: [userId], references: [id])
+  user               User?                  @relation("UserOrders", fields: [userId], references: [id])
   discountCode       DiscountCode?          @relation("OrderDiscount", fields: [discountCodeId], references: [id])
   orderItems         OrderItem[]
   prodigiErrors      OrderProcessingError[]
