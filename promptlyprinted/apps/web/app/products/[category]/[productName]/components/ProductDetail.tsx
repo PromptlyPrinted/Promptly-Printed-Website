@@ -523,7 +523,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
     undefined
   );
   const [selectedColor, setSelectedColor] = useState<string | undefined>(
-    colorFromUrl || undefined
+    colorFromUrl ? toKebabCase(colorFromUrl) : undefined
   );
   const [promptText, setPromptText] = useState(promptFromUrl || '');
   const [selectedModels, setSelectedModels] = useState<(number | string)[]>([
@@ -585,12 +585,9 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
 
   // Nano Banana state
   const [useNanoBanana, setUseNanoBanana] = useState(false);
-  const [nanoBananaEditHistory, setNanoBananaEditHistory] = useState<Array<{
-    prompt: string;
-    imageUrl: string;
-    timestamp: number;
-  }>>([]);
+  const [nanoBananaEditHistory, setNanoBananaEditHistory] = useState<any[]>([]);
   const [nanoBananaPrompt, setNanoBananaPrompt] = useState('');
+  const [nanoBananaModel, setNanoBananaModel] = useState<'nano-banana' | 'nano-banana-pro'>('nano-banana');
   const [showEditHistory, setShowEditHistory] = useState(false);
   // Reference images state (up to 3 optional reference images)
   const [referenceImages, setReferenceImages] = useState<string[]>([]);
@@ -860,7 +857,8 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
           imageUrl: inputImage,
           editHistory: nanoBananaEditHistory,
           mode: nanoBananaMode,
-          referenceImages: referenceImages, // Include reference images (0-3)
+          referenceImages: referenceImages, // Include reference images
+          aiModel: nanoBananaModel, // Pass selected model
         }),
       });
 
@@ -922,15 +920,16 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
     const files = Array.from(e.dataTransfer.files);
     const imageFiles = files.filter(file => file.type.startsWith('image/'));
 
-    // Process up to 3 images
-    const filesToProcess = imageFiles.slice(0, 3 - referenceImages.length);
+    // Process up to 3 or 6 images based on model
+    const maxImages = nanoBananaModel === 'nano-banana-pro' ? 6 : 3;
+    const filesToProcess = imageFiles.slice(0, maxImages - referenceImages.length);
 
     filesToProcess.forEach(file => {
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result as string;
         setReferenceImages(prev => {
-          if (prev.length < 3) {
+          if (prev.length < maxImages) {
             return [...prev, result];
           }
           return prev;
@@ -948,14 +947,15 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
     if (!files) return;
 
     const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
-    const filesToProcess = imageFiles.slice(0, 3 - referenceImages.length);
+    const maxImages = nanoBananaModel === 'nano-banana-pro' ? 6 : 3;
+    const filesToProcess = imageFiles.slice(0, maxImages - referenceImages.length);
 
     filesToProcess.forEach(file => {
       const reader = new FileReader();
       reader.onload = (e) => {
         const result = e.target?.result as string;
         setReferenceImages(prev => {
-          if (prev.length < 3) {
+          if (prev.length < maxImages) {
             return [...prev, result];
           }
           return prev;
@@ -1953,11 +1953,43 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                   </Label>
 
                   {useNanoBanana ? (
-                    /* Nano Banana: Multi-image upload (1-3 images) */
+                    /* Nano Banana: Multi-image upload (1-6 images) */
                     <div className="border-2 border-dashed border-purple-300 rounded-lg p-4 bg-gradient-to-br from-purple-50 to-indigo-50">
+                      {/* Model Selector */}
+                      <div className="mb-4">
+                        <Label className="text-purple-700 text-xs font-semibold mb-1 block">Model Version</Label>
+                        <div className="flex bg-white rounded-lg p-1 border border-purple-200 shadow-sm">
+                          <button
+                            onClick={() => setNanoBananaModel('nano-banana')}
+                            className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all ${
+                              nanoBananaModel === 'nano-banana'
+                                ? 'bg-purple-600 text-white shadow-sm'
+                                : 'text-purple-600 hover:bg-purple-50'
+                            }`}
+                          >
+                            Nano Banana (0.5 credits)
+                          </button>
+                          <button
+                            onClick={() => setNanoBananaModel('nano-banana-pro')}
+                            className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all ${
+                              nanoBananaModel === 'nano-banana-pro'
+                                ? 'bg-purple-600 text-white shadow-sm'
+                                : 'text-purple-600 hover:bg-purple-50'
+                            }`}
+                          >
+                            Nano Banana 2 (2 credits)
+                          </button>
+                        </div>
+                        <p className="text-[10px] text-purple-500 mt-1 px-1">
+                          {nanoBananaModel === 'nano-banana-pro' 
+                            ? 'Pro: Up to 6 reference images for advanced control.' 
+                            : 'Standard: Up to 3 reference images for quick edits.'}
+                        </p>
+                      </div>
+
                       {/* Reference Images Grid */}
-                      <div className="grid grid-cols-3 gap-2 mb-3">
-                        {[0, 1, 2].map((index) => (
+                      <div className={`grid gap-2 mb-3 ${nanoBananaModel === 'nano-banana-pro' ? 'grid-cols-3' : 'grid-cols-3'}`}>
+                        {Array.from({ length: nanoBananaModel === 'nano-banana-pro' ? 6 : 3 }).map((_, index) => (
                           <div
                             key={index}
                             className={`aspect-square rounded-lg border-2 border-dashed relative overflow-hidden ${
@@ -1984,22 +2016,28 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                                   </svg>
                                 </button>
                                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-1">
-                                  <span className="text-white text-xs font-medium">
+                                  <span className="text-white text-[10px] font-medium leading-tight block text-center">
                                     {index === 0 && 'Style'}
-                                    {index === 1 && 'Composition'}
+                                    {index === 1 && 'Layout'}
                                     {index === 2 && 'Texture'}
+                                    {index === 3 && 'Color'}
+                                    {index === 4 && 'Lighting'}
+                                    {index === 5 && 'Detail'}
                                   </span>
                                 </div>
                               </>
                             ) : (
                               <div className="absolute inset-0 flex flex-col items-center justify-center p-2">
-                                <svg className="w-6 h-6 text-purple-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-5 h-5 text-purple-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                 </svg>
-                                <span className="text-xs text-purple-500 text-center font-medium">
+                                <span className="text-[10px] text-purple-500 text-center font-medium leading-tight">
                                   {index === 0 && 'Style'}
                                   {index === 1 && 'Layout'}
                                   {index === 2 && 'Texture'}
+                                  {index === 3 && 'Color'}
+                                  {index === 4 && 'Light'}
+                                  {index === 5 && 'Detail'}
                                 </span>
                               </div>
                             )}
@@ -2008,7 +2046,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                       </div>
 
                       {/* Upload Controls */}
-                      {referenceImages.length < 3 && (
+                      {referenceImages.length < (nanoBananaModel === 'nano-banana-pro' ? 6 : 3) && (
                         <div
                           className="border-2 border-dashed border-purple-300 rounded-lg p-3 text-center cursor-pointer hover:border-purple-400 hover:bg-purple-100 transition-colors"
                           onDrop={handleReferenceImageDrop}
@@ -2028,7 +2066,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                             </svg>
                             <span className="text-sm text-purple-700 font-medium">Click or drag to upload</span>
                             <span className="text-xs text-purple-500 mt-1">
-                              ({3 - referenceImages.length} slot{3 - referenceImages.length !== 1 ? 's' : ''} remaining)
+                              ({(nanoBananaModel === 'nano-banana-pro' ? 6 : 3) - referenceImages.length} slot{(nanoBananaModel === 'nano-banana-pro' ? 6 : 3) - referenceImages.length !== 1 ? 's' : ''} remaining)
                             </span>
                           </label>
                         </div>
@@ -2051,6 +2089,13 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                           <div><strong>1 image:</strong> Style & mood</div>
                           <div><strong>2 images:</strong> Style + element</div>
                           <div><strong>3 images:</strong> Style + composition + texture</div>
+                          {nanoBananaModel === 'nano-banana-pro' && (
+                            <>
+                              <div><strong>4 images:</strong> + Color palette</div>
+                              <div><strong>5 images:</strong> + Lighting</div>
+                              <div><strong>6 images:</strong> + Fine detail</div>
+                            </>
+                          )}
                         </div>
                       )}
                     </div>
@@ -2494,7 +2539,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                           </div>
                           <div className="absolute right-0 bottom-0 left-0 bg-black/50 p-1 backdrop-blur-sm">
                             <p className="text-center font-medium text-xs text-white">
-                              {model.name}
+                              {model.name} (1 credit)
                             </p>
                           </div>
                           <div className="absolute top-1 left-1">
@@ -2608,7 +2653,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                           </div>
                           <div className="absolute right-0 bottom-0 left-0 bg-black/50 p-1 backdrop-blur-sm">
                             <p className="text-center font-medium text-xs text-white">
-                              {lora.name}
+                              {lora.name} (1 credit)
                             </p>
                           </div>
                           <div className="absolute top-1 left-1">

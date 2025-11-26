@@ -102,6 +102,7 @@ export const StyleResult = ({ answers }: StyleResultProps) => {
       giveawayTier: giveawayTier,
       // Legacy compatibility
       clothingType: answers.styleType || 'tee',
+      color: answers.colorPreference || '',
     });
 
     // Preserve UTM parameters if present in answers

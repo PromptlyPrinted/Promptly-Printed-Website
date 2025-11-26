@@ -14,7 +14,7 @@ if (!process.env.GOOGLE_GEMINI_API_KEY) {
 }
 
 const GEMINI_API_KEY = process.env.GOOGLE_GEMINI_API_KEY || null;
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent';
+// Dynamic API URL based on model selection
 
 interface EditHistoryItem {
   prompt: string;
@@ -69,6 +69,9 @@ function enhancePromptWithBestPractices(userPrompt: string): string {
     // Suggest considering composition for detailed prompts
     enhancedPrompt += '. Use professional photographic composition and framing.';
   }
+
+  // Quality boosters - always ensure high fidelity
+  enhancedPrompt += '. High resolution, detailed, sharp focus, professional quality, 8k, highly detailed.';
 
   return enhancedPrompt;
 }
@@ -277,12 +280,17 @@ export async function POST(request: Request) {
       }
     }
 
+    // Determine Gemini Model URL
+    const geminiModelId = aiModel === 'nano-banana-pro' ? 'gemini-3.0-flash-image' : 'gemini-2.5-flash-image';
+    const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModelId}:generateContent`;
+
     console.log('Making request to Google Gemini Nano Banana with:', {
       prompt,
       imageUrl: imageUrl ? 'provided' : 'none',
       editHistoryLength: editHistory.length,
       mode,
       referenceImageCount: referenceImages.length,
+      model: geminiModelId,
     });
 
     try {
@@ -327,7 +335,7 @@ export async function POST(request: Request) {
 
         // Make API call to Gemini
         console.log('Sending to Gemini API with', contentParts.length - 1, 'images');
-        const response = await fetch(GEMINI_API_URL, {
+        const response = await fetch(geminiApiUrl, {
           method: 'POST',
           headers: {
             'x-goog-api-key': GEMINI_API_KEY!,
@@ -357,7 +365,7 @@ export async function POST(request: Request) {
         console.log('Initial generation successful');
       } else {
         // Text-to-image generation mode
-        const response = await fetch(GEMINI_API_URL, {
+        const response = await fetch(geminiApiUrl, {
           method: 'POST',
           headers: {
             'x-goog-api-key': GEMINI_API_KEY!,
@@ -395,7 +403,9 @@ export async function POST(request: Request) {
       const embellishmentPrompt = `Subtly enhance this image. Improve the lighting, increase the dynamic range, and sharpen the details to make it look more vibrant and professional. Do not change any of the content, characters, or objects. Only enhance the visual quality, clarity, and impact of the existing image.`;
 
       // Make the embellishment API call
-      const embellishmentResponse = await fetch(GEMINI_API_URL, {
+      // Always use the standard model for embellishment to save costs/time unless Pro is specifically needed
+      // For now, we'll use the same model as the generation for consistency
+      const embellishmentResponse = await fetch(geminiApiUrl, {
         method: 'POST',
         headers: {
           'x-goog-api-key': GEMINI_API_KEY!,

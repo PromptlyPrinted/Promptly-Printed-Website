@@ -76,8 +76,9 @@ export function OfferPageContent() {
     ? `${product.imageUrls.base}/${firstColor.filename}`
     : '/placeholder-product.png';
 
+  const urlColor = searchParams.get('color');
   const [selectedSize, setSelectedSize] = useState(product.size[Math.floor(product.size.length / 2)] || 'M');
-  const [selectedColor, setSelectedColor] = useState(firstColor?.name || 'White');
+  const [selectedColor, setSelectedColor] = useState(urlColor || firstColor?.name || 'White');
 
   // Available colors from product data
   const colors = product.colorOptions?.map(c => c.name) || ['White'];

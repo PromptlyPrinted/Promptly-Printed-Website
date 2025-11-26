@@ -297,32 +297,32 @@ function StyleQuizPageContent() {
               {
                 id: 'flux-dev',
                 label: 'Flux Dev',
-                description: 'Balanced, versatile, high quality',
+                description: 'Balanced, versatile, high quality (1 credit)',
                 icon: '⚡',
               },
               {
                 id: 'lora-normal',
                 label: 'LORA Normal',
-                description: 'Artistic detail, vibrant colors',
+                description: 'Artistic detail, vibrant colors (1 credit)',
                 icon: '🎨',
               },
               {
                 id: 'lora-context',
                 label: 'LORA Context',
-                description: 'Smart themes, storytelling',
+                description: 'Smart themes, storytelling (1 credit)',
                 icon: '📖',
               },
               {
                 id: 'nano-banana',
                 label: 'Nano Banana',
-                description: 'Fast, clean, minimalist',
+                description: 'Fast, clean, minimalist (0.5 credits)',
                 icon: '🍌',
               },
               {
-                id: 'seedance',
-                label: 'SeeDance',
-                description: 'Dynamic, energetic visuals',
-                icon: '💃',
+                id: 'nano-banana-pro',
+                label: 'Nano Banana 2',
+                description: 'Advanced, 6-image input (2 credits)',
+                icon: '🚀',
               },
             ]}
             selectedValue={answers.aiModel}
