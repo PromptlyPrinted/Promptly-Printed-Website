@@ -173,7 +173,7 @@ export const SignUp = () => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-2 px-4 rounded-md shadow-sm text-sm font-medium bg-[#7C3AED] text-white hover:bg-[#6D28D9] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#7C3AED] disabled:opacity-50"
+          className="w-full py-2 px-4 rounded-md shadow-sm text-sm font-medium bg-gradient-to-r from-[#16C1A8] to-[#0D2C45] text-white hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#16C1A8] disabled:opacity-50"
         >
           {loading ? 'Creating account...' : 'Sign Up'}
         </button>
@@ -183,7 +183,7 @@ export const SignUp = () => {
       <div className="text-center">
         <p className="text-sm text-gray-600">
           Already have an account?{' '}
-          <Link href="/sign-in" className="font-medium text-blue-600 hover:text-blue-500">
+          <Link href="/sign-in" className="font-medium text-[#16C1A8] hover:text-[#0D2C45]">
             Sign in
           </Link>
         </p>

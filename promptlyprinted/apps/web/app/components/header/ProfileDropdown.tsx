@@ -200,13 +200,17 @@ export function ProfileDropdown({
                 <div className="space-y-3">
                   <Button
                     asChild
-                    className="w-full bg-black text-white hover:bg-gray-800"
+                    className="w-full bg-gradient-to-r from-[#16C1A8] to-[#0D2C45] text-white hover:opacity-90"
                   >
                     <Link href={`${process.env.NEXT_PUBLIC_APP_URL}/sign-in`}>
                       Sign In
                     </Link>
                   </Button>
-                  <Button asChild variant="outline" className="w-full">
+                  <Button 
+                    asChild 
+                    variant="outline" 
+                    className="w-full border-[#16C1A8] text-[#16C1A8] hover:bg-[#16C1A8]/10 hover:text-[#16C1A8]"
+                  >
                     <Link href={`${process.env.NEXT_PUBLIC_APP_URL}/sign-up`}>
                       Create Account
                     </Link>
