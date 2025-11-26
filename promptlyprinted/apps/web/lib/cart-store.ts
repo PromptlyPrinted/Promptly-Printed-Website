@@ -18,6 +18,7 @@ export interface CartItem {
     url: string;
     printArea: string;
   }[];
+  printReadyUrl?: string;
 }
 
 interface CartStore {
@@ -92,6 +93,8 @@ export const useCartStore = create<CartStore>()(
                 ...item,
                 // Don't store base64 imageUrl in localStorage
                 imageUrl: item.imageUrl.startsWith('data:image') ? '' : item.imageUrl,
+                // printReadyUrl should be a remote URL, but check just in case
+                printReadyUrl: item.printReadyUrl?.startsWith('data:image') ? '' : item.printReadyUrl,
                 assets: item.assets.map((asset) => {
                   // If the URL is a base64 string, don't store it in localStorage
                   if (asset.url.startsWith('data:image')) {

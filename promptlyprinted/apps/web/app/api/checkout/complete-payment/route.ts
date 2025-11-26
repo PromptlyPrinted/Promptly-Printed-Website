@@ -30,6 +30,7 @@ const CheckoutItemSchema = z.object({
   color: z.string(),
   size: z.string(),
   designUrl: z.string().optional(),
+  printReadyUrl: z.string().optional(),
 });
 
 const CompletePaymentSchema = z.object({
@@ -183,6 +184,7 @@ export async function POST(request: NextRequest) {
                   size: item.size,
                   sku: product.sku, // Store SKU for Prodigi order creation
                   designUrl: item.designUrl, // Store in attributes as fallback
+                  printReadyUrl: item.printReadyUrl, // Store 300 DPI URL
                 },
                 assets: item.designUrl ? [{ url: item.designUrl }] : undefined,
               };
@@ -300,7 +302,62 @@ export async function POST(request: NextRequest) {
 
     // Create Prodigi order if payment is completed
     if (paymentResponse.payment.status === 'COMPLETED') {
+      // Try to claim this order for Prodigi processing by setting a processing flag
+      // This prevents race conditions with the webhook
+      const processingKey = `processing-payment-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+      
       try {
+        // Atomic check-and-set: only update if prodigiOrderId is null AND not already processing
+        const claimResult = await prisma.order.updateMany({
+          where: {
+            id: order.id,
+            prodigiOrderId: null,
+            // We can't easily check JSON fields in updateMany with Prisma + SQLite/Postgres consistently
+            // so we rely on the fact that we just created the order and it shouldn't be processing yet.
+            // However, the webhook might have fired VERY fast.
+          },
+          data: {
+            metadata: {
+              ...(updatedOrder.metadata as object || {}),
+              squarePaymentId: paymentResponse.payment.id,
+              squarePaymentStatus: paymentResponse.payment.status,
+              prodigiProcessingKey: processingKey,
+              prodigiProcessingStarted: new Date().toISOString(),
+              source: 'complete-payment', // Track source of creation
+            },
+          },
+        });
+
+        // Re-fetch order to check if we successfully claimed it (or if it was already claimed/processed)
+        const currentOrder = await prisma.order.findUnique({
+          where: { id: order.id },
+          select: { metadata: true, prodigiOrderId: true }
+        });
+        
+        const metadata = currentOrder?.metadata as any;
+        const isClaimedByUs = metadata?.prodigiProcessingKey === processingKey;
+        
+        if (currentOrder?.prodigiOrderId || !isClaimedByUs) {
+          console.log('[Prodigi Order] Already being processed or completed by webhook, skipping', {
+            orderId: order.id,
+            prodigiOrderId: currentOrder?.prodigiOrderId,
+            claimedBy: metadata?.prodigiProcessingKey
+          });
+          // Return success as the order is being handled
+          return NextResponse.json({
+            success: true,
+            orderId: order.id,
+            paymentId: paymentResponse.payment.id,
+            status: paymentResponse.payment.status,
+            message: 'Order created and payment successful. Fulfillment processing handled by webhook.',
+          });
+        }
+
+        console.log('[Prodigi Order] Claimed for processing', {
+          orderId: order.id,
+          processingKey,
+        });
+
         console.log('[Prodigi Order] Starting creation process...', {
           orderId: order.id,
           itemCount: items.length,
@@ -335,7 +392,8 @@ export async function POST(request: NextRequest) {
           console.log('[Prodigi Order] SKU conversion:', { dbSku, prodigiSku: sku });
 
           // Get design URL from item or order item assets/attributes
-          let designUrl = item.designUrl;
+          // Prefer printReadyUrl (300 DPI) if available
+          let designUrl = item.printReadyUrl || item.designUrl;
 
           // If no design URL in item, try to get from order item assets
           if (!designUrl) {
@@ -351,7 +409,8 @@ export async function POST(request: NextRequest) {
           if (!designUrl) {
             const orderItemAttributes = updatedOrder.orderItems[index]?.attributes;
             if (orderItemAttributes && typeof orderItemAttributes === 'object') {
-              designUrl = (orderItemAttributes as any).designUrl;
+              const attrs = orderItemAttributes as any;
+              designUrl = attrs.printReadyUrl || attrs.designUrl;
             }
           }
 
@@ -390,7 +449,7 @@ export async function POST(request: NextRequest) {
             },
             assets: [
               {
-                printArea: 'default',
+                printArea: 'front', // Changed from 'default' to 'front' for t-shirts
                 url: designUrl,
               },
             ],

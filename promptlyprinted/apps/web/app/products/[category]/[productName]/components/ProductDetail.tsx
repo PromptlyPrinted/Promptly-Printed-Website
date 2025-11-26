@@ -1603,7 +1603,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
 
     const itemToAdd = {
       id: `${numericProductId}-${selectedSize}-${selectedColor}`,
-      productId: numericProductId, // Use numeric database ID
+      productId: String(numericProductId), // Use numeric database ID as string
       name: product.name,
       price: finalPrice, // Apply discount to cart price
       originalPrice: basePrice, // Store original price for reference
@@ -1612,6 +1612,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       size: selectedSize,
       color: selectedColor || 'Default',
       imageUrl: finalImageUrl, // This is the display URL
+      printReadyUrl: printReadyUrl, // Store the 300 DPI URL
       assets: [],
     };
     addItem(itemToAdd);
@@ -1620,7 +1621,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
     const allItemsAsCheckoutItems = allItems.map(item => {
         // If this is the item we just added, use the printReadyUrl we just got
         const isCurrentItem = item.id === itemToAdd.id;
-        const itemPrintUrl = isCurrentItem ? (printReadyUrl || item.imageUrl) : item.imageUrl;
+        const itemPrintUrl = isCurrentItem ? (printReadyUrl || item.imageUrl) : (item.printReadyUrl || item.imageUrl);
 
         return {
             productId: String(item.productId), // Ensure it's a string

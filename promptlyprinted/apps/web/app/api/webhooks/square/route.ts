@@ -372,51 +372,63 @@ export async function POST(req: Request) {
 
       // Create Prodigi order now that payment is completed
       // Use atomic update to prevent race conditions from multiple webhook calls
-      // Try to claim this order for Prodigi processing by setting a processing flag
-      const processingKey = `processing-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+    // Try to claim this order for Prodigi processing by setting a processing flag
+    const processingKey = `processing-webhook-${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
-      try {
-        // Atomic check-and-set: only update if prodigiOrderId is null AND not already processing
-        const claimResult = await prisma.order.updateMany({
-          where: {
-            id: updatedOrder.id,
-            prodigiOrderId: null,
-            // Ensure we're not already processing (check metadata doesn't have a recent processingKey)
+    try {
+      // Atomic check-and-set: only update if prodigiOrderId is null AND not already processing
+      const claimResult = await prisma.order.updateMany({
+        where: {
+          id: updatedOrder.id,
+          prodigiOrderId: null,
+          // We can't easily check JSON fields in updateMany with Prisma + SQLite/Postgres consistently
+          // so we rely on the fact that we just created the order and it shouldn't be processing yet.
+        },
+        data: {
+          metadata: {
+            ...(updatedOrder.metadata as object || {}),
+            squarePaymentId: payment.id,
+            squarePaymentStatus: payment.status,
+            squareOrderId: orderId,
+            prodigiProcessingKey: processingKey,
+            prodigiProcessingStarted: new Date().toISOString(),
+            source: 'webhook', // Track source of creation
           },
-          data: {
-            metadata: {
-              ...(updatedOrder.metadata as object || {}),
-              squarePaymentId: payment.id,
-              squarePaymentStatus: payment.status,
-              squareOrderId: orderId,
-              prodigiProcessingKey: processingKey,
-              prodigiProcessingStarted: new Date().toISOString(),
-            },
-          },
-        });
+        },
+      });
 
-        if (claimResult.count === 0) {
-          // Either already has prodigiOrderId or another process claimed it
-          console.log('[Prodigi Order] Already being processed or completed, skipping', {
-            orderId: updatedOrder.id,
-          });
-          return NextResponse.json({
-            received: true,
-            message: 'Order already being processed or Prodigi order exists',
-          });
-        }
+      // Re-fetch order to check if we successfully claimed it (or if it was already claimed/processed)
+      const currentOrder = await prisma.order.findUnique({
+        where: { id: updatedOrder.id },
+        select: { metadata: true, prodigiOrderId: true }
+      });
+      
+      const metadata = currentOrder?.metadata as any;
+      const isClaimedByUs = metadata?.prodigiProcessingKey === processingKey;
 
-        console.log('[Prodigi Order] Claimed for processing', {
+      if (currentOrder?.prodigiOrderId || !isClaimedByUs) {
+        console.log('[Prodigi Order] Already being processed or completed, skipping', {
           orderId: updatedOrder.id,
-          processingKey,
+          prodigiOrderId: currentOrder?.prodigiOrderId,
+          claimedBy: metadata?.prodigiProcessingKey
         });
-      } catch (claimError) {
-        console.error('[Prodigi Order] Failed to claim order:', claimError);
         return NextResponse.json({
           received: true,
-          message: 'Failed to claim order for processing',
+          message: 'Order already being processed or Prodigi order exists',
         });
       }
+
+      console.log('[Prodigi Order] Claimed for processing', {
+        orderId: updatedOrder.id,
+        processingKey,
+      });
+    } catch (claimError) {
+      console.error('[Prodigi Order] Failed to claim order:', claimError);
+      return NextResponse.json({
+        received: true,
+        message: 'Failed to claim order for processing',
+      });
+    }
 
       try {
         console.log('[Prodigi Order] Starting creation from webhook...', {
