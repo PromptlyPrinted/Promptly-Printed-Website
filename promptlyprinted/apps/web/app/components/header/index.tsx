@@ -15,6 +15,8 @@ import { ResourcesDropdown } from './ResourcesDropdown';
 import { SearchOverlay } from './SearchOverlay';
 import { useCountry } from '@/components/providers/CountryProvider';
 import { SUPPORTED_COUNTRIES } from '@/utils/currency';
+import { CreditBalance } from '@/components/credits/CreditBalance';
+import { US, GB, DE, FR, IT, ES, NL, BE, IE, AT, PT, FI, GR, AU, CH, SE, AE, DK, NO, NZ, KR, JP, SG, CN } from 'country-flag-icons/react/3x2';
 
 const navigationItems = [
   { name: 'Home', href: '/' },
@@ -394,14 +396,22 @@ const ResourcesDropdownMobileExpanded = ({
 
 
 
+const FlagIcon = ({ countryCode }: { countryCode: string }) => {
+  const flags: Record<string, any> = {
+    US, GB, DE, FR, IT, ES, NL, BE, IE, AT, PT, FI, GR, AU, CH, SE, AE, DK, NO, NZ, KR, JP, SG, CN
+  };
+  const Flag = flags[countryCode];
+  return Flag ? <Flag className="w-4 h-3 rounded-sm" /> : <Globe className="h-4 w-4 text-gray-500" />;
+};
+
 const CountrySelector = ({ mobile = false }: { mobile?: boolean }) => {
   const { countryCode, setCountry } = useCountry();
 
   return (
     <div className={`relative flex items-center ${mobile ? 'w-full justify-between px-3 py-2 rounded-md hover:bg-gray-100 mb-2' : 'mr-2'}`}>
       {mobile && <span className="font-medium text-gray-700">Region</span>}
-      <div className="flex items-center gap-1">
-        <Globe className="h-4 w-4 text-gray-500" />
+      <div className="flex items-center gap-2">
+        <FlagIcon countryCode={countryCode} />
         <select
           value={countryCode}
           onChange={(e) => setCountry(e.target.value)}
@@ -650,6 +660,7 @@ export const Header = () => {
 
           {/* Desktop Icons */}
           <div className="hidden items-center space-x-4 lg:flex">
+            <CreditBalance compact />
             <CountrySelector />
             <button
               onClick={() => setSearchOpen(true)}
@@ -767,6 +778,9 @@ export const Header = () => {
 
           </div>
           <nav className="mt-6 px-4">
+            <div className="mb-4 px-2">
+              <CreditBalance />
+            </div>
             <CountrySelector mobile />
             <ul className="space-y-4">
               {navigationItems.map((item) => {

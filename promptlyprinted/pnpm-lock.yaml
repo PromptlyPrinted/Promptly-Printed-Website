@@ -495,6 +495,9 @@ importers:
       '@types/uuid':
         specifier: ^10.0.0
         version: 10.0.0
+      country-flag-icons:
+        specifier: ^1.6.4
+        version: 1.6.4
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
@@ -7486,7 +7489,7 @@ packages:
       '@sentry/bundler-plugin-core': 2.22.7
       unplugin: 1.0.1
       uuid: 9.0.1
-      webpack: 5.102.1
+      webpack: 5.102.1(esbuild@0.27.0)
     transitivePeerDependencies:
       - encoding
       - supports-color
@@ -10035,6 +10038,10 @@ packages:
       js-yaml: 4.1.1
       parse-json: 5.2.0
       typescript: 5.8.3
+    dev: false
+
+  /country-flag-icons@1.6.4:
+    resolution: {integrity: sha512-Z3Zi419FI889tlElMsVhCIS5eRkiLDWixr576J5DPiTe5RGxpbRi+enMpHdYVp5iK5WFjr8P/RgyIFAGhFsiFg==}
     dev: false
 
   /create-require@1.1.1:
@@ -17369,7 +17376,7 @@ packages:
       supports-hyperlinks: 2.3.0
     dev: true
 
-  /terser-webpack-plugin@5.3.14(webpack@5.102.1):
+  /terser-webpack-plugin@5.3.14(esbuild@0.27.0)(webpack@5.102.1):
     resolution: {integrity: sha512-vkZjpUjb6OMS7dhV+tILUW6BhpDR7P2L/aQSAv+Uwk+m8KATX9EccViHTJR2qDtACKPIYndLGCyl3FMo+r2LMw==}
     engines: {node: '>= 10.13.0'}
     peerDependencies:
@@ -17386,11 +17393,12 @@ packages:
         optional: true
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
+      esbuild: 0.27.0
       jest-worker: 27.5.1
       schema-utils: 4.3.3
       serialize-javascript: 6.0.2
       terser: 5.44.1
-      webpack: 5.102.1
+      webpack: 5.102.1(esbuild@0.27.0)
     dev: false
 
   /terser@5.44.1:
@@ -18693,7 +18701,7 @@ packages:
     resolution: {integrity: sha512-kyDivFZ7ZM0BVOUteVbDFhlRt7Ah/CSPwJdi8hBpkK7QLumUqdLtVfm/PX/hkcnrvr0i77fO5+TjZ94Pe+C9iw==}
     dev: false
 
-  /webpack@5.102.1:
+  /webpack@5.102.1(esbuild@0.27.0):
     resolution: {integrity: sha512-7h/weGm9d/ywQ6qzJ+Xy+r9n/3qgp/thalBbpOi5i223dPXKi04IBtqPN9nTd+jBc7QKfvDbaBnFipYp4sJAUQ==}
     engines: {node: '>=10.13.0'}
     hasBin: true
@@ -18725,7 +18733,7 @@ packages:
       neo-async: 2.6.2
       schema-utils: 4.3.3
       tapable: 2.3.0
-      terser-webpack-plugin: 5.3.14(webpack@5.102.1)
+      terser-webpack-plugin: 5.3.14(esbuild@0.27.0)(webpack@5.102.1)
       watchpack: 2.4.4
       webpack-sources: 3.3.3
     transitivePeerDependencies:

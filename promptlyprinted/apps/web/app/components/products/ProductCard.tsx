@@ -5,6 +5,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useCountry } from '@/components/providers/CountryProvider';
+import { useExchangeRates } from '@/hooks/useExchangeRates';
+import { formatPrice } from '@/utils/currency';
 
 interface ProductCardProps {
   product: Product;
@@ -137,6 +140,16 @@ export function ProductCard({ product }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [currentColorIndex, setCurrentColorIndex] = useState(0);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  
+  const { currency } = useCountry();
+  const { convertPrice, loading: ratesLoading } = useExchangeRates();
+
+  const displayPrice = useMemo(() => {
+    const basePrice = product.price || 0;
+    if (ratesLoading) return formatPrice(basePrice, 'USD');
+    const converted = convertPrice(basePrice, 'USD', currency);
+    return formatPrice(converted, currency);
+  }, [product.price, currency, ratesLoading, convertPrice]);
   
   const categorySlug = createSlug(product.category?.name || '');
   const productSlug = createSlug(product.name);
@@ -308,7 +321,7 @@ export function ProductCard({ product }: ProductCardProps) {
           )}
           
           <div className="flex items-center justify-between mt-3">
-            <p className="text-lg font-bold text-gray-900">${(product.price || 0).toFixed(2)}</p>
+            <p className="text-lg font-bold text-gray-900">{displayPrice}</p>
           </div>
 
           {/* Design Now Button */}
