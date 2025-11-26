@@ -24,10 +24,25 @@ async function getOrder(id: string, userId: string) {
       id: Number.parseInt(id),
       userId: userId, // Ensure user can only see their own orders
     },
-    include: {
-      orderItems: true,
+    select: {
+      id: true,
+      createdAt: true,
+      totalPrice: true,
+      status: true,
+      prodigiOrderId: true,
+      prodigiStage: true,
+      shippingMethod: true,
+      metadata: true,
       recipient: true,
       shipments: true,
+      orderItems: {
+        select: {
+          id: true,
+          copies: true,
+          price: true,
+          attributes: true,
+        },
+      },
     },
   });
 
@@ -77,6 +92,22 @@ export default async function CustomerOrderDetailPage({
             status={order.status}
             prodigiStage={order.prodigiStage || undefined}
           />
+        </Card>
+      )}
+
+      {/* Error Display */}
+      {(order.metadata as any)?.prodigiError && (
+        <Card className="border-red-200 bg-red-50 p-6">
+          <h2 className="mb-2 font-semibold text-red-900 text-xl">Order Processing Issue</h2>
+          <p className="text-red-700">
+            There was an issue sending your order to the printer:
+          </p>
+          <p className="mt-2 font-mono text-red-800 text-sm bg-red-100 p-2 rounded">
+            {(order.metadata as any).prodigiError}
+          </p>
+          <p className="mt-4 text-red-700 text-sm">
+            Please contact support with your Order ID #{order.id}.
+          </p>
         </Card>
       )}
 

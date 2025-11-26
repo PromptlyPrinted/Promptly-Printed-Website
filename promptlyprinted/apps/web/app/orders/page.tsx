@@ -16,16 +16,32 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 async function getOrders(userId: string) {
-  const orders = await prisma.order.findMany({
-    where: { userId },
-    orderBy: { createdAt: 'desc' },
-    include: {
-      orderItems: true,
-      shipments: true,
-    },
-  });
-
-  return orders;
+  try {
+    const orders = await prisma.order.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        createdAt: true,
+        totalPrice: true,
+        status: true,
+        shipments: {
+          select: {
+            trackingUrl: true,
+          },
+        },
+        orderItems: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+    return orders;
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    throw error;
+  }
 }
 
 export default async function CustomerOrdersPage() {
