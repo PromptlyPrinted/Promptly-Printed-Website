@@ -1623,7 +1623,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
         const itemPrintUrl = isCurrentItem ? (printReadyUrl || item.imageUrl) : item.imageUrl;
 
         return {
-            productId: Number(item.productId), // Ensure it's a number
+            productId: String(item.productId), // Ensure it's a string
             name: item.name,
             price: item.price,
             copies: item.quantity,
@@ -1637,7 +1637,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
             recipientCostAmount: item.price,
             currency: 'USD',
             merchantReference: `item_${item.productId}`,
-            sku: item.productId,
+            sku: String(item.productId),
             designUrl: itemPrintUrl, // Use the high-res URL for the design
         };
     });

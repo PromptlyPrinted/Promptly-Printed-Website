@@ -528,7 +528,7 @@ export async function POST(req: Request) {
             assets: [
               {
                 printArea: 'front', // Changed from 'default' to 'front' for t-shirts
-                url: designUrl,
+                url: designUrl!,
               },
             ],
           };
@@ -562,7 +562,7 @@ export async function POST(req: Request) {
           },
           items: prodigiItems,
           merchantReference: `ORDER-${updatedOrder.id}`,
-          idempotencyKey: `order-${updatedOrder.id}-${Date.now()}`,
+          idempotencyKey: `order-${updatedOrder.id}`, // Deterministic key to prevent duplicates
           metadata: {
             orderId: updatedOrder.id.toString(),
             squarePaymentId: payment.id,

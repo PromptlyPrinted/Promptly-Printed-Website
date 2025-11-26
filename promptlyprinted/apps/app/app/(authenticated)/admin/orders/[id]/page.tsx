@@ -113,7 +113,7 @@ export default async function AdminOrderDetailPage({
             </div>
             <div className="flex justify-between">
               <dt className="font-medium">Customer Email</dt>
-              <dd>{order.user.email}</dd>
+              <dd>{order.user?.email || order.recipient?.email || 'Guest'}</dd>
             </div>
           </dl>
         </Card>

@@ -8,6 +8,19 @@ const PRINT_WIDTH = 4680;  // 15.6 inches * 300 DPI
 const PRINT_HEIGHT = 5790; // 19.3 inches * 300 DPI
 
 /**
+ * Ensure image buffer is in PNG format
+ */
+async function ensurePngFormat(imageBuffer: Buffer): Promise<Buffer> {
+  return sharp(imageBuffer)
+    .png({
+      quality: 100,
+      compressionLevel: 6,
+      force: true, // Force PNG output
+    })
+    .toBuffer();
+}
+
+/**
  * Generate a 300 DPI print-ready version of an image
  */
 async function generatePrintReadyVersion(imageBuffer: Buffer): Promise<Buffer> {
@@ -20,7 +33,9 @@ async function generatePrintReadyVersion(imageBuffer: Buffer): Promise<Buffer> {
     .png({
       quality: 100,
       compressionLevel: 6,
+      force: true,
     })
+    .withMetadata({ density: 300 }) // Explicitly set DPI metadata
     .toBuffer();
 }
 
@@ -64,8 +79,9 @@ export async function POST(request: Request) {
     let printReadyUrl: string | null = null;
     let imageBuffer: Buffer;
 
+    // 1. Obtain Image Buffer
     if (imageData) {
-      // Handle base64 data URLs - extract buffer first
+      // Handle base64 data URLs from 'imageData' field
       const matches = imageData.match(/^data:image\/(\w+);base64,(.+)$/);
       if (matches) {
         const [, , base64String] = matches;
@@ -73,31 +89,30 @@ export async function POST(request: Request) {
       } else {
         imageBuffer = Buffer.from(imageData, 'base64');
       }
-      publicUrl = await storage.uploadFromBase64(imageData, name);
     } else if (imageUrl) {
-      // Fetch image from URL and upload
-      const response = await fetch(imageUrl);
-      if (!response.ok) {
-        return new Response(JSON.stringify({ error: 'Failed to fetch image' }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        });
+      // Handle 'imageUrl' field - could be a URL or a Data URL
+      if (imageUrl.startsWith('data:')) {
+         const matches = imageUrl.match(/^data:image\/(\w+);base64,(.+)$/);
+         if (matches) {
+           const [, , base64String] = matches;
+           imageBuffer = Buffer.from(base64String, 'base64');
+         } else {
+           // Fallback for malformed data URIs
+           const base64String = imageUrl.split(',')[1];
+           imageBuffer = Buffer.from(base64String, 'base64');
+         }
+      } else {
+        // Fetch image from remote URL
+        const response = await fetch(imageUrl);
+        if (!response.ok) {
+          return new Response(JSON.stringify({ error: 'Failed to fetch image' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        const arrayBuffer = await response.arrayBuffer();
+        imageBuffer = Buffer.from(arrayBuffer);
       }
-
-      const arrayBuffer = await response.arrayBuffer();
-      imageBuffer = Buffer.from(arrayBuffer);
-
-      // Determine file extension from Content-Type
-      const contentType = response.headers.get('content-type') || 'image/png';
-      let fileExtension = 'png';
-      if (contentType.includes('jpeg') || contentType.includes('jpg')) {
-        fileExtension = 'jpg';
-      } else if (contentType.includes('webp')) {
-        fileExtension = 'webp';
-      }
-
-      const filename = `${name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.${fileExtension}`;
-      publicUrl = await storage.uploadFromBuffer(imageBuffer, filename, contentType);
     } else {
       return new Response(JSON.stringify({ error: 'No valid image source provided' }), {
         status: 400,
@@ -105,7 +120,24 @@ export async function POST(request: Request) {
       });
     }
 
-    // Generate and upload 300 DPI print-ready version
+    // 2. Enforce PNG Format for the "Original" (Public) URL
+    // Even the "display" URL should be a PNG to avoid confusion
+    try {
+      imageBuffer = await ensurePngFormat(imageBuffer);
+    } catch (conversionError) {
+      console.error('[Upload Image] Failed to convert to PNG:', conversionError);
+      return new Response(JSON.stringify({ error: 'Failed to process image format' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // 3. Upload the Standard PNG
+    const filename = `${name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.png`;
+    publicUrl = await storage.uploadFromBuffer(imageBuffer, filename, 'image/png');
+
+
+    // 4. Generate and Upload 300 DPI Print-Ready Version
     try {
       console.log('[Upload Image] Generating 300 DPI print-ready version...');
       const printReadyBuffer = await generatePrintReadyVersion(imageBuffer);
@@ -114,15 +146,16 @@ export async function POST(request: Request) {
       console.log('[Upload Image] 300 DPI version saved:', printReadyUrl);
     } catch (printError) {
       console.error('[Upload Image] Failed to generate 300 DPI version:', printError);
-      // Continue without 300 DPI version - original will be used as fallback
+      // Fallback: use the standard PNG as print-ready (better than nothing, and it IS a PNG now)
+      printReadyUrl = publicUrl;
     }
 
-    // Save to database with both URLs
+    // 5. Save to Database
     const savedImage = await database.savedImage.create({
       data: {
         name,
         url: publicUrl,
-        printReadyUrl: printReadyUrl, // 300 DPI version for Prodigi
+        printReadyUrl: printReadyUrl, // This is now guaranteed to be a PNG
         userId: dbUser.id,
       },
     });

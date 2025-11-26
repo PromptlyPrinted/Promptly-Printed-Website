@@ -23,6 +23,11 @@ async function getOrders() {
           email: true,
         },
       },
+      recipient: {
+        select: {
+          email: true,
+        },
+      },
     },
   });
 
@@ -76,7 +81,7 @@ export default async function AdminOrdersPage() {
                     #{order.id}
                   </Link>
                 </TableCell>
-                <TableCell>{order.user.email}</TableCell>
+                <TableCell>{order.user?.email || order.recipient?.email || 'Guest'}</TableCell>
                 <TableCell>${order.totalPrice.toFixed(2)}</TableCell>
                 <TableCell>
                   <span
