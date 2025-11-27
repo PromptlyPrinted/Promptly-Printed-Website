@@ -1299,9 +1299,43 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
           error instanceof Error ? error.message : 'Failed to generate image',
         variant: 'destructive',
       });
-    } finally {
       setIsGenerating(false);
     }
+  };
+
+  // ---- Helper: Generate High-Res Image (300 DPI) ----
+  const generateHighResImage = async (sourceUrl: string): Promise<string> => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 4680;
+    canvas.height = 5790;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Could not create canvas context');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const designImage = document.createElement('img');
+    designImage.crossOrigin = 'anonymous';
+    await new Promise<void>((resolve, reject) => {
+      designImage.onload = () => resolve();
+      designImage.onerror = () =>
+        reject(new Error('Failed to load design image'));
+
+      if (sourceUrl.startsWith('data:')) {
+        designImage.src = sourceUrl;
+      } else {
+        fetch(sourceUrl)
+          .then((res) => res.blob())
+          .then((blob) => {
+            designImage.src = URL.createObjectURL(blob);
+          })
+          .catch(reject);
+      }
+    });
+
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(designImage, 0, 0, canvas.width, canvas.height);
+
+    return canvas.toDataURL('image/png');
   };
 
   // ---- Download Image ----
@@ -1324,37 +1358,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
         variant: 'default',
       });
 
-      const canvas = document.createElement('canvas');
-      canvas.width = 4680;
-      canvas.height = 5790;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Could not create canvas context');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      const designImage = document.createElement('img');
-      designImage.crossOrigin = 'anonymous';
-      await new Promise<void>((resolve, reject) => {
-        designImage.onload = () => resolve();
-        designImage.onerror = () =>
-          reject(new Error('Failed to load design image'));
-
-        if (imageToDownload.startsWith('data:')) {
-          designImage.src = imageToDownload;
-        } else {
-          fetch(imageToDownload)
-            .then((res) => res.blob())
-            .then((blob) => {
-              designImage.src = URL.createObjectURL(blob);
-            })
-            .catch(reject);
-        }
-      });
-
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      ctx.drawImage(designImage, 0, 0, canvas.width, canvas.height);
-
-      const dataUrl = canvas.toDataURL('image/png');
+      const dataUrl = await generateHighResImage(imageToDownload);
       const link = document.createElement('a');
       const filename = removeBackground ? 
         `${product.name.replace(/\s+/g, '-').toLowerCase()}-design-no-bg.png` :
@@ -1587,7 +1591,12 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                 title: 'Preparing Order',
                 description: 'Finalizing high-quality print file...',
             });
-            const uploadResult = await uploadImageToPermanentStorage(imageToUse);
+            
+            // Generate high-res version client-side first (same as download)
+            const highResImage = await generateHighResImage(imageToUse);
+            
+            // Upload the high-res image
+            const uploadResult = await uploadImageToPermanentStorage(highResImage);
             finalImageUrl = uploadResult.url;
             printReadyUrl = uploadResult.printReadyUrl || uploadResult.url; // Fallback to standard URL if 300dpi fails
         } catch (error) {
