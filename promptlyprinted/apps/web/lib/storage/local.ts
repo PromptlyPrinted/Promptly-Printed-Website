@@ -10,13 +10,11 @@ import type { StorageProvider } from './interface';
  */
 export class LocalStorageProvider implements StorageProvider {
   private uploadsDir: string;
-  private baseUrl: string;
 
   constructor() {
     // Store in public/uploads/images so Next.js can serve them
     // This matches the existing working URL format: /uploads/images/{uuid}.{ext}
     this.uploadsDir = join(process.cwd(), 'public', 'uploads', 'images');
-    this.baseUrl = process.env.NEXT_PUBLIC_WEB_URL || 'http://localhost:3001';
   }
 
   async uploadFromBuffer(
@@ -34,8 +32,10 @@ export class LocalStorageProvider implements StorageProvider {
     // Write file to disk
     await writeFile(filePath, buffer);
 
-    // Return public URL (matches /uploads/images/ path)
-    return `${this.baseUrl}/uploads/images/${uniqueFilename}`;
+    // Return relative URL (matches /uploads/images/ path)
+    // This allows the frontend to resolve it against the current origin
+    // and the Prodigi service to resolve it against the configured domain
+    return `/uploads/images/${uniqueFilename}`;
   }
 
   async uploadFromBase64(base64Data: string, filename: string): Promise<string> {

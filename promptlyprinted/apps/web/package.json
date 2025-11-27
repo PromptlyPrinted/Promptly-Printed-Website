@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@arcjet/next": "1.0.0-alpha.34",
+    "@aws-sdk/client-s3": "^3.940.0",
     "@google/generative-ai": "^0.24.1",
     "@heroicons/react": "^2.2.0",
     "@imgly/background-removal": "^1.7.0",
@@ -50,6 +51,7 @@
     "import-in-the-middle": "^1.11.3",
     "lucide-react": "^0.468.0",
     "mdx-bundler": "^10.0.3",
+    "mime": "^4.1.0",
     "nanoid": "^5.1.6",
     "next": "16.0.3",
     "path": "^0.12.7",
@@ -76,6 +78,7 @@
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
+    "@types/mime": "^4.0.0",
     "@types/node": "22.10.1",
     "@types/react": "19.2.0",
     "@types/react-dom": "19.2.0",
