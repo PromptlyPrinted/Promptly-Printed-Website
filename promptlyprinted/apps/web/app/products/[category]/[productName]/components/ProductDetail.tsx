@@ -1605,6 +1605,13 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       return;
     }
 
+    console.log('handleCheckout start', { 
+        imageToUse: imageToUse ? (imageToUse.substring(0, 50) + '...') : 'null',
+        productCover: product.imageUrls?.cover,
+        removeBackground,
+        processedImage: processedImage ? 'present' : 'missing'
+    });
+
     // Ensure the image is uploaded to permanent storage and we get the 300 DPI version
     let finalImageUrl = imageToUse || product.imageUrls.cover;
     let printReadyUrl = '';
@@ -1619,7 +1626,10 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
             });
             
             // Upload the original image (server handles 300 DPI upscaling)
+            console.log('Uploading image to permanent storage...');
             const uploadResult = await uploadImageToPermanentStorage(imageToUse);
+            console.log('Upload result:', uploadResult);
+            
             finalImageUrl = uploadResult.url;
             printReadyUrl = uploadResult.printReadyUrl || uploadResult.url;
             
@@ -1635,9 +1645,6 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                 variant: 'destructive',
             });
         }
-    } else if (imageToUse) {
-        // Already uploaded - derive print URL if not in state
-        printReadyUrl = printReadyImageUrl || imageToUse.replace(/\.png$/, '-300dpi.png');
     }
 
     console.log('Checkout URLs:', { finalImageUrl, printReadyUrl });
