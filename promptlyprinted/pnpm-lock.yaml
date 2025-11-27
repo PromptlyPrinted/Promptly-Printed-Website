@@ -532,8 +532,8 @@ importers:
         specifier: ^10.0.3
         version: 10.1.1(acorn@8.15.0)(esbuild@0.27.0)
       mime:
-        specifier: ^4.1.0
-        version: 4.1.0
+        specifier: ^3.0.0
+        version: 3.0.0
       nanoid:
         specifier: ^5.1.6
         version: 5.1.6
@@ -608,8 +608,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/typescript-config
       '@types/mime':
-        specifier: ^4.0.0
-        version: 4.0.0
+        specifier: ^3.0.4
+        version: 3.0.4
       '@types/node':
         specifier: 22.10.1
         version: 22.10.1
@@ -9246,11 +9246,8 @@ packages:
     resolution: {integrity: sha512-+OWZQfAYyio6YkJb3HLxDrvnx6SWWDbC0zVPfBRzUk0/nqoDyf6dNxQi3eArPe8rJ473nobTMQ/8Zk+LxJ+Yuw==}
     dev: false
 
-  /@types/mime@4.0.0:
-    resolution: {integrity: sha512-5eEkJZ/BLvTE3vXGKkWlyTSUVZuzj23Wj8PoyOq2lt5I3CYbiLBOPb3XmCW6QcuOibIUE6emHXHt9E/F/rCa6w==}
-    deprecated: This is a stub types definition. mime provides its own type definitions, so you do not need this installed.
-    dependencies:
-      mime: 4.1.0
+  /@types/mime@3.0.4:
+    resolution: {integrity: sha512-iJt33IQnVRkqeqC7PzBHPTC6fDlRNRW8vjrgqtScAhrmMwe8c4Eo7+fUGTa+XdWrpEgpyKWMYmi2dIwMAYRzPw==}
     dev: true
 
   /@types/minimatch@6.0.0:
@@ -15057,11 +15054,6 @@ packages:
     engines: {node: '>=10.0.0'}
     hasBin: true
     dev: false
-
-  /mime@4.1.0:
-    resolution: {integrity: sha512-X5ju04+cAzsojXKes0B/S4tcYtFAJ6tTMuSPBEn9CPGlrWr8Fiw7qYeLT0XyH80HSoAoqWCaz+MWKh22P7G1cw==}
-    engines: {node: '>=16'}
-    hasBin: true
 
   /mimic-fn@2.1.0:
     resolution: {integrity: sha512-OqbOk5oEQeAZ8WXWydlu9HJjz9WVdEIvamMCcXmuqUYjTknH/sqsWvhQ3vgwKFRR1HpjvNBKQ37nbJgYzGqGcg==}
