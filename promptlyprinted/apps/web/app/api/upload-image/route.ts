@@ -9,6 +9,12 @@ export const runtime = 'nodejs';
 export const maxDuration = 60; // 60 seconds timeout
 export const dynamic = 'force-dynamic';
 
+// Increase body size limit for large base64 images (default is 4MB)
+// A 1920x1080 PNG can be ~5-10MB as base64
+export const bodyParser = {
+  sizeLimit: '50mb',
+};
+
 
 // Print-ready dimensions for 300 DPI at 15.6" x 19.3" (standard t-shirt print area)
 const PRINT_WIDTH = 4680;  // 15.6 inches * 300 DPI
