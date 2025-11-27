@@ -1633,17 +1633,12 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
     try {
       toast({
         title: 'Preparing Design',
-        description: 'Generating high-resolution print file...',
+        description: 'Uploading your design...',
       });
       
-      // Generate 300 DPI PNG client-side
-      console.log('[preparePrintReadyAsset] Generating 300 DPI PNG...');
-      const highResDataUrl = await generateHighResImage(imageToUse);
-      console.log('[preparePrintReadyAsset] High-res image generated');
-      
-      // Upload the high-res image
-      console.log('[preparePrintReadyAsset] Uploading high-res PNG to permanent storage...');
-      const uploadResult = await uploadImageToPermanentStorage(highResDataUrl);
+      // Simply upload the image - the server will create the 300 DPI version automatically
+      console.log('[preparePrintReadyAsset] Uploading image to server...');
+      const uploadResult = await uploadImageToPermanentStorage(imageToUse);
       console.log('[preparePrintReadyAsset] Upload result:', uploadResult);
       
       return {
@@ -1654,7 +1649,7 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
       console.error('[preparePrintReadyAsset] Failed to prepare print-ready asset:', error);
       toast({
         title: 'Warning',
-        description: 'Could not finalize high-res image. Using standard quality.',
+        description: 'Could not upload design. Using temporary version.',
         variant: 'destructive',
       });
       return { displayUrl: imageToUse, printUrl: imageToUse };
