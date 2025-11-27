@@ -1487,95 +1487,60 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
     const imageToSave = removeBackground && processedImage ? processedImage : generatedImage;
     
     if (!imageToSave) {
-      toast({
-        title: 'Error',
-        description: 'Please generate a design first',
-        variant: 'destructive',
-      });
-      return;
-    }
-    setIsSaving(true);
-    try {
-      // Check if image is already a permanent URL (starts with /uploads/)
-      let permanentUrl = imageToSave;
-      let printUrl = printReadyImageUrl;
-      
-      if (!imageToSave.startsWith('/uploads/') && !imageToSave.startsWith('/api/images/')) {
-        // Upload to permanent storage if not already permanent
-        console.log('Uploading image to permanent storage for saving...');
-        
-        // Generate PDF for saving
-        const pdfBlob = await generatePrintReadyPDF(imageToSave);
-        const pdfFile = new File([pdfBlob], 'design.pdf', { type: 'application/pdf' });
-        
-        const formData = new FormData();
-        formData.append('file', pdfFile);
-        
-        const uploadRes = await fetch('/api/upload-image', {
-            method: 'POST',
-            body: formData,
+        console.warn('[handleSaveImage] No image to save');
+        toast({
+          title: 'Error',
+          description: 'Please generate a design first',
+          variant: 'destructive',
         });
+        return;
+    }
+
+    try {
+        setIsSaving(true);
+        console.log('[handleSaveImage] Saving design...');
         
-        if (!uploadRes.ok) throw new Error('Failed to upload PDF');
+        // Use the shared helper to prepare assets (PDF + Display Image)
+        const result = await preparePrintReadyAsset(imageToSave);
+        const permanentUrl = result.displayUrl;
+        const printUrl = result.printUrl;
         
-        const uploadedResult = await uploadRes.json();
-        
-        // For display, we still need an image URL. If imageToSave is a data URL, we should probably upload that too 
-        // OR just use the PDF for printReadyUrl and the current image for display.
-        // Let's upload the display image separately if it's not already a URL
-        let displayUrl = imageToSave;
-        if (imageToSave.startsWith('data:')) {
-             const displayUpload = await uploadImageToPermanentStorage(imageToSave);
-             displayUrl = displayUpload.url;
-        }
-        
-        permanentUrl = displayUrl;
-        printUrl = uploadedResult.url; // The PDF URL
-        
+        console.log('[handleSaveImage] Assets prepared:', { permanentUrl, printUrl });
+
         // Update state with permanent URLs
         setGeneratedImage(permanentUrl);
         setPrintReadyImageUrl(printUrl);
-      } else {
-        console.log('Image already in permanent storage:', imageToSave);
-      }
+        // Save to DB
+        console.log('[handleSaveImage] Saving to database...');
+        const response = await fetch('/api/saved-designs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: `${product.name} Design`,
+                url: permanentUrl,
+                printReadyUrl: printUrl,
+                productId: product.id
+            }),
+        });
 
-      // Save the design to the database with the permanent URL and context
-      const res = await fetch('/api/designs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: `${product.name} - ${selectedColor || 'No Color'} - ${selectedSize}`,
-          imageUrl: permanentUrl,
-          printReadyUrl: printUrl,
-          productId: Number(product.id),
-        }),
-      });
-      
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to save design');
-      }
-      
-      const saved = await res.json();
+        if (!response.ok) throw new Error('Failed to save design');
 
-      setSavedImageId(saved.id);
-      setGeneratedImage(permanentUrl); // Update the generated image with the permanent URL
+        const savedDesign = await response.json();
+        console.log('[handleSaveImage] Design saved successfully:', savedDesign);
 
-      toast({
-        title: 'Success',
-        description: 'Design saved successfully!',
-        variant: 'default',
-      });
+        toast({
+            title: 'Design saved',
+            description: 'Your design has been saved to your profile.',
+        });
     } catch (error) {
-      console.error('Error saving image:', error);
-      toast({
-        title: 'Error',
-        description:
-          error instanceof Error ? error.message : 'Failed to save image',
-        variant: 'destructive',
-      });
+        console.error('[handleSaveImage] Failed to save design:', error);
+        toast({
+            title: 'Error',
+            description: 'Failed to save design. Please try again.',
+            variant: 'destructive',
+        });
     } finally {
-      setIsSaving(false);
+        setIsSaving(false);
     }
   };
 
@@ -1635,6 +1600,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
 
   // ---- Helper: Prepare Print-Ready Asset ----
   const preparePrintReadyAsset = async (imageToUse: string): Promise<{ displayUrl: string, printUrl: string }> => {
+    console.log('[preparePrintReadyAsset] Starting for image:', imageToUse ? 'present' : 'missing');
     if (!imageToUse) return { displayUrl: '', printUrl: '' };
 
     try {
@@ -1644,12 +1610,13 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       });
       
       // Generate PDF client-side
-      console.log('Generating print-ready PDF...');
+      console.log('[preparePrintReadyAsset] Generating print-ready PDF...');
       const pdfBlob = await generatePrintReadyPDF(imageToUse);
+      console.log('[preparePrintReadyAsset] PDF Blob generated, size:', pdfBlob.size);
       
       const pdfFile = new File([pdfBlob], 'print-ready-design.pdf', { type: 'application/pdf' });
 
-      console.log('Uploading PDF to permanent storage...');
+      console.log('[preparePrintReadyAsset] Uploading PDF to permanent storage...');
       const formData = new FormData();
       formData.append('file', pdfFile);
       
@@ -1658,10 +1625,14 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
           body: formData,
       });
       
-      if (!uploadRes.ok) throw new Error('Failed to upload PDF');
+      if (!uploadRes.ok) {
+          const errorText = await uploadRes.text();
+          console.error('[preparePrintReadyAsset] Upload failed:', uploadRes.status, errorText);
+          throw new Error(`Failed to upload PDF: ${uploadRes.status} ${errorText}`);
+      }
       
       const uploadResult = await uploadRes.json();
-      console.log('PDF Upload result:', uploadResult);
+      console.log('[preparePrintReadyAsset] PDF Upload result:', uploadResult);
       
       // For PDF, the url and printReadyUrl are the same
       // But we might want to keep the original image for display if possible
@@ -1670,9 +1641,11 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       // If imageToUse is a data URL, we should upload it for persistent display URL.
       let displayUrl = imageToUse;
       if (imageToUse.startsWith('data:')) {
+          console.log('[preparePrintReadyAsset] Uploading display image (data URL)...');
           // Upload the display image too
           const displayUpload = await uploadImageToPermanentStorage(imageToUse);
           displayUrl = displayUpload.url;
+          console.log('[preparePrintReadyAsset] Display image uploaded:', displayUrl);
       }
 
       return {
@@ -1680,7 +1653,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
           printUrl: uploadResult.url
       };
     } catch (error) {
-      console.error('Failed to prepare print-ready asset:', error);
+      console.error('[preparePrintReadyAsset] Failed to prepare print-ready asset:', error);
       toast({
         title: 'Warning',
         description: 'Could not finalize PDF. Using standard image.',
@@ -1692,6 +1665,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
 
   // ---- Add to Cart ----
   const handleAddToCart = async () => {
+    console.log('[handleAddToCart] Clicked');
     if (!selectedSize) {
       toast({
         title: 'Error',
@@ -1718,7 +1692,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
             numericProductId = data.id;
         }
     } catch (error) {
-        console.error('Failed to get product ID:', error);
+        console.error('[handleAddToCart] Failed to get product ID:', error);
         toast({ title: 'Error', description: 'Failed to load product info.', variant: 'destructive' });
         return;
     }
@@ -1728,6 +1702,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
     let printReadyUrl = '';
 
     if (imageToUse) {
+        console.log('[handleAddToCart] Preparing print-ready asset...');
         const result = await preparePrintReadyAsset(imageToUse);
         finalImageUrl = result.displayUrl;
         printReadyUrl = result.printUrl;
@@ -1751,6 +1726,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       assets: [],
     };
 
+    console.log('[handleAddToCart] Adding item:', itemToAdd);
     addItem(itemToAdd);
     toast({
       title: 'Added to cart',
@@ -1760,6 +1736,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
 
   // ---- Checkout ----
   const handleCheckout = async () => {
+    console.log('[handleCheckout] Clicked');
     if (!selectedSize) {
       toast({
         title: 'Error',
@@ -1825,6 +1802,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
     // Only attempt upload if it's a generated image (data URL or temp URL)
     // If it's the product cover image, we use it as is (though likely not print ready for custom print)
     if (imageToUse) {
+        console.log('[handleCheckout] Preparing print-ready asset...');
         const result = await preparePrintReadyAsset(imageToUse);
         finalImageUrl = result.displayUrl;
         printReadyUrl = result.printUrl;

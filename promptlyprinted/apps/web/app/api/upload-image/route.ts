@@ -201,6 +201,7 @@ export async function POST(request: Request) {
 
     // 1. Parse request and obtain image buffer
     const contentType = request.headers.get('content-type') || '';
+    let isPdf = false;
 
     if (contentType.includes('multipart/form-data')) {
       console.log('[Upload Image] Processing multipart/form-data request');
@@ -216,8 +217,12 @@ export async function POST(request: Request) {
         }
 
         if (file && file instanceof Blob) {
-          console.log('[Upload Image] Processing uploaded file, size:', file.size);
+          console.log('[Upload Image] Processing uploaded file, size:', file.size, 'type:', file.type);
           
+          if (file.type === 'application/pdf') {
+            isPdf = true;
+          }
+
           if (file.size > MAX_FILE_SIZE) {
             return new Response(JSON.stringify({ error: `File size exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit` }), {
               status: 400,
@@ -300,55 +305,86 @@ export async function POST(request: Request) {
       });
     }
 
-    console.log('[Upload Image] Image buffer obtained, size:', imageBuffer.length);
+    console.log('[Upload Image] Buffer obtained, size:', imageBuffer.length, 'isPdf:', isPdf);
 
-    // 2. Convert to PNG format with validation
-    try {
-      console.log('[Upload Image] Converting to PNG format...');
-      imageBuffer = await ensurePngFormat(imageBuffer);
-      console.log('[Upload Image] PNG conversion successful, final size:', imageBuffer.length);
-    } catch (conversionError) {
-      console.error('[Upload Image] PNG conversion failed:', conversionError);
-      return new Response(JSON.stringify({ 
-        error: conversionError instanceof Error ? conversionError.message : 'Failed to process image format'
-      }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+    // Check if buffer starts with PDF signature if not explicitly identified yet
+    if (!isPdf && imageBuffer.length > 4 && imageBuffer.toString('ascii', 0, 4) === '%PDF') {
+        console.log('[Upload Image] Detected PDF signature in buffer');
+        isPdf = true;
     }
 
-    // 3. Upload the standard PNG
-    try {
-      console.log('[Upload Image] Uploading standard PNG to storage...');
-      const fileId = randomUUID();
-      const sanitizedName = sanitizeFilename(name);
-      const filename = `${fileId}-${sanitizedName}.png`;
-      
-      publicUrl = await storage.uploadFromBuffer(imageBuffer, filename, 'image/png', { skipUuid: true });
-      console.log('[Upload Image] Standard PNG uploaded successfully:', publicUrl);
+    if (isPdf) {
+        // Handle PDF Upload
+        try {
+            console.log('[Upload Image] Uploading PDF to storage...');
+            const fileId = randomUUID();
+            const sanitizedName = sanitizeFilename(name);
+            const filename = `${fileId}-${sanitizedName}.pdf`;
+            
+            publicUrl = await storage.uploadFromBuffer(imageBuffer, filename, 'application/pdf', { skipUuid: true });
+            console.log('[Upload Image] PDF uploaded successfully:', publicUrl);
+            
+            // For PDFs, the printReadyUrl is the same as the publicUrl
+            printReadyUrl = publicUrl;
+        } catch (uploadError) {
+            console.error('[Upload Image] PDF storage upload failed:', uploadError);
+            return new Response(JSON.stringify({ 
+                error: `Failed to save PDF to storage: ${uploadError instanceof Error ? uploadError.message : 'Unknown storage error'}`
+            }), {
+                status: 500,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+    } else {
+        // Handle Image Upload (Existing Logic)
+        // 2. Convert to PNG format with validation
+        try {
+        console.log('[Upload Image] Converting to PNG format...');
+        imageBuffer = await ensurePngFormat(imageBuffer);
+        console.log('[Upload Image] PNG conversion successful, final size:', imageBuffer.length);
+        } catch (conversionError) {
+        console.error('[Upload Image] PNG conversion failed:', conversionError);
+        return new Response(JSON.stringify({ 
+            error: conversionError instanceof Error ? conversionError.message : 'Failed to process image format'
+        }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+        });
+        }
 
-      // 4. Generate and upload 300 DPI print-ready version
-      try {
-        console.log('[Upload Image] Generating 300 DPI print-ready version...');
-        const printReadyBuffer = await generatePrintReadyVersion(imageBuffer);
-        const printReadyFilename = `${fileId}-${sanitizedName}-300dpi.png`;
+        // 3. Upload the standard PNG
+        try {
+        console.log('[Upload Image] Uploading standard PNG to storage...');
+        const fileId = randomUUID();
+        const sanitizedName = sanitizeFilename(name);
+        const filename = `${fileId}-${sanitizedName}.png`;
         
-        printReadyUrl = await storage.uploadFromBuffer(printReadyBuffer, printReadyFilename, 'image/png', { skipUuid: true });
-        console.log('[Upload Image] 300 DPI version uploaded successfully:', printReadyUrl);
-      } catch (printError) {
-        console.error('[Upload Image] Failed to generate 300 DPI version:', printError);
-        // Fallback: use the standard PNG as print-ready
-        printReadyUrl = publicUrl;
-        console.log('[Upload Image] Using standard PNG as fallback for print-ready version');
-      }
-    } catch (uploadError) {
-      console.error('[Upload Image] Storage upload failed:', uploadError);
-      return new Response(JSON.stringify({ 
-        error: `Failed to save image to storage: ${uploadError instanceof Error ? uploadError.message : 'Unknown storage error'}`
-      }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' },
-      });
+        publicUrl = await storage.uploadFromBuffer(imageBuffer, filename, 'image/png', { skipUuid: true });
+        console.log('[Upload Image] Standard PNG uploaded successfully:', publicUrl);
+
+        // 4. Generate and upload 300 DPI print-ready version
+        try {
+            console.log('[Upload Image] Generating 300 DPI print-ready version...');
+            const printReadyBuffer = await generatePrintReadyVersion(imageBuffer);
+            const printReadyFilename = `${fileId}-${sanitizedName}-300dpi.png`;
+            
+            printReadyUrl = await storage.uploadFromBuffer(printReadyBuffer, printReadyFilename, 'image/png', { skipUuid: true });
+            console.log('[Upload Image] 300 DPI version uploaded successfully:', printReadyUrl);
+        } catch (printError) {
+            console.error('[Upload Image] Failed to generate 300 DPI version:', printError);
+            // Fallback: use the standard PNG as print-ready
+            printReadyUrl = publicUrl;
+            console.log('[Upload Image] Using standard PNG as fallback for print-ready version');
+        }
+        } catch (uploadError) {
+        console.error('[Upload Image] Storage upload failed:', uploadError);
+        return new Response(JSON.stringify({ 
+            error: `Failed to save image to storage: ${uploadError instanceof Error ? uploadError.message : 'Unknown storage error'}`
+        }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' },
+        });
+        }
     }
 
     // 5. Save to database (only if user is logged in)
