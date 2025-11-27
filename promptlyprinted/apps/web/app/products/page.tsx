@@ -1,36 +1,10 @@
-'use client';
+export const revalidate = 600;
 
-import './products-background.css';
-import type { Product } from '@/types/product';
-import {
-  Search,
-  Filter,
-  X,
-  Star,
-  Heart,
-  Eye,
-  Grid3X3,
-  List,
-  SlidersHorizontal,
-  ChevronLeft,
-  ChevronRight
-} from 'lucide-react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { PriceDisplay } from '@/components/PriceDisplay';
-import { Suspense, useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { Button } from '@repo/design-system/components/ui/button';
-import { Input } from '@repo/design-system/components/ui/input';
-import { Checkbox } from '@repo/design-system/components/ui/checkbox';
-import { Slider } from '@repo/design-system/components/ui/slider';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@repo/design-system/components/ui/select';
+import PageClient from './PageClient';
+
+export default function ProductsPage() {
+  return <PageClient />;
+}
 
 // Enhanced Product interface for display
 interface DisplayProduct extends Product {
@@ -2115,4 +2089,3 @@ export default function ProductsPage() {
     </Suspense>
   );
 }
-export const revalidate = 600;
