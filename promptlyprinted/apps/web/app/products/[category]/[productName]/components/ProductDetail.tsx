@@ -800,44 +800,61 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
       return { url: imageUrl, printReadyUrl: imageUrl };
     }
 
-    const formData = new FormData();
-    formData.append('name', `Generated Image - ${product.name}`);
-
+    // Use JSON API for data URLs (more reliable than FormData in browser)
     if (imageUrl.startsWith('data:')) {
-      // Convert Data URL to Blob with proper type
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
+      console.log('[uploadImageToPermanentStorage] Uploading via JSON API...');
+      const response = await fetch('/api/upload-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageUrl: imageUrl,
+          name: `Generated Image - ${product.name}`,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[uploadImageToPermanentStorage] Upload failed:', response.status, errorText);
+        throw new Error(`Failed to upload image: ${response.status} - ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('[uploadImageToPermanentStorage] Image uploaded successfully:', result);
       
-      // Determine file extension and type from the data URL
-      const mimeMatch = imageUrl.match(/^data:(image\/\w+);base64,/);
-      const mimeType = mimeMatch ? mimeMatch[1] : 'image/png';
-      const extension = mimeType.split('/')[1] || 'png';
-      
-      // Create a properly typed File object
-      const file = new File([blob], `generated-image.${extension}`, { type: mimeType });
-      formData.append('file', file);
+      return { 
+        url: result.url, 
+        printReadyUrl: result.printReadyUrl || result.url 
+      };
     } else {
-      formData.append('imageUrl', imageUrl);
+      // For external URLs, use JSON API as well
+      console.log('[uploadImageToPermanentStorage] Uploading external URL via JSON API...');
+      const response = await fetch('/api/upload-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageUrl: imageUrl,
+          name: `Generated Image - ${product.name}`,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[uploadImageToPermanentStorage] Upload failed:', response.status, errorText);
+        throw new Error(`Failed to upload image: ${response.status} - ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('[uploadImageToPermanentStorage] Image uploaded successfully:', result);
+      
+      return { 
+        url: result.url, 
+        printReadyUrl: result.printReadyUrl || result.url 
+      };
     }
-
-    const response = await fetch('/api/upload-image', {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[uploadImageToPermanentStorage] Upload failed:', response.status, errorText);
-      throw new Error(`Failed to upload image: ${response.status} - ${errorText}`);
-    }
-
-    const result = await response.json();
-    console.log('[uploadImageToPermanentStorage] Image uploaded successfully:', result);
-    
-    return { 
-      url: result.url, 
-      printReadyUrl: result.printReadyUrl || result.url 
-    };
   } catch (error) {
     console.error('[uploadImageToPermanentStorage] Failed to upload image:', error);
     return { url: imageUrl, printReadyUrl: imageUrl };
