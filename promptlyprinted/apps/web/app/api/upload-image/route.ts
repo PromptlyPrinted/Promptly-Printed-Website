@@ -4,6 +4,12 @@ import { storage } from '@/lib/storage';
 import sharp from 'sharp';
 import { randomUUID } from 'crypto';
 
+// Next.js Route Segment Config for handling large file uploads
+export const runtime = 'nodejs';
+export const maxDuration = 60; // 60 seconds timeout
+export const dynamic = 'force-dynamic';
+
+
 // Print-ready dimensions for 300 DPI at 15.6" x 19.3" (standard t-shirt print area)
 const PRINT_WIDTH = 4680;  // 15.6 inches * 300 DPI
 const PRINT_HEIGHT = 5790; // 19.3 inches * 300 DPI
@@ -208,9 +214,18 @@ export async function POST(request: Request) {
       
       try {
         const formData = await request.formData();
+        console.log('[Upload Image] FormData parsed successfully');
+        
         const file = formData.get('file');
         const imageUrlField = formData.get('imageUrl');
         const nameField = formData.get('name');
+        
+        console.log('[Upload Image] FormData fields:', {
+          hasFile: !!file,
+          hasImageUrl: !!imageUrlField,
+          hasName: !!nameField,
+          fileType: file instanceof Blob ? file.type : 'not a blob'
+        });
         
         if (nameField && typeof nameField === 'string') {
           name = nameField.trim();
@@ -243,6 +258,11 @@ export async function POST(request: Request) {
         }
       } catch (formError) {
         console.error('[Upload Image] Form data processing error:', formError);
+        console.error('[Upload Image] Error details:', {
+          name: formError instanceof Error ? formError.name : 'unknown',
+          message: formError instanceof Error ? formError.message : String(formError),
+          stack: formError instanceof Error ? formError.stack : undefined
+        });
         return new Response(JSON.stringify({ 
           error: `Failed to process form data: ${formError instanceof Error ? formError.message : 'Unknown error'}` 
         }), {
