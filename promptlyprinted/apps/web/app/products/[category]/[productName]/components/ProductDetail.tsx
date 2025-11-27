@@ -35,11 +35,8 @@ const DesignPicker = dynamic(
 import { useExchangeRates } from '@/hooks/useExchangeRates';
 import { useCheckout } from '@/hooks/useCheckout';
 import type { Product } from '@/types/product';
-import {
-  SUPPORTED_COUNTRIES,
-  formatPrice,
-  getDefaultCurrency,
-} from '@/utils/currency';
+import { SUPPORTED_COUNTRIES, formatPrice, getDefaultCurrency } from '@/utils/currency';
+import { PriceDisplay } from '@/components/PriceDisplay';
 import { useSession } from '@repo/auth/client';
 import { TruckIcon } from '@heroicons/react/24/outline';
 import { StarIcon } from '@heroicons/react/24/solid';
@@ -2362,18 +2359,12 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                 <>
                   {/* Discounted Price Display */}
                   <div className="flex items-center gap-3">
-                    <p className="font-bold text-3xl text-green-600">
-                      {formatPrice(
-                        getConvertedPrice((product.pricing?.[0]?.amount || product.price || 0) * (1 - discountPercent)),
-                        selectedCurrency
-                      )}
-                    </p>
-                    <p className="font-semibold text-lg text-gray-400 line-through">
-                      {formatPrice(
-                        getConvertedPrice(product.pricing?.[0]?.amount || product.price || 0),
-                        selectedCurrency
-                      )}
-                    </p>
+                    <div className="text-3xl text-green-600 font-bold">
+                      <PriceDisplay amountGBP={getConvertedPrice((product.pricing?.[0]?.amount || product.price || 0) * (1 - discountPercent))} />
+                    </div>
+                    <div className="text-lg text-gray-400 line-through font-semibold">
+                      <PriceDisplay amountGBP={getConvertedPrice(product.pricing?.[0]?.amount || product.price || 0)} />
+                    </div>
                   </div>
                   {/* Discount Badge */}
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-full text-sm font-semibold shadow-lg">
@@ -2382,28 +2373,16 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                     </svg>
                     <span>Save {Math.round(discountPercent * 100)}% OFF</span>
                   </div>
-                  {selectedCurrency !== 'USD' && (
-                    <p className="text-gray-500 text-xs">
-                      Original: ${(product.pricing?.[0]?.amount || product.price || 0).toFixed(2)} USD |
-                      Sale: ${((product.pricing?.[0]?.amount || product.price || 0) * (1 - discountPercent)).toFixed(2)} USD
-                    </p>
-                  )}
+                  {/* Secondary reference handled by PriceDisplay */}
                 </>
               ) : (
                 <>
                   {/* Regular Price Display */}
                   <div className="flex items-baseline space-x-2">
-                    <p className="font-bold text-2xl text-teal-800">
-                      {formatPrice(
-                        getConvertedPrice(product.pricing?.[0]?.amount || product.price || 0),
-                        selectedCurrency
-                      )}
-                    </p>
-                    {selectedCurrency !== 'USD' && (
-                      <p className="text-gray-500 text-sm">
-                        (${(product.pricing?.[0]?.amount || product.price || 0).toFixed(2)} USD)
-                      </p>
-                    )}
+                    <div className="text-2xl text-teal-800 font-bold">
+                      <PriceDisplay amountGBP={getConvertedPrice(product.pricing?.[0]?.amount || product.price || 0)} />
+                    </div>
+                    {/* Secondary reference handled by PriceDisplay */}
                   </div>
                 </>
               )}
@@ -2976,11 +2955,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
             <div className="flex items-center space-x-2">
               <TruckIcon className="h-4 w-4 text-teal-600" />
               <h3 className="font-medium text-teal-700 text-sm">
-                Shipping to{' '}
-                {
-                  SUPPORTED_COUNTRIES.find((c) => c.code === selectedCountry)
-                    ?.name
-                }
+                Shipping to {SUPPORTED_COUNTRIES.find((c) => c.code === selectedCountry)?.name}
               </h3>
             </div>
             {getShippingInfo() && (

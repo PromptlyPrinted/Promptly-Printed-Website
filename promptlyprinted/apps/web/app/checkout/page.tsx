@@ -581,6 +581,30 @@ export default function CheckoutPage() {
     }).format(price);
   };
 
+  const PaymentNotice = () => {
+    // Simple detection using shipping country if available
+    const nonUk = shippingAddress.country && shippingAddress.country !== 'GB';
+    let estimate: string | null = null;
+    try {
+      if (nonUk) {
+        // Lightweight estimate: convert subtotal to the user's presumed currency using placeholder
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const { convertPrice } = require('@/utils/currency');
+        const targetCurrency = 'USD'; // Basic heuristic; can be tied to selected locale later
+        const subtotal = items.reduce((sum, i) => sum + i.price * i.copies, 0);
+        const converted = convertPrice(subtotal, 'GBP', targetCurrency);
+        estimate = new Intl.NumberFormat('en-US', { style: 'currency', currency: targetCurrency }).format(converted);
+      }
+    } catch {}
+
+    return (
+      <div className="text-xs text-gray-600 mt-2">
+        Payments are processed in GBP (£).
+        {estimate ? ` Estimated total in your currency: ${estimate}.` : ''}
+      </div>
+    );
+  };
+
   if (error && items.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -627,6 +651,7 @@ export default function CheckoutPage() {
             {/* Order Summary */}
             <div className="bg-white rounded-lg shadow-lg p-6 lg:order-2 h-fit sticky top-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Order Summary</h2>
+              <PaymentNotice />
 
               <div className="space-y-4 mb-6">
                 {items.map((item, index) => (

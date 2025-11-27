@@ -12,39 +12,25 @@ import { ZodError, z } from 'zod';
 
 
 /**
- * Save base64 image to file system and return absolute URL
+ * Save base64 image using the storage provider and return a relative URL under /uploads/images.
+ * This unifies all image storage under public/uploads/images for best practice.
  */
 async function saveBase64Image(base64Data: string): Promise<string> {
-  const { writeFile, mkdir } = await import('fs/promises');
-  const { join } = await import('path');
-  const { v4: uuidv4 } = await import('uuid');
+  const { storage } = await import('@/lib/storage');
 
-  // Extract mime type and base64 data
+  // Validate and ensure filename has an extension derived from data URI when present
   const matches = base64Data.match(/^data:image\/(\w+);base64,(.+)$/);
-  if (!matches) {
+  let filename = 'checkout-image';
+  if (matches) {
+    const [, ext] = matches;
+    if (ext) filename = `checkout-image.${ext}`;
+  } else if (!base64Data.startsWith('data:image')) {
     throw new Error('Invalid base64 image format');
   }
 
-  const [, extension, data] = matches;
-  const fileName = `${uuidv4()}.${extension}`;
-
-  // Create uploads directory if it doesn't exist
-  // Use absolute path to public directory in the web app
-  const uploadsDir = join(process.cwd(), 'apps', 'web', 'public', 'uploads', 'checkout');
-  await mkdir(uploadsDir, { recursive: true });
-
-  // Write file
-  const filePath = join(uploadsDir, fileName);
-  const buffer = Buffer.from(data, 'base64');
-  await writeFile(filePath, buffer);
-
-  // Return absolute public URL for external services (like Prodigi)
-  const webUrl = process.env.NEXT_PUBLIC_WEB_URL || 'http://localhost:3001';
-  const absoluteUrl = `${webUrl}/uploads/checkout/${fileName}`;
-
-
-
-  return absoluteUrl;
+  // Delegate upload to the storage provider (Local -> public/uploads/images)
+  const relativeUrl = await storage.uploadFromBase64(base64Data, filename);
+  return relativeUrl; // e.g. /uploads/images/uuid-checkout-image.png
 }
 
 const ImageSchema = z.object({

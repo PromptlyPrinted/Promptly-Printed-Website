@@ -57,6 +57,7 @@ export async function POST(request: NextRequest) {
         quality: 100,
         compressionLevel: 6,
       })
+      .withMetadata({ density: 300 })
       .toBuffer();
 
     console.log('[Generate Print Image] Resized to print dimensions:', {

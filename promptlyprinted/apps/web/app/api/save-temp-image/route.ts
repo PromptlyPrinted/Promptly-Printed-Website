@@ -21,6 +21,7 @@ async function generatePrintReadyVersion(imageBuffer: Buffer): Promise<Buffer> {
       quality: 100,
       compressionLevel: 6,
     })
+    .withMetadata({ density: 300 })
     .toBuffer();
 }
 

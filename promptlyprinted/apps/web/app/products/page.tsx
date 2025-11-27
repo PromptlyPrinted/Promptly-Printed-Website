@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { PriceDisplay } from '@/components/PriceDisplay';
 import { Suspense, useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@repo/design-system/components/ui/button';
@@ -225,7 +226,13 @@ type ApiProductResponse = {
 const FALLBACK_PRODUCTS: DisplayProduct[] = [];
 
 function buildProductsFromApi(products: ApiProductResponse[]): DisplayProduct[] {
-  return products.map((product, index) => {
+  // Only list T-Shirts and Hoodies; unlist all other categories for now
+  const filteredForListing = products.filter((product) => {
+    const categoryName = (product.category?.name || '').toLowerCase();
+    return categoryName.includes('t-shirt') || categoryName.includes('hoodie');
+  });
+
+  return filteredForListing.map((product, index) => {
     const price =
       product.customerPrice ??
       product.price ??
@@ -288,13 +295,26 @@ function buildProductsFromApi(products: ApiProductResponse[]): DisplayProduct[] 
       originalPrice: index % 3 === 0 ? price * 1.2 : undefined,
       rating: 3.5 + (index % 3) * 0.5,
       reviewCount: 12 + (index * 7) % 89,
-      stock:
-        product.stock ??
-        (index % 10 === 0
-          ? 2
-          : index % 15 === 0
-            ? 0
-            : 25 + ((index * 3) % 50)),
+      stock: (() => {
+        // Prefer upstream stock when present
+        const baseStock =
+          product.stock ??
+          (index % 10 === 0
+            ? 2
+            : index % 15 === 0
+              ? 0
+              : 25 + ((index * 3) % 50));
+        // Ensure Women's Classic T-Shirt is not shown out of stock
+        const nameLower = (product.name || '').toLowerCase();
+        if (
+          nameLower.includes('women') &&
+          nameLower.includes('classic') &&
+          nameLower.includes('t-shirt')
+        ) {
+          return Math.max(baseStock, 10);
+        }
+        return baseStock;
+      })(),
       isWishlisted: false,
       // Variant system
       isVariantProduct: product.isVariantProduct ?? false,
@@ -1526,11 +1546,13 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
             <div className="flex items-center justify-between mt-4">
               <div className="flex items-center gap-2">
                 <span className="text-xl font-bold" style={{ color: colors.accent }}>
-                  ${displayPrice?.toFixed(2) || '0.00'}
+                  {typeof displayPrice === 'number' ? (
+                    <PriceDisplay amountGBP={displayPrice} />
+                  ) : '—'}
                 </span>
                 {product.originalPrice && (
                   <span className="text-sm line-through" style={{ color: colors.gray400 }}>
-                    ${product.originalPrice.toFixed(2)}
+                    <PriceDisplay amountGBP={product.originalPrice} />
                   </span>
                 )}
               </div>
@@ -2093,3 +2115,4 @@ export default function ProductsPage() {
     </Suspense>
   );
 }
+export const revalidate = 600;
