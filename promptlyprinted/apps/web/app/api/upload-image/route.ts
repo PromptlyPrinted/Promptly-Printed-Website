@@ -81,6 +81,7 @@ export async function POST(request: Request) {
 
     // 1. Obtain Image Buffer
     if (imageData) {
+      console.log('[Upload Image] Processing imageData field, length:', imageData.length);
       // Handle base64 data URLs from 'imageData' field
       const matches = imageData.match(/^data:image\/(\w+);base64,(.+)$/);
       if (matches) {
@@ -90,18 +91,30 @@ export async function POST(request: Request) {
         imageBuffer = Buffer.from(imageData, 'base64');
       }
     } else if (imageUrl) {
+      console.log('[Upload Image] Processing imageUrl field, length:', imageUrl.length);
       // Handle 'imageUrl' field - could be a URL or a Data URL
       if (imageUrl.startsWith('data:')) {
+         console.log('[Upload Image] imageUrl is a data URL');
          const matches = imageUrl.match(/^data:image\/(\w+);base64,(.+)$/);
          if (matches) {
            const [, , base64String] = matches;
+           console.log('[Upload Image] Extracted base64 string length:', base64String.length);
            imageBuffer = Buffer.from(base64String, 'base64');
          } else {
+           console.log('[Upload Image] Regex match failed, trying split');
            // Fallback for malformed data URIs
-           const base64String = imageUrl.split(',')[1];
-           imageBuffer = Buffer.from(base64String, 'base64');
+           const parts = imageUrl.split(',');
+           if (parts.length > 1) {
+             const base64String = parts[1];
+             console.log('[Upload Image] Split base64 string length:', base64String.length);
+             imageBuffer = Buffer.from(base64String, 'base64');
+           } else {
+             console.error('[Upload Image] Failed to extract base64 from data URL');
+             imageBuffer = Buffer.alloc(0);
+           }
          }
       } else {
+        console.log('[Upload Image] Fetching from remote URL:', imageUrl);
         // Fetch image from remote URL
         const response = await fetch(imageUrl);
         if (!response.ok) {
@@ -114,10 +127,20 @@ export async function POST(request: Request) {
         imageBuffer = Buffer.from(arrayBuffer);
       }
     } else {
+      console.error('[Upload Image] No valid image source provided');
       return new Response(JSON.stringify({ error: 'No valid image source provided' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       });
+    }
+
+    console.log('[Upload Image] Final imageBuffer size:', imageBuffer.length);
+
+    if (imageBuffer.length === 0) {
+        return new Response(JSON.stringify({ error: 'Processed image buffer is empty' }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+        });
     }
 
     // 2. Enforce PNG Format for the "Original" (Public) URL
