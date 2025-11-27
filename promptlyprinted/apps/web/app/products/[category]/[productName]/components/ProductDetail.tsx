@@ -1606,57 +1606,28 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
     try {
       toast({
         title: 'Preparing Design',
-        description: 'Generating print-ready PDF file...',
+        description: 'Generating high-resolution print file...',
       });
       
-      // Generate PDF client-side
-      console.log('[preparePrintReadyAsset] Generating print-ready PDF...');
-      const pdfBlob = await generatePrintReadyPDF(imageToUse);
-      console.log('[preparePrintReadyAsset] PDF Blob generated, size:', pdfBlob.size);
+      // Generate 300 DPI PNG client-side
+      console.log('[preparePrintReadyAsset] Generating 300 DPI PNG...');
+      const highResDataUrl = await generateHighResImage(imageToUse);
+      console.log('[preparePrintReadyAsset] High-res image generated');
       
-      const pdfFile = new File([pdfBlob], 'print-ready-design.pdf', { type: 'application/pdf' });
-
-      console.log('[preparePrintReadyAsset] Uploading PDF to permanent storage...');
-      const formData = new FormData();
-      formData.append('file', pdfFile);
+      // Upload the high-res image
+      console.log('[preparePrintReadyAsset] Uploading high-res PNG to permanent storage...');
+      const uploadResult = await uploadImageToPermanentStorage(highResDataUrl);
+      console.log('[preparePrintReadyAsset] Upload result:', uploadResult);
       
-      const uploadRes = await fetch('/api/upload-image', {
-          method: 'POST',
-          body: formData,
-      });
-      
-      if (!uploadRes.ok) {
-          const errorText = await uploadRes.text();
-          console.error('[preparePrintReadyAsset] Upload failed:', uploadRes.status, errorText);
-          throw new Error(`Failed to upload PDF: ${uploadRes.status} ${errorText}`);
-      }
-      
-      const uploadResult = await uploadRes.json();
-      console.log('[preparePrintReadyAsset] PDF Upload result:', uploadResult);
-      
-      // For PDF, the url and printReadyUrl are the same
-      // But we might want to keep the original image for display if possible
-      // For now, we return the PDF url as printUrl. 
-      // The displayUrl should ideally be the imageToUse (if it's a URL) or we upload it too.
-      // If imageToUse is a data URL, we should upload it for persistent display URL.
-      let displayUrl = imageToUse;
-      if (imageToUse.startsWith('data:')) {
-          console.log('[preparePrintReadyAsset] Uploading display image (data URL)...');
-          // Upload the display image too
-          const displayUpload = await uploadImageToPermanentStorage(imageToUse);
-          displayUrl = displayUpload.url;
-          console.log('[preparePrintReadyAsset] Display image uploaded:', displayUrl);
-      }
-
       return {
-          displayUrl: displayUrl,
-          printUrl: uploadResult.url
+          displayUrl: uploadResult.url,
+          printUrl: uploadResult.printReadyUrl || uploadResult.url
       };
     } catch (error) {
       console.error('[preparePrintReadyAsset] Failed to prepare print-ready asset:', error);
       toast({
         title: 'Warning',
-        description: 'Could not finalize PDF. Using standard image.',
+        description: 'Could not finalize high-res image. Using standard quality.',
         variant: 'destructive',
       });
       return { displayUrl: imageToUse, printUrl: imageToUse };
