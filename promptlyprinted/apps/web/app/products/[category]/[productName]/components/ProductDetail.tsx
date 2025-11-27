@@ -1589,13 +1589,10 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                 description: 'Finalizing high-quality print file...',
             });
             
-            // Generate high-res version client-side first (same as download)
-            const highResImage = await generateHighResImage(imageToUse);
-            
-            // Upload the high-res image
-            const uploadResult = await uploadImageToPermanentStorage(highResImage);
+            // Upload the original image (server handles 300 DPI upscaling)
+            const uploadResult = await uploadImageToPermanentStorage(imageToUse);
             finalImageUrl = uploadResult.url;
-            printReadyUrl = uploadResult.printReadyUrl || uploadResult.url; // Fallback to standard URL if 300dpi fails
+            printReadyUrl = uploadResult.printReadyUrl || uploadResult.url;
         } catch (error) {
             console.error('Failed to upload final image for checkout:', error);
             // Fallback to the image we have, but warn
