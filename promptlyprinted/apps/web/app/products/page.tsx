@@ -1,10 +1,15 @@
+'use client';
+
 export const revalidate = 600;
 
-import PageClient from './PageClient';
 
-export default function ProductsPage() {
-  return <PageClient />;
-}
+import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
+import Image from 'next/image';
+import { Product } from '@prisma/client';
+import { PriceDisplay } from '@/components/PriceDisplay';
+import { Star, Heart } from 'lucide-react';
 
 // Enhanced Product interface for display
 interface DisplayProduct extends Product {
