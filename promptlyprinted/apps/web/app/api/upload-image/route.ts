@@ -77,56 +77,100 @@ export async function POST(request: Request) {
 
     let publicUrl: string;
     let printReadyUrl: string | null = null;
-    let imageBuffer: Buffer;
+    let imageBuffer: Buffer | undefined;
 
     // 1. Obtain Image Buffer
-    if (imageData) {
-      console.log('[Upload Image] Processing imageData field, length:', imageData.length);
-      // Handle base64 data URLs from 'imageData' field
-      const matches = imageData.match(/^data:image\/(\w+);base64,(.+)$/);
-      if (matches) {
-        const [, , base64String] = matches;
-        imageBuffer = Buffer.from(base64String, 'base64');
-      } else {
-        imageBuffer = Buffer.from(imageData, 'base64');
-      }
-    } else if (imageUrl) {
-      console.log('[Upload Image] Processing imageUrl field, length:', imageUrl.length);
-      // Handle 'imageUrl' field - could be a URL or a Data URL
-      if (imageUrl.startsWith('data:')) {
-         console.log('[Upload Image] imageUrl is a data URL');
-         const matches = imageUrl.match(/^data:image\/(\w+);base64,(.+)$/);
-         if (matches) {
-           const [, , base64String] = matches;
-           console.log('[Upload Image] Extracted base64 string length:', base64String.length);
-           imageBuffer = Buffer.from(base64String, 'base64');
-         } else {
-           console.log('[Upload Image] Regex match failed, trying split');
-           // Fallback for malformed data URIs
-           const parts = imageUrl.split(',');
-           if (parts.length > 1) {
-             const base64String = parts[1];
-             console.log('[Upload Image] Split base64 string length:', base64String.length);
+    const contentType = request.headers.get('content-type') || '';
+
+    if (contentType.includes('multipart/form-data')) {
+      console.log('[Upload Image] Processing multipart/form-data request');
+      const formData = await request.formData();
+      const file = formData.get('file');
+      const imageUrlField = formData.get('imageUrl');
+
+      if (file && file instanceof Blob) {
+        console.log('[Upload Image] Found file in form data, size:', file.size);
+        const arrayBuffer = await file.arrayBuffer();
+        imageBuffer = Buffer.from(arrayBuffer);
+      } else if (typeof imageUrlField === 'string') {
+        console.log('[Upload Image] Found imageUrl in form data:', imageUrlField.substring(0, 50) + '...');
+        if (imageUrlField.startsWith('data:')) {
+           const matches = imageUrlField.match(/^data:image\/(\w+);base64,(.+)$/);
+           if (matches) {
+             const [, , base64String] = matches;
              imageBuffer = Buffer.from(base64String, 'base64');
            } else {
-             console.error('[Upload Image] Failed to extract base64 from data URL');
-             imageBuffer = Buffer.alloc(0);
+             const parts = imageUrlField.split(',');
+             if (parts.length > 1) {
+               imageBuffer = Buffer.from(parts[1], 'base64');
+             } else {
+               imageBuffer = Buffer.alloc(0);
+             }
            }
-         }
-      } else {
-        console.log('[Upload Image] Fetching from remote URL:', imageUrl);
-        // Fetch image from remote URL
-        const response = await fetch(imageUrl);
-        if (!response.ok) {
-          return new Response(JSON.stringify({ error: 'Failed to fetch image' }), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-          });
+        } else {
+          const response = await fetch(imageUrlField);
+          if (!response.ok) throw new Error('Failed to fetch image from URL');
+          const arrayBuffer = await response.arrayBuffer();
+          imageBuffer = Buffer.from(arrayBuffer);
         }
-        const arrayBuffer = await response.arrayBuffer();
-        imageBuffer = Buffer.from(arrayBuffer);
       }
     } else {
+      // Fallback to JSON handling
+      console.log('[Upload Image] Processing JSON request');
+      const data = await request.json();
+      const { imageUrl, imageData, name: jsonName } = data;
+      // Update name if provided in JSON
+      if (jsonName) {
+          // We might need to handle name update here if it wasn't passed in FormData logic above
+          // But for now let's focus on image extraction
+      }
+
+      if (imageData) {
+        console.log('[Upload Image] Processing imageData field, length:', imageData.length);
+        const matches = imageData.match(/^data:image\/(\w+);base64,(.+)$/);
+        if (matches) {
+          const [, , base64String] = matches;
+          imageBuffer = Buffer.from(base64String, 'base64');
+        } else {
+          imageBuffer = Buffer.from(imageData, 'base64');
+        }
+      } else if (imageUrl) {
+        console.log('[Upload Image] Processing imageUrl field, length:', imageUrl.length);
+        if (imageUrl.startsWith('data:')) {
+           console.log('[Upload Image] imageUrl is a data URL');
+           const matches = imageUrl.match(/^data:image\/(\w+);base64,(.+)$/);
+           if (matches) {
+             const [, , base64String] = matches;
+             console.log('[Upload Image] Extracted base64 string length:', base64String.length);
+             imageBuffer = Buffer.from(base64String, 'base64');
+           } else {
+             console.log('[Upload Image] Regex match failed, trying split');
+             const parts = imageUrl.split(',');
+             if (parts.length > 1) {
+               const base64String = parts[1];
+               console.log('[Upload Image] Split base64 string length:', base64String.length);
+               imageBuffer = Buffer.from(base64String, 'base64');
+             } else {
+               console.error('[Upload Image] Failed to extract base64 from data URL');
+               imageBuffer = Buffer.alloc(0);
+             }
+           }
+        } else {
+          console.log('[Upload Image] Fetching from remote URL:', imageUrl);
+          const response = await fetch(imageUrl);
+          if (!response.ok) {
+            return new Response(JSON.stringify({ error: 'Failed to fetch image' }), {
+              status: 400,
+              headers: { 'Content-Type': 'application/json' },
+            });
+          }
+          const arrayBuffer = await response.arrayBuffer();
+          imageBuffer = Buffer.from(arrayBuffer);
+        }
+      }
+    }
+
+    if (!imageBuffer) {
       console.error('[Upload Image] No valid image source provided');
       return new Response(JSON.stringify({ error: 'No valid image source provided' }), {
         status: 400,
@@ -169,7 +213,7 @@ export async function POST(request: Request) {
       console.log('[Upload Image] 300 DPI version saved:', printReadyUrl);
     } catch (printError) {
       console.error('[Upload Image] Failed to generate 300 DPI version:', printError);
-      // Fallback: use the standard PNG as print-ready (better than nothing, and it IS a PNG now)
+      // Fallback: use the standard PNG as print-ready
       printReadyUrl = publicUrl;
     }
 

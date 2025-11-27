@@ -12,9 +12,9 @@ export class LocalStorageProvider implements StorageProvider {
   private uploadsDir: string;
 
   constructor() {
-    // Store in public/uploads/images so Next.js can serve them
-    // This matches the existing working URL format: /uploads/images/{uuid}.{ext}
-    this.uploadsDir = join(process.cwd(), 'public', 'uploads', 'images');
+    // Store in uploads/ directory in project root
+    // This keeps user data separate from application code
+    this.uploadsDir = join(process.cwd(), 'uploads');
   }
 
   async uploadFromBuffer(
@@ -32,10 +32,9 @@ export class LocalStorageProvider implements StorageProvider {
     // Write file to disk
     await writeFile(filePath, buffer);
 
-    // Return relative URL (matches /uploads/images/ path)
-    // This allows the frontend to resolve it against the current origin
-    // and the Prodigi service to resolve it against the configured domain
-    return `/uploads/images/${uniqueFilename}`;
+    // Return API URL that serves the file
+    // This matches the new /api/images/[filename] route
+    return `/api/images/${uniqueFilename}`;
   }
 
   async uploadFromBase64(base64Data: string, filename: string): Promise<string> {

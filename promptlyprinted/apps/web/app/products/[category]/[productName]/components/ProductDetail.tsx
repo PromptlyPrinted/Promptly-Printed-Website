@@ -786,21 +786,25 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
   const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: string; printReadyUrl?: string | null }> => {
     try {
       // If it's already a permanent URL (starts with /uploads/), return it as is
-      // Note: We might not have the printReadyUrl if we just have the string, 
-      // but this case usually happens when loading saved designs which should have it.
-      // For now, we assume if it's already uploaded, we might need to re-fetch or just use it.
-      // However, this function is primarily called for NEW uploads.
       if (imageUrl.startsWith('/uploads/')) {
          return { url: imageUrl };
       }
 
+      const formData = new FormData();
+      formData.append('name', `Generated Image - ${product.name}`);
+
+      if (imageUrl.startsWith('data:')) {
+        // Convert Data URL to Blob
+        const res = await fetch(imageUrl);
+        const blob = await res.blob();
+        formData.append('file', blob, 'image.png');
+      } else {
+        formData.append('imageUrl', imageUrl);
+      }
+
       const response = await fetch('/api/upload-image', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          imageUrl,
-          name: `Generated Image - ${product.name}`,
-        }),
+        body: formData,
       });
 
       if (!response.ok) {
