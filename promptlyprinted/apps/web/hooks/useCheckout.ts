@@ -17,15 +17,24 @@ export function useCheckout() {
 
 
       // Validate that all items have valid images
-      for (const item of items) {
-        if (!item.images || !item.images[0] || !item.images[0].url || item.images[0].url.trim() === '') {
-          console.error('Invalid item image:', item);
-          throw new Error(`Missing product image for "${item.name}". Please refresh the page and try again.`);
+      const validItems = items.filter(item => {
+        const hasImage = item.images && item.images[0] && item.images[0].url && item.images[0].url.trim() !== '';
+        if (!hasImage) {
+          console.warn('Skipping invalid item (missing image):', item);
         }
+        return hasImage;
+      });
+
+      if (validItems.length < items.length) {
+        toast.warning('Some items were removed from checkout because they are missing images.');
+      }
+
+      if (validItems.length === 0) {
+        throw new Error('No valid items to checkout. Please try again.');
       }
 
       // Prepare items for checkout
-      const checkoutItems = items.map((item) => {
+      const checkoutItems = validItems.map((item) => {
         // Get design URL from either designUrl, imageUrl, or images array
         const designUrl = item.designUrl || (item as any).imageUrl || item.images?.[0]?.url;
         // Get 300 DPI print-ready URL if available

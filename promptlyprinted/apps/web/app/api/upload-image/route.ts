@@ -43,41 +43,18 @@ export async function POST(request: Request) {
   try {
     const session = await getSession(request);
 
-    if (!session?.user?.id) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
+    // Get the database user if session exists
+    let dbUser = null;
+    if (session?.user?.id) {
+      dbUser = await database.user.findUnique({
+        where: { id: session.user.id },
       });
     }
 
-    const data = await request.json();
-    const { imageUrl, imageData, name = 'Generated Image' } = data;
-
-    if (!imageUrl && !imageData) {
-      return new Response(JSON.stringify({ error: 'Missing image URL or data' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Get the database user
-    const dbUser = await database.user.findUnique({
-      where: { id: session.user.id },
-    });
-
-    if (!dbUser) {
-      return new Response(
-        JSON.stringify({ error: 'User not found in database' }),
-        {
-          status: 404,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
+    let name = 'Generated Image';
+    let imageBuffer: Buffer | undefined;
     let publicUrl: string;
     let printReadyUrl: string | null = null;
-    let imageBuffer: Buffer | undefined;
 
     // 1. Obtain Image Buffer
     const contentType = request.headers.get('content-type') || '';
@@ -87,6 +64,11 @@ export async function POST(request: Request) {
       const formData = await request.formData();
       const file = formData.get('file');
       const imageUrlField = formData.get('imageUrl');
+      const nameField = formData.get('name');
+      
+      if (nameField && typeof nameField === 'string') {
+        name = nameField;
+      }
 
       if (file && file instanceof Blob) {
         console.log('[Upload Image] Found file in form data, size:', file.size);
@@ -119,10 +101,9 @@ export async function POST(request: Request) {
       console.log('[Upload Image] Processing JSON request');
       const data = await request.json();
       const { imageUrl, imageData, name: jsonName } = data;
-      // Update name if provided in JSON
+      
       if (jsonName) {
-          // We might need to handle name update here if it wasn't passed in FormData logic above
-          // But for now let's focus on image extraction
+        name = jsonName;
       }
 
       if (imageData) {
@@ -170,7 +151,7 @@ export async function POST(request: Request) {
       }
     }
 
-    if (!imageBuffer) {
+    if (!imageBuffer || imageBuffer.length === 0) {
       console.error('[Upload Image] No valid image source provided');
       return new Response(JSON.stringify({ error: 'No valid image source provided' }), {
         status: 400,
@@ -180,15 +161,7 @@ export async function POST(request: Request) {
 
     console.log('[Upload Image] Final imageBuffer size:', imageBuffer.length);
 
-    if (imageBuffer.length === 0) {
-        return new Response(JSON.stringify({ error: 'Processed image buffer is empty' }), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' },
-        });
-    }
-
     // 2. Enforce PNG Format for the "Original" (Public) URL
-    // Even the "display" URL should be a PNG to avoid confusion
     try {
       imageBuffer = await ensurePngFormat(imageBuffer);
     } catch (conversionError) {
@@ -217,24 +190,34 @@ export async function POST(request: Request) {
       printReadyUrl = publicUrl;
     }
 
-    // 5. Save to Database
-    const savedImage = await database.savedImage.create({
-      data: {
-        name,
-        url: publicUrl,
-        printReadyUrl: printReadyUrl, // This is now guaranteed to be a PNG
-        userId: dbUser.id,
-      },
-    });
-
-    console.log('Image uploaded successfully:', {
-      publicUrl,
-      printReadyUrl,
-      savedImageId: savedImage.id
-    });
+    // 5. Save to Database (only if user is logged in)
+    let savedImageId: string | undefined;
+    
+    if (dbUser) {
+      const savedImage = await database.savedImage.create({
+        data: {
+          name,
+          url: publicUrl,
+          printReadyUrl: printReadyUrl,
+          userId: dbUser.id,
+        },
+      });
+      savedImageId = savedImage.id;
+      
+      console.log('Image uploaded successfully:', {
+        publicUrl,
+        printReadyUrl,
+        savedImageId
+      });
+    } else {
+      console.log('Guest upload successful:', {
+        publicUrl,
+        printReadyUrl
+      });
+    }
 
     return new Response(JSON.stringify({
-      id: savedImage.id,
+      id: savedImageId,
       url: publicUrl,
       printReadyUrl: printReadyUrl,
       success: true

@@ -552,6 +552,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
   const [loraScale, setLoraScale] = useState(0.7);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState('');
+  const [printReadyImageUrl, setPrintReadyImageUrl] = useState('');
   const [reviewText, setReviewText] = useState('');
   const [rating, setRating] = useState(5);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -783,11 +784,19 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
   }, [removeBackground, generatedImage, processedImage]);
 
   // Helper function to upload image to permanent storage
-  const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: string; printReadyUrl?: string | null }> => {
+  const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: string; printReadyUrl: string }> => {
     try {
-      // If it's already a permanent URL (starts with /uploads/), return it as is
+      // If it's already a permanent URL, derive the print-ready URL
+      if (imageUrl.startsWith('/api/images/')) {
+        // Derive print-ready URL from display URL
+        // /api/images/2025/01/1234_abcd.png -> /api/images/2025/01/1234_abcd-300dpi.png
+        const printReadyUrl = imageUrl.replace(/\.png$/, '-300dpi.png');
+        return { url: imageUrl, printReadyUrl };
+      }
+
+      // If it's a legacy upload URL, just return it
       if (imageUrl.startsWith('/uploads/')) {
-         return { url: imageUrl };
+        return { url: imageUrl, printReadyUrl: imageUrl };
       }
 
       const formData = new FormData();
@@ -808,16 +817,19 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to upload image: ${response.status} ${response.statusText}`);
+        throw new Error(`Failed to upload image: ${response.status}`);
       }
 
       const result = await response.json();
-      console.log('Image uploaded to permanent storage:', result);
-      return result; // Return the full result object { url, printReadyUrl, ... }
+      console.log('Image uploaded:', result);
+      
+      return { 
+        url: result.url, 
+        printReadyUrl: result.printReadyUrl || result.url 
+      };
     } catch (error) {
       console.error('Failed to upload image:', error);
-      // Return original URL as fallback
-      return { url: imageUrl };
+      return { url: imageUrl, printReadyUrl: imageUrl };
     }
   };
 
@@ -892,7 +904,11 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       const generatedUrl = data.data[0].url;
 
       // Update state with new image
-      setGeneratedImage(generatedUrl);
+      // Upload to permanent storage
+      const uploadedResult = await uploadImageToPermanentStorage(generatedUrl);
+      
+      setGeneratedImage(uploadedResult.url);
+      setPrintReadyImageUrl(uploadedResult.printReadyUrl);
 
       // Update edit history
       if (data.editHistory) {
@@ -1170,6 +1186,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
           // Upload to permanent storage
           const uploadedResult = await uploadImageToPermanentStorage(data.data[0].url);
           setGeneratedImage(uploadedResult.url);
+          setPrintReadyImageUrl(uploadedResult.printReadyUrl);
           toast({
             title: 'Success',
             description: 'Image generated and saved successfully!',
@@ -1283,6 +1300,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
           // Upload to permanent storage instead of using proxy
           const uploadedResult = await uploadImageToPermanentStorage(data.data[0].url);
           setGeneratedImage(uploadedResult.url);
+          setPrintReadyImageUrl(uploadedResult.printReadyUrl);
           toast({
             title: 'Success',
             description: 'Image generated successfully!',
@@ -1424,12 +1442,18 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
     try {
       // Check if image is already a permanent URL (starts with /uploads/)
       let permanentUrl = imageToSave;
+      let printUrl = printReadyImageUrl;
       
-      if (!imageToSave.startsWith('/uploads/')) {
+      if (!imageToSave.startsWith('/uploads/') && !imageToSave.startsWith('/api/images/')) {
         // Upload to permanent storage if not already permanent
         console.log('Uploading image to permanent storage for saving...');
         const uploadedResult = await uploadImageToPermanentStorage(imageToSave);
         permanentUrl = uploadedResult.url;
+        printUrl = uploadedResult.printReadyUrl;
+        
+        // Update state with permanent URLs
+        setGeneratedImage(permanentUrl);
+        setPrintReadyImageUrl(printUrl);
       } else {
         console.log('Image already in permanent storage:', imageToSave);
       }
@@ -1441,6 +1465,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
         body: JSON.stringify({
           name: `${product.name} - ${selectedColor || 'No Color'} - ${selectedSize}`,
           imageUrl: permanentUrl,
+          printReadyUrl: printUrl,
           productId: Number(product.id),
         }),
       });
@@ -1597,6 +1622,10 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
             const uploadResult = await uploadImageToPermanentStorage(imageToUse);
             finalImageUrl = uploadResult.url;
             printReadyUrl = uploadResult.printReadyUrl || uploadResult.url;
+            
+            // Update state
+            setGeneratedImage(finalImageUrl);
+            setPrintReadyImageUrl(printReadyUrl);
         } catch (error) {
             console.error('Failed to upload final image for checkout:', error);
             // Fallback to the image we have, but warn
@@ -1606,7 +1635,12 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                 variant: 'destructive',
             });
         }
+    } else if (imageToUse) {
+        // Already uploaded - derive print URL if not in state
+        printReadyUrl = printReadyImageUrl || imageToUse.replace(/\.png$/, '-300dpi.png');
     }
+
+    console.log('Checkout URLs:', { finalImageUrl, printReadyUrl });
 
     const itemToAdd = {
       id: `${numericProductId}-${selectedSize}-${selectedColor}`,
@@ -1648,7 +1682,23 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
             sku: String(item.productId),
             designUrl: itemPrintUrl, // Use the high-res URL for the design
         };
+    }).filter(item => {
+        // Filter out items with missing images to prevent checkout errors
+        const hasImage = item.images && item.images.length > 0 && item.images[0].url && item.images[0].url.trim() !== '';
+        if (!hasImage) {
+            console.warn('Excluding item from checkout due to missing image:', item);
+        }
+        return hasImage;
     });
+
+    if (allItemsAsCheckoutItems.length === 0) {
+        toast({
+            title: 'Error',
+            description: 'No valid items to checkout. Please try generating the design again.',
+            variant: 'destructive',
+        });
+        return;
+    }
     
     initiateCheckout(allItemsAsCheckoutItems);
   };

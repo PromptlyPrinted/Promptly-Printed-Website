@@ -34,6 +34,7 @@ export async function POST(request: Request) {
       data: {
         name: validatedData.name,
         url: validatedData.imageUrl,
+        printReadyUrl: validatedData.printReadyUrl,
         userId: dbUser.id,
         productId: validatedData.productId,
       },

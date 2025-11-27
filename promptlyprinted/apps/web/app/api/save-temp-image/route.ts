@@ -29,10 +29,11 @@ export async function POST(request: Request) {
   try {
     const session = await getSession(request);
 
-    if (!session?.user?.id) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { 'Content-Type': 'application/json' },
+    // Get the database user if session exists
+    let dbUser = null;
+    if (session?.user?.id) {
+      dbUser = await database.user.findUnique({
+        where: { id: session.user.id },
       });
     }
 
@@ -44,21 +45,6 @@ export async function POST(request: Request) {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       });
-    }
-
-    // Get the database user from Better Auth session
-    const dbUser = await database.user.findUnique({
-      where: { id: session.user.id },
-    });
-
-    if (!dbUser) {
-      return new Response(
-        JSON.stringify({ error: 'User not found in database' }),
-        {
-          status: 404,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
     }
 
     // If URL is base64, upload it to storage first and generate 300 DPI version
@@ -81,7 +67,8 @@ export async function POST(request: Request) {
         try {
           console.log('[Save Temp Image] Generating 300 DPI print-ready version...');
           const printReadyBuffer = await generatePrintReadyVersion(imageBuffer);
-          printReadyUrl = await storage.uploadFromBuffer(printReadyBuffer, 'checkout-image-300dpi.png', 'image/png');
+          const printReadyFilename = `checkout-image-${Date.now()}-300dpi.png`;
+          printReadyUrl = await storage.uploadFromBuffer(printReadyBuffer, printReadyFilename, 'image/png');
           console.log('[Save Temp Image] 300 DPI version saved:', printReadyUrl);
         } catch (printError) {
           console.error('[Save Temp Image] Failed to generate 300 DPI version:', printError);
@@ -91,28 +78,36 @@ export async function POST(request: Request) {
       }
     }
 
-    // Check if the image is already saved
-    const existingImage = await database.savedImage.findFirst({
-      where: { url: finalUrl },
-    });
+    // Check if the image is already saved (only if we have a DB user to query against, or just skip this check for guests)
+    // Actually, we can check by URL if it's unique enough, but for guests we might just want to save new.
+    if (dbUser) {
+        const existingImage = await database.savedImage.findFirst({
+        where: { url: finalUrl },
+        });
 
-    if (existingImage) {
-      return new Response(JSON.stringify({ id: existingImage.id, printReadyUrl: existingImage.printReadyUrl }), {
-        headers: { 'Content-Type': 'application/json' },
-      });
+        if (existingImage) {
+        return new Response(JSON.stringify({ id: existingImage.id, printReadyUrl: existingImage.printReadyUrl }), {
+            headers: { 'Content-Type': 'application/json' },
+        });
+        }
     }
 
-    // Save the image to the database with both URLs
-    const savedImage = await database.savedImage.create({
-      data: {
-        name: 'Checkout Image',
-        url: finalUrl,
-        printReadyUrl: printReadyUrl,
-        userId: dbUser.id,
-      },
-    });
+    // Save the image to the database with both URLs (only if user is logged in)
+    let savedImageId: string | undefined;
+    
+    if (dbUser) {
+      const savedImage = await database.savedImage.create({
+        data: {
+          name: 'Checkout Image',
+          url: finalUrl,
+          printReadyUrl: printReadyUrl,
+          userId: dbUser.id,
+        },
+      });
+      savedImageId = savedImage.id;
+    }
 
-    return new Response(JSON.stringify({ id: savedImage.id }), {
+    return new Response(JSON.stringify({ id: savedImageId, url: finalUrl, printReadyUrl }), {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
