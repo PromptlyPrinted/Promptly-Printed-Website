@@ -47,9 +47,8 @@ export function useCheckout() {
 
 
       // Store items in localStorage for the checkout page
-      // Exclude printReadyUrl from localStorage to avoid quota issues (it's only needed server-side)
-      const itemsForStorage = checkoutItems.map(({ printReadyUrl, ...item }) => item);
-      localStorage.setItem('cartItems', JSON.stringify(itemsForStorage));
+      // Include printReadyUrl so it can be passed to the backend
+      localStorage.setItem('cartItems', JSON.stringify(checkoutItems));
 
       // Navigate to the custom checkout page
       router.push('/checkout');
