@@ -9,21 +9,28 @@ export interface StorageProvider {
    * @param buffer - File buffer
    * @param filename - Desired filename (with extension)
    * @param mimeType - MIME type of the file
+   * @param options - Upload options
    * @returns Public URL to access the file
    */
   uploadFromBuffer(
     buffer: Buffer,
     filename: string,
-    mimeType: string
+    mimeType: string,
+    options?: { skipUuid?: boolean }
   ): Promise<string>;
 
   /**
    * Upload a file from a base64 string
    * @param base64Data - Base64 encoded file data (with or without data URI prefix)
    * @param filename - Desired filename (with extension)
+   * @param options - Upload options
    * @returns Public URL to access the file
    */
-  uploadFromBase64(base64Data: string, filename: string): Promise<string>;
+  uploadFromBase64(
+    base64Data: string, 
+    filename: string,
+    options?: { skipUuid?: boolean }
+  ): Promise<string>;
 
   /**
    * Delete a file

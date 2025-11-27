@@ -20,13 +20,14 @@ export class LocalStorageProvider implements StorageProvider {
   async uploadFromBuffer(
     buffer: Buffer,
     filename: string,
-    mimeType: string
+    mimeType: string,
+    options?: { skipUuid?: boolean }
   ): Promise<string> {
     // Create uploads directory if it doesn't exist
     await mkdir(this.uploadsDir, { recursive: true });
 
-    // Generate unique filename to avoid collisions
-    const uniqueFilename = `${randomUUID()}-${filename}`;
+    // Generate unique filename to avoid collisions unless skipUuid is true
+    const uniqueFilename = options?.skipUuid ? filename : `${randomUUID()}-${filename}`;
     const filePath = join(this.uploadsDir, uniqueFilename);
 
     // Write file to disk
@@ -37,7 +38,11 @@ export class LocalStorageProvider implements StorageProvider {
     return `/api/images/${uniqueFilename}`;
   }
 
-  async uploadFromBase64(base64Data: string, filename: string): Promise<string> {
+  async uploadFromBase64(
+    base64Data: string, 
+    filename: string,
+    options?: { skipUuid?: boolean }
+  ): Promise<string> {
     // Extract MIME type and base64 data
     const matches = base64Data.match(/^data:image\/(\w+);base64,(.+)$/);
 
@@ -68,7 +73,7 @@ export class LocalStorageProvider implements StorageProvider {
     // Convert base64 to buffer
     const buffer = Buffer.from(base64String, 'base64');
 
-    return this.uploadFromBuffer(buffer, filename, mimeType);
+    return this.uploadFromBuffer(buffer, filename, mimeType, options);
   }
 
   async delete(url: string): Promise<boolean> {

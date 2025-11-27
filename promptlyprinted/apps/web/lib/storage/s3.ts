@@ -36,9 +36,10 @@ export class S3StorageProvider implements StorageProvider {
   async uploadFromBuffer(
     buffer: Buffer,
     filename: string,
-    mimeType: string
+    mimeType: string,
+    options?: { skipUuid?: boolean }
   ): Promise<string> {
-    const uniqueFilename = `${randomUUID()}-${filename}`;
+    const uniqueFilename = options?.skipUuid ? filename : `${randomUUID()}-${filename}`;
     const key = `uploads/images/${uniqueFilename}`;
 
     await this.client.send(
@@ -62,7 +63,11 @@ export class S3StorageProvider implements StorageProvider {
     return `${this.endpoint}/${this.bucket}/${key}`;
   }
 
-  async uploadFromBase64(base64Data: string, filename: string): Promise<string> {
+  async uploadFromBase64(
+    base64Data: string, 
+    filename: string,
+    options?: { skipUuid?: boolean }
+  ): Promise<string> {
     const matches = base64Data.match(/^data:image\/(\w+);base64,(.+)$/);
     let mimeType = 'image/png';
     let base64String = base64Data;
@@ -77,7 +82,7 @@ export class S3StorageProvider implements StorageProvider {
     }
 
     const buffer = Buffer.from(base64String, 'base64');
-    return this.uploadFromBuffer(buffer, filename, mimeType);
+    return this.uploadFromBuffer(buffer, filename, mimeType, options);
   }
 
   async delete(url: string): Promise<boolean> {

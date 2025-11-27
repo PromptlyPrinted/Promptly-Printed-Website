@@ -2,6 +2,7 @@ import { database } from '@repo/database';
 import { getSession } from '@/lib/session-utils';
 import { storage } from '@/lib/storage';
 import sharp from 'sharp';
+import { randomUUID } from 'crypto';
 
 // Print-ready dimensions for 300 DPI at 15.6" x 19.3" (standard t-shirt print area)
 const PRINT_WIDTH = 4680;  // 15.6 inches * 300 DPI
@@ -173,16 +174,18 @@ export async function POST(request: Request) {
     }
 
     // 3. Upload the Standard PNG
-    const filename = `${name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}.png`;
-    publicUrl = await storage.uploadFromBuffer(imageBuffer, filename, 'image/png');
+    const fileId = randomUUID();
+    const sanitizedName = name.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+    const filename = `${fileId}-${sanitizedName}.png`;
+    publicUrl = await storage.uploadFromBuffer(imageBuffer, filename, 'image/png', { skipUuid: true });
 
 
     // 4. Generate and Upload 300 DPI Print-Ready Version
     try {
       console.log('[Upload Image] Generating 300 DPI print-ready version...');
       const printReadyBuffer = await generatePrintReadyVersion(imageBuffer);
-      const printReadyFilename = `${name.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-300dpi.png`;
-      printReadyUrl = await storage.uploadFromBuffer(printReadyBuffer, printReadyFilename, 'image/png');
+      const printReadyFilename = `${fileId}-${sanitizedName}-300dpi.png`;
+      printReadyUrl = await storage.uploadFromBuffer(printReadyBuffer, printReadyFilename, 'image/png', { skipUuid: true });
       console.log('[Upload Image] 300 DPI version saved:', printReadyUrl);
     } catch (printError) {
       console.error('[Upload Image] Failed to generate 300 DPI version:', printError);
