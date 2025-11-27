@@ -780,84 +780,71 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
     
     if (removeBackground && generatedImage && !processedImage) {
       console.log('Starting background removal...');
-      handleBackgroundRemoval();
+  handleBackgroundRemoval();
     }
   }, [removeBackground, generatedImage, processedImage]);
 
   // Helper function to upload image to permanent storage
-const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: string; printReadyUrl: string }> => {
+const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: string; previewUrl: string; printReadyUrl: string }> => {
   try {
-    // If it's already a permanent URL, derive the print-ready URL
+    // If it's already a permanent URL, derive the print-ready and preview URLs
     if (imageUrl.startsWith('/api/images/')) {
       // Derive print-ready URL from display URL
       // /api/images/2025/01/1234_abcd.png -> /api/images/2025/01/1234_abcd-300dpi.png
       const printReadyUrl = imageUrl.replace(/\.png$/, '-300dpi.png');
-      return { url: imageUrl, printReadyUrl };
+      // Derive preview URL from display URL
+      // /api/images/2025/01/1234_abcd.png -> /api/images/2025/01/1234_abcd-preview.jpg
+      const previewUrl = imageUrl.replace(/\.png$/, '-preview.jpg');
+      return { url: imageUrl, previewUrl, printReadyUrl };
     }
 
-    // If it's a legacy upload URL, just return it
+    // If it's a legacy upload URL, just return it for all three
     if (imageUrl.startsWith('/uploads/')) {
-      return { url: imageUrl, printReadyUrl: imageUrl };
+      return { url: imageUrl, previewUrl: imageUrl, printReadyUrl: imageUrl };
     }
 
-    // Use JSON API for data URLs (more reliable than FormData in browser)
+    // Otherwise, upload to permanent storage
+    console.log('[uploadImageToPermanentStorage] Uploading image...');
+    
+    const formData = new FormData();
+    
+    // Convert data URL to blob if necessary
     if (imageUrl.startsWith('data:')) {
-      console.log('[uploadImageToPermanentStorage] Uploading via JSON API...');
-      const response = await fetch('/api/upload-image', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          imageUrl: imageUrl,
-          name: `Generated Image - ${product.name}`,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[uploadImageToPermanentStorage] Upload failed:', response.status, errorText);
-        throw new Error(`Failed to upload image: ${response.status} - ${errorText}`);
-      }
-
-      const result = await response.json();
-      console.log('[uploadImageToPermanentStorage] Image uploaded successfully:', result);
-      
-      return { 
-        url: result.url, 
-        printReadyUrl: result.printReadyUrl || result.url 
-      };
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      formData.append('file', blob, 'image.png');
     } else {
-      // For external URLs, use JSON API as well
-      console.log('[uploadImageToPermanentStorage] Uploading external URL via JSON API...');
-      const response = await fetch('/api/upload-image', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          imageUrl: imageUrl,
-          name: `Generated Image - ${product.name}`,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[uploadImageToPermanentStorage] Upload failed:', response.status, errorText);
-        throw new Error(`Failed to upload image: ${response.status} - ${errorText}`);
-      }
-
-      const result = await response.json();
-      console.log('[uploadImageToPermanentStorage] Image uploaded successfully:', result);
-      
-      return { 
-        url: result.url, 
-        printReadyUrl: result.printReadyUrl || result.url 
-      };
+      formData.append('imageUrl', imageUrl);
     }
+    
+    formData.append('name', 'Generated Design');
+
+    const uploadResponse = await fetch('/api/upload-image', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!uploadResponse.ok) {
+      const errorText = await uploadResponse.text();
+      console.error('[uploadImageToPermanentStorage] Upload failed:', errorText);
+      throw new Error(`Upload failed: ${uploadResponse.statusText}`);
+    }
+
+    const result = await uploadResponse.json();
+    console.log('[uploadImageToPermanentStorage] Upload successful:', result);
+
+    if (!result.url) {
+      throw new Error('No URL returned from upload');
+    }
+
+    return {
+      url: result.url,
+      previewUrl: result.previewUrl || result.url, // Use preview URL if available, fallback to standard URL
+      printReadyUrl: result.printReadyUrl || result.url
+    };
   } catch (error) {
-    console.error('[uploadImageToPermanentStorage] Failed to upload image:', error);
-    return { url: imageUrl, printReadyUrl: imageUrl };
+    console.error('[uploadImageToPermanentStorage] Error:', error);
+    throw error;
   }
 };
 
@@ -1636,45 +1623,14 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
         description: 'Uploading your design...',
       });
       
-      // Compress the image before uploading to avoid JSON body size limits
-      let imageToUpload = imageToUse;
-      
-      if (imageToUse.startsWith('data:')) {
-        console.log('[preparePrintReadyAsset] Compressing image for upload...');
-        
-        // Create a smaller version for upload (the server will create the 300 DPI version)
-        const img = new Image();
-        await new Promise((resolve, reject) => {
-          img.onload = resolve;
-          img.onerror = reject;
-          img.src = imageToUse;
-        });
-        
-        // Resize to max 2000px width to reduce data URL size
-        const maxWidth = 2000;
-        const scale = Math.min(1, maxWidth / img.width);
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width * scale;
-        canvas.height = img.height * scale;
-        
-        const ctx = canvas.getContext('2d');
-        if (!ctx) throw new Error('Could not get canvas context');
-        
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        
-        // Convert to JPEG with 0.8 quality to reduce size significantly
-        imageToUpload = canvas.toDataURL('image/jpeg', 0.8);
-        console.log('[preparePrintReadyAsset] Image compressed, uploading...');
-      }
-      
-      // Upload the (possibly compressed) image - server will create 300 DPI PNG version
+      // Upload the image - server will create preview JPEG and 300 DPI PNG versions
       console.log('[preparePrintReadyAsset] Uploading image to server...');
-      const uploadResult = await uploadImageToPermanentStorage(imageToUpload);
+      const uploadResult = await uploadImageToPermanentStorage(imageToUse);
       console.log('[preparePrintReadyAsset] Upload result:', uploadResult);
       
       return {
-          displayUrl: uploadResult.url,
-          printUrl: uploadResult.printReadyUrl || uploadResult.url
+          displayUrl: uploadResult.previewUrl, // Use preview JPEG for cart/checkout display
+          printUrl: uploadResult.printReadyUrl  // Use 300 DPI PNG for Prodigi orders
       };
     } catch (error) {
       console.error('[preparePrintReadyAsset] Failed to prepare print-ready asset:', error);

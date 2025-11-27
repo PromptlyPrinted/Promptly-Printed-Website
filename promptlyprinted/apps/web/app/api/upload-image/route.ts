@@ -109,6 +109,35 @@ async function generatePrintReadyVersion(imageBuffer: Buffer): Promise<Buffer> {
 }
 
 /**
+ * Generate a small JPEG preview for cart/checkout display
+ */
+async function generatePreviewVersion(imageBuffer: Buffer): Promise<Buffer> {
+  try {
+    const metadata = await sharp(imageBuffer).metadata();
+    const maxWidth = 800; // Max width for preview
+    
+    // Calculate resize dimensions
+    const shouldResize = metadata.width && metadata.width > maxWidth;
+    
+    return await sharp(imageBuffer)
+      .resize(shouldResize ? maxWidth : undefined, undefined, {
+        fit: 'inside',
+        withoutEnlargement: true,
+      })
+      .jpeg({
+        quality: 80,
+        progressive: true,
+        optimizeScans: true,
+      })
+      .timeout({ seconds: 30 })
+      .toBuffer();
+  } catch (error) {
+    console.error('[Upload Image] Preview generation error:', error);
+    throw new Error(`Failed to generate preview version: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
  * Fetch image from URL with timeout and validation
  */
 async function fetchImageFromUrl(url: string): Promise<Buffer> {
@@ -210,6 +239,7 @@ export async function POST(request: Request) {
     let imageBuffer: Buffer | undefined;
     let publicUrl: string;
     let printReadyUrl: string | null = null;
+    let previewUrl: string | null = null;
 
     // 1. Parse request and obtain image buffer
     const contentType = request.headers.get('content-type') || '';
@@ -402,6 +432,21 @@ export async function POST(request: Request) {
             printReadyUrl = publicUrl;
             console.log('[Upload Image] Using standard PNG as fallback for print-ready version');
         }
+
+        // 5. Generate and upload preview JPEG version for cart/checkout
+        try {
+            console.log('[Upload Image] Generating preview JPEG version...');
+            const previewBuffer = await generatePreviewVersion(imageBuffer);
+            const previewFilename = `${fileId}-${sanitizedName}-preview.jpg`;
+            
+            previewUrl = await storage.uploadFromBuffer(previewBuffer, previewFilename, 'image/jpeg', { skipUuid: true });
+            console.log('[Upload Image] Preview JPEG uploaded successfully:', previewUrl);
+        } catch (previewError) {
+            console.error('[Upload Image] Failed to generate preview version:', previewError);
+            // Fallback: use the standard PNG as preview
+            previewUrl = publicUrl;
+            console.log('[Upload Image] Using standard PNG as fallback for preview version');
+        }
         } catch (uploadError) {
         console.error('[Upload Image] Storage upload failed:', uploadError);
         return new Response(JSON.stringify({ 
@@ -442,6 +487,7 @@ export async function POST(request: Request) {
     const response = {
       id: savedImageId,
       url: publicUrl,
+      previewUrl: previewUrl,
       printReadyUrl: printReadyUrl,
       success: true,
       name: name
