@@ -1678,6 +1678,17 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
         finalImageUrl = result.displayUrl;
         printReadyUrl = result.printUrl;
         
+        // Validate that we got permanent URLs, not data URLs
+        if (finalImageUrl.startsWith('data:') || printReadyUrl.startsWith('data:')) {
+            console.error('[handleAddToCart] Upload failed - still have data URLs');
+            toast({
+                title: 'Error',
+                description: 'Failed to upload design. Please try again.',
+                variant: 'destructive'
+            });
+            return;
+        }
+        
         setGeneratedImage(finalImageUrl);
         setPrintReadyImageUrl(printReadyUrl);
     }
@@ -1698,11 +1709,21 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
     };
 
     console.log('[handleAddToCart] Adding item:', itemToAdd);
-    addItem(itemToAdd);
-    toast({
-      title: 'Added to cart',
-      description: `${product.name} has been added to your cart.`,
-    });
+    
+    try {
+        addItem(itemToAdd);
+        toast({
+          title: 'Added to cart',
+          description: `${product.name} has been added to your cart.`,
+        });
+    } catch (error) {
+        console.error('[handleAddToCart] Failed to add to cart:', error);
+        toast({
+            title: 'Error',
+            description: 'Failed to add to cart. Your browser storage may be full. Try clearing your cart.',
+            variant: 'destructive'
+        });
+    }
   };
 
   // ---- Checkout ----
@@ -1777,6 +1798,17 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
         const result = await preparePrintReadyAsset(imageToUse);
         finalImageUrl = result.displayUrl;
         printReadyUrl = result.printUrl;
+        
+        // Validate that we got permanent URLs, not data URLs
+        if (finalImageUrl.startsWith('data:') || printReadyUrl.startsWith('data:')) {
+            console.error('[handleCheckout] Upload failed - still have data URLs');
+            toast({
+                title: 'Error',
+                description: 'Failed to upload design. Please try again.',
+                variant: 'destructive'
+            });
+            return;
+        }
         
         setGeneratedImage(finalImageUrl);
         setPrintReadyImageUrl(printReadyUrl);
