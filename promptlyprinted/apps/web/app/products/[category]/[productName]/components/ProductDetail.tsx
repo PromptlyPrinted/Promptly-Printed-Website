@@ -71,6 +71,7 @@ import Image from 'next/image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { LORAS, KONTEXT_LORAS, type Lora, type KontextLora } from '../../../../../data/textModel';
+import { jsPDF } from 'jspdf';
 
 // Comprehensive color hex mapping for all T-shirt colors found in product data
 const colorHexMap: Record<string, string> = {
@@ -1322,6 +1323,10 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
     }
   };
 
+
+
+// ... (existing imports)
+
   // ---- Helper: Generate High-Res Image (300 DPI) ----
   const generateHighResImage = async (sourceUrl: string): Promise<string> => {
     const canvas = document.createElement('canvas');
@@ -1355,6 +1360,57 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
     ctx.drawImage(designImage, 0, 0, canvas.width, canvas.height);
 
     return canvas.toDataURL('image/png');
+  };
+
+  // ---- Helper: Generate Print-Ready PDF ----
+  const generatePrintReadyPDF = async (sourceUrl: string): Promise<Blob> => {
+    // 1. Generate the high-res image data (using JPEG inside PDF to save size/memory)
+    // We use a high quality JPEG inside the PDF because a raw PNG at this resolution
+    // can be massive and crash the browser/upload.
+    const canvas = document.createElement('canvas');
+    canvas.width = 4680;
+    canvas.height = 5790;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Could not create canvas context');
+    
+    // Fill white background for PDF (optional, but safer for JPEG transparency handling)
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const designImage = document.createElement('img');
+    designImage.crossOrigin = 'anonymous';
+    await new Promise<void>((resolve, reject) => {
+      designImage.onload = () => resolve();
+      designImage.onerror = () => reject(new Error('Failed to load design image'));
+      
+      if (sourceUrl.startsWith('data:')) {
+        designImage.src = sourceUrl;
+      } else {
+        fetch(sourceUrl)
+            .then(res => res.blob())
+            .then(blob => { designImage.src = URL.createObjectURL(blob); })
+            .catch(reject);
+      }
+    });
+
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(designImage, 0, 0, canvas.width, canvas.height);
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+
+    // 2. Create PDF
+    // 4680x5790 px at 300 DPI is approx 15.6" x 19.3"
+    // We create a PDF of this size.
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'in',
+      format: [15.6, 19.3]
+    });
+
+    pdf.addImage(imgData, 'JPEG', 0, 0, 15.6, 19.3);
+    
+    return pdf.output('blob');
   };
 
   // ---- Download Image ----
@@ -1447,9 +1503,34 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       if (!imageToSave.startsWith('/uploads/') && !imageToSave.startsWith('/api/images/')) {
         // Upload to permanent storage if not already permanent
         console.log('Uploading image to permanent storage for saving...');
-        const uploadedResult = await uploadImageToPermanentStorage(imageToSave);
-        permanentUrl = uploadedResult.url;
-        printUrl = uploadedResult.printReadyUrl;
+        
+        // Generate PDF for saving
+        const pdfBlob = await generatePrintReadyPDF(imageToSave);
+        const pdfFile = new File([pdfBlob], 'design.pdf', { type: 'application/pdf' });
+        
+        const formData = new FormData();
+        formData.append('file', pdfFile);
+        
+        const uploadRes = await fetch('/api/upload-image', {
+            method: 'POST',
+            body: formData,
+        });
+        
+        if (!uploadRes.ok) throw new Error('Failed to upload PDF');
+        
+        const uploadedResult = await uploadRes.json();
+        
+        // For display, we still need an image URL. If imageToSave is a data URL, we should probably upload that too 
+        // OR just use the PDF for printReadyUrl and the current image for display.
+        // Let's upload the display image separately if it's not already a URL
+        let displayUrl = imageToSave;
+        if (imageToSave.startsWith('data:')) {
+             const displayUpload = await uploadImageToPermanentStorage(imageToSave);
+             displayUrl = displayUpload.url;
+        }
+        
+        permanentUrl = displayUrl;
+        printUrl = uploadedResult.url; // The PDF URL
         
         // Update state with permanent URLs
         setGeneratedImage(permanentUrl);
@@ -1552,6 +1633,131 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
     console.log('Submitting review:', { rating, reviewText });
   };
 
+  // ---- Helper: Prepare Print-Ready Asset ----
+  const preparePrintReadyAsset = async (imageToUse: string): Promise<{ displayUrl: string, printUrl: string }> => {
+    if (!imageToUse) return { displayUrl: '', printUrl: '' };
+
+    try {
+      toast({
+        title: 'Preparing Design',
+        description: 'Generating print-ready PDF file...',
+      });
+      
+      // Generate PDF client-side
+      console.log('Generating print-ready PDF...');
+      const pdfBlob = await generatePrintReadyPDF(imageToUse);
+      
+      const pdfFile = new File([pdfBlob], 'print-ready-design.pdf', { type: 'application/pdf' });
+
+      console.log('Uploading PDF to permanent storage...');
+      const formData = new FormData();
+      formData.append('file', pdfFile);
+      
+      const uploadRes = await fetch('/api/upload-image', {
+          method: 'POST',
+          body: formData,
+      });
+      
+      if (!uploadRes.ok) throw new Error('Failed to upload PDF');
+      
+      const uploadResult = await uploadRes.json();
+      console.log('PDF Upload result:', uploadResult);
+      
+      // For PDF, the url and printReadyUrl are the same
+      // But we might want to keep the original image for display if possible
+      // For now, we return the PDF url as printUrl. 
+      // The displayUrl should ideally be the imageToUse (if it's a URL) or we upload it too.
+      // If imageToUse is a data URL, we should upload it for persistent display URL.
+      let displayUrl = imageToUse;
+      if (imageToUse.startsWith('data:')) {
+          // Upload the display image too
+          const displayUpload = await uploadImageToPermanentStorage(imageToUse);
+          displayUrl = displayUpload.url;
+      }
+
+      return {
+          displayUrl: displayUrl,
+          printUrl: uploadResult.url
+      };
+    } catch (error) {
+      console.error('Failed to prepare print-ready asset:', error);
+      toast({
+        title: 'Warning',
+        description: 'Could not finalize PDF. Using standard image.',
+        variant: 'destructive',
+      });
+      return { displayUrl: imageToUse, printUrl: imageToUse };
+    }
+  };
+
+  // ---- Add to Cart ----
+  const handleAddToCart = async () => {
+    if (!selectedSize) {
+      toast({
+        title: 'Error',
+        description: 'Please select a size before adding to cart',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const imageToUse = (removeBackground && processedImage) ? processedImage : generatedImage;
+    const basePrice = product.pricing?.[0]?.amount || product.price || 0;
+    const finalPrice = discountPercent > 0 ? basePrice * (1 - discountPercent) : basePrice;
+
+    // Get numeric product ID
+    let numericProductId: number;
+    try {
+        // Optimistic fallback if product.id is already numeric
+        if (typeof product.id === 'number') {
+            numericProductId = product.id;
+        } else {
+            const response = await fetch(`/api/products/by-sku/${product.id}`);
+            if (!response.ok) throw new Error('Failed to fetch product ID');
+            const data = await response.json();
+            numericProductId = data.id;
+        }
+    } catch (error) {
+        console.error('Failed to get product ID:', error);
+        toast({ title: 'Error', description: 'Failed to load product info.', variant: 'destructive' });
+        return;
+    }
+
+    // Prepare assets
+    let finalImageUrl = imageToUse || product.imageUrls.cover;
+    let printReadyUrl = '';
+
+    if (imageToUse) {
+        const result = await preparePrintReadyAsset(imageToUse);
+        finalImageUrl = result.displayUrl;
+        printReadyUrl = result.printUrl;
+        
+        setGeneratedImage(finalImageUrl);
+        setPrintReadyImageUrl(printReadyUrl);
+    }
+
+    const itemToAdd = {
+      id: `${numericProductId}-${selectedSize}-${selectedColor}`,
+      productId: String(numericProductId),
+      name: product.name,
+      price: finalPrice,
+      originalPrice: basePrice,
+      discount: discountPercent > 0 ? Math.round(discountPercent * 100) : undefined,
+      quantity: quantity,
+      size: selectedSize,
+      color: selectedColor || 'Default',
+      imageUrl: finalImageUrl,
+      printReadyUrl: printReadyUrl,
+      assets: [],
+    };
+
+    addItem(itemToAdd);
+    toast({
+      title: 'Added to cart',
+      description: `${product.name} has been added to your cart.`,
+    });
+  };
+
   // ---- Checkout ----
   const handleCheckout = async () => {
     if (!selectedSize) {
@@ -1619,32 +1825,12 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
     // Only attempt upload if it's a generated image (data URL or temp URL)
     // If it's the product cover image, we use it as is (though likely not print ready for custom print)
     if (imageToUse) {
-        try {
-            toast({
-                title: 'Preparing Order',
-                description: 'Finalizing high-quality print file...',
-            });
-            
-            // Upload the original image (server handles 300 DPI upscaling)
-            console.log('Uploading image to permanent storage...');
-            const uploadResult = await uploadImageToPermanentStorage(imageToUse);
-            console.log('Upload result:', uploadResult);
-            
-            finalImageUrl = uploadResult.url;
-            printReadyUrl = uploadResult.printReadyUrl || uploadResult.url;
-            
-            // Update state
-            setGeneratedImage(finalImageUrl);
-            setPrintReadyImageUrl(printReadyUrl);
-        } catch (error) {
-            console.error('Failed to upload final image for checkout:', error);
-            // Fallback to the image we have, but warn
-             toast({
-                title: 'Warning',
-                description: 'Could not finalize high-res image. Using standard quality.',
-                variant: 'destructive',
-            });
-        }
+        const result = await preparePrintReadyAsset(imageToUse);
+        finalImageUrl = result.displayUrl;
+        printReadyUrl = result.printUrl;
+        
+        setGeneratedImage(finalImageUrl);
+        setPrintReadyImageUrl(printReadyUrl);
     }
 
     console.log('Checkout URLs:', { finalImageUrl, printReadyUrl });
@@ -2950,52 +3136,10 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
           {/* Checkout Buttons */}
           <div className="mt-3 flex flex-col gap-2 sm:flex-row">
             <Button
-              className="w-full bg-teal-600 text-white hover:bg-teal-700 sm:flex-1"
+              className="w-full sm:flex-1"
+              variant="outline"
               size="default"
-              onClick={async () => {
-                if (!selectedSize) {
-                  toast({
-                    title: 'Error',
-                    description: 'Please select a size before adding to cart',
-                    variant: 'destructive',
-                  });
-                  return;
-                }
-                
-                // Fetch numeric product ID from SKU
-                let numericProductId: number;
-                try {
-                  const response = await fetch(`/api/products/by-sku/${product.id}`);
-                  if (!response.ok) throw new Error('Failed to fetch product ID');
-                  const data = await response.json();
-                  numericProductId = data.id;
-                } catch (error) {
-                  console.error('[Add to Cart] Failed to fetch product ID:', error);
-                  toast({
-                    title: 'Error',
-                    description: 'Failed to add item to cart. Please try again.',
-                    variant: 'destructive',
-                  });
-                  return;
-                }
-                
-                const itemToAdd = {
-                  id: `${numericProductId}-${selectedSize}-${selectedColor}`,
-                  productId: numericProductId, // Use numeric database ID
-                  name: product.name,
-                  price: product.pricing?.[0]?.amount || product.price || 0,
-                  quantity: quantity,
-                  size: selectedSize,
-                  color: selectedColor || 'Default',
-                  imageUrl: generatedImage || product.imageUrls.cover,
-                  assets: [],
-                };
-                addItem(itemToAdd);
-                toast({
-                  title: 'Added to cart',
-                  description: `${product.name} has been added to your cart.`,
-                });
-              }}
+              onClick={handleAddToCart}
             >
               Add to Cart
             </Button>
