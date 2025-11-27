@@ -1636,9 +1636,40 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
         description: 'Uploading your design...',
       });
       
-      // Simply upload the image - the server will create the 300 DPI version automatically
+      // Compress the image before uploading to avoid JSON body size limits
+      let imageToUpload = imageToUse;
+      
+      if (imageToUse.startsWith('data:')) {
+        console.log('[preparePrintReadyAsset] Compressing image for upload...');
+        
+        // Create a smaller version for upload (the server will create the 300 DPI version)
+        const img = new Image();
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+          img.src = imageToUse;
+        });
+        
+        // Resize to max 2000px width to reduce data URL size
+        const maxWidth = 2000;
+        const scale = Math.min(1, maxWidth / img.width);
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Could not get canvas context');
+        
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        // Convert to JPEG with 0.8 quality to reduce size significantly
+        imageToUpload = canvas.toDataURL('image/jpeg', 0.8);
+        console.log('[preparePrintReadyAsset] Image compressed, uploading...');
+      }
+      
+      // Upload the (possibly compressed) image - server will create 300 DPI PNG version
       console.log('[preparePrintReadyAsset] Uploading image to server...');
-      const uploadResult = await uploadImageToPermanentStorage(imageToUse);
+      const uploadResult = await uploadImageToPermanentStorage(imageToUpload);
       console.log('[preparePrintReadyAsset] Upload result:', uploadResult);
       
       return {
