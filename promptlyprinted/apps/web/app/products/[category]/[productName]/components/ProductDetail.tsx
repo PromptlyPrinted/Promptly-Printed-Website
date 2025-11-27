@@ -785,54 +785,64 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
   }, [removeBackground, generatedImage, processedImage]);
 
   // Helper function to upload image to permanent storage
-  const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: string; printReadyUrl: string }> => {
-    try {
-      // If it's already a permanent URL, derive the print-ready URL
-      if (imageUrl.startsWith('/api/images/')) {
-        // Derive print-ready URL from display URL
-        // /api/images/2025/01/1234_abcd.png -> /api/images/2025/01/1234_abcd-300dpi.png
-        const printReadyUrl = imageUrl.replace(/\.png$/, '-300dpi.png');
-        return { url: imageUrl, printReadyUrl };
-      }
+const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: string; printReadyUrl: string }> => {
+  try {
+    // If it's already a permanent URL, derive the print-ready URL
+    if (imageUrl.startsWith('/api/images/')) {
+      // Derive print-ready URL from display URL
+      // /api/images/2025/01/1234_abcd.png -> /api/images/2025/01/1234_abcd-300dpi.png
+      const printReadyUrl = imageUrl.replace(/\.png$/, '-300dpi.png');
+      return { url: imageUrl, printReadyUrl };
+    }
 
-      // If it's a legacy upload URL, just return it
-      if (imageUrl.startsWith('/uploads/')) {
-        return { url: imageUrl, printReadyUrl: imageUrl };
-      }
-
-      const formData = new FormData();
-      formData.append('name', `Generated Image - ${product.name}`);
-
-      if (imageUrl.startsWith('data:')) {
-        // Convert Data URL to Blob
-        const res = await fetch(imageUrl);
-        const blob = await res.blob();
-        formData.append('file', blob, 'image.png');
-      } else {
-        formData.append('imageUrl', imageUrl);
-      }
-
-      const response = await fetch('/api/upload-image', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to upload image: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('Image uploaded:', result);
-      
-      return { 
-        url: result.url, 
-        printReadyUrl: result.printReadyUrl || result.url 
-      };
-    } catch (error) {
-      console.error('Failed to upload image:', error);
+    // If it's a legacy upload URL, just return it
+    if (imageUrl.startsWith('/uploads/')) {
       return { url: imageUrl, printReadyUrl: imageUrl };
     }
-  };
+
+    const formData = new FormData();
+    formData.append('name', `Generated Image - ${product.name}`);
+
+    if (imageUrl.startsWith('data:')) {
+      // Convert Data URL to Blob with proper type
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      
+      // Determine file extension and type from the data URL
+      const mimeMatch = imageUrl.match(/^data:(image\/\w+);base64,/);
+      const mimeType = mimeMatch ? mimeMatch[1] : 'image/png';
+      const extension = mimeType.split('/')[1] || 'png';
+      
+      // Create a properly typed File object
+      const file = new File([blob], `generated-image.${extension}`, { type: mimeType });
+      formData.append('file', file);
+    } else {
+      formData.append('imageUrl', imageUrl);
+    }
+
+    const response = await fetch('/api/upload-image', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[uploadImageToPermanentStorage] Upload failed:', response.status, errorText);
+      throw new Error(`Failed to upload image: ${response.status} - ${errorText}`);
+    }
+
+    const result = await response.json();
+    console.log('[uploadImageToPermanentStorage] Image uploaded successfully:', result);
+    
+    return { 
+      url: result.url, 
+      printReadyUrl: result.printReadyUrl || result.url 
+    };
+  } catch (error) {
+    console.error('[uploadImageToPermanentStorage] Failed to upload image:', error);
+    return { url: imageUrl, printReadyUrl: imageUrl };
+  }
+};
 
   // ---- Nano Banana Generation ----
   const handleNanoBananaGeneration = async () => {
