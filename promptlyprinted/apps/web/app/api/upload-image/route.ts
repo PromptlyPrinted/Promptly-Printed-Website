@@ -25,6 +25,42 @@ const FETCH_TIMEOUT = 10000; // 10 seconds
 const MAX_DIMENSION = 8000; // Maximum width or height for input images
 
 /**
+ * Detect image format from base64 string by examining magic bytes
+ */
+function detectImageFormatFromBase64(base64String: string): string {
+  try {
+    // Decode first 12 bytes to check magic numbers
+    const prefix = base64String.substring(0, 20);
+    const buffer = Buffer.from(prefix, 'base64');
+    const hex = buffer.toString('hex');
+    
+    // Check magic bytes (first few bytes of the file)
+    // JPEG: FF D8 FF
+    if (hex.startsWith('ffd8ff')) {
+      return 'jpeg';
+    }
+    // PNG: 89 50 4E 47 0D 0A 1A 0A
+    if (hex.startsWith('89504e47')) {
+      return 'png';
+    }
+    // WebP: RIFF....WEBP (52 49 46 46 ... 57 45 42 50)
+    if (hex.startsWith('52494646') && hex.includes('57454250')) {
+      return 'webp';
+    }
+    // GIF: GIF87a or GIF89a (47 49 46 38 37 61 or 47 49 46 38 39 61)
+    if (hex.startsWith('474946383')) {
+      return 'gif';
+    }
+    
+    console.warn('[detectImageFormatFromBase64] Could not detect format from magic bytes, defaulting to png. Hex:', hex);
+    return 'png'; // Default fallback
+  } catch (error) {
+    console.error('[detectImageFormatFromBase64] Error detecting format:', error);
+    return 'png'; // Safe fallback
+  }
+}
+
+/**
  * Validate image buffer and metadata
  */
 async function validateImage(imageBuffer: Buffer): Promise<void> {
@@ -413,8 +449,10 @@ export async function POST(request: Request) {
               imageDataValue = bodyText;
             } else {
               // It's raw base64, need to add data URL prefix
-              // Assume PNG format (most common for generated images)
-              imageDataValue = `data:image/png;base64,${bodyText}`;
+              // Detect format from base64 magic bytes instead of assuming PNG
+              const detectedFormat = detectImageFormatFromBase64(bodyText);
+              console.log('[Upload Image] Detected format from base64:', detectedFormat);
+              imageDataValue = `data:image/${detectedFormat};base64,${bodyText}`;
             }
 
             data = {
