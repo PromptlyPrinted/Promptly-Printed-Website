@@ -31,6 +31,7 @@ export const BasketDropdown = ({
   const [mounted, setMounted] = useState(false);
   const { items, removeItem, updateQuantity, getTotal } = useCartStore();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -246,6 +247,8 @@ export const BasketDropdown = ({
                     };
                   })}
                   className="w-full"
+                  disabled={isCheckingOut}
+                  onCheckoutStart={() => setIsCheckingOut(true)}
                 />
                 <Button variant="outline" className="w-full" onClick={onClose}>
                   Continue Shopping
