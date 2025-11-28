@@ -456,7 +456,7 @@ export async function POST(request: Request) {
             } else {
               // It's raw base64, need to add data URL prefix
               // Detect format from base64 magic bytes instead of assuming PNG
-              const detectedFormat = detectImageFormatFromBase64(bodyText);
+              let detectedFormat = detectImageFormatFromBase64(bodyText);
               console.log('[Upload Image] Detected format from base64:', detectedFormat);
 
               // If format detection failed (empty string), the base64 might be corrupted during transmission
