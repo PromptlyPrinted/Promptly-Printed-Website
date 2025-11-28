@@ -813,39 +813,31 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
     // Get product code for correct dimensions
     const productCode = product.specifications?.style || product.sku || product.id.toString();
     
-    // Use JSON format for data URLs (avoids FormData parsing issues with large base64)
-    // Use FormData for regular URLs (maintains compatibility)
+    // IMPORTANT: For large data URLs, convert to Blob and use FormData
+    // JSON.stringify can cause issues with very large base64 strings
     if (imageUrl.startsWith('data:')) {
-      console.log('[uploadImageToPermanentStorage] Using JSON format for data URL upload...');
+      console.log('[uploadImageToPermanentStorage] Using FormData with Blob for large data URL...');
       console.log('[uploadImageToPermanentStorage] Image URL starts with:', imageUrl.substring(0, 50));
       console.log('[uploadImageToPermanentStorage] Image URL length:', imageUrl.length);
-      
-      const requestBody = JSON.stringify({
-        imageData: imageUrl, // Send as data URL in JSON
-        name: 'Generated Design',
-        productCode: productCode,
-      });
 
-      console.log('[uploadImageToPermanentStorage] Request body length:', requestBody.length);
-      console.log('[uploadImageToPermanentStorage] Request body starts with:', requestBody.substring(0, 100));
-      console.log('[uploadImageToPermanentStorage] Verifying JSON structure...');
+      // Convert data URL to Blob
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
 
-      // Verify the JSON is valid before sending
-      try {
-        const parsed = JSON.parse(requestBody);
-        console.log('[uploadImageToPermanentStorage] JSON validation passed, keys:', Object.keys(parsed));
-        console.log('[uploadImageToPermanentStorage] imageData starts with:', parsed.imageData.substring(0, 50));
-      } catch (e) {
-        console.error('[uploadImageToPermanentStorage] JSON validation failed:', e);
-        throw new Error('Failed to create valid JSON payload');
-      }
+      console.log('[uploadImageToPermanentStorage] Blob created, size:', blob.size, 'type:', blob.type);
+
+      // Use FormData to send the blob
+      const formData = new FormData();
+      formData.append('file', blob, 'generated-image.png');
+      formData.append('name', 'Generated Design');
+      formData.append('productCode', productCode);
+
+      console.log('[uploadImageToPermanentStorage] Sending FormData with blob...');
 
       const uploadResponse = await fetch('/api/upload-image', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: requestBody,
+        // DO NOT set Content-Type - let browser set it with boundary
+        body: formData,
       });
 
       if (!uploadResponse.ok) {
