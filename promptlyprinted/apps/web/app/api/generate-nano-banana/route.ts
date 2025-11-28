@@ -415,10 +415,6 @@ export async function POST(request: Request) {
             }],
             generationConfig: {
               response_modalities: ['IMAGE', 'TEXT'],
-              image_generation_config: {
-                aspect_ratio: '1:1',
-                image_size: '2K',
-              },
             },
           }),
         });
@@ -452,10 +448,6 @@ export async function POST(request: Request) {
             }],
             generationConfig: {
               response_modalities: ['IMAGE', 'TEXT'],
-              image_generation_config: {
-                aspect_ratio: '1:1',
-                image_size: '2K',
-              },
             },
           }),
         });
@@ -507,10 +499,6 @@ export async function POST(request: Request) {
           }],
           generationConfig: {
             response_modalities: ['IMAGE', 'TEXT'],
-            image_generation_config: {
-              aspect_ratio: '1:1',
-              image_size: '2K',
-            },
           },
         }),
       });
