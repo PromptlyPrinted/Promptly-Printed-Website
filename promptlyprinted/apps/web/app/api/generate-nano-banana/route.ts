@@ -124,11 +124,11 @@ function extractInlineImageData(result: any): string | null {
     const inlineData = part?.inline_data || part?.inlineData;
     if (inlineData?.data) {
       let base64Data = inlineData.data;
-      
-      // Validate it's actually base64  
+
+      // Validate it's actually base64
       console.log('[extractInlineImageData] Found inline data, length:', base64Data.length);
       console.log('[extractInlineImageData] Data starts with:', base64Data.substring(0, 50));
-      
+
       // Clean up any potential data URL prefix if present
       if (base64Data.startsWith('data:')) {
         console.warn('[extractInlineImageData] Data has data URL prefix, stripping it...');
@@ -137,13 +137,37 @@ function extractInlineImageData(result: any): string | null {
           base64Data = match[1];
         }
       }
-      
+
       // Validate base64 format
       if (!/^[A-Za-z0-9+/]*={0,2}$/.test(base64Data.substring(0, 100))) {
         console.error('[extractInlineImageData] Data does not look like valid base64');
         return null;
       }
-      
+
+      // CRITICAL: Validate that the decoded data has valid image magic bytes
+      try {
+        const buffer = Buffer.from(base64Data.substring(0, 20), 'base64');
+        const hex = buffer.toString('hex');
+
+        // Check if magic bytes match known image formats
+        const isValidImage =
+          hex.startsWith('ffd8ff') ||      // JPEG
+          hex.startsWith('89504e47') ||    // PNG
+          hex.startsWith('52494646') ||    // RIFF (WebP)
+          hex.startsWith('474946383');     // GIF
+
+        if (!isValidImage) {
+          console.error('[extractInlineImageData] Invalid image magic bytes detected:', hex);
+          console.error('[extractInlineImageData] This data cannot be decoded as a valid image');
+          return null;
+        }
+
+        console.log('[extractInlineImageData] Valid image format detected, magic bytes:', hex);
+      } catch (validationError) {
+        console.error('[extractInlineImageData] Failed to validate image data:', validationError);
+        return null;
+      }
+
       console.log('[extractInlineImageData] Returning clean base64, length:', base64Data.length);
       return base64Data;
     }
@@ -477,7 +501,9 @@ export async function POST(request: Request) {
         // Extract the generated image base64 data
         const generatedData = extractInlineImageData(result);
         if (!generatedData) {
-          throw new Error('No image data returned from Gemini API');
+          // Log the full response to help debug what went wrong
+          console.error('[Gemini API] Response structure:', JSON.stringify(result, null, 2));
+          throw new Error('No valid image data returned from Gemini API. The API may have returned corrupted data or an error.');
         }
 
         generatedImageBase64 = generatedData;
@@ -510,7 +536,9 @@ export async function POST(request: Request) {
         // Extract the generated image base64 data
         const generatedData = extractInlineImageData(result);
         if (!generatedData) {
-          throw new Error('No image data returned from Gemini API');
+          // Log the full response to help debug what went wrong
+          console.error('[Gemini API] Text-to-image response structure:', JSON.stringify(result, null, 2));
+          throw new Error('No valid image data returned from Gemini API. The API may have returned corrupted data or an error.');
         }
 
         generatedImageBase64 = generatedData;
@@ -520,6 +548,11 @@ export async function POST(request: Request) {
       // ========== STEP 2: AUTOMATIC EMBELLISHMENT ==========
       // This step is NON-OPTIONAL and runs after every successful generation
       console.log('Starting automatic embellishment step...');
+
+      // Detect the actual format of the generated image to pass correct mime_type
+      const generatedFormat = detectImageFormat(generatedImageBase64);
+      const generatedMimeType = `image/${generatedFormat}`;
+      console.log(`[Embellishment] Detected generated image format: ${generatedMimeType}`);
 
       // Hard-coded embellishment prompt (static, non-negotiable)
       const embellishmentPrompt = `Subtly enhance this image. Improve the lighting, increase the dynamic range, and sharpen the details to make it look more vibrant and professional. Do not change any of the content, characters, or objects. Only enhance the visual quality, clarity, and impact of the existing image.`;
@@ -539,7 +572,7 @@ export async function POST(request: Request) {
               {
                 inline_data: {
                   data: generatedImageBase64,
-                  mime_type: 'image/png',
+                  mime_type: generatedMimeType,
                 },
               },
               { text: embellishmentPrompt },
@@ -554,20 +587,25 @@ export async function POST(request: Request) {
       let finalImageBase64: string;
       if (!embellishmentResponse.ok) {
         // If embellishment fails, use the original generated image
-        console.warn('Embellishment failed, using original image');
+        const errorText = await embellishmentResponse.text();
+        console.warn('Embellishment API request failed:', embellishmentResponse.status, errorText);
+        console.warn('Using original image without embellishment');
         finalImageBase64 = generatedImageBase64;
       } else {
         const embellishmentResult = await embellishmentResponse.json();
         const embellishedData = extractInlineImageData(embellishmentResult);
         if (!embellishedData) {
-          console.warn('Embellishment returned no data, using original image');
+          console.warn('Embellishment returned invalid or no data');
+          console.warn('[Gemini API] Embellishment response structure:', JSON.stringify(embellishmentResult, null, 2));
+          console.warn('Using original image without embellishment');
           finalImageBase64 = generatedImageBase64;
         } else {
           finalImageBase64 = embellishedData;
+          console.log('Embellishment successful');
         }
       }
 
-      console.log('Embellishment step completed successfully');
+      console.log('Embellishment step completed');
 
       // Detect actual image format from base64 data
       const detectedFormat = detectImageFormat(finalImageBase64);
