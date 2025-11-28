@@ -2292,42 +2292,29 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
                 {/* Image Upload Area - Enhanced for Nano Banana */}
                 <div className="space-y-3">
                   <Label className={`text-sm ${useNanoBanana ? 'text-purple-600' : 'text-teal-600'}`}>
-                    Reference Image{useNanoBanana ? 's (1-3 optional)' : ''}
+                    Reference Image{useNanoBanana ? `s (up to ${nanoBananaModel === 'nano-banana-pro' ? '6' : '3'} optional)` : ''}
                   </Label>
 
                   {useNanoBanana ? (
                     /* Nano Banana: Multi-image upload (1-6 images) */
                     <div className="border-2 border-dashed border-purple-300 rounded-lg p-4 bg-gradient-to-br from-purple-50 to-indigo-50">
-                      {/* Model Selector */}
-                      <div className="mb-4">
-                        <Label className="text-purple-700 text-xs font-semibold mb-1 block">Model Version</Label>
-                        <div className="flex bg-white rounded-lg p-1 border border-purple-200 shadow-sm">
-                          <button
-                            onClick={() => setNanoBananaModel('nano-banana')}
-                            className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all ${
-                              nanoBananaModel === 'nano-banana'
-                                ? 'bg-purple-600 text-white shadow-sm'
-                                : 'text-purple-600 hover:bg-purple-50'
-                            }`}
-                          >
-                            Nano Banana (0.5 credits)
-                          </button>
-                          <button
-                            onClick={() => setNanoBananaModel('nano-banana-pro')}
-                            className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all ${
-                              nanoBananaModel === 'nano-banana-pro'
-                                ? 'bg-purple-600 text-white shadow-sm'
-                                : 'text-purple-600 hover:bg-purple-50'
-                            }`}
-                          >
-                            Nano Banana 2 (2 credits)
-                          </button>
+                      {/* Info Banner */}
+                      <div className="mb-4 bg-white rounded-lg p-3 border border-purple-200">
+                        <div className="flex items-start gap-2">
+                          <svg className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <div>
+                            <p className="text-sm font-semibold text-purple-900">
+                              {nanoBananaModel === 'nano-banana-pro' ? 'Nano Banana Pro' : 'Nano Banana'}
+                            </p>
+                            <p className="text-xs text-purple-600 mt-0.5">
+                              {nanoBananaModel === 'nano-banana-pro'
+                                ? 'Advanced model - Up to 6 reference images for maximum creative control'
+                                : 'Standard model - Up to 3 reference images for quick edits'}
+                            </p>
+                          </div>
                         </div>
-                        <p className="text-[10px] text-purple-500 mt-1 px-1">
-                          {nanoBananaModel === 'nano-banana-pro' 
-                            ? 'Pro: Up to 6 reference images for advanced control.' 
-                            : 'Standard: Up to 3 reference images for quick edits.'}
-                        </p>
                       </div>
 
                       {/* Reference Images Grid */}
@@ -2363,9 +2350,9 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
                                     {index === 0 && 'Style'}
                                     {index === 1 && 'Layout'}
                                     {index === 2 && 'Texture'}
-                                    {index === 3 && 'Color'}
-                                    {index === 4 && 'Lighting'}
-                                    {index === 5 && 'Detail'}
+                                    {index === 3 && 'Lighting'}
+                                    {index === 4 && 'Color Grade'}
+                                    {index === 5 && 'Character'}
                                   </span>
                                 </div>
                               </>
@@ -2378,9 +2365,9 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
                                   {index === 0 && 'Style'}
                                   {index === 1 && 'Layout'}
                                   {index === 2 && 'Texture'}
-                                  {index === 3 && 'Color'}
-                                  {index === 4 && 'Light'}
-                                  {index === 5 && 'Detail'}
+                                  {index === 3 && 'Lighting'}
+                                  {index === 4 && 'Color Grade'}
+                                  {index === 5 && 'Character'}
                                 </span>
                               </div>
                             )}
@@ -2434,9 +2421,9 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
                           <div><strong>3 images:</strong> Style + composition + texture</div>
                           {nanoBananaModel === 'nano-banana-pro' && (
                             <>
-                              <div><strong>4 images:</strong> + Color palette</div>
-                              <div><strong>5 images:</strong> + Lighting</div>
-                              <div><strong>6 images:</strong> + Fine detail</div>
+                              <div><strong>4 images:</strong> + Lighting & atmosphere</div>
+                              <div><strong>5 images:</strong> + Color grading</div>
+                              <div><strong>6 images:</strong> + Character consistency</div>
                             </>
                           )}
                         </div>
@@ -2806,10 +2793,16 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
                     Select Model
                   </Label>
                   <Select
-                    value={useNanoBanana ? 'nano-banana' : 'promptly-loras'}
+                    value={useNanoBanana ? nanoBananaModel : 'promptly-loras'}
                     onValueChange={(value) => {
                       if (value === 'nano-banana') {
                         setUseNanoBanana(true);
+                        setNanoBananaModel('nano-banana');
+                        setIsBaseModel(false);
+                        setSelectedModels([]);
+                      } else if (value === 'nano-banana-pro') {
+                        setUseNanoBanana(true);
+                        setNanoBananaModel('nano-banana-pro');
                         setIsBaseModel(false);
                         setSelectedModels([]);
                       } else if (value === 'promptly-loras') {
@@ -2828,7 +2821,10 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
                         Promptly LORA's (Fine-tuned)
                       </SelectItem>
                       <SelectItem value="nano-banana">
-                        Google Nano Banana (AI Image Generation)
+                        Google Nano Banana (0.5 credits)
+                      </SelectItem>
+                      <SelectItem value="nano-banana-pro">
+                        Google Nano Banana Pro (2 credits)
                       </SelectItem>
                     </SelectContent>
                   </Select>
@@ -2920,10 +2916,16 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
                     Select Image Editing Model
                   </Label>
                   <Select
-                    value={useNanoBanana ? 'nano-banana' : 'kontext-loras'}
+                    value={useNanoBanana ? nanoBananaModel : 'kontext-loras'}
                     onValueChange={(value) => {
                       if (value === 'nano-banana') {
                         setUseNanoBanana(true);
+                        setNanoBananaModel('nano-banana');
+                        setIsBaseModel(false);
+                        setSelectedKontextModels([]);
+                      } else if (value === 'nano-banana-pro') {
+                        setUseNanoBanana(true);
+                        setNanoBananaModel('nano-banana-pro');
                         setIsBaseModel(false);
                         setSelectedKontextModels([]);
                       } else if (value === 'kontext-loras') {
@@ -2942,7 +2944,10 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
                         Promptly Kontext LORA's
                       </SelectItem>
                       <SelectItem value="nano-banana">
-                        Google Nano Banana (Conversational AI Editing)
+                        Google Nano Banana (0.5 credits) - Up to 3 reference images
+                      </SelectItem>
+                      <SelectItem value="nano-banana-pro">
+                        Google Nano Banana Pro (2 credits) - Up to 6 reference images
                       </SelectItem>
                     </SelectContent>
                   </Select>

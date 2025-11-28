@@ -338,20 +338,64 @@ export async function POST(request: Request) {
       }
     } else {
       console.log('[Upload Image] Processing JSON request');
-      
+
       try {
         // Clone the request to inspect body if JSON parsing fails
         const requestClone = request.clone();
         let data;
-        
+
         try {
           data = await request.json();
+          console.log('[Upload Image] JSON parsed successfully, keys:', Object.keys(data));
         } catch (jsonError) {
-          // Log the actual body content for debugging
+          // DEFENSIVE HANDLING: Check if body is raw base64 instead of JSON
+          // This can happen when:
+          // - Middleware or proxies strip the JSON wrapper
+          // - Edge functions modify the request body
+          // - Client code accidentally sends raw data
+          // Instead of failing, we attempt to recover by wrapping the raw data
           const bodyText = await requestClone.text();
-          console.error('[Upload Image] JSON parsing failed. Body starts with:', bodyText.substring(0, 100));
-          console.error('[Upload Image] JSON error:', jsonError);
-          throw new Error(`Invalid JSON body: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}`);
+          console.warn('[Upload Image] JSON parsing failed, attempting base64 recovery...');
+          console.log('[Upload Image] Body length:', bodyText.length);
+          console.log('[Upload Image] Body starts with:', bodyText.substring(0, 100));
+
+          // Check if this looks like raw base64 data
+          const looksLikeBase64 = /^[A-Za-z0-9+/]/.test(bodyText) && bodyText.length > 100;
+          const looksLikeDataUrl = bodyText.startsWith('data:image/');
+
+          if (looksLikeBase64 || looksLikeDataUrl) {
+            console.log('[Upload Image] Detected raw base64/data URL, wrapping in JSON structure...');
+
+            // Reconstruct as if it was sent properly
+            let imageDataValue: string;
+            if (looksLikeDataUrl) {
+              // It's already a data URL
+              imageDataValue = bodyText;
+            } else {
+              // It's raw base64, need to add data URL prefix
+              // Assume PNG format (most common for generated images)
+              imageDataValue = `data:image/png;base64,${bodyText}`;
+            }
+
+            data = {
+              imageData: imageDataValue,
+              name: 'Generated Image',
+              productCode: undefined
+            };
+
+            console.log('[Upload Image] Successfully recovered from raw base64 data');
+          } else {
+            // Not base64, this is a genuine error
+            console.error('[Upload Image] Body type check:', {
+              startsWithCurly: bodyText.startsWith('{'),
+              startsWithBase64: looksLikeBase64,
+              startsWithDataUrl: looksLikeDataUrl,
+              firstChar: bodyText.charAt(0),
+              firstCharCode: bodyText.charCodeAt(0)
+            });
+            console.error('[Upload Image] JSON error:', jsonError);
+            throw new Error(`Invalid JSON body: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}`);
+          }
         }
         
         const { imageUrl, imageData, name: jsonName, productCode: jsonProductCode } = data;

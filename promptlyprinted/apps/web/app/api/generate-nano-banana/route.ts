@@ -55,9 +55,19 @@ async function fetchImageAsBase64(imageUrl: string): Promise<{ data: string; mim
 
 /**
  * Enhance user prompt with best practices guidance
+ * Following Google's recommendation: "Describe the scene, don't just list keywords"
  */
 function enhancePromptWithBestPractices(userPrompt: string): string {
   let enhancedPrompt = userPrompt;
+
+  // Check if user is providing a scene description vs. keyword list
+  const hasSceneDescription = /\b(scene|with|in|at|under|over|beside|during)\b/.test(userPrompt.toLowerCase());
+  const wordCount = userPrompt.split(/\s+/).length;
+
+  // If prompt is very short (< 5 words) and lacks scene context, encourage more detail
+  if (wordCount < 5 && !hasSceneDescription) {
+    enhancedPrompt = `Create a scene featuring ${userPrompt.toLowerCase()}`;
+  }
 
   // Add camera/composition guidance if user mentions camera-related keywords
   const cameraKeywords = ['shot', 'angle', 'perspective', 'view', 'camera'];
@@ -98,6 +108,7 @@ function extractInlineImageData(result: any): string | null {
 /**
  * Construct hierarchical master prompt based on number of reference images
  * This is the critical logic that determines how the AI interprets multiple images
+ * Supports 0-6 reference images (0-3 for nano-banana, 0-6 for nano-banana-pro)
  */
 function constructMasterPrompt(userPrompt: string, referenceImageCount: number, editHistory: EditHistoryItem[]): string {
   // Enhance prompt with best practices
@@ -149,7 +160,7 @@ Important guidelines:
 - Ensure all elements blend cohesively into a unified final image`;
 
     case 3:
-      // Three references: Subject + Style + Composition + Texture (Maximum creative control)
+      // Three references: Subject + Style + Composition + Texture
       return `${historyContext}Perform a complex, multi-layered image modification on the primary input image. Follow this strict hierarchy:
 
 LAYER 1 - PRIMARY SUBJECT (Input Image):
@@ -179,6 +190,61 @@ Critical guidelines:
 - All layers must blend seamlessly into a cohesive, unified final image
 - The primary input image's subject must remain recognizable and central
 - Balance all influences to create a harmonious result, not a collage`;
+
+    case 4:
+      // Four references: Subject + Style + Composition + Texture + Lighting (Pro only)
+      return `${historyContext}Perform an advanced, multi-layered image transformation on the primary input image. Follow this strict hierarchy:
+
+LAYER 1 - PRIMARY SUBJECT (Input Image):
+- Foundation and main subject - preserve identity and key features
+
+LAYER 2 - ARTISTIC STYLE (Reference #1):
+- Artistic style, technique, color palette, and visual aesthetic
+
+LAYER 3 - COMPOSITIONAL STRUCTURE (Reference #2):
+- Layout, framing, spatial arrangement, and perspective
+
+LAYER 4 - SURFACE TEXTURE (Reference #3):
+- Texture, pattern, and material quality
+
+LAYER 5 - LIGHTING & ATMOSPHERE (Reference #4):
+- Lighting setup, shadows, highlights, and atmospheric effects
+- Time of day, weather conditions, and mood lighting
+
+User instruction: "${enhancedUserPrompt}"
+
+Guidelines: Blend all layers seamlessly while keeping the primary subject recognizable and central.`;
+
+    case 5:
+      // Five references: All above + Color Grading (Pro only)
+      return `${historyContext}Perform a professional-grade image transformation with maximum creative control:
+
+LAYER 1 - PRIMARY SUBJECT (Input): Foundation - preserve identity
+LAYER 2 - ARTISTIC STYLE (Reference #1): Style, technique, aesthetic
+LAYER 3 - COMPOSITION (Reference #2): Layout, framing, perspective
+LAYER 4 - TEXTURE (Reference #3): Surface texture and patterns
+LAYER 5 - LIGHTING (Reference #4): Lighting setup and atmosphere
+LAYER 6 - COLOR GRADING (Reference #5): Color treatment, tones, and grading style
+
+User instruction: "${enhancedUserPrompt}"
+
+Create a cohesive final image that harmoniously blends all influences while maintaining the primary subject's identity.`;
+
+    case 6:
+      // Six references: Maximum creative control with character/object consistency (Pro only)
+      return `${historyContext}Perform a master-level image transformation with full creative control:
+
+LAYER 1 - PRIMARY SUBJECT (Input): Foundation and main subject
+LAYER 2 - ARTISTIC STYLE (Reference #1): Overall artistic style
+LAYER 3 - COMPOSITION (Reference #2): Layout and framing
+LAYER 4 - TEXTURE (Reference #3): Surface textures
+LAYER 5 - LIGHTING (Reference #4): Lighting and atmosphere
+LAYER 6 - COLOR GRADING (Reference #5): Color treatment
+LAYER 7 - CHARACTER/OBJECT CONSISTENCY (Reference #6): Specific character features, object details, or brand elements to maintain consistency
+
+User instruction: "${enhancedUserPrompt}"
+
+Create a unified masterpiece that seamlessly integrates all influences while preserving the primary subject's identity and the character/object consistency from reference #6.`;
 
     default:
       return `${historyContext}${enhancedUserPrompt}`;
@@ -281,7 +347,9 @@ export async function POST(request: Request) {
     }
 
     // Determine Gemini Model URL
-    const geminiModelId = aiModel === 'nano-banana-pro' ? 'gemini-3.0-flash-image' : 'gemini-2.5-flash-image';
+    // nano-banana uses gemini-2.5-flash-image (fast, up to 3 reference images)
+    // nano-banana-pro uses gemini-3-pro-image-preview (advanced, up to 6 reference images)
+    const geminiModelId = aiModel === 'nano-banana-pro' ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image';
     const geminiApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModelId}:generateContent`;
 
     console.log('Making request to Google Gemini Nano Banana with:', {
@@ -333,7 +401,7 @@ export async function POST(request: Request) {
         // Add the master prompt at the end
         contentParts.push({ text: masterPrompt });
 
-        // Make API call to Gemini
+        // Make API call to Gemini with optimized configuration
         console.log('Sending to Gemini API with', contentParts.length - 1, 'images');
         const response = await fetch(geminiApiUrl, {
           method: 'POST',
@@ -345,6 +413,13 @@ export async function POST(request: Request) {
             contents: [{
               parts: contentParts,
             }],
+            generationConfig: {
+              response_modalities: ['IMAGE', 'TEXT'],
+              image_generation_config: {
+                aspect_ratio: '1:1',
+                image_size: '2K',
+              },
+            },
           }),
         });
 
@@ -375,6 +450,13 @@ export async function POST(request: Request) {
             contents: [{
               parts: [{ text: prompt }],
             }],
+            generationConfig: {
+              response_modalities: ['IMAGE', 'TEXT'],
+              image_generation_config: {
+                aspect_ratio: '1:1',
+                image_size: '2K',
+              },
+            },
           }),
         });
 
@@ -423,6 +505,13 @@ export async function POST(request: Request) {
               { text: embellishmentPrompt },
             ],
           }],
+          generationConfig: {
+            response_modalities: ['IMAGE', 'TEXT'],
+            image_generation_config: {
+              aspect_ratio: '1:1',
+              image_size: '2K',
+            },
+          },
         }),
       });
 

@@ -29,11 +29,14 @@ Google Nano Banana (Gemini 2.5 Flash Image) has been successfully integrated int
 - Perfect for character sheets, branded content, or sequential storytelling
 - Ensures coherent results in a single pass
 
-### 5. **Optional Reference Images (1-3 Images)** 🆕
-- Add up to 3 optional reference images to influence the generation
+### 5. **Optional Reference Images (1-3 Images for Nano Banana, 1-6 for Nano Banana Pro)** 🆕
+- Add up to 3 optional reference images (Nano Banana) or up to 6 (Nano Banana Pro) to influence the generation
 - **1 reference:** Style & mood reference (influences artistic style, color palette, lighting)
 - **2 references:** Style + compositional element (adds objects or elements from 2nd image)
-- **3 references:** Style + composition + texture (maximum creative control with layered influences)
+- **3 references:** Style + composition + texture (layered creative control)
+- **4 references (Pro):** All above + Lighting & Atmosphere
+- **5 references (Pro):** All above + Color Grading
+- **6 references (Pro):** All above + Character/Object Consistency (maximum creative control)
 - Hierarchical prompt system ensures the primary image remains the subject
 
 ### 6. **Ultra-Fast Processing**
@@ -123,10 +126,13 @@ Nano Banana now supports adding 1-3 optional reference images to influence your 
 #### Adding Reference Images
 
 1. After selecting Nano Banana as your model, scroll to the **"Add Image References"** section
-2. You'll see 3 slots for reference images labeled:
+2. You'll see up to 3 slots (Nano Banana) or 6 slots (Nano Banana Pro) for reference images:
    - **Slot 1:** Style
    - **Slot 2:** Layout/Composition
    - **Slot 3:** Texture
+   - **Slot 4 (Pro):** Lighting & Atmosphere
+   - **Slot 5 (Pro):** Color Grading
+   - **Slot 6 (Pro):** Character/Object Consistency
 3. Click or drag images to upload them
 4. Remove any image by clicking the X button on its thumbnail
 5. Clear all references with the "Clear All References" button
@@ -156,7 +162,7 @@ The number of reference images you add determines how the AI processes them:
   - Reference #2: Image of sunflowers
   - Prompt: "Transform my photo with this style and add these flowers"
 
-**3 Reference Images (Maximum Control)**
+**3 Reference Images**
 - **Purpose:** Style + composition + texture
 - **Reference #1:** Artistic style and mood
 - **Reference #2:** Compositional layout and framing guidance
@@ -167,6 +173,22 @@ The number of reference images you add determines how the AI processes them:
   - Reference #2: Dynamic action pose composition
   - Reference #3: Neon texture pattern
   - Prompt: "Create a cyberpunk version with this composition and neon textures"
+
+**4 Reference Images (Pro Only)**
+- **Purpose:** Style + composition + texture + lighting
+- **Reference #4:** Lighting setup, shadows, highlights, and atmospheric effects
+- **Example:** Add a reference image showing dramatic sunset lighting to achieve that mood
+
+**5 Reference Images (Pro Only)**
+- **Purpose:** All above + color grading
+- **Reference #5:** Color treatment, tones, and grading style
+- **Example:** Add a reference image with a specific color grade (e.g., teal and orange cinematic look)
+
+**6 Reference Images (Pro Only - Maximum Control)**
+- **Purpose:** All above + character/object consistency
+- **Reference #6:** Specific character features, object details, or brand elements
+- Ensures maximum consistency across multiple generations
+- **Example:** Add a reference of your brand's mascot to maintain character consistency
 
 #### Best Practices
 
@@ -360,9 +382,45 @@ For issues specific to:
 
 ---
 
-**Last Updated:** December 2024
-**Integration Version:** 2.0.0 🆕
-**Nano Banana Model:** Gemini 2.5 Flash Image (gemini-2.5-flash-image)
+**Last Updated:** January 2025
+**Integration Version:** 2.1.0 🆕
+**Nano Banana Models:**
+- Nano Banana: Gemini 2.5 Flash Image (gemini-2.5-flash-image) - up to 3 reference images
+- Nano Banana Pro: Gemini 3 Pro Image Preview (gemini-3-pro-image-preview) - up to 6 reference images
+
+## Version 2.1.0 Release Notes (January 2025)
+
+### 🔧 Critical Fixes & Optimizations
+
+1. **Correct Gemini Model Names**
+   - Fixed nano-banana-pro to use `gemini-3-pro-image-preview` (was incorrectly using `gemini-3.0-flash-image`)
+   - Verified nano-banana uses correct `gemini-2.5-flash-image` model
+
+2. **Google Best Practices Implementation**
+   - Added `response_modalities: ['IMAGE', 'TEXT']` to all API calls
+   - Implemented `image_generation_config` with optimized settings:
+     - aspect_ratio: '1:1' (optimized for t-shirt designs)
+     - image_size: '2K' (high quality without excessive size)
+   - Enhanced prompt preprocessing to encourage scene descriptions over keyword lists
+
+3. **Extended Reference Image Support**
+   - Nano Banana Pro now fully supports up to 6 reference images
+   - Added hierarchical prompt logic for 4-6 reference images:
+     - 4 images: Subject + Style + Composition + Texture + Lighting
+     - 5 images: All above + Color Grading
+     - 6 images: All above + Character/Object Consistency
+   - Each layer is carefully balanced to maintain primary subject identity
+
+4. **Improved Image Handling**
+   - Optimized base64 image conversion and transmission
+   - Better error handling for large image payloads
+   - Fixed potential JSON parsing issues in upload flow
+
+### Technical Improvements
+
+- More descriptive prompt enhancement following Google's "describe the scene" guidance
+- Better support for professional asset production workflows
+- Enhanced logging for debugging multi-image generations
 
 ## Version 2.0.0 Release Notes
 
