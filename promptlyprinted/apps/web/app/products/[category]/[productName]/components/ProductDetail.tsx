@@ -592,6 +592,10 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
   const [referenceImages, setReferenceImages] = useState<string[]>([]);
   const [isUploadingReference, setIsUploadingReference] = useState(false);
 
+  // Flux 2 Pro state
+  const [useFlux2Pro, setUseFlux2Pro] = useState(false);
+  const [flux2ProReferenceImages, setFlux2ProReferenceImages] = useState<string[]>([]);
+
   // Refs
   const tshirtImageRef = useRef<HTMLImageElement>(null);
   const designImageRef = useRef<HTMLImageElement>(null);
@@ -1064,6 +1068,154 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
    */
   const handleClearReferenceImages = () => {
     setReferenceImages([]);
+  };
+
+  // ---- Flux 2 Pro Generation ----
+  const handleFlux2ProGeneration = async () => {
+    const currentPrompt = promptText;
+
+    if (!currentPrompt.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Please enter a prompt for Flux 2 Pro',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Determine input image
+    let inputImage = null;
+    if (generationMode === 'image') {
+      if (useTshirtDesign && generatedImage) {
+        inputImage = generatedImage;
+      } else if (useReferenceImage && referenceImage) {
+        inputImage = referenceImage;
+      }
+    }
+
+    if (!inputImage) {
+      toast({
+        title: 'Error',
+        description: 'Please provide a reference image for Flux 2 Pro',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      console.log('Flux 2 Pro request:', {
+        prompt: currentPrompt,
+        hasInputImage: !!inputImage,
+        referenceImageCount: flux2ProReferenceImages.length,
+      });
+
+      const response = await fetch('/api/generate-flux2', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: currentPrompt,
+          imageUrl: inputImage,
+          referenceImages: flux2ProReferenceImages,
+          width: 1024,
+          height: 1024,
+          steps: 28,
+        }),
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'Failed to generate image with Flux 2 Pro';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.details || errorData.error || errorMessage;
+        } catch {
+          // Keep default message
+        }
+        throw new Error(errorMessage);
+      }
+
+      const data = await response.json();
+
+      if (!data.data?.[0]?.url) {
+        throw new Error('No image URL returned from Flux 2 Pro');
+      }
+
+      const generatedUrl = data.data[0].url;
+
+      // Upload to permanent storage
+      const uploadedResult = await uploadImageToPermanentStorage(generatedUrl);
+
+      setGeneratedImage(uploadedResult.url);
+      setPrintReadyImageUrl(uploadedResult.printReadyUrl);
+
+      toast({
+        title: 'Success',
+        description: 'Image generated successfully with Flux 2 Pro!',
+      });
+    } catch (error) {
+      console.error('Flux 2 Pro generation error:', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to process image with Flux 2 Pro',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // ---- Flux 2 Pro Reference Image Handlers ----
+  const handleFlux2ProImageDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer.files);
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+    const filesToProcess = imageFiles.slice(0, 8 - flux2ProReferenceImages.length);
+
+    filesToProcess.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setFlux2ProReferenceImages(prev => {
+          if (prev.length < 8) {
+            return [...prev, result];
+          }
+          return prev;
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFlux2ProImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+    const filesToProcess = imageFiles.slice(0, 8 - flux2ProReferenceImages.length);
+
+    filesToProcess.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setFlux2ProReferenceImages(prev => {
+          if (prev.length < 8) {
+            return [...prev, result];
+          }
+          return prev;
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+
+    e.target.value = '';
+  };
+
+  const handleRemoveFlux2ProImage = (index: number) => {
+    setFlux2ProReferenceImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleClearFlux2ProImages = () => {
+    setFlux2ProReferenceImages([]);
   };
 
   // ---- Generate Image ----
@@ -2291,8 +2443,8 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
 
                 {/* Image Upload Area - Enhanced for Nano Banana */}
                 <div className="space-y-3">
-                  <Label className={`text-sm ${useNanoBanana ? 'text-purple-600' : 'text-teal-600'}`}>
-                    Reference Image{useNanoBanana ? `s (up to ${nanoBananaModel === 'nano-banana-pro' ? '6' : '3'} optional)` : ''}
+                  <Label className={`text-sm ${useNanoBanana ? 'text-purple-600' : useFlux2Pro ? 'text-blue-600' : 'text-teal-600'}`}>
+                    Reference Image{useNanoBanana ? `s (up to ${nanoBananaModel === 'nano-banana-pro' ? '6' : '3'} optional)` : useFlux2Pro ? 's (up to 8 optional)' : ''}
                   </Label>
 
                   {useNanoBanana ? (
@@ -2426,6 +2578,118 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
                               <div><strong>6 images:</strong> + Character consistency</div>
                             </>
                           )}
+                        </div>
+                      )}
+                    </div>
+                  ) : useFlux2Pro ? (
+                    /* Flux 2 Pro: Multi-image upload (up to 8 images) */
+                    <div className="border-2 border-dashed border-blue-300 rounded-lg p-4 bg-gradient-to-br from-blue-50 to-sky-50">
+                      {/* Info Banner */}
+                      <div className="mb-4 bg-white rounded-lg p-3 border border-blue-200">
+                        <div className="flex items-start gap-2">
+                          <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <div>
+                            <p className="text-sm font-semibold text-blue-900">Flux 2 Pro</p>
+                            <p className="text-xs text-blue-600 mt-0.5">
+                              Professional image-to-image - Up to 8 reference images for advanced consistency
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Reference Images Grid */}
+                      <div className="grid gap-2 mb-3 grid-cols-4">
+                        {Array.from({ length: 8 }).map((_, index) => (
+                          <div
+                            key={index}
+                            className={`aspect-square rounded-lg border-2 border-dashed relative overflow-hidden ${
+                              flux2ProReferenceImages[index]
+                                ? 'border-blue-400 bg-white'
+                                : 'border-blue-300 bg-blue-50/50'
+                            }`}
+                          >
+                            {flux2ProReferenceImages[index] ? (
+                              <>
+                                <Image
+                                  src={flux2ProReferenceImages[index]}
+                                  alt={`Flux 2 Reference ${index + 1}`}
+                                  fill
+                                  className="object-cover"
+                                />
+                                <button
+                                  onClick={() => handleRemoveFlux2ProImage(index)}
+                                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center hover:bg-red-600 transition-colors text-xs"
+                                >
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-1">
+                                  <span className="text-white text-[10px] font-medium leading-tight block text-center">
+                                    Ref {index + 1}
+                                  </span>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="absolute inset-0 flex flex-col items-center justify-center p-2">
+                                <svg className="w-5 h-5 text-blue-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                                <span className="text-[10px] text-blue-500 text-center font-medium leading-tight">
+                                  Ref {index + 1}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Upload Controls */}
+                      {flux2ProReferenceImages.length < 8 && (
+                        <div
+                          className="border-2 border-dashed border-blue-300 rounded-lg p-3 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-100 transition-colors"
+                          onDrop={handleFlux2ProImageDrop}
+                          onDragOver={(e) => e.preventDefault()}
+                        >
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={handleFlux2ProImageSelect}
+                            className="hidden"
+                            id="flux2-upload"
+                          />
+                          <label htmlFor="flux2-upload" className="cursor-pointer flex flex-col items-center">
+                            <svg className="w-8 h-8 text-blue-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            </svg>
+                            <span className="text-sm text-blue-700 font-medium">Click or drag to upload</span>
+                            <span className="text-xs text-blue-500 mt-1">
+                              ({8 - flux2ProReferenceImages.length} slot{8 - flux2ProReferenceImages.length !== 1 ? 's' : ''} remaining)
+                            </span>
+                          </label>
+                        </div>
+                      )}
+
+                      {flux2ProReferenceImages.length > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleClearFlux2ProImages}
+                          className="w-full mt-2 text-xs border-blue-300 text-blue-700 hover:bg-blue-100"
+                        >
+                          Clear All ({flux2ProReferenceImages.length})
+                        </Button>
+                      )}
+
+                      {/* Helper Info */}
+                      {flux2ProReferenceImages.length === 0 && (
+                        <div className="mt-2 text-xs text-blue-600 space-y-1">
+                          <div><strong>Photorealistic output</strong> up to 4MP resolution</div>
+                          <div><strong>Character & product consistency</strong> across reference images</div>
+                          <div><strong>Advanced style transfer</strong> with multi-image guidance</div>
                         </div>
                       )}
                     </div>
@@ -2578,8 +2842,16 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
                 {/* Generate Button */}
                 <Button
                   className="w-full bg-teal-600 text-white hover:bg-teal-700"
-                  onClick={generationMode === 'image' && useNanoBanana ? handleNanoBananaGeneration : handleImageGeneration}
-                  disabled={isGenerating || (generationMode === 'image' && !useNanoBanana && !useTshirtDesign && !useReferenceImage) || !promptText}
+                  onClick={() => {
+                    if (generationMode === 'image' && useNanoBanana) {
+                      handleNanoBananaGeneration();
+                    } else if (generationMode === 'image' && useFlux2Pro) {
+                      handleFlux2ProGeneration();
+                    } else {
+                      handleImageGeneration();
+                    }
+                  }}
+                  disabled={isGenerating || (generationMode === 'image' && !useNanoBanana && !useFlux2Pro && !useTshirtDesign && !useReferenceImage) || !promptText}
                   size="sm"
                 >
                   {isGenerating ? 'Generating...' : (useNanoBanana && nanoBananaEditHistory.length > 0 ? 'Apply Edit' : 'Generate Design')}
@@ -2916,20 +3188,28 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
                     Select Image Editing Model
                   </Label>
                   <Select
-                    value={useNanoBanana ? nanoBananaModel : 'kontext-loras'}
+                    value={useNanoBanana ? nanoBananaModel : (useFlux2Pro ? 'flux-2-pro' : 'kontext-loras')}
                     onValueChange={(value) => {
                       if (value === 'nano-banana') {
                         setUseNanoBanana(true);
+                        setUseFlux2Pro(false);
                         setNanoBananaModel('nano-banana');
                         setIsBaseModel(false);
                         setSelectedKontextModels([]);
                       } else if (value === 'nano-banana-pro') {
                         setUseNanoBanana(true);
+                        setUseFlux2Pro(false);
                         setNanoBananaModel('nano-banana-pro');
+                        setIsBaseModel(false);
+                        setSelectedKontextModels([]);
+                      } else if (value === 'flux-2-pro') {
+                        setUseNanoBanana(false);
+                        setUseFlux2Pro(true);
                         setIsBaseModel(false);
                         setSelectedKontextModels([]);
                       } else if (value === 'kontext-loras') {
                         setUseNanoBanana(false);
+                        setUseFlux2Pro(false);
                         setIsBaseModel(false);
                         setSelectedKontextModels([KONTEXT_LORAS[0].id]);
                         setModelWeights({ [KONTEXT_LORAS[0].id]: KONTEXT_LORAS[0].scale || 1.0 });
@@ -2942,6 +3222,9 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
                     <SelectContent>
                       <SelectItem value="kontext-loras">
                         Promptly Kontext LORA's
+                      </SelectItem>
+                      <SelectItem value="flux-2-pro">
+                        Flux 2 Pro (1 credit) - Up to 8 reference images
                       </SelectItem>
                       <SelectItem value="nano-banana">
                         Google Nano Banana (0.5 credits) - Up to 3 reference images

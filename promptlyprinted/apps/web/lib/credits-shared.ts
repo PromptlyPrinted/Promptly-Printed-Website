@@ -8,6 +8,7 @@ import { AIModelType } from '@repo/database';
 // Credit costs per model (must match database enum and quiz config)
 export const MODEL_CREDIT_COSTS: Record<string, number> = {
   'flux-dev': 1,
+  'flux-2-pro': 1,
   'lora-normal': 1,
   'lora-context': 1,
   'nano-banana': 0.5,
@@ -19,6 +20,7 @@ export const MODEL_CREDIT_COSTS: Record<string, number> = {
 export function mapModelNameToEnum(modelName: string): AIModelType {
   const mapping: Record<string, AIModelType> = {
     'flux-dev': 'FLUX_DEV',
+    'flux-2-pro': 'FLUX_DEV', // Using FLUX_DEV enum for now
     'lora-normal': 'LORA_NORMAL',
     'lora-context': 'LORA_CONTEXT',
     'nano-banana': 'NANO_BANANA',
