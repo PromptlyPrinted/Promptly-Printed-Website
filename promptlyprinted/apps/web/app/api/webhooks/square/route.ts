@@ -7,6 +7,20 @@ import crypto from 'crypto';
 import { prodigiService } from '@/lib/prodigi';
 import { grantTshirtPurchaseBonus } from '@/lib/credits';
 
+// In-memory cache for recent webhook event IDs (prevents duplicates within 1 hour)
+const processedEventIds = new Map<string, Date>();
+const EVENT_CACHE_DURATION_MS = 60 * 60 * 1000; // 1 hour
+
+// Clean up old event IDs periodically
+setInterval(() => {
+  const now = new Date();
+  for (const [eventId, timestamp] of processedEventIds.entries()) {
+    if (now.getTime() - timestamp.getTime() > EVENT_CACHE_DURATION_MS) {
+      processedEventIds.delete(eventId);
+    }
+  }
+}, 5 * 60 * 1000); // Clean every 5 minutes
+
 const webhookSignatureKey = process.env.SQUARE_WEBHOOK_SIGNATURE_KEY;
 
 // Log webhook configuration on startup
@@ -72,6 +86,22 @@ export async function POST(req: Request) {
     // Log event info
     const eventId = event.event_id;
     console.log('[Webhook] Processing event:', { type: event.type, eventId });
+
+    // Check if we've already processed this event (deduplication)
+    if (processedEventIds.has(eventId)) {
+      console.log('[Webhook] Event already processed:', {
+        eventId,
+        processedAt: processedEventIds.get(eventId),
+      });
+      return NextResponse.json({ 
+        received: true, 
+        message: 'Event already processed (duplicate)' 
+      });
+    }
+
+    // Mark event as being processed
+    processedEventIds.set(eventId, new Date());
+    console.log('[Webhook] Event marked as processing:', { eventId });
 
     // Handle refund events
     if (event.type === 'refund.created' || event.type === 'refund.updated') {
@@ -409,19 +439,25 @@ export async function POST(req: Request) {
           // Check if already being processed by another webhook
           const metadata = order?.metadata as any;
           if (metadata?.prodigiProcessingKey && metadata?.prodigiProcessingStarted) {
-            // Check if processing started recently (within last 2 minutes)
+            // Check if processing started recently (within last 5 minutes)
             const processingStartTime = new Date(metadata.prodigiProcessingStarted);
             const now = new Date();
             const timeDiff = now.getTime() - processingStartTime.getTime();
-            const twoMinutes = 2 * 60 * 1000;
+            const fiveMinutes = 5 * 60 * 1000; // Increased from 2 to 5 minutes
 
-            if (timeDiff < twoMinutes) {
+            if (timeDiff < fiveMinutes) {
               console.log('[Prodigi Order] Already being processed by another webhook', {
                 processingKey: metadata.prodigiProcessingKey,
                 processingStarted: metadata.prodigiProcessingStarted,
                 timeSinceStart: timeDiff,
+                lockDurationMinutes: 5,
               });
               return false;
+            } else {
+              console.log('[Prodigi Order] Processing lock expired, allowing retry', {
+                timeSinceStart: timeDiff,
+                lockDurationMinutes: 5,
+              });
             }
           }
 
@@ -529,10 +565,35 @@ export async function POST(req: Request) {
           // Check if there's a pre-generated 300 DPI print-ready URL in attributes
           const printReadyUrl = attrs?.printReadyUrl;
           if (printReadyUrl) {
-            console.log('[Prodigi Order] Using pre-generated 300 DPI URL:', printReadyUrl);
-            designUrl = printReadyUrl;
+            // Validate that the URL is a PNG file (not JPEG preview)
+            if (printReadyUrl.toLowerCase().endsWith('.png')) {
+              console.log('[Prodigi Order] Using pre-generated 300 DPI PNG URL:', printReadyUrl);
+              designUrl = printReadyUrl;
+            } else if (printReadyUrl.toLowerCase().endsWith('.jpg') || printReadyUrl.toLowerCase().endsWith('.jpeg')) {
+              console.warn('[Prodigi Order] printReadyUrl is JPEG, not PNG! Attempting to construct PNG URL:', printReadyUrl);
+              // Try to construct the 300 DPI PNG URL from the design URL
+              if (designUrl.endsWith('.png')) {
+                designUrl = designUrl.replace(/\.png$/, '-300dpi.png');
+                console.log('[Prodigi Order] Constructed 300 DPI PNG URL from designUrl:', designUrl);
+              } else {
+                console.error('[Prodigi Order] Cannot construct PNG URL, using JPEG as fallback (may cause print quality issues):', printReadyUrl);
+                designUrl = printReadyUrl;
+              }
+            } else {
+              console.log('[Prodigi Order] printReadyUrl has unknown extension, using as-is:', printReadyUrl);
+              designUrl = printReadyUrl;
+            }
           } else {
-            console.log('[Prodigi Order] No 300 DPI URL found, using original design URL:', designUrl);
+            console.log('[Prodigi Order] No printReadyUrl found in attributes');
+            // Try to construct 300 DPI PNG URL from the designUrl
+            if (designUrl.endsWith('.png')) {
+              const baseUrl = designUrl.replace(/\.png$/, '');
+              const printReadyCandidate = `${baseUrl}-300dpi.png`;
+              console.log('[Prodigi Order] Attempting to use 300 DPI PNG URL:', printReadyCandidate);
+              designUrl = printReadyCandidate;
+            } else {
+              console.log('[Prodigi Order] Using original design URL (may not be 300 DPI):', designUrl);
+            }
           }
 
           // Get color and size from attributes for Prodigi

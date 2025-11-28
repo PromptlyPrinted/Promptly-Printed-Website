@@ -236,6 +236,8 @@ export const BasketDropdown = ({
                       color: item.color,
                       size: item.size,
                       images: [{ url: imageUrl }],
+                      designUrl: imageUrl, // Design URL for display
+                      printReadyUrl: item.printReadyUrl, // 300 DPI PNG for Prodigi printing
                       customization: item.customization,
                       recipientCostAmount: item.price,
                       currency: 'USD',

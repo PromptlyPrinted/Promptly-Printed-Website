@@ -14,6 +14,7 @@ export interface CheckoutItem {
   color: string;
   size: string;
   designUrl?: string;
+  printReadyUrl?: string; // 300 DPI PNG URL for Prodigi printing
   customization?: {
     printArea?: string;
     sizing?: string;
