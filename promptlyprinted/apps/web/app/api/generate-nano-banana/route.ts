@@ -87,6 +87,30 @@ function enhancePromptWithBestPractices(userPrompt: string): string {
 }
 
 /**
+ * Detect image format from base64 string by examining magic bytes
+ */
+function detectImageFormat(base64String: string): string {
+  try {
+    // Decode first 12 bytes to check magic numbers
+    const prefix = base64String.substring(0, 20);
+    const buffer = Buffer.from(prefix, 'base64');
+    const hex = buffer.toString('hex');
+    
+    // Check magic bytes
+    if (hex.startsWith('ffd8ff')) return 'jpeg';
+    if (hex.startsWith('89504e47')) return 'png';
+    if (hex.startsWith('52494646') && buffer.toString('ascii', 8, 12) === 'WEBP') return 'webp';
+    if (hex.startsWith('474946383')) return 'gif';
+    
+    console.warn('[detectImageFormat] Could not detect format, defaulting to jpeg. Hex:', hex);
+    return 'jpeg'; // Default to jpeg since that's what Gemini typically returns
+  } catch (error) {
+    console.error('[detectImageFormat] Error:', error);
+    return 'jpeg';
+  }
+}
+
+/**
  * Safely extract inline image data from a Gemini response.
  */
 function extractInlineImageData(result: any): string | null {
@@ -545,8 +569,12 @@ export async function POST(request: Request) {
 
       console.log('Embellishment step completed successfully');
 
-      // Convert to data URL for return
-      const finalImageUrl = `data:image/png;base64,${finalImageBase64}`;
+      // Detect actual image format from base64 data
+      const detectedFormat = detectImageFormat(finalImageBase64);
+      console.log(`Nano Banana image format detected: ${detectedFormat}`);
+      
+      // Convert to data URL with correct format
+      const finalImageUrl = `data:image/${detectedFormat};base64,${finalImageBase64}`;
       const generationTimeMs = Date.now() - startTime;
 
       // DEDUCT CREDITS or RECORD GUEST GENERATION
