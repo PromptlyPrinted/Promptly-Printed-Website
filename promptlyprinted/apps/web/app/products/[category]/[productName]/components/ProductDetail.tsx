@@ -806,6 +806,9 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
     // Otherwise, upload to permanent storage
     console.log('[uploadImageToPermanentStorage] Uploading image...');
     
+    // Get product code for correct dimensions
+    const productCode = product.specifications?.style || product.sku || product.id.toString();
+    
     const formData = new FormData();
     
     // Convert data URL to blob if necessary
@@ -818,6 +821,7 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
     }
     
     formData.append('name', 'Generated Design');
+    formData.append('productCode', productCode); // Include product code for correct dimensions
 
     const uploadResponse = await fetch('/api/upload-image', {
       method: 'POST',

@@ -3,6 +3,7 @@ import { getSession } from '@/lib/session-utils';
 import { storage } from '@/lib/storage';
 import sharp from 'sharp';
 import { randomUUID } from 'crypto';
+import { PRODUCT_IMAGE_SIZES } from '@/constants/product-sizes';
 
 // Next.js Route Segment Config for handling large file uploads
 export const runtime = 'nodejs';
@@ -16,9 +17,10 @@ export const bodyParser = {
 };
 
 
-// Print-ready dimensions for 300 DPI at 15.6" x 19.3" (standard t-shirt print area)
-const PRINT_WIDTH = 4680;  // 15.6 inches * 300 DPI
-const PRINT_HEIGHT = 5790; // 19.3 inches * 300 DPI
+// Default print-ready dimensions for 300 DPI at 15.6\" x 19.3\" (standard t-shirt print area)
+// These are used as fallback if no product code is provided
+const DEFAULT_PRINT_WIDTH = 4680;  // 15.6 inches * 300 DPI
+const DEFAULT_PRINT_HEIGHT = 5790; // 19.3 inches * 300 DPI
 
 // Configuration constants
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB limit
@@ -84,12 +86,19 @@ async function ensurePngFormat(imageBuffer: Buffer): Promise<Buffer> {
 }
 
 /**
- * Generate a 300 DPI print-ready version of an image
+ * Generate a 300 DPI print-ready version of an image with product-specific dimensions
  */
-async function generatePrintReadyVersion(imageBuffer: Buffer): Promise<Buffer> {
+async function generatePrintReadyVersion(imageBuffer: Buffer, productCode?: string): Promise<Buffer> {
   try {
+    // Get product-specific dimensions or use defaults
+    const dimensions = productCode && PRODUCT_IMAGE_SIZES[productCode as keyof typeof PRODUCT_IMAGE_SIZES]
+      ? PRODUCT_IMAGE_SIZES[productCode as keyof typeof PRODUCT_IMAGE_SIZES]
+      : { width: DEFAULT_PRINT_WIDTH, height: DEFAULT_PRINT_HEIGHT };
+
+    console.log(`[Upload Image] Generating print-ready version with dimensions: ${dimensions.width}x${dimensions.height}${productCode ? ` for product ${productCode}` : ' (default)'}`);
+
     return await sharp(imageBuffer)
-      .resize(PRINT_WIDTH, PRINT_HEIGHT, {
+      .resize(dimensions.width, dimensions.height, {
         fit: 'contain',
         background: { r: 0, g: 0, b: 0, alpha: 0 }, // Transparent background
         withoutEnlargement: false, // Allow upscaling for print quality
@@ -240,6 +249,7 @@ export async function POST(request: Request) {
     let publicUrl: string;
     let printReadyUrl: string | null = null;
     let previewUrl: string | null = null;
+    let productCode: string | undefined;
 
     // 1. Parse request and obtain image buffer
     const contentType = request.headers.get('content-type') || '';
@@ -255,16 +265,23 @@ export async function POST(request: Request) {
         const file = formData.get('file');
         const imageUrlField = formData.get('imageUrl');
         const nameField = formData.get('name');
+        const productCodeField = formData.get('productCode');
         
         console.log('[Upload Image] FormData fields:', {
           hasFile: !!file,
           hasImageUrl: !!imageUrlField,
           hasName: !!nameField,
+          hasProductCode: !!productCodeField,
           fileType: file instanceof Blob ? file.type : 'not a blob'
         });
         
         if (nameField && typeof nameField === 'string') {
           name = nameField.trim();
+        }
+        
+        if (productCodeField && typeof productCodeField === 'string') {
+          productCode = productCodeField.trim();
+          console.log('[Upload Image] Product code:', productCode);
         }
 
         if (file && file instanceof Blob) {
@@ -311,10 +328,15 @@ export async function POST(request: Request) {
       
       try {
         const data = await request.json();
-        const { imageUrl, imageData, name: jsonName } = data;
+        const { imageUrl, imageData, name: jsonName, productCode: jsonProductCode } = data;
         
         if (jsonName && typeof jsonName === 'string') {
           name = jsonName.trim();
+        }
+        
+        if (jsonProductCode && typeof jsonProductCode === 'string') {
+          productCode = jsonProductCode.trim();
+          console.log('[Upload Image] Product code from JSON:', productCode);
         }
 
         if (imageData) {
@@ -421,7 +443,7 @@ export async function POST(request: Request) {
         // 4. Generate and upload 300 DPI print-ready version
         try {
             console.log('[Upload Image] Generating 300 DPI print-ready version...');
-            const printReadyBuffer = await generatePrintReadyVersion(imageBuffer);
+            const printReadyBuffer = await generatePrintReadyVersion(imageBuffer, productCode);
             const printReadyFilename = `${fileId}-${sanitizedName}-300dpi.png`;
             
             printReadyUrl = await storage.uploadFromBuffer(printReadyBuffer, printReadyFilename, 'image/png', { skipUuid: true });
