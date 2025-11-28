@@ -1909,7 +1909,12 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
       color: selectedColor || 'Default',
       imageUrl: finalImageUrl,
       printReadyUrl: printReadyUrl,
-      assets: [],
+      assets: [
+        {
+          url: finalImageUrl,
+          printArea: 'default'
+        }
+      ],
     };
 
     console.log('[handleAddToCart] Adding item:', itemToAdd);
@@ -2032,7 +2037,12 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
       color: selectedColor || 'Default',
       imageUrl: finalImageUrl, // This is the display URL
       printReadyUrl: printReadyUrl, // Store the 300 DPI URL
-      assets: [],
+      assets: [
+        {
+          url: finalImageUrl,
+          printArea: 'default'
+        }
+      ],
     };
     addItem(itemToAdd);
 

@@ -42,10 +42,16 @@ let nextConfig: NextConfig = {
   },
 };
 
-nextConfig.images?.remotePatterns?.push({
-  protocol: 'https',
-  hostname: 'assets.basehub.com',
-});
+nextConfig.images?.remotePatterns?.push(
+  {
+    protocol: 'https',
+    hostname: 'assets.basehub.com',
+  },
+  {
+    protocol: 'https',
+    hostname: 'pub-39f280c9d2f446668f96b18e8ef5109d.r2.dev',
+  }
+);
 
 // Development: Proxy admin routes to admin app
 if (process.env.NODE_ENV === 'development') {
