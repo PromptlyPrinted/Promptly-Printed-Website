@@ -9,12 +9,8 @@ import { PRODUCT_IMAGE_SIZES } from '@/constants/product-sizes';
 export const runtime = 'nodejs';
 export const maxDuration = 60; // 60 seconds timeout
 export const dynamic = 'force-dynamic';
-
-// Increase body size limit for large base64 images (default is 4MB)
-// A 1920x1080 PNG can be ~5-10MB as base64
-export const bodyParser = {
-  sizeLimit: '50mb',
-};
+// Note: bodyParser is not supported in App Router route handlers
+// Body size limits are handled by Next.js config in next.config.js
 
 
 // Default print-ready dimensions for 300 DPI at 15.6\" x 19.3\" (standard t-shirt print area)
@@ -257,10 +253,22 @@ export async function POST(request: Request) {
 
     if (contentType.includes('multipart/form-data')) {
       console.log('[Upload Image] Processing multipart/form-data request');
+      console.log('[Upload Image] Content-Type header:', contentType);
       
       try {
-        const formData = await request.formData();
-        console.log('[Upload Image] FormData parsed successfully');
+        let formData: FormData;
+        try {
+          formData = await request.formData();
+          console.log('[Upload Image] FormData parsed successfully');
+        } catch (parseError) {
+          console.error('[Upload Image] FormData parsing failed:', parseError);
+          console.error('[Upload Image] Parse error details:', {
+            name: parseError instanceof Error ? parseError.name : 'unknown',
+            message: parseError instanceof Error ? parseError.message : String(parseError),
+            stack: parseError instanceof Error ? parseError.stack : undefined
+          });
+          throw new Error(`Failed to parse body as FormData: ${parseError instanceof Error ? parseError.message : 'Unknown parsing error'}`);
+        }
         
         const file = formData.get('file');
         const imageUrlField = formData.get('imageUrl');

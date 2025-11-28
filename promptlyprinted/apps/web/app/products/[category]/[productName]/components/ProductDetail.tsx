@@ -809,43 +809,75 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
     // Get product code for correct dimensions
     const productCode = product.specifications?.style || product.sku || product.id.toString();
     
-    const formData = new FormData();
-    
-    // Convert data URL to blob if necessary
+    // Use JSON format for data URLs (avoids FormData parsing issues with large base64)
+    // Use FormData for regular URLs (maintains compatibility)
     if (imageUrl.startsWith('data:')) {
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-      formData.append('file', blob, 'image.png');
+      console.log('[uploadImageToPermanentStorage] Using JSON format for data URL upload...');
+      
+      const uploadResponse = await fetch('/api/upload-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageData: imageUrl, // Send as data URL in JSON
+          name: 'Generated Design',
+          productCode: productCode,
+        }),
+      });
+
+      if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text();
+        console.error('[uploadImageToPermanentStorage] Upload failed:', errorText);
+        throw new Error(`Upload failed: ${uploadResponse.statusText}`);
+      }
+
+      const result = await uploadResponse.json();
+      console.log('[uploadImageToPermanentStorage] Upload successful:', result);
+
+      if (!result.url) {
+        throw new Error('No URL returned from upload');
+      }
+
+      return {
+        url: result.url,
+        previewUrl: result.previewUrl || result.url,
+        printReadyUrl: result.printReadyUrl || result.url
+      };
     } else {
+      console.log('[uploadImageToPermanentStorage] Using FormData for URL upload...');
+      
+      const formData = new FormData();
       formData.append('imageUrl', imageUrl);
+      formData.append('name', 'Generated Design');
+      formData.append('productCode', productCode);
+
+      console.log('[uploadImageToPermanentStorage] Sending FormData request...');
+      const uploadResponse = await fetch('/api/upload-image', {
+        method: 'POST',
+        // DO NOT set Content-Type header - let the browser set it with the correct boundary
+        body: formData,
+      });
+
+      if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text();
+        console.error('[uploadImageToPermanentStorage] Upload failed:', errorText);
+        throw new Error(`Upload failed: ${uploadResponse.statusText}`);
+      }
+
+      const result = await uploadResponse.json();
+      console.log('[uploadImageToPermanentStorage] Upload successful:', result);
+
+      if (!result.url) {
+        throw new Error('No URL returned from upload');
+      }
+
+      return {
+        url: result.url,
+        previewUrl: result.previewUrl || result.url,
+        printReadyUrl: result.printReadyUrl || result.url
+      };
     }
-    
-    formData.append('name', 'Generated Design');
-    formData.append('productCode', productCode); // Include product code for correct dimensions
-
-    const uploadResponse = await fetch('/api/upload-image', {
-      method: 'POST',
-      body: formData,
-    });
-
-    if (!uploadResponse.ok) {
-      const errorText = await uploadResponse.text();
-      console.error('[uploadImageToPermanentStorage] Upload failed:', errorText);
-      throw new Error(`Upload failed: ${uploadResponse.statusText}`);
-    }
-
-    const result = await uploadResponse.json();
-    console.log('[uploadImageToPermanentStorage] Upload successful:', result);
-
-    if (!result.url) {
-      throw new Error('No URL returned from upload');
-    }
-
-    return {
-      url: result.url,
-      previewUrl: result.previewUrl || result.url, // Use preview URL if available, fallback to standard URL
-      printReadyUrl: result.printReadyUrl || result.url
-    };
   } catch (error) {
     console.error('[uploadImageToPermanentStorage] Error:', error);
     throw error;
