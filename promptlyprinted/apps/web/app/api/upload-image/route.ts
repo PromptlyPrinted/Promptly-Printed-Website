@@ -418,12 +418,17 @@ export async function POST(request: Request) {
       console.log('[Upload Image] Processing JSON request');
 
       try {
-        // Clone the request to inspect body if JSON parsing fails
-        const requestClone = request.clone();
+        // Read body as text first to inspect it
+        const bodyText = await request.text();
+        console.log('[Upload Image] Raw body length:', bodyText.length);
+        console.log('[Upload Image] Raw body starts with:', bodyText.substring(0, 100));
+        console.log('[Upload Image] Body appears to be JSON:', bodyText.trim().startsWith('{'));
+
         let data;
 
         try {
-          data = await request.json();
+          // Try to parse as JSON
+          data = JSON.parse(bodyText);
           console.log('[Upload Image] JSON parsed successfully, keys:', Object.keys(data));
         } catch (jsonError) {
           // DEFENSIVE HANDLING: Check if body is raw base64 instead of JSON
@@ -432,7 +437,6 @@ export async function POST(request: Request) {
           // - Edge functions modify the request body
           // - Client code accidentally sends raw data
           // Instead of failing, we attempt to recover by wrapping the raw data
-          const bodyText = await requestClone.text();
           console.warn('[Upload Image] JSON parsing failed, attempting base64 recovery...');
           console.log('[Upload Image] Body length:', bodyText.length);
           console.log('[Upload Image] Body starts with:', bodyText.substring(0, 100));

@@ -825,10 +825,21 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
         name: 'Generated Design',
         productCode: productCode,
       });
-      
+
       console.log('[uploadImageToPermanentStorage] Request body length:', requestBody.length);
       console.log('[uploadImageToPermanentStorage] Request body starts with:', requestBody.substring(0, 100));
-      
+      console.log('[uploadImageToPermanentStorage] Verifying JSON structure...');
+
+      // Verify the JSON is valid before sending
+      try {
+        const parsed = JSON.parse(requestBody);
+        console.log('[uploadImageToPermanentStorage] JSON validation passed, keys:', Object.keys(parsed));
+        console.log('[uploadImageToPermanentStorage] imageData starts with:', parsed.imageData.substring(0, 50));
+      } catch (e) {
+        console.error('[uploadImageToPermanentStorage] JSON validation failed:', e);
+        throw new Error('Failed to create valid JSON payload');
+      }
+
       const uploadResponse = await fetch('/api/upload-image', {
         method: 'POST',
         headers: {
@@ -2578,6 +2589,7 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
                       {/* Helper Info */}
                       {referenceImages.length === 0 && (
                         <div className="mt-2 text-xs text-purple-600 space-y-1">
+                          <div className="text-purple-700 font-semibold mb-1">💡 Works with any mode:</div>
                           <div><strong>1 image:</strong> Style & mood</div>
                           <div><strong>2 images:</strong> Style + element</div>
                           <div><strong>3 images:</strong> Style + composition + texture</div>

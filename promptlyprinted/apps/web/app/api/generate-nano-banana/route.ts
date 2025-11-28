@@ -509,7 +509,40 @@ export async function POST(request: Request) {
         generatedImageBase64 = generatedData;
         console.log('Initial generation successful');
       } else {
-        // Text-to-image generation mode
+        // Text-to-image generation mode (with optional reference images)
+        const contentParts: any[] = [];
+
+        // Add reference images first if provided (0-3 or 0-6)
+        for (let i = 0; i < referenceImages.length; i++) {
+          const refImage = await fetchImageAsBase64(referenceImages[i]);
+          contentParts.push({
+            inline_data: {
+              data: refImage.data,
+              mime_type: refImage.mimeType,
+            },
+          });
+          console.log(`[Generate Mode] Added reference image ${i + 1}/${referenceImages.length}`);
+        }
+
+        // Enhance prompt with reference image guidance if references are provided
+        let finalPrompt = prompt;
+        if (referenceImages.length > 0) {
+          finalPrompt = `Generate an image based on this prompt: "${prompt}". `;
+
+          if (referenceImages.length === 1) {
+            finalPrompt += `Use the style, mood, color palette, and artistic aesthetic from the reference image provided to influence the generation.`;
+          } else if (referenceImages.length === 2) {
+            finalPrompt += `Use reference image 1 for overall style and mood. Use reference image 2 for compositional elements or additional details.`;
+          } else if (referenceImages.length >= 3) {
+            finalPrompt += `Use reference image 1 for overall artistic style, image 2 for composition and layout, and image 3 for texture and surface details.`;
+          }
+        }
+
+        // Add the prompt
+        contentParts.push({ text: finalPrompt });
+
+        console.log('[Generate Mode] Sending to Gemini with', referenceImages.length, 'reference images');
+
         const response = await fetch(geminiApiUrl, {
           method: 'POST',
           headers: {
@@ -518,7 +551,7 @@ export async function POST(request: Request) {
           },
           body: JSON.stringify({
             contents: [{
-              parts: [{ text: prompt }],
+              parts: contentParts,
             }],
             generationConfig: {
               response_modalities: ['IMAGE', 'TEXT'],
