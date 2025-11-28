@@ -813,26 +813,20 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
     // Get product code for correct dimensions
     const productCode = product.specifications?.style || product.sku || product.id.toString();
     
-    // IMPORTANT: For large data URLs, convert to Blob and use FormData
-    // JSON.stringify can cause issues with very large base64 strings
+    // For data URLs, use FormData with imageUrl field instead of file upload
+    // This avoids JSON.stringify issues with large base64 strings
     if (imageUrl.startsWith('data:')) {
-      console.log('[uploadImageToPermanentStorage] Using FormData with Blob for large data URL...');
+      console.log('[uploadImageToPermanentStorage] Using FormData for data URL...');
       console.log('[uploadImageToPermanentStorage] Image URL starts with:', imageUrl.substring(0, 50));
       console.log('[uploadImageToPermanentStorage] Image URL length:', imageUrl.length);
 
-      // Convert data URL to Blob
-      const response = await fetch(imageUrl);
-      const blob = await response.blob();
-
-      console.log('[uploadImageToPermanentStorage] Blob created, size:', blob.size, 'type:', blob.type);
-
-      // Use FormData to send the blob
+      // Use FormData but send as imageUrl field (not file)
       const formData = new FormData();
-      formData.append('file', blob, 'generated-image.png');
+      formData.append('imageUrl', imageUrl); // Send full data URL as string field
       formData.append('name', 'Generated Design');
       formData.append('productCode', productCode);
 
-      console.log('[uploadImageToPermanentStorage] Sending FormData with blob...');
+      console.log('[uploadImageToPermanentStorage] Sending FormData with imageUrl field...');
 
       const uploadResponse = await fetch('/api/upload-image', {
         method: 'POST',
