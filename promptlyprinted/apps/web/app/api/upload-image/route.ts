@@ -33,7 +33,7 @@ function detectImageFormatFromBase64(base64String: string): string {
     const prefix = base64String.substring(0, 20);
     const buffer = Buffer.from(prefix, 'base64');
     const hex = buffer.toString('hex');
-    
+
     // Check magic bytes (first few bytes of the file)
     // JPEG: FF D8 FF
     if (hex.startsWith('ffd8ff')) {
@@ -51,12 +51,14 @@ function detectImageFormatFromBase64(base64String: string): string {
     if (hex.startsWith('474946383')) {
       return 'gif';
     }
-    
-    console.warn('[detectImageFormatFromBase64] Could not detect format from magic bytes, defaulting to png. Hex:', hex);
-    return 'png'; // Default fallback
+
+    console.warn('[detectImageFormatFromBase64] Could not detect format from magic bytes, base64 is likely corrupted. Hex:', hex);
+    console.warn('[detectImageFormatFromBase64] Base64 prefix:', base64String.substring(0, 50));
+    // Don't default to anything - return empty to signal invalid data
+    return ''; // Return empty string to signal corrupted data
   } catch (error) {
     console.error('[detectImageFormatFromBase64] Error detecting format:', error);
-    return 'png'; // Safe fallback
+    return ''; // Return empty to signal error
   }
 }
 
@@ -452,6 +454,13 @@ export async function POST(request: Request) {
               // Detect format from base64 magic bytes instead of assuming PNG
               const detectedFormat = detectImageFormatFromBase64(bodyText);
               console.log('[Upload Image] Detected format from base64:', detectedFormat);
+
+              // If format detection failed (empty string), the data is corrupted
+              if (!detectedFormat) {
+                console.error('[Upload Image] Cannot process corrupted base64 data - invalid magic bytes');
+                throw new Error('Invalid or corrupted image data received. The base64 string does not contain valid image magic bytes.');
+              }
+
               imageDataValue = `data:image/${detectedFormat};base64,${bodyText}`;
             }
 

@@ -385,6 +385,12 @@ export default function CheckoutPage() {
   const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Prevent duplicate submissions
+    if (loading) {
+      console.warn('Payment already processing, ignoring duplicate submission');
+      return;
+    }
+
     if (!cardRef.current) {
       setError('Payment form not initialized');
       return;
@@ -443,6 +449,12 @@ export default function CheckoutPage() {
     const paymentRef = paymentMethod === 'applePay' ? applePayRef : googlePayRef;
     const paymentName = paymentMethod === 'applePay' ? 'Apple Pay' : 'Google Pay';
 
+    // Prevent duplicate submissions
+    if (loading) {
+      console.warn('Payment already processing, ignoring duplicate click');
+      return;
+    }
+
     if (!paymentRef.current) {
       setError(`${paymentName} not initialized`);
       return;
@@ -500,6 +512,12 @@ export default function CheckoutPage() {
   };
 
   const handleFallbackPayment = async () => {
+    // Prevent duplicate submissions
+    if (loading) {
+      console.warn('Payment already processing, ignoring duplicate click');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -538,6 +556,12 @@ export default function CheckoutPage() {
 
   // New function that accepts addresses directly to avoid async state issues
   const handleFallbackPaymentWithAddresses = async (billing: Address, shipping?: Address) => {
+    // Prevent duplicate submissions
+    if (loading) {
+      console.warn('Payment already processing, ignoring duplicate click');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -1299,7 +1323,7 @@ export default function CheckoutPage() {
                       <button
                         onClick={handleFallbackPayment}
                         disabled={loading}
-                        className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors shadow-lg hover:shadow-xl"
+                        className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg font-semibold text-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed disabled:pointer-events-none disabled:opacity-60 transition-colors shadow-lg hover:shadow-xl"
                       >
                         {loading ? (
                           <span className="flex items-center justify-center gap-2">
