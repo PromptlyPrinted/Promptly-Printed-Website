@@ -334,7 +334,34 @@ export async function POST(request: Request) {
     // 1. Parse request and obtain image buffer
     let isPdf = false;
 
-    if (contentType.includes('multipart/form-data')) {
+    // Check for raw binary upload (image/* or application/octet-stream)
+    if (contentType.startsWith('image/') || contentType === 'application/octet-stream') {
+      console.log('[Upload Image] Processing raw binary request');
+      console.log('[Upload Image] Content-Type:', contentType);
+
+      // Read metadata from headers
+      const headerName = request.headers.get('x-image-name');
+      const headerProductCode = request.headers.get('x-product-code');
+
+      if (headerName) {
+        name = decodeURIComponent(headerName);
+        console.log('[Upload Image] Name from header:', name);
+      }
+
+      if (headerProductCode) {
+        productCode = headerProductCode;
+        console.log('[Upload Image] Product code from header:', productCode);
+      }
+
+      try {
+        const arrayBuffer = await request.arrayBuffer();
+        imageBuffer = Buffer.from(arrayBuffer);
+        console.log('[Upload Image] Raw binary buffer received, size:', imageBuffer.length);
+      } catch (readError) {
+        console.error('[Upload Image] Failed to read raw body:', readError);
+        throw new Error(`Failed to read request body: ${readError instanceof Error ? readError.message : 'Unknown error'}`);
+      }
+    } else if (contentType.includes('multipart/form-data')) {
       console.log('[Upload Image] Processing multipart/form-data request');
       console.log('[Upload Image] Content-Type header:', contentType);
       

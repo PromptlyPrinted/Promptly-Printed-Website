@@ -813,10 +813,10 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
     // Get product code for correct dimensions
     const productCode = product.specifications?.style || product.sku || product.id.toString();
     
-    // For data URLs, use FormData with file upload instead of string field
-    // This avoids JSON.stringify issues and FormData parsing limits with large base64 strings
+    // For data URLs, use Raw Binary Upload instead of FormData
+    // This avoids parsing limits entirely by sending the file as the request body
     if (imageUrl.startsWith('data:')) {
-      console.log('[uploadImageToPermanentStorage] Converting data URL to Blob...');
+      console.log('[uploadImageToPermanentStorage] Converting data URL to Blob for raw upload...');
       
       // Convert data URL to Blob
       const res = await fetch(imageUrl);
@@ -827,17 +827,16 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
         type: blob.type
       });
 
-      const formData = new FormData();
-      formData.append('file', blob, 'generated-image.png');
-      formData.append('name', 'Generated Design');
-      formData.append('productCode', productCode);
-
-      console.log('[uploadImageToPermanentStorage] Sending FormData with file...');
+      console.log('[uploadImageToPermanentStorage] Sending Raw Binary Request...');
 
       const uploadResponse = await fetch('/api/upload-image', {
         method: 'POST',
-        // DO NOT set Content-Type - let browser set it with boundary
-        body: formData,
+        headers: {
+          'Content-Type': blob.type || 'application/octet-stream',
+          'x-image-name': encodeURIComponent('Generated Design'),
+          'x-product-code': productCode
+        },
+        body: blob,
       });
 
       if (!uploadResponse.ok) {
