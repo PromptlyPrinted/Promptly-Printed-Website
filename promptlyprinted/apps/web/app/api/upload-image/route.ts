@@ -225,6 +225,12 @@ export async function POST(request: Request) {
   console.log('[Upload Image] Starting image upload process');
   
   try {
+    // Log request details immediately
+    const contentType = request.headers.get('content-type') || '';
+    console.log('[Upload Image] Request Content-Type:', contentType);
+    console.log('[Upload Image] Request method:', request.method);
+    console.log('[Upload Image] Request URL:', request.url);
+    
     // Get session and user
     const session = await getSession(request);
     let dbUser = null;
@@ -248,7 +254,6 @@ export async function POST(request: Request) {
     let productCode: string | undefined;
 
     // 1. Parse request and obtain image buffer
-    const contentType = request.headers.get('content-type') || '';
     let isPdf = false;
 
     if (contentType.includes('multipart/form-data')) {
@@ -335,7 +340,20 @@ export async function POST(request: Request) {
       console.log('[Upload Image] Processing JSON request');
       
       try {
-        const data = await request.json();
+        // Clone the request to inspect body if JSON parsing fails
+        const requestClone = request.clone();
+        let data;
+        
+        try {
+          data = await request.json();
+        } catch (jsonError) {
+          // Log the actual body content for debugging
+          const bodyText = await requestClone.text();
+          console.error('[Upload Image] JSON parsing failed. Body starts with:', bodyText.substring(0, 100));
+          console.error('[Upload Image] JSON error:', jsonError);
+          throw new Error(`Invalid JSON body: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}`);
+        }
+        
         const { imageUrl, imageData, name: jsonName, productCode: jsonProductCode } = data;
         
         if (jsonName && typeof jsonName === 'string') {

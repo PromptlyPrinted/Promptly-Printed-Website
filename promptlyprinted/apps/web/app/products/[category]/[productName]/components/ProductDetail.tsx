@@ -813,17 +813,24 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
     // Use FormData for regular URLs (maintains compatibility)
     if (imageUrl.startsWith('data:')) {
       console.log('[uploadImageToPermanentStorage] Using JSON format for data URL upload...');
+      console.log('[uploadImageToPermanentStorage] Image URL starts with:', imageUrl.substring(0, 50));
+      console.log('[uploadImageToPermanentStorage] Image URL length:', imageUrl.length);
+      
+      const requestBody = JSON.stringify({
+        imageData: imageUrl, // Send as data URL in JSON
+        name: 'Generated Design',
+        productCode: productCode,
+      });
+      
+      console.log('[uploadImageToPermanentStorage] Request body length:', requestBody.length);
+      console.log('[uploadImageToPermanentStorage] Request body starts with:', requestBody.substring(0, 100));
       
       const uploadResponse = await fetch('/api/upload-image', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          imageData: imageUrl, // Send as data URL in JSON
-          name: 'Generated Design',
-          productCode: productCode,
-        }),
+        body: requestBody,
       });
 
       if (!uploadResponse.ok) {
