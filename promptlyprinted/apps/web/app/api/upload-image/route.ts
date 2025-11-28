@@ -28,6 +28,10 @@ const MAX_DIMENSION = 8000; // Maximum width or height for input images
  * Validate image buffer and metadata
  */
 async function validateImage(imageBuffer: Buffer): Promise<void> {
+  console.log('[validateImage] Starting validation...');
+  console.log('[validateImage] Buffer length:', imageBuffer.length);
+  console.log('[validateImage] Buffer first 20 bytes (hex):', imageBuffer.toString('hex', 0, Math.min(20, imageBuffer.length)));
+  
   if (!imageBuffer || imageBuffer.length === 0) {
     throw new Error('Empty image buffer');
   }
@@ -37,7 +41,9 @@ async function validateImage(imageBuffer: Buffer): Promise<void> {
   }
 
   try {
+    console.log('[validateImage] Attempting to read metadata with sharp...');
     const metadata = await sharp(imageBuffer).metadata();
+    console.log('[validateImage] Metadata retrieved:', JSON.stringify(metadata, null, 2));
     
     if (!metadata.format || !ALLOWED_FORMATS.includes(metadata.format.toLowerCase())) {
       throw new Error(`Unsupported image format: ${metadata.format || 'unknown'}`);
@@ -51,10 +57,22 @@ async function validateImage(imageBuffer: Buffer): Promise<void> {
       throw new Error(`Image dimensions exceed maximum allowed size (${MAX_DIMENSION}x${MAX_DIMENSION})`);
     }
 
-    console.log(`[Upload Image] Image validation passed: ${metadata.width}x${metadata.height}, format: ${metadata.format}`);
+    console.log(`[validateImage] Image validation passed: ${metadata.width}x${metadata.height}, format: ${metadata.format}`);
   } catch (error) {
+    console.error('[validateImage] Validation error details:', {
+      errorName: error instanceof Error ? error.name : 'unknown',
+      errorMessage: error instanceof Error ? error.message : String(error),
+      errorStack: error instanceof Error ? error.stack : undefined,
+      bufferLength: imageBuffer.length,
+      bufferStart: imageBuffer.toString('hex', 0, Math.min(20, imageBuffer.length))
+    });
+    
     if (error instanceof Error && error.message.includes('Input file contains unsupported image format')) {
       throw new Error('Invalid or corrupted image file');
+    }
+    // Check for common error patterns
+    if (error instanceof Error && error.message.includes('Input buffer contains unsupported image format')) {
+      throw new Error(`Input buffer contains unsupported image format - Buffer appears to be invalid or corrupted`);
     }
     throw error;
   }
@@ -186,23 +204,45 @@ async function fetchImageFromUrl(url: string): Promise<Buffer> {
  */
 function parseDataUrl(dataUrl: string): Buffer {
   try {
+    console.log('[parseDataUrl] Parsing data URL...');
+    console.log('[parseDataUrl] Data URL length:', dataUrl.length);
+    console.log('[parseDataUrl] Data URL prefix:', dataUrl.substring(0, 100));
+    
     const matches = dataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
     if (matches) {
       const [, format, base64String] = matches;
+      console.log('[parseDataUrl] Matched format:', format);
+      console.log('[parseDataUrl] Base64 string length:', base64String.length);
+      console.log('[parseDataUrl] Base64 string prefix:', base64String.substring(0, 50));
+      
       if (!ALLOWED_FORMATS.includes(format.toLowerCase())) {
         throw new Error(`Unsupported image format in data URL: ${format}`);
       }
-      return Buffer.from(base64String, 'base64');
+      
+      const buffer = Buffer.from(base64String, 'base64');
+      console.log('[parseDataUrl] Buffer created successfully, size:', buffer.length);
+      
+      // Check if buffer is actually valid image data by examining magic bytes
+      const magicBytes = buffer.toString('hex', 0, Math.min(8, buffer.length));
+      console.log('[parseDataUrl] Buffer magic bytes (hex):', magicBytes);
+      
+      return buffer;
     } else {
+      console.warn('[parseDataUrl] Regex match failed, trying fallback parsing...');
       // Try fallback parsing
       const parts = dataUrl.split(',');
+      console.log('[parseDataUrl] Split parts count:', parts.length);
       if (parts.length > 1) {
-        return Buffer.from(parts[1], 'base64');
+        console.log('[parseDataUrl] Using fallback with part[0]:', parts[0]);
+        const buffer = Buffer.from(parts[1], 'base64');
+        console.log('[parseDataUrl] Fallback buffer created, size:', buffer.length);
+        return buffer;
       } else {
         throw new Error('Invalid data URL format');
       }
     }
   } catch (error) {
+    console.error('[parseDataUrl] Parse error:', error);
     throw new Error(`Failed to parse data URL: ${error instanceof Error ? error.message : 'Invalid format'}`);
   }
 }

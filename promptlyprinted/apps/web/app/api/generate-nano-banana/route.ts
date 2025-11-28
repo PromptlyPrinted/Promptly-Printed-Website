@@ -92,16 +92,40 @@ function enhancePromptWithBestPractices(userPrompt: string): string {
 function extractInlineImageData(result: any): string | null {
   const parts = result?.candidates?.[0]?.content?.parts;
   if (!Array.isArray(parts)) {
+    console.warn('[extractInlineImageData] No parts array found in response');
     return null;
   }
 
   for (const part of parts) {
     const inlineData = part?.inline_data || part?.inlineData;
     if (inlineData?.data) {
-      return inlineData.data;
+      let base64Data = inlineData.data;
+      
+      // Validate it's actually base64  
+      console.log('[extractInlineImageData] Found inline data, length:', base64Data.length);
+      console.log('[extractInlineImageData] Data starts with:', base64Data.substring(0, 50));
+      
+      // Clean up any potential data URL prefix if present
+      if (base64Data.startsWith('data:')) {
+        console.warn('[extractInlineImageData] Data has data URL prefix, stripping it...');
+        const match = base64Data.match(/^data:image\/\w+;base64,(.+)$/);
+        if (match) {
+          base64Data = match[1];
+        }
+      }
+      
+      // Validate base64 format
+      if (!/^[A-Za-z0-9+/]*={0,2}$/.test(base64Data.substring(0, 100))) {
+        console.error('[extractInlineImageData] Data does not look like valid base64');
+        return null;
+      }
+      
+      console.log('[extractInlineImageData] Returning clean base64, length:', base64Data.length);
+      return base64Data;
     }
   }
 
+  console.warn('[extractInlineImageData] No inline_data found in any part');
   return null;
 }
 
