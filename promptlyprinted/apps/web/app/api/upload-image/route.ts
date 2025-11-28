@@ -445,6 +445,7 @@ export async function POST(request: Request) {
         const sanitizedName = sanitizeFilename(name);
         const filename = `${fileId}-${sanitizedName}.png`;
         
+        
         publicUrl = await storage.uploadFromBuffer(imageBuffer, filename, 'image/png', { skipUuid: true });
         console.log('[Upload Image] Standard PNG uploaded successfully:', publicUrl);
 
