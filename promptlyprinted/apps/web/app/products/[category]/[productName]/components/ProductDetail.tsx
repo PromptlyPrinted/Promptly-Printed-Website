@@ -839,11 +839,21 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
+
+      // Log the first 20 bytes to verify correct decoding
+      const first20Hex = Array.from(bytes.slice(0, 20))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+
+      console.log('[uploadImageToPermanentStorage] First 20 bytes (hex):', first20Hex);
+      console.log('[uploadImageToPermanentStorage] Expected PNG magic:', '89504e470d0a1a0a');
+
       const blob = new Blob([bytes], { type: mimeType });
 
       console.log('[uploadImageToPermanentStorage] Blob created:', {
         size: blob.size,
-        type: blob.type
+        type: blob.type,
+        expectedSize: binaryString.length
       });
 
       console.log('[uploadImageToPermanentStorage] Sending Raw Binary Request...');

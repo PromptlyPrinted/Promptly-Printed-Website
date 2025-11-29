@@ -357,6 +357,11 @@ export async function POST(request: Request) {
         const arrayBuffer = await request.arrayBuffer();
         imageBuffer = Buffer.from(arrayBuffer);
         console.log('[Upload Image] Raw binary buffer received, size:', imageBuffer.length);
+
+        // Log first 20 bytes to verify data integrity
+        const first20Hex = imageBuffer.toString('hex', 0, Math.min(20, imageBuffer.length));
+        console.log('[Upload Image] Buffer first 20 bytes (hex):', first20Hex);
+        console.log('[Upload Image] Expected PNG magic:', '89504e470d0a1a0a');
       } catch (readError) {
         console.error('[Upload Image] Failed to read raw body:', readError);
         throw new Error(`Failed to read request body: ${readError instanceof Error ? readError.message : 'Unknown error'}`);
