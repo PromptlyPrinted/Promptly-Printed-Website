@@ -209,6 +209,7 @@ export async function POST(request: Request) {
         return NextResponse.json({
           data: [{
             url: generatedImageUrl,
+            printReadyUrl,
             b64_json: null,
           }],
           debug: {
@@ -249,6 +250,7 @@ export async function POST(request: Request) {
         return NextResponse.json({
           data: [{
             url: generatedImageUrl,
+            printReadyUrl,
             b64_json: null,
           }],
           debug: {

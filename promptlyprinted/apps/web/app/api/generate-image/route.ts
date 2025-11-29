@@ -209,7 +209,10 @@ export async function POST(request: Request) {
         });
 
         return NextResponse.json({
-          data: response.data,
+          data: response.data.map((item: any) => ({
+            ...item,
+            printReadyUrl,
+          })),
           credits: {
             used: deduction.deducted,
             remaining: deduction.newBalance,
@@ -240,7 +243,10 @@ export async function POST(request: Request) {
         const updatedLimit = await checkGuestLimit(sessionId, authContext.ipAddress);
 
         return NextResponse.json({
-          data: response.data,
+          data: response.data.map((item: any) => ({
+            ...item,
+            printReadyUrl,
+          })),
           guestInfo: {
             remaining: updatedLimit.remaining,
             resetsAt: updatedLimit.resetsAt,

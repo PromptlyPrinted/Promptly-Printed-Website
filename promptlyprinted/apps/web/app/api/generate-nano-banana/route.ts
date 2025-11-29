@@ -705,6 +705,7 @@ export async function POST(request: Request) {
         return NextResponse.json({
           data: [{
             url: finalImageUrl,
+            printReadyUrl,
             b64_json: null,
           }],
           editHistory: [
@@ -751,6 +752,7 @@ export async function POST(request: Request) {
         return NextResponse.json({
           data: [{
             url: finalImageUrl,
+            printReadyUrl,
             b64_json: null,
           }],
           editHistory: [
