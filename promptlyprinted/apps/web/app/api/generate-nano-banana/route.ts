@@ -640,12 +640,18 @@ export async function POST(request: Request) {
 
       console.log('Embellishment step completed');
 
+      // Clean and normalize the base64 string
+      // Remove any whitespace, newlines, or other non-base64 characters
+      const cleanBase64 = finalImageBase64.replace(/\s+/g, '');
+      console.log('[Nano Banana] Base64 length before cleaning:', finalImageBase64.length);
+      console.log('[Nano Banana] Base64 length after cleaning:', cleanBase64.length);
+
       // Detect actual image format from base64 data
-      const detectedFormat = detectImageFormat(finalImageBase64);
+      const detectedFormat = detectImageFormat(cleanBase64);
       console.log(`Nano Banana image format detected: ${detectedFormat}`);
-      
+
       // Convert to data URL with correct format
-      const finalImageUrl = `data:image/${detectedFormat};base64,${finalImageBase64}`;
+      const finalImageUrl = `data:image/${detectedFormat};base64,${cleanBase64}`;
       const generationTimeMs = Date.now() - startTime;
 
       // DEDUCT CREDITS or RECORD GUEST GENERATION

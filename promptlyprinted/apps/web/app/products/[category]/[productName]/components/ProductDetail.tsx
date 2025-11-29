@@ -817,11 +817,30 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
     // This avoids parsing limits entirely by sending the file as the request body
     if (imageUrl.startsWith('data:')) {
       console.log('[uploadImageToPermanentStorage] Converting data URL to Blob for raw upload...');
-      
-      // Convert data URL to Blob
-      const res = await fetch(imageUrl);
-      const blob = await res.blob();
-      
+
+      // Convert data URL to Blob manually to avoid fetch() corruption issues
+      // Extract the base64 data and mime type from the data URL
+      const matches = imageUrl.match(/^data:([^;]+);base64,(.+)$/);
+      if (!matches) {
+        throw new Error('Invalid data URL format');
+      }
+
+      const mimeType = matches[1];
+      const base64Data = matches[2];
+
+      console.log('[uploadImageToPermanentStorage] Data URL info:', {
+        mimeType,
+        base64Length: base64Data.length
+      });
+
+      // Decode base64 to binary using atob and create a Blob
+      const binaryString = atob(base64Data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: mimeType });
+
       console.log('[uploadImageToPermanentStorage] Blob created:', {
         size: blob.size,
         type: blob.type
