@@ -8,6 +8,7 @@ import {
   recordImageGeneration,
   MODEL_CREDIT_COSTS,
 } from '@/lib/credits';
+import { processAIGeneratedImage } from '@/lib/image-processing';
 
 if (!process.env.GOOGLE_GEMINI_API_KEY) {
   console.warn('GOOGLE_GEMINI_API_KEY is not set - Nano Banana features will not work');
@@ -654,6 +655,17 @@ export async function POST(request: Request) {
       const finalImageUrl = `data:image/${detectedFormat};base64,${cleanBase64}`;
       const generationTimeMs = Date.now() - startTime;
 
+      // Generate print-ready version for T-shirt printing
+      let printReadyUrl: string | undefined;
+      try {
+        const processedImages = await processAIGeneratedImage(finalImageUrl);
+        printReadyUrl = processedImages.printReadyUrl;
+        console.log('[Nano Banana] Print-ready version created:', printReadyUrl);
+      } catch (printError) {
+        console.error('[Nano Banana] Failed to create print-ready version:', printError);
+        // Continue without print-ready version - the original will be used
+      }
+
       // DEDUCT CREDITS or RECORD GUEST GENERATION
       if (authContext.isAuthenticated && authContext.userId) {
         // Deduct credits from authenticated user
@@ -681,6 +693,7 @@ export async function POST(request: Request) {
           creditsUsed: creditsRequired,
           status: 'COMPLETED',
           imageUrl: finalImageUrl,
+          printReadyUrl,
           generationTimeMs,
           metadata: {
             mode,
@@ -723,6 +736,7 @@ export async function POST(request: Request) {
           creditsUsed: 0, // Free for guests
           status: 'COMPLETED',
           imageUrl: finalImageUrl,
+          printReadyUrl,
           generationTimeMs,
           metadata: {
             mode,

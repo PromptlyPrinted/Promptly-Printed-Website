@@ -9,6 +9,7 @@ import {
   recordImageGeneration,
   MODEL_CREDIT_COSTS,
 } from '@/lib/credits';
+import { processAIGeneratedImage } from '@/lib/image-processing';
 
 if (!process.env.TOGETHER_API_KEY) {
   console.warn('TOGETHER_API_KEY is not set - Flux 2 Pro features will not work');
@@ -156,6 +157,17 @@ export async function POST(request: Request) {
 
       console.log('Flux 2 Pro generation successful, URL:', generatedImageUrl);
 
+      // Generate print-ready version for T-shirt printing
+      let printReadyUrl: string | undefined;
+      try {
+        const processedImages = await processAIGeneratedImage(generatedImageUrl);
+        printReadyUrl = processedImages.printReadyUrl;
+        console.log('[Flux 2 Pro] Print-ready version created:', printReadyUrl);
+      } catch (printError) {
+        console.error('[Flux 2 Pro] Failed to create print-ready version:', printError);
+        // Continue without print-ready version - the original will be used
+      }
+
       // DEDUCT CREDITS or RECORD GUEST GENERATION
       if (authContext.isAuthenticated && authContext.userId) {
         // Deduct credits from authenticated user
@@ -184,6 +196,7 @@ export async function POST(request: Request) {
           creditsUsed: creditsRequired,
           status: 'COMPLETED',
           imageUrl: generatedImageUrl,
+          printReadyUrl,
           generationTimeMs,
           metadata: {
             referenceImageCount: referenceImages.length,
@@ -220,6 +233,7 @@ export async function POST(request: Request) {
           creditsUsed: 0, // Free for guests
           status: 'COMPLETED',
           imageUrl: generatedImageUrl,
+          printReadyUrl,
           generationTimeMs,
           metadata: {
             referenceImageCount: referenceImages.length,

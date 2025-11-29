@@ -9,6 +9,7 @@ import {
   recordImageGeneration,
   MODEL_CREDIT_COSTS,
 } from '@/lib/credits';
+import { processAIGeneratedImage } from '@/lib/image-processing';
 
 if (!process.env.TOGETHER_API_KEY) {
   throw new Error('TOGETHER_API_KEY is not set');
@@ -161,6 +162,17 @@ export async function POST(request: Request) {
       const generationTimeMs = Date.now() - startTime;
       const imageUrl = response.data[0]?.url || response.data[0]?.b64_json;
 
+      // Generate print-ready version for T-shirt printing
+      let printReadyUrl: string | undefined;
+      try {
+        const processedImages = await processAIGeneratedImage(imageUrl);
+        printReadyUrl = processedImages.printReadyUrl;
+        console.log('[Generate Image] Print-ready version created:', printReadyUrl);
+      } catch (printError) {
+        console.error('[Generate Image] Failed to create print-ready version:', printError);
+        // Continue without print-ready version - the original will be used
+      }
+
       // DEDUCT CREDITS or RECORD GUEST GENERATION
       if (authContext.isAuthenticated && authContext.userId) {
         // Deduct credits from authenticated user
@@ -187,6 +199,7 @@ export async function POST(request: Request) {
           creditsUsed: creditsRequired,
           status: 'COMPLETED',
           imageUrl,
+          printReadyUrl,
           generationTimeMs,
           metadata: {
             models,
@@ -214,6 +227,7 @@ export async function POST(request: Request) {
           creditsUsed: 0, // Free for guests
           status: 'COMPLETED',
           imageUrl,
+          printReadyUrl,
           generationTimeMs,
           metadata: {
             models,
