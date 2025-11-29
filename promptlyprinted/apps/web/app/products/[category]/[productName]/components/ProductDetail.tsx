@@ -848,24 +848,23 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
       console.log('[uploadImageToPermanentStorage] First 20 bytes (hex):', first20Hex);
       console.log('[uploadImageToPermanentStorage] Expected PNG magic:', '89504e470d0a1a0a');
 
-      const blob = new Blob([bytes], { type: mimeType });
-
-      console.log('[uploadImageToPermanentStorage] Blob created:', {
-        size: blob.size,
-        type: blob.type,
+      console.log('[uploadImageToPermanentStorage] Bytes array created:', {
+        length: bytes.length,
         expectedSize: binaryString.length
       });
 
       console.log('[uploadImageToPermanentStorage] Sending Raw Binary Request...');
 
+      // Send the bytes directly as ArrayBuffer instead of Blob
+      // This avoids any potential serialization issues with Blob
       const uploadResponse = await fetch('/api/upload-image', {
         method: 'POST',
         headers: {
-          'Content-Type': blob.type || 'application/octet-stream',
+          'Content-Type': mimeType || 'application/octet-stream',
           'x-image-name': encodeURIComponent('Generated Design'),
           'x-product-code': productCode
         },
-        body: blob,
+        body: bytes.buffer,
       });
 
       if (!uploadResponse.ok) {
