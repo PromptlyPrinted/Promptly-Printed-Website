@@ -983,13 +983,21 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
       }
 
       const generatedUrl = data.data[0].url;
+      const printReadyUrl = data.data[0].printReadyUrl;
 
-      // Update state with new image
-      // Upload to permanent storage
-      const uploadedResult = await uploadImageToPermanentStorage(generatedUrl);
-      
-      setGeneratedImage(uploadedResult.url);
-      setPrintReadyImageUrl(uploadedResult.printReadyUrl);
+      // Nano Banana API already creates and uploads the print-ready version
+      // Use those URLs directly instead of re-uploading (which causes corruption)
+      if (printReadyUrl) {
+        console.log('[Nano Banana] Using print-ready URL from API:', printReadyUrl);
+        setGeneratedImage(generatedUrl); // Display the data URL for preview
+        setPrintReadyImageUrl(printReadyUrl); // Use the permanent URL for printing
+      } else {
+        // Fallback: Upload to permanent storage if printReadyUrl is not provided
+        console.log('[Nano Banana] No print-ready URL, uploading to permanent storage...');
+        const uploadedResult = await uploadImageToPermanentStorage(generatedUrl);
+        setGeneratedImage(uploadedResult.url);
+        setPrintReadyImageUrl(uploadedResult.printReadyUrl);
+      }
 
       // Update edit history
       if (data.editHistory) {
@@ -1160,12 +1168,21 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
       }
 
       const generatedUrl = data.data[0].url;
+      const printReadyUrl = data.data[0].printReadyUrl;
 
-      // Upload to permanent storage
-      const uploadedResult = await uploadImageToPermanentStorage(generatedUrl);
-
-      setGeneratedImage(uploadedResult.url);
-      setPrintReadyImageUrl(uploadedResult.printReadyUrl);
+      // Flux 2 Pro API already creates and uploads the print-ready version
+      // Use those URLs directly instead of re-uploading
+      if (printReadyUrl) {
+        console.log('[Flux 2 Pro] Using print-ready URL from API:', printReadyUrl);
+        setGeneratedImage(generatedUrl);
+        setPrintReadyImageUrl(printReadyUrl);
+      } else {
+        // Fallback: Upload to permanent storage if printReadyUrl is not provided
+        console.log('[Flux 2 Pro] No print-ready URL, uploading to permanent storage...');
+        const uploadedResult = await uploadImageToPermanentStorage(generatedUrl);
+        setGeneratedImage(uploadedResult.url);
+        setPrintReadyImageUrl(uploadedResult.printReadyUrl);
+      }
 
       toast({
         title: 'Success',
@@ -1412,10 +1429,20 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
           const permanentUrl = `/api/save-temp-image?id=${saveData.id}`;
           console.log('Using permanent URL:', permanentUrl);
 
-          // Upload to permanent storage
-          const uploadedResult = await uploadImageToPermanentStorage(data.data[0].url);
-          setGeneratedImage(uploadedResult.url);
-          setPrintReadyImageUrl(uploadedResult.printReadyUrl);
+          // Generate Image API already creates and uploads the print-ready version
+          // Use those URLs directly instead of re-uploading
+          const printReadyUrl = data.data[0].printReadyUrl;
+          if (printReadyUrl) {
+            console.log('[Generate Image] Using print-ready URL from API:', printReadyUrl);
+            setGeneratedImage(data.data[0].url);
+            setPrintReadyImageUrl(printReadyUrl);
+          } else {
+            // Fallback: Upload to permanent storage if printReadyUrl is not provided
+            console.log('[Generate Image] No print-ready URL, uploading to permanent storage...');
+            const uploadedResult = await uploadImageToPermanentStorage(data.data[0].url);
+            setGeneratedImage(uploadedResult.url);
+            setPrintReadyImageUrl(uploadedResult.printReadyUrl);
+          }
           toast({
             title: 'Success',
             description: 'Image generated and saved successfully!',
@@ -1526,10 +1553,20 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
 
         const data = await response.json();
         if (data.data?.[0]?.url) {
-          // Upload to permanent storage instead of using proxy
-          const uploadedResult = await uploadImageToPermanentStorage(data.data[0].url);
-          setGeneratedImage(uploadedResult.url);
-          setPrintReadyImageUrl(uploadedResult.printReadyUrl);
+          // Generate Image API already creates and uploads the print-ready version
+          // Use those URLs directly instead of re-uploading
+          const printReadyUrl = data.data[0].printReadyUrl;
+          if (printReadyUrl) {
+            console.log('[Generate Image] Using print-ready URL from API:', printReadyUrl);
+            setGeneratedImage(data.data[0].url);
+            setPrintReadyImageUrl(printReadyUrl);
+          } else {
+            // Fallback: Upload to permanent storage if printReadyUrl is not provided
+            console.log('[Generate Image] No print-ready URL, uploading to permanent storage...');
+            const uploadedResult = await uploadImageToPermanentStorage(data.data[0].url);
+            setGeneratedImage(uploadedResult.url);
+            setPrintReadyImageUrl(uploadedResult.printReadyUrl);
+          }
           toast({
             title: 'Success',
             description: 'Image generated successfully!',
