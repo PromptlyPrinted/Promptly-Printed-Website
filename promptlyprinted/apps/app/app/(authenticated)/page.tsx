@@ -54,6 +54,11 @@ async function getOverviewData() {
             email: true,
           },
         },
+        recipient: {
+          select: {
+            email: true,
+          },
+        },
       },
     }),
     database.user.findMany({
@@ -293,7 +298,9 @@ const App = async () => {
                 {recentOrders.map((order) => (
                   <TableRow key={order.id}>
                     <TableCell>#{order.id}</TableCell>
-                    <TableCell>{order.user.email}</TableCell>
+                    <TableCell>
+                      {order.user?.email || order.recipient?.email || 'Guest'}
+                    </TableCell>
                     <TableCell>${order.totalPrice.toFixed(2)}</TableCell>
                     <TableCell>
                       <span

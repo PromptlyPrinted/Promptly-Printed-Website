@@ -596,6 +596,9 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
   const [useFlux2Pro, setUseFlux2Pro] = useState(false);
   const [flux2ProReferenceImages, setFlux2ProReferenceImages] = useState<string[]>([]);
 
+  // Design selection state - determines which image will be used for checkout
+  const [selectedDesignSource, setSelectedDesignSource] = useState<'generated' | 'uploaded' | 'processed'>('generated');
+
   // Refs
   const tshirtImageRef = useRef<HTMLImageElement>(null);
   const designImageRef = useRef<HTMLImageElement>(null);
@@ -787,6 +790,17 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
   handleBackgroundRemoval();
     }
   }, [removeBackground, generatedImage, processedImage]);
+
+  // Auto-select the most recent design for printing
+  useEffect(() => {
+    if (processedImage) {
+      setSelectedDesignSource('processed');
+    } else if (generatedImage) {
+      setSelectedDesignSource('generated');
+    } else if (referenceImage) {
+      setSelectedDesignSource('uploaded');
+    }
+  }, [processedImage, generatedImage, referenceImage]);
 
   // Helper function to upload image to permanent storage
 const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: string; previewUrl: string; printReadyUrl: string }> => {
@@ -1906,7 +1920,22 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
       return;
     }
 
-    const imageToUse = (removeBackground && processedImage) ? processedImage : generatedImage;
+    // Use the selected design source
+    let imageToUse: string;
+    
+    switch (selectedDesignSource) {
+      case 'uploaded':
+        imageToUse = referenceImage;
+        break;
+      case 'processed':
+        imageToUse = processedImage;
+        break;
+      case 'generated':
+      default:
+        imageToUse = generatedImage;
+        break;
+    }
+
     const basePrice = product.pricing?.[0]?.amount || product.price || 0;
     const finalPrice = discountPercent > 0 ? basePrice * (1 - discountPercent) : basePrice;
 
@@ -1965,6 +1994,7 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
       color: selectedColor || 'Default',
       imageUrl: finalImageUrl,
       printReadyUrl: printReadyUrl,
+      images: [{ url: finalImageUrl }], // For checkout page display
       assets: [
         {
           url: finalImageUrl,
@@ -2003,15 +2033,26 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
       return;
     }
 
-    // Determine which image to use:
-    // If "Remove Background" is checked AND we have a processed image, use that.
-    // Otherwise, use the standard generated image.
-    const imageToUse = (removeBackground && processedImage) ? processedImage : generatedImage;
+    // Determine which image to use based on user's selection
+    let imageToUse: string;
+    
+    switch (selectedDesignSource) {
+      case 'uploaded':
+        imageToUse = referenceImage;
+        break;
+      case 'processed':
+        imageToUse = processedImage;
+        break;
+      case 'generated':
+      default:
+        imageToUse = generatedImage;
+        break;
+    }
 
     if (!imageToUse && !product.imageUrls.cover) {
        toast({
-        title: 'Error',
-        description: 'No image to purchase. Please generate a design.',
+        title: 'No Design Selected',
+        description: 'Please select a design to print on your T-shirt',
         variant: 'destructive',
       });
       return;
@@ -2093,6 +2134,7 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
       color: selectedColor || 'Default',
       imageUrl: finalImageUrl, // This is the display URL
       printReadyUrl: printReadyUrl, // Store the 300 DPI URL
+      images: [{ url: finalImageUrl }], // For checkout page display
       assets: [
         {
           url: finalImageUrl,
@@ -2125,6 +2167,7 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
             merchantReference: `item_${item.productId}`,
             sku: String(item.productId),
             designUrl: itemPrintUrl, // Use the high-res URL for the design
+            printReadyUrl: itemPrintUrl, // Explicitly include for Prodigi (300 DPI PNG)
         };
     }).filter(item => {
         // Filter out items with missing images to prevent checkout errors
@@ -3520,6 +3563,158 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
               </div>
             )}
           </div>
+
+          {/* Design Selection Panel - Only show when multiple options exist */}
+          {(generatedImage || referenceImage || processedImage) && (
+            <div className="bg-gradient-to-br from-teal-50 to-blue-50 border-2 border-teal-200 rounded-xl p-6 space-y-4 mt-6">
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h3 className="font-semibold text-gray-900">Select Your Final Design</h3>
+              </div>
+              
+              <p className="text-sm text-gray-600">
+                Choose which design will be printed on your T-shirt
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Option 1: Uploaded Image (if exists) */}
+                {referenceImage && (
+                  <label className={`relative cursor-pointer group ${
+                    selectedDesignSource === 'uploaded' 
+                      ? 'ring-4 ring-teal-500 ring-offset-2' 
+                      : 'ring-2 ring-gray-200 hover:ring-teal-300'
+                  } rounded-lg overflow-hidden transition-all`}>
+                    <input
+                      type="radio"
+                      name="design-source"
+                      value="uploaded"
+                      checked={selectedDesignSource === 'uploaded'}
+                      onChange={() => setSelectedDesignSource('uploaded')}
+                      className="sr-only"
+                    />
+                    
+                    <div className="aspect-square relative">
+                      <img 
+                        src={referenceImage} 
+                        alt="Your uploaded image" 
+                        className="w-full h-full object-cover"
+                      />
+                      
+                      {selectedDesignSource === 'uploaded' && (
+                        <div className="absolute inset-0 bg-teal-500/20 flex items-center justify-center">
+                          <div className="bg-teal-600 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                            Will be printed
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="p-3 bg-white">
+                      <p className="font-medium text-sm text-gray-900">Your Upload</p>
+                      <p className="text-xs text-gray-500">Original image</p>
+                    </div>
+                  </label>
+                )}
+
+                {/* Option 2: AI Generated (if exists and no processed version) */}
+                {generatedImage && !processedImage && (
+                  <label className={`relative cursor-pointer group ${
+                    selectedDesignSource === 'generated' 
+                      ? 'ring-4 ring-teal-500 ring-offset-2' 
+                      : 'ring-2 ring-gray-200 hover:ring-teal-300'
+                  } rounded-lg overflow-hidden transition-all`}>
+                    <input
+                      type="radio"
+                      name="design-source"
+                      value="generated"
+                      checked={selectedDesignSource === 'generated'}
+                      onChange={() => setSelectedDesignSource('generated')}
+                      className="sr-only"
+                    />
+                    
+                    <div className="aspect-square relative">
+                      <img 
+                        src={generatedImage} 
+                        alt="AI generated design" 
+                        className="w-full h-full object-cover"
+                      />
+                      
+                      {selectedDesignSource === 'generated' && (
+                        <div className="absolute inset-0 bg-teal-500/20 flex items-center justify-center">
+                          <div className="bg-teal-600 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                            Will be printed
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="p-3 bg-white">
+                      <p className="font-medium text-sm text-gray-900">AI Generated</p>
+                      <p className="text-xs text-gray-500">Created by AI</p>
+                    </div>
+                  </label>
+                )}
+
+                {/* Option 3: Processed (Background Removed) */}
+                {processedImage && (
+                  <label className={`relative cursor-pointer group ${
+                    selectedDesignSource === 'processed' 
+                      ? 'ring-4 ring-teal-500 ring-offset-2' 
+                      : 'ring-2 ring-gray-200 hover:ring-teal-300'
+                  } rounded-lg overflow-hidden transition-all`}>
+                    <input
+                      type="radio"
+                      name="design-source"
+                      value="processed"
+                      checked={selectedDesignSource === 'processed'}
+                      onChange={() => setSelectedDesignSource('processed')}
+                      className="sr-only"
+                    />
+                    
+                    <div className="aspect-square relative bg-gray-100">
+                      <img 
+                        src={processedImage} 
+                        alt="Background removed" 
+                        className="w-full h-full object-contain"
+                      />
+                      
+                      {selectedDesignSource === 'processed' && (
+                        <div className="absolute inset-0 bg-teal-500/20 flex items-center justify-center">
+                          <div className="bg-teal-600 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                            Will be printed
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="p-3 bg-white">
+                      <p className="font-medium text-sm text-gray-900">No Background</p>
+                      <p className="text-xs text-gray-500">Background removed</p>
+                    </div>
+                  </label>
+                )}
+              </div>
+
+              {/* Quality Indicator */}
+              <div className="flex items-center gap-2 text-sm text-gray-600 bg-white/50 rounded-lg p-3">
+                <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <span>All designs will be printed at <strong>300 DPI</strong> for premium quality</span>
+              </div>
+            </div>
+          )}
 
           {/* Checkout Buttons */}
           <div className="mt-3 flex flex-col gap-2 sm:flex-row">
