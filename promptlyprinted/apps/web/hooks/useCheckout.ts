@@ -39,6 +39,8 @@ export function useCheckout() {
         const designUrl = item.designUrl || (item as any).imageUrl || item.images?.[0]?.url;
         // Get 300 DPI print-ready URL if available
         const printReadyUrl = (item as any).printReadyUrl;
+        // Get preview URL for display (smaller JPEG)
+        const previewUrl = (item as any).previewUrl || item.images?.[0]?.url || designUrl;
 
         return {
           productId: Number.parseInt(item.productId, 10),
@@ -49,7 +51,8 @@ export function useCheckout() {
           size: item.size,
           designUrl: designUrl, // The actual design image to be printed
           printReadyUrl: printReadyUrl, // 300 DPI version for Prodigi
-          images: [{ url: item.images?.[0]?.url || designUrl }], // Product preview image
+          previewUrl: previewUrl, // Small JPEG for cart/checkout display
+          images: [{ url: previewUrl || designUrl }], // Product preview image
         };
       });
 

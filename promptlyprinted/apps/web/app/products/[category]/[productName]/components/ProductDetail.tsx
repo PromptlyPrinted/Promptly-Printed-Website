@@ -2068,21 +2068,26 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
       quantity: quantity,
       size: selectedSize,
       color: selectedColor || 'Default',
-      imageUrl: finalImageUrl,
-      printReadyUrl: printReadyUrl,
+      imageUrl: finalImageUrl, // Preview URL for display
+      previewUrl: finalImageUrl, // Explicitly set preview URL
+      printReadyUrl: printReadyUrl, // 300 DPI URL for Prodigi
       images: [{ url: finalImageUrl }], // For checkout page display
       assets: [
         {
-          url: finalImageUrl,
+          url: printReadyUrl || finalImageUrl, // Use print-ready URL in assets for Prodigi
           printArea: 'default'
         }
       ],
     };
 
-    console.log('[handleAddToCart] Adding item:', itemToAdd);
+    console.log('[handleAddToCart] Adding item:', {
+      ...itemToAdd,
+      imageUrl: itemToAdd.imageUrl?.substring(0, 50) + '...',
+      printReadyUrl: itemToAdd.printReadyUrl?.substring(0, 50) + '...',
+    });
     
     try {
-        addItem(itemToAdd);
+        addItem(itemToAdd as any);
         toast({
           title: 'Added to cart',
           description: `${product.name} has been added to your cart.`,
@@ -2211,7 +2216,10 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
         }
     }
 
-    console.log('Checkout URLs:', { finalImageUrl, printReadyUrl });
+    console.log('Checkout URLs:', { 
+      finalImageUrl: finalImageUrl?.substring(0, 50) + '...', 
+      printReadyUrl: printReadyUrl?.substring(0, 50) + '...' 
+    });
 
     const itemToAdd = {
       id: `${numericProductId}-${selectedSize}-${selectedColor}`,
@@ -2223,23 +2231,25 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
       quantity: quantity,
       size: selectedSize,
       color: selectedColor || 'Default',
-      imageUrl: finalImageUrl, // This is the display URL
-      printReadyUrl: printReadyUrl, // Store the 300 DPI URL
+      imageUrl: finalImageUrl, // Preview URL for display
+      previewUrl: finalImageUrl, // Explicitly set preview URL
+      printReadyUrl: printReadyUrl, // 300 DPI URL for Prodigi
       images: [{ url: finalImageUrl }], // For checkout page display
       assets: [
         {
-          url: finalImageUrl,
+          url: printReadyUrl || finalImageUrl, // Use print-ready URL in assets for Prodigi
           printArea: 'default'
         }
       ],
     };
-    addItem(itemToAdd);
+    addItem(itemToAdd as any);
 
     const allItems = [...cartItems, itemToAdd];
     const allItemsAsCheckoutItems = allItems.map(item => {
         // If this is the item we just added, use the printReadyUrl we just got
         const isCurrentItem = item.id === itemToAdd.id;
-        const itemPrintUrl = isCurrentItem ? (printReadyUrl || item.imageUrl) : (item.printReadyUrl || item.imageUrl);
+        const itemPrintUrl = isCurrentItem ? (printReadyUrl || item.printReadyUrl || item.imageUrl) : (item.printReadyUrl || item.imageUrl);
+        const itemPreviewUrl = isCurrentItem ? (finalImageUrl || item.imageUrl) : ((item as any).previewUrl || item.imageUrl);
 
         return {
             productId: String(item.productId), // Ensure it's a string
@@ -2249,20 +2259,22 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
             color: item.color,
             size: item.size,
             images: [{ 
-                url: itemPrintUrl || '',
-                dpi: 300 // Explicitly signal this is intended to be 300 DPI
+                url: itemPreviewUrl || itemPrintUrl || '', // Use preview URL for display
+                dpi: 300 
             }],
             customization: (item as any).customization,
             recipientCostAmount: item.price,
             currency: 'USD',
             merchantReference: `item_${item.productId}`,
             sku: String(item.productId),
-            designUrl: itemPrintUrl, // Use the high-res URL for the design
+            designUrl: itemPrintUrl, // Use the print-ready URL for the design
             printReadyUrl: itemPrintUrl, // Explicitly include for Prodigi (300 DPI PNG)
+            previewUrl: itemPreviewUrl, // Preview URL for cart/checkout display
         };
     }).filter(item => {
         // Filter out items with missing images to prevent checkout errors
-        const hasImage = item.images && item.images.length > 0 && item.images[0].url && item.images[0].url.trim() !== '';
+        const hasImage = (item.images && item.images.length > 0 && item.images[0].url && item.images[0].url.trim() !== '') 
+                      || (item.printReadyUrl && item.printReadyUrl.trim() !== '');
         if (!hasImage) {
             console.warn('Excluding item from checkout due to missing image:', item);
         }

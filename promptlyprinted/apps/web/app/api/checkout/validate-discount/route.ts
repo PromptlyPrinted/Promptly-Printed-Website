@@ -1,6 +1,7 @@
 import { getSession } from '@/lib/session-utils';
 import { prisma, DiscountType } from '@repo/database';
 import { type NextRequest, NextResponse } from 'next/server';
+import { verifyCsrf } from '@repo/auth/csrf';
 import { z } from 'zod';
 
 const ValidateDiscountSchema = z.object({
@@ -9,6 +10,9 @@ const ValidateDiscountSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  const csrf = verifyCsrf(request);
+  if (!csrf.ok) return csrf.response;
+  
   try {
     const body = await request.json();
 

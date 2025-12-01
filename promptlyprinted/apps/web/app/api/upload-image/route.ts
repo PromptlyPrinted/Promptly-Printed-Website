@@ -634,46 +634,33 @@ export async function POST(request: Request) {
         });
         }
 
-        // 3. Upload the standard PNG
+        // Upload 2 files:
+        // 1. 300 DPI PNG for Prodigi printing (large, high quality)
+        // 2. Preview JPEG for cart/checkout display (small, fast loading)
         try {
-        console.log('[Upload Image] Uploading standard PNG to storage...');
+        console.log('[Upload Image] Processing images...');
         const fileId = randomUUID();
         const sanitizedName = sanitizeFilename(name);
-        const filename = `${fileId}-${sanitizedName}.png`;
         
+        // Generate and upload the 300 DPI version for Prodigi (required for printing)
+        console.log('[Upload Image] Generating 300 DPI print-ready version...');
+        const printReadyBuffer = await generatePrintReadyVersion(imageBuffer, productCode);
+        const printFilename = `${fileId}-${sanitizedName}-print.png`;
         
-        publicUrl = await storage.uploadFromBuffer(imageBuffer, filename, 'image/png', { skipUuid: true });
-        console.log('[Upload Image] Standard PNG uploaded successfully:', publicUrl);
-
-        // 4. Generate and upload 300 DPI print-ready version
-        try {
-            console.log('[Upload Image] Generating 300 DPI print-ready version...');
-            const printReadyBuffer = await generatePrintReadyVersion(imageBuffer, productCode);
-            const printReadyFilename = `${fileId}-${sanitizedName}-300dpi.png`;
-            
-            printReadyUrl = await storage.uploadFromBuffer(printReadyBuffer, printReadyFilename, 'image/png', { skipUuid: true });
-            console.log('[Upload Image] 300 DPI version uploaded successfully:', printReadyUrl);
-        } catch (printError) {
-            console.error('[Upload Image] Failed to generate 300 DPI version:', printError);
-            // Fallback: use the standard PNG as print-ready
-            printReadyUrl = publicUrl;
-            console.log('[Upload Image] Using standard PNG as fallback for print-ready version');
-        }
-
-        // 5. Generate and upload preview JPEG version for cart/checkout
-        try {
-            console.log('[Upload Image] Generating preview JPEG version...');
-            const previewBuffer = await generatePreviewVersion(imageBuffer);
-            const previewFilename = `${fileId}-${sanitizedName}-preview.jpg`;
-            
-            previewUrl = await storage.uploadFromBuffer(previewBuffer, previewFilename, 'image/jpeg', { skipUuid: true });
-            console.log('[Upload Image] Preview JPEG uploaded successfully:', previewUrl);
-        } catch (previewError) {
-            console.error('[Upload Image] Failed to generate preview version:', previewError);
-            // Fallback: use the standard PNG as preview
-            previewUrl = publicUrl;
-            console.log('[Upload Image] Using standard PNG as fallback for preview version');
-        }
+        printReadyUrl = await storage.uploadFromBuffer(printReadyBuffer, printFilename, 'image/png', { skipUuid: true });
+        console.log('[Upload Image] 300 DPI PNG uploaded:', printReadyUrl);
+        
+        // Generate and upload a small preview JPEG for cart/checkout display (~50-100KB)
+        console.log('[Upload Image] Generating preview version...');
+        const previewBuffer = await generatePreviewVersion(imageBuffer);
+        const previewFilename = `${fileId}-${sanitizedName}-preview.jpg`;
+        
+        previewUrl = await storage.uploadFromBuffer(previewBuffer, previewFilename, 'image/jpeg', { skipUuid: true });
+        console.log('[Upload Image] Preview JPEG uploaded:', previewUrl);
+        
+        // Use preview URL as the public/display URL (smaller, faster loading)
+        publicUrl = previewUrl;
+        
         } catch (uploadError) {
         console.error('[Upload Image] Storage upload failed:', uploadError);
         return new Response(JSON.stringify({ 

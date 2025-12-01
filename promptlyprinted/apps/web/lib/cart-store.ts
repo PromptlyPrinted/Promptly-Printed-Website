@@ -10,6 +10,7 @@ export interface CartItem {
   size: string;
   color: string;
   imageUrl: string;
+  previewUrl?: string; // Small JPEG for cart/checkout display
   customization?: {
     sizing?: string;
     position?: any;
@@ -18,7 +19,22 @@ export interface CartItem {
     url: string;
     printArea: string;
   }[];
-  printReadyUrl?: string;
+  printReadyUrl?: string; // 300 DPI PNG for Prodigi printing
+}
+
+/**
+ * Check if a URL is a base64 data URL
+ */
+function isBase64Url(url: string | undefined): boolean {
+  return !!url && url.startsWith('data:');
+}
+
+/**
+ * Filter out base64 URLs from a string, returning empty string if base64
+ */
+function filterBase64(url: string | undefined): string {
+  if (!url) return '';
+  return isBase64Url(url) ? '' : url;
 }
 
 interface CartStore {
@@ -79,39 +95,92 @@ export const useCartStore = create<CartStore>()(
       // Custom storage that filters out base64 images before saving to localStorage
       storage: {
         getItem: (name) => {
-          const str = localStorage.getItem(name);
-          if (!str) return null;
-          return JSON.parse(str);
+          try {
+            const str = localStorage.getItem(name);
+            if (!str) return null;
+            return JSON.parse(str);
+          } catch (error) {
+            console.error('[CartStore] Failed to read cart from localStorage:', error);
+            // Clear corrupted data
+            try {
+              localStorage.removeItem(name);
+            } catch {}
+            return null;
+          }
         },
         setItem: (name, value) => {
-          // Filter out base64 data from imageUrl and assets before saving
-          const filteredValue = {
-            ...value,
-            state: {
-              ...value.state,
-              items: value.state.items.map((item: CartItem) => ({
-                ...item,
-                // Don't store base64 imageUrl in localStorage
-                imageUrl: item.imageUrl.startsWith('data:image') ? '' : item.imageUrl,
-                // printReadyUrl should be a remote URL, but check just in case
-                printReadyUrl: item.printReadyUrl?.startsWith('data:image') ? '' : item.printReadyUrl,
-                assets: item.assets.map((asset) => {
-                  // If the URL is a base64 string, don't store it in localStorage
-                  if (asset.url.startsWith('data:image')) {
-                    return {
-                      ...asset,
-                      url: '', // Store empty string instead of base64
-                    };
-                  }
-                  return asset;
-                }),
-              })),
-            },
-          };
-          localStorage.setItem(name, JSON.stringify(filteredValue));
+          try {
+            // Filter out base64 data from ALL URL fields before saving
+            const filteredValue = {
+              ...value,
+              state: {
+                ...value.state,
+                items: value.state.items.map((item: CartItem) => ({
+                  ...item,
+                  // Filter out base64 from all URL fields
+                  imageUrl: filterBase64(item.imageUrl),
+                  previewUrl: filterBase64(item.previewUrl),
+                  printReadyUrl: filterBase64(item.printReadyUrl),
+                  assets: item.assets?.map((asset) => ({
+                    ...asset,
+                    url: filterBase64(asset.url),
+                  })) || [],
+                })),
+              },
+            };
+            
+            const jsonString = JSON.stringify(filteredValue);
+            
+            // Check if the data is too large (localStorage typically has 5MB limit)
+            // JSON string length * 2 bytes per character (UTF-16)
+            const sizeInBytes = jsonString.length * 2;
+            const maxSize = 4 * 1024 * 1024; // 4MB safe limit
+            
+            if (sizeInBytes > maxSize) {
+              console.error('[CartStore] Cart data too large:', sizeInBytes, 'bytes. Clearing old items.');
+              // Keep only the most recent items that fit
+              const reducedItems = filteredValue.state.items.slice(-5);
+              const reducedValue = {
+                ...filteredValue,
+                state: { ...filteredValue.state, items: reducedItems }
+              };
+              localStorage.setItem(name, JSON.stringify(reducedValue));
+            } else {
+              localStorage.setItem(name, jsonString);
+            }
+          } catch (error) {
+            console.error('[CartStore] Failed to save cart to localStorage:', error);
+            // If quota exceeded, try to clear and save minimal data
+            if (error instanceof Error && error.name === 'QuotaExceededError') {
+              try {
+                localStorage.removeItem(name);
+                // Try saving just the last item
+                const minimalValue = {
+                  ...value,
+                  state: {
+                    ...value.state,
+                    items: value.state.items.slice(-1).map((item: CartItem) => ({
+                      ...item,
+                      imageUrl: filterBase64(item.imageUrl),
+                      previewUrl: filterBase64(item.previewUrl),
+                      printReadyUrl: filterBase64(item.printReadyUrl),
+                      assets: [],
+                    })),
+                  },
+                };
+                localStorage.setItem(name, JSON.stringify(minimalValue));
+              } catch (retryError) {
+                console.error('[CartStore] Failed to save even minimal cart:', retryError);
+              }
+            }
+          }
         },
         removeItem: (name) => {
-          localStorage.removeItem(name);
+          try {
+            localStorage.removeItem(name);
+          } catch (error) {
+            console.error('[CartStore] Failed to remove cart from localStorage:', error);
+          }
         },
       },
     }

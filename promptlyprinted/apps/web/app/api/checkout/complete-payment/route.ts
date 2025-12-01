@@ -175,6 +175,9 @@ export async function POST(request: NextRequest) {
                 throw new Error(`SKU not found for product ID: ${item.productId}`);
               }
               
+              // Use printReadyUrl (300 DPI) if available, otherwise fall back to designUrl
+              const assetUrl = item.printReadyUrl || item.designUrl;
+              
               return {
                 productId: item.productId,
                 copies: item.copies,
@@ -183,10 +186,11 @@ export async function POST(request: NextRequest) {
                   color: item.color,
                   size: item.size,
                   sku: product.sku, // Store SKU for Prodigi order creation
-                  designUrl: item.designUrl, // Store in attributes as fallback
-                  printReadyUrl: item.printReadyUrl, // Store 300 DPI URL
+                  designUrl: item.designUrl, // Store display URL as fallback
+                  printReadyUrl: item.printReadyUrl, // Store 300 DPI URL for Prodigi
                 },
-                assets: item.designUrl ? [{ url: item.designUrl }] : undefined,
+                // Store the 300 DPI URL in assets for Prodigi order creation
+                assets: assetUrl ? [{ url: assetUrl }] : undefined,
               };
             })
           ),

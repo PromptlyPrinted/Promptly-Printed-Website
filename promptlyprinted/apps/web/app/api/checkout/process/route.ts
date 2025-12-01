@@ -3,6 +3,7 @@ import { getSession } from '@/lib/session-utils';
 import { prisma, OrderStatus, ShippingMethod, DiscountType } from '@repo/database';
 import type { User } from '@repo/database';
 import { type NextRequest, NextResponse } from 'next/server';
+import { verifyCsrf } from '@repo/auth/csrf';
 import { square } from '@repo/payments';
 import { Currency, Country } from 'square';
 import { z } from 'zod';
@@ -39,6 +40,9 @@ const ProcessCheckoutSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  const csrf = verifyCsrf(request);
+  if (!csrf.ok) return csrf.response;
+  
   try {
     const body = await request.json();
 
@@ -179,6 +183,9 @@ export async function POST(request: NextRequest) {
               throw new Error(`SKU not found for product ID: ${item.productId}`);
             }
             
+            // Use printReadyUrl (300 DPI) if available, otherwise fall back to designUrl
+            const assetUrl = item.printReadyUrl || item.designUrl;
+            
             return {
               productId: item.productId,
               copies: item.copies,
@@ -187,10 +194,11 @@ export async function POST(request: NextRequest) {
                 color: item.color,
                 size: item.size,
                 sku: sku, // Store SKU for Prodigi order creation
-                designUrl: item.designUrl, // Store in attributes as fallback
+                designUrl: item.designUrl, // Store display URL as fallback
                 printReadyUrl: item.printReadyUrl, // 300 DPI version for Prodigi
               },
-              assets: item.designUrl ? [{ url: item.designUrl }] : undefined,
+              // Store the 300 DPI URL in assets for Prodigi order creation
+              assets: assetUrl ? [{ url: assetUrl }] : undefined,
             };
           }),
         },
