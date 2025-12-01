@@ -12,6 +12,10 @@ let nextConfig: NextConfig = {
     // Skip type checking during build - run separately
     ignoreBuildErrors: true,
   },
+  // Increase body size limit for large image uploads (default is 4MB)
+  serverActions: {
+    bodySizeLimit: '50mb',
+  },
   images: {
     ...config.images,
     remotePatterns: [

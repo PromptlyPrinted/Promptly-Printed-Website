@@ -807,13 +807,14 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
   try {
     // If it's already a permanent URL, derive the print-ready and preview URLs
     if (imageUrl.startsWith('/api/images/')) {
-      // Derive print-ready URL from display URL
-      // /api/images/2025/01/1234_abcd.png -> /api/images/2025/01/1234_abcd-300dpi.png
       const printReadyUrl = imageUrl.replace(/\.png$/, '-300dpi.png');
-      // Derive preview URL from display URL
-      // /api/images/2025/01/1234_abcd.png -> /api/images/2025/01/1234_abcd-preview.jpg
       const previewUrl = imageUrl.replace(/\.png$/, '-preview.jpg');
       return { url: imageUrl, previewUrl, printReadyUrl };
+    }
+
+    // If it's a Cloudflare R2 URL, it's already permanent
+    if (imageUrl.includes('.r2.dev') || imageUrl.includes('cloudflare')) {
+      return { url: imageUrl, previewUrl: imageUrl, printReadyUrl: imageUrl };
     }
 
     // If it's a legacy upload URL, just return it for all three
@@ -821,123 +822,120 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
       return { url: imageUrl, previewUrl: imageUrl, printReadyUrl: imageUrl };
     }
 
-    // Otherwise, upload to permanent storage
-    console.log('[uploadImageToPermanentStorage] Uploading image...');
-    
     // Get product code for correct dimensions
     const productCode = product.specifications?.style || product.sku || product.id.toString();
-    
-    // For data URLs, use Raw Binary Upload instead of FormData
-    // This avoids parsing limits entirely by sending the file as the request body
+
+    // For data URLs, send as base64 JSON payload
     if (imageUrl.startsWith('data:')) {
-      console.log('[uploadImageToPermanentStorage] Converting data URL to Blob for raw upload...');
-      console.log('[uploadImageToPermanentStorage] Data URL length:', imageUrl.length);
-      console.log('[uploadImageToPermanentStorage] Data URL prefix:', imageUrl.substring(0, 100));
+      console.log('[uploadImageToPermanentStorage] Processing data URL...');
+      console.log('[uploadImageToPermanentStorage] Data URL length:', imageUrl.length, 'chars (~', Math.round(imageUrl.length * 0.75 / 1024 / 1024 * 100) / 100, 'MB)');
 
-      try {
-        // Validate data URL format first
-        if (!imageUrl.includes(';base64,')) {
-          console.error('[uploadImageToPermanentStorage] Invalid data URL - missing base64 marker');
-          throw new Error('Invalid image data format');
-        }
-
-        // Parse data URL manually - fetch() can corrupt the binary data
-        const matches = imageUrl.match(/^data:([^;]+);base64,(.+)$/);
-        if (!matches) {
-          console.error('[uploadImageToPermanentStorage] Failed to parse data URL');
-          throw new Error('Invalid data URL structure');
-        }
-
-        const mimeType = matches[1];
-        const base64Data = matches[2];
-
-        console.log('[uploadImageToPermanentStorage] Decoding base64 manually:', {
-          mimeType,
-          base64Length: base64Data.length
-        });
-
-        // Convert base64 to binary using atob (native browser function)
-        const binaryString = atob(base64Data);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-
-        console.log('[uploadImageToPermanentStorage] Binary data created:', {
-          mimeType,
-          size: bytes.length
-        });
-
-        // Log the first 20 bytes to verify data integrity
-        const first20Hex = Array.from(bytes.slice(0, 20))
-          .map(b => b.toString(16).padStart(2, '0'))
-          .join('');
-
-        console.log('[uploadImageToPermanentStorage] First 20 bytes (hex):', first20Hex);
-        console.log('[uploadImageToPermanentStorage] Expected PNG magic:', '89504e470d0a1a0a');
-
-        // Validate image magic bytes
-        const validMagicBytes = [
-          '89504e470d0a1a0a', // PNG
-          'ffd8ff',           // JPEG
-          '474946383',        // GIF
-          '52494646',         // WEBP (RIFF)
-        ];
-
-        const hasValidMagic = validMagicBytes.some(magic => first20Hex.startsWith(magic));
-        if (!hasValidMagic) {
-          console.error('[uploadImageToPermanentStorage] Invalid image format - magic bytes do not match any known image format');
-          console.error('[uploadImageToPermanentStorage] This indicates the image data was corrupted during generation or transmission');
-          throw new Error('Generated image data is corrupted. Please regenerate the image.');
-        }
-
-        console.log('[uploadImageToPermanentStorage] Sending Raw Binary Request...');
-
-        // Send the bytes directly
-        const uploadResponse = await fetch('/api/upload-image', {
-          method: 'POST',
-          headers: {
-            'Content-Type': mimeType || 'application/octet-stream',
-            'x-image-name': encodeURIComponent('Generated Design'),
-            'x-product-code': productCode
-          },
-          body: bytes.buffer,
-        });
-
-        if (!uploadResponse.ok) {
-          const errorText = await uploadResponse.text();
-          console.error('[uploadImageToPermanentStorage] Upload failed:', errorText);
-
-          // Try to parse the error response
-          try {
-            const errorData = JSON.parse(errorText);
-            throw new Error(errorData.error || `Upload failed: ${uploadResponse.statusText}`);
-          } catch {
-            throw new Error(`Upload failed: ${uploadResponse.statusText}`);
-          }
-        }
-
-        const result = await uploadResponse.json();
-        console.log('[uploadImageToPermanentStorage] Upload successful:', result);
-
-        if (!result.url) {
-          throw new Error('No URL returned from upload');
-        }
-
-        return {
-          url: result.url,
-          previewUrl: result.previewUrl || result.url,
-          printReadyUrl: result.printReadyUrl || result.url
-        };
-      } catch (conversionError) {
-        console.error('[uploadImageToPermanentStorage] Data URL conversion failed:', conversionError);
-        // Re-throw with original error message if it's already descriptive
-        if (conversionError instanceof Error) {
-          throw conversionError;
-        }
-        throw new Error('Failed to process generated image');
+      // Validate data URL format
+      if (!imageUrl.includes(';base64,')) {
+        console.error('[uploadImageToPermanentStorage] Invalid data URL - missing base64 marker');
+        throw new Error('Invalid image data format');
       }
+
+      // Parse data URL to validate
+      const matches = imageUrl.match(/^data:([^;]+);base64,(.+)$/);
+      if (!matches) {
+        console.error('[uploadImageToPermanentStorage] Failed to parse data URL');
+        throw new Error('Invalid data URL structure');
+      }
+
+      const mimeType = matches[1];
+      const base64Data = matches[2];
+      
+      // Estimate size (base64 is ~33% larger than binary)
+      const estimatedSizeMB = (base64Data.length * 0.75) / 1024 / 1024;
+      console.log('[uploadImageToPermanentStorage] Estimated binary size:', estimatedSizeMB.toFixed(2), 'MB');
+
+      // For very large images, warn the user
+      if (estimatedSizeMB > 10) {
+        console.warn('[uploadImageToPermanentStorage] Very large image detected. Upload may take a while.');
+      }
+
+      // Convert base64 to Blob for FormData upload (more reliable than JSON for large files)
+      const binaryString = atob(base64Data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: mimeType });
+      
+      console.log('[uploadImageToPermanentStorage] Created blob:', blob.size, 'bytes, type:', blob.type);
+
+      // Helper function to attempt upload with retry
+      const attemptUpload = async (attempt: number): Promise<Response> => {
+        console.log(`[uploadImageToPermanentStorage] Upload attempt ${attempt}...`);
+        
+        try {
+          // Use AbortController for timeout
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout for large files
+          
+          // Use FormData with Blob - more reliable for large files in Safari
+          const formData = new FormData();
+          formData.append('file', blob, 'generated-design.png');
+          formData.append('name', 'Generated Design');
+          formData.append('productCode', productCode);
+          
+          const response = await fetch('/api/upload-image', {
+            method: 'POST',
+            body: formData,  // Let browser set Content-Type with boundary
+            signal: controller.signal,
+          });
+          
+          clearTimeout(timeoutId);
+          return response;
+        } catch (fetchError) {
+          // Check if it's a timeout or network error
+          if (fetchError instanceof Error) {
+            if (fetchError.name === 'AbortError') {
+              throw new Error('Upload timed out. Please try again.');
+            }
+            // "Load failed" is a Safari-specific error for network issues
+            if (fetchError.message.includes('Load failed') || fetchError.message.includes('Failed to fetch')) {
+              if (attempt < 3) {
+                console.warn(`[uploadImageToPermanentStorage] Network error on attempt ${attempt}, retrying in ${attempt}s...`);
+                await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
+                return attemptUpload(attempt + 1);
+              }
+              throw new Error('Network error during upload. Please check your connection and try again.');
+            }
+          }
+          throw fetchError;
+        }
+      };
+
+      const uploadResponse = await attemptUpload(1);
+
+      if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text();
+        console.error('[uploadImageToPermanentStorage] Upload failed:', errorText);
+
+        try {
+          const errorData = JSON.parse(errorText);
+          throw new Error(errorData.error || `Upload failed: ${uploadResponse.statusText}`);
+        } catch {
+          throw new Error(`Upload failed: ${uploadResponse.statusText}`);
+        }
+      }
+
+      const result = await uploadResponse.json();
+      console.log('[uploadImageToPermanentStorage] Upload successful:', result);
+
+      if (!result.url) {
+        throw new Error('No URL returned from upload');
+      }
+
+      return {
+        url: result.url,
+        previewUrl: result.previewUrl || result.url,
+        printReadyUrl: result.printReadyUrl || result.url
+      };
     } else {
+      // Regular URL - use FormData
       console.log('[uploadImageToPermanentStorage] Using FormData for URL upload...');
       
       const formData = new FormData();
@@ -945,10 +943,8 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
       formData.append('name', 'Generated Design');
       formData.append('productCode', productCode);
 
-      console.log('[uploadImageToPermanentStorage] Sending FormData request...');
       const uploadResponse = await fetch('/api/upload-image', {
         method: 'POST',
-        // DO NOT set Content-Type header - let the browser set it with the correct boundary
         body: formData,
       });
 
