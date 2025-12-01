@@ -46,27 +46,52 @@ interface CartStore {
   getTotal: () => number;
 }
 
+/**
+ * Sanitize a cart item to remove any base64 data BEFORE adding to store
+ */
+function sanitizeCartItem(item: CartItem): CartItem {
+  return {
+    ...item,
+    imageUrl: filterBase64(item.imageUrl),
+    previewUrl: filterBase64(item.previewUrl),
+    printReadyUrl: filterBase64(item.printReadyUrl),
+    assets: item.assets?.map((asset) => ({
+      ...asset,
+      url: filterBase64(asset.url),
+    })).filter(asset => asset.url) || [], // Remove empty assets
+  };
+}
+
 export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
       items: [],
       addItem: (item) => {
+        // CRITICAL: Sanitize item BEFORE adding to remove base64 data
+        const sanitizedItem = sanitizeCartItem(item);
+        
+        // Validate that we have valid URLs
+        if (!sanitizedItem.imageUrl && !sanitizedItem.previewUrl && !sanitizedItem.printReadyUrl) {
+          console.error('[CartStore] Cannot add item with no valid image URLs. Item was likely base64 only.');
+          return; // Don't add items with no valid URLs
+        }
+        
         const currentItems = get().items;
         const existingItemIndex = currentItems.findIndex(
           (i) =>
-            i.productId === item.productId &&
-            i.size === item.size &&
-            i.color === item.color
+            i.productId === sanitizedItem.productId &&
+            i.size === sanitizedItem.size &&
+            i.color === sanitizedItem.color
         );
 
         if (existingItemIndex > -1) {
           // Update quantity if item exists
           const updatedItems = [...currentItems];
-          updatedItems[existingItemIndex].quantity += item.quantity;
+          updatedItems[existingItemIndex].quantity += sanitizedItem.quantity;
           set({ items: updatedItems });
         } else {
-          // Add new item
-          set({ items: [...currentItems, item] });
+          // Add new item (already sanitized)
+          set({ items: [...currentItems, sanitizedItem] });
         }
       },
       removeItem: (productId) => {
@@ -205,4 +230,31 @@ export async function getCartItemsWithImages(): Promise<CartItem[]> {
     }
     return item;
   });
+}
+
+/**
+ * Get estimated localStorage usage
+ */
+export function getCartStorageSize(): number {
+  try {
+    const str = localStorage.getItem('cart-storage');
+    return str ? str.length * 2 : 0; // UTF-16 is 2 bytes per character
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Force clear all cart data from localStorage
+ * Call this if the user is having quota issues
+ */
+export function forceCleatCartStorage(): void {
+  try {
+    localStorage.removeItem('cart-storage');
+    localStorage.removeItem('cartItems');
+    useCartStore.getState().clearCart();
+    console.log('[CartStore] Force cleared cart storage');
+  } catch (error) {
+    console.error('[CartStore] Failed to force clear cart:', error);
+  }
 }
