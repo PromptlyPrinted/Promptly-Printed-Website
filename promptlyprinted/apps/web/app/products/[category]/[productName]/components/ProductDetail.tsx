@@ -1826,43 +1826,55 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
         setIsSaving(true);
         console.log('[handleSaveImage] Saving design...');
         
-        // Use the shared helper to prepare assets (PDF + Display Image)
-        const result = await preparePrintReadyAsset(imageToSave);
-        const permanentUrl = result.displayUrl;
-        const printUrl = result.printUrl;
+        // Check if we already have a print-ready URL (e.g., from Nano Banana API)
+        // If so, use it directly instead of re-uploading the data URL
+        let displayUrl: string;
+        let printUrl: string;
         
-        console.log('[handleSaveImage] Assets prepared:', { permanentUrl, printUrl });
+        if (printReadyImageUrl && imageToSave.startsWith('data:')) {
+            // We have a data URL for display but already have a permanent URL
+            console.log('[handleSaveImage] Data URL detected, using existing permanent URLs');
+            displayUrl = imageToSave; // Keep data URL for display
+            printUrl = printReadyImageUrl; // Use permanent URL for saving
+        } else if (printReadyImageUrl && !imageToSave.startsWith('data:')) {
+            // We have permanent URLs already
+            console.log('[handleSaveImage] Using existing print-ready URL:', printReadyImageUrl);
+            displayUrl = imageToSave;
+            printUrl = printReadyImageUrl;
+        } else {
+            // No print-ready URL yet, need to upload
+            console.log('[handleSaveImage] Preparing print-ready asset...');
+            const result = await preparePrintReadyAsset(imageToSave);
+            displayUrl = result.displayUrl;
+            printUrl = result.printUrl;
+        }
 
-        // Update state with permanent URLs
-        setGeneratedImage(permanentUrl);
-        setPrintReadyImageUrl(printUrl);
-        // Save to DB
-        console.log('[handleSaveImage] Saving to database...');
+        // Save to database
         const response = await fetch('/api/saved-designs', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                name: `${product.name} Design`,
-                url: permanentUrl,
+                productId: product.id,
+                imageUrl: displayUrl,
                 printReadyUrl: printUrl,
-                productId: product.id
             }),
         });
 
-        if (!response.ok) throw new Error('Failed to save design');
-
-        const savedDesign = await response.json();
-        console.log('[handleSaveImage] Design saved successfully:', savedDesign);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to save design');
+        }
 
         toast({
-            title: 'Design saved',
-            description: 'Your design has been saved to your profile.',
+            title: 'Success',
+            description: 'Design saved to My Designs',
+            variant: 'default',
         });
     } catch (error) {
         console.error('[handleSaveImage] Failed to save design:', error);
         toast({
             title: 'Error',
-            description: 'Failed to save design. Please try again.',
+            description: error instanceof Error ? error.message : 'Failed to save design',
             variant: 'destructive',
         });
     } finally {
