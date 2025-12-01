@@ -841,29 +841,31 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
           throw new Error('Invalid image data format');
         }
 
-        // Use fetch to convert data URL to Blob - this is more robust than manual atob
-        const dataUrlResponse = await fetch(imageUrl);
-
-        if (!dataUrlResponse.ok) {
-          console.error('[uploadImageToPermanentStorage] Failed to fetch data URL');
-          throw new Error('Failed to process image data URL');
+        // Parse data URL manually - fetch() can corrupt the binary data
+        const matches = imageUrl.match(/^data:([^;]+);base64,(.+)$/);
+        if (!matches) {
+          console.error('[uploadImageToPermanentStorage] Failed to parse data URL');
+          throw new Error('Invalid data URL structure');
         }
 
-        const blob = await dataUrlResponse.blob();
+        const mimeType = matches[1];
+        const base64Data = matches[2];
 
-        // Validate blob size
-        if (blob.size === 0) {
-          console.error('[uploadImageToPermanentStorage] Blob is empty - data URL may be corrupted');
-          throw new Error('Generated image data is empty or corrupted');
+        console.log('[uploadImageToPermanentStorage] Decoding base64 manually:', {
+          mimeType,
+          base64Length: base64Data.length
+        });
+
+        // Convert base64 to binary using atob (native browser function)
+        const binaryString = atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
         }
 
-        const arrayBuffer = await blob.arrayBuffer();
-        const bytes = new Uint8Array(arrayBuffer);
-
-        console.log('[uploadImageToPermanentStorage] Blob created:', {
-          type: blob.type,
-          size: blob.size,
-          bufferSize: arrayBuffer.byteLength
+        console.log('[uploadImageToPermanentStorage] Binary data created:', {
+          mimeType,
+          size: bytes.length
         });
 
         // Log the first 20 bytes to verify data integrity
@@ -891,15 +893,15 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
 
         console.log('[uploadImageToPermanentStorage] Sending Raw Binary Request...');
 
-        // Send the bytes directly as ArrayBuffer
+        // Send the bytes directly
         const uploadResponse = await fetch('/api/upload-image', {
           method: 'POST',
           headers: {
-            'Content-Type': blob.type || 'application/octet-stream',
+            'Content-Type': mimeType || 'application/octet-stream',
             'x-image-name': encodeURIComponent('Generated Design'),
             'x-product-code': productCode
           },
-          body: arrayBuffer,
+          body: bytes.buffer,
         });
 
         if (!uploadResponse.ok) {
