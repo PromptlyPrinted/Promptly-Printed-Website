@@ -497,11 +497,15 @@ export async function POST(request: Request) {
               if (!detectedFormat) {
                 console.warn('[Upload Image] Could not detect format from magic bytes');
                 console.warn('[Upload Image] Base64 may have been corrupted during transmission');
-                console.warn('[Upload Image] Attempting PNG fallback (Gemini embellishment default)');
+                console.warn('[Upload Image] This usually means the data URL was sent incorrectly');
 
-                // Try to use the base64 anyway with PNG format
-                // Sharp will validate and reject if truly corrupted
-                detectedFormat = 'png';
+                // Return a clear error instead of trying to guess
+                return new Response(JSON.stringify({
+                  error: 'Corrupted image data received. The image data appears to be invalid or corrupted during transmission. Please regenerate the image.'
+                }), {
+                  status: 400,
+                  headers: { 'Content-Type': 'application/json' },
+                });
               }
 
               imageDataValue = `data:image/${detectedFormat};base64,${bodyText}`;

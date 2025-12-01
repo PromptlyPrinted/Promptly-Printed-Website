@@ -831,11 +831,32 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
     // This avoids parsing limits entirely by sending the file as the request body
     if (imageUrl.startsWith('data:')) {
       console.log('[uploadImageToPermanentStorage] Converting data URL to Blob for raw upload...');
+      console.log('[uploadImageToPermanentStorage] Data URL length:', imageUrl.length);
+      console.log('[uploadImageToPermanentStorage] Data URL prefix:', imageUrl.substring(0, 100));
 
       try {
+        // Validate data URL format first
+        if (!imageUrl.includes(';base64,')) {
+          console.error('[uploadImageToPermanentStorage] Invalid data URL - missing base64 marker');
+          throw new Error('Invalid image data format');
+        }
+
         // Use fetch to convert data URL to Blob - this is more robust than manual atob
         const dataUrlResponse = await fetch(imageUrl);
+
+        if (!dataUrlResponse.ok) {
+          console.error('[uploadImageToPermanentStorage] Failed to fetch data URL');
+          throw new Error('Failed to process image data URL');
+        }
+
         const blob = await dataUrlResponse.blob();
+
+        // Validate blob size
+        if (blob.size === 0) {
+          console.error('[uploadImageToPermanentStorage] Blob is empty - data URL may be corrupted');
+          throw new Error('Generated image data is empty or corrupted');
+        }
+
         const arrayBuffer = await blob.arrayBuffer();
         const bytes = new Uint8Array(arrayBuffer);
 
@@ -853,6 +874,21 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
         console.log('[uploadImageToPermanentStorage] First 20 bytes (hex):', first20Hex);
         console.log('[uploadImageToPermanentStorage] Expected PNG magic:', '89504e470d0a1a0a');
 
+        // Validate image magic bytes
+        const validMagicBytes = [
+          '89504e470d0a1a0a', // PNG
+          'ffd8ff',           // JPEG
+          '474946383',        // GIF
+          '52494646',         // WEBP (RIFF)
+        ];
+
+        const hasValidMagic = validMagicBytes.some(magic => first20Hex.startsWith(magic));
+        if (!hasValidMagic) {
+          console.error('[uploadImageToPermanentStorage] Invalid image format - magic bytes do not match any known image format');
+          console.error('[uploadImageToPermanentStorage] This indicates the image data was corrupted during generation or transmission');
+          throw new Error('Generated image data is corrupted. Please regenerate the image.');
+        }
+
         console.log('[uploadImageToPermanentStorage] Sending Raw Binary Request...');
 
         // Send the bytes directly as ArrayBuffer
@@ -869,7 +905,14 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
         if (!uploadResponse.ok) {
           const errorText = await uploadResponse.text();
           console.error('[uploadImageToPermanentStorage] Upload failed:', errorText);
-          throw new Error(`Upload failed: ${uploadResponse.statusText}`);
+
+          // Try to parse the error response
+          try {
+            const errorData = JSON.parse(errorText);
+            throw new Error(errorData.error || `Upload failed: ${uploadResponse.statusText}`);
+          } catch {
+            throw new Error(`Upload failed: ${uploadResponse.statusText}`);
+          }
         }
 
         const result = await uploadResponse.json();
@@ -886,6 +929,10 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
         };
       } catch (conversionError) {
         console.error('[uploadImageToPermanentStorage] Data URL conversion failed:', conversionError);
+        // Re-throw with original error message if it's already descriptive
+        if (conversionError instanceof Error) {
+          throw conversionError;
+        }
         throw new Error('Failed to process generated image');
       }
     } else {
