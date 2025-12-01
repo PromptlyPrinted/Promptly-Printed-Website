@@ -38,7 +38,23 @@ let nextConfig: NextConfig = {
     // Optimize memory usage during builds
     webpackBuildWorker: true,
     // Enable optimized package imports
-    optimizePackageImports: ['lucide-react', '@heroicons/react'],
+    optimizePackageImports: ['lucide-react', '@heroicons/react', '@radix-ui/react-icons'],
+  },
+  // Production optimizations
+  compiler: {
+    // Remove console.log in production
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error', 'warn'],
+    } : false,
+  },
+  // Modularize imports for better tree-shaking (heroicons only)
+  modularizeImports: {
+    '@heroicons/react/24/outline': {
+      transform: '@heroicons/react/24/outline/{{member}}',
+    },
+    '@heroicons/react/24/solid': {
+      transform: '@heroicons/react/24/solid/{{member}}',
+    },
   },
 };
 

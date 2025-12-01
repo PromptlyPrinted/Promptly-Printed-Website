@@ -5,7 +5,14 @@ import type { Metadata } from 'next';
 import { ProductDetail } from './components/ProductDetail';
 import type { Product } from '@/types/product';
 import { database } from '@repo/database';
-import { Suspense } from 'react';
+import { Suspense, cache } from 'react';
+
+// Best practice: Product pages rarely change, so cache for 24 hours
+// This reduces database load and improves performance for repeat visitors
+export const revalidate = 86400; // 24 hours
+
+// Enable static generation for better performance
+export const dynamic = 'force-static';
 
 interface ProductPageProps {
   params: Promise<{
@@ -37,6 +44,45 @@ export async function generateStaticParams() {
 
   return params;
 }
+
+// Cached database query to prevent duplicate requests during SSR
+const getProductFromDatabase = cache(async (productSlug: string, sku?: string) => {
+  try {
+    const searchConditions = [];
+    
+    // Search by product name slug
+    searchConditions.push({
+      name: {
+        equals: productSlug,
+        mode: 'insensitive' as const
+      }
+    });
+    
+    // If we have SKU, also search by it
+    if (sku) {
+      searchConditions.push({ sku: sku });
+      searchConditions.push({ sku: `US-${sku}` });
+    }
+
+    const dbProduct = await database.product.findFirst({
+      where: {
+        countryCode: 'US',
+        listed: true,
+        isActive: true,
+        parentProductId: null,
+        OR: searchConditions,
+      },
+      include: {
+        category: true,
+      },
+    });
+
+    return dbProduct;
+  } catch (error) {
+    console.log('Database query error:', error);
+    return null;
+  }
+});
 
 export async function generateMetadata({
   params,
@@ -91,42 +137,16 @@ export default async function ProductPage({ params }: ProductPageProps) {
     );
   }
 
-  // Try to fetch from database - only show products that are listed AND active
-  let dbProduct = null;
-  try {
-    // First try to find by product name slug in the database
-    const allListedProducts = await database.product.findMany({
-      where: {
-        countryCode: 'US',
-        listed: true,
-        isActive: true,
-        parentProductId: null, // Only parent products
-      },
-      include: {
-        category: true,
-      },
-    });
+  // Try to fetch from database using cached query
+  const dbProduct = await getProductFromDatabase(productSlug, staticProduct?.sku);
 
-    // Find product by matching the name slug
-    dbProduct = allListedProducts.find(
-      (p) => normalizeString(p.name) === normalizeString(productSlug)
-    ) || null;
-
-    // If not found by name, try by SKU from static product
-    if (!dbProduct && staticProduct?.sku) {
-      dbProduct = allListedProducts.find(
-        (p) => p.sku === staticProduct!.sku || p.sku === `US-${staticProduct!.sku}`
-      ) || null;
-    }
-
-    // If product is not in database as listed/active, don't show it
-    if (!dbProduct) {
-      console.log(`Product not found as listed/active in database`);
+  // If product is not in database as listed/active, don't show it
+  if (!dbProduct) {
+    console.log(`Product not found as listed/active in database`);
+    // During build, allow static products
+    if (process.env.NODE_ENV !== 'production' || !staticProduct) {
       notFound();
     }
-  } catch (error) {
-    // Database not available during build - use static data
-    console.log('Database not available, using static product data');
   }
 
   // Use static product for display (it has the full details needed for the page)

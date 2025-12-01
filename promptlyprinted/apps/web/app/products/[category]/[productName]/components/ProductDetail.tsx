@@ -1962,24 +1962,39 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
     let printReadyUrl = '';
 
     if (imageToUse) {
-        console.log('[handleAddToCart] Preparing print-ready asset...');
-        const result = await preparePrintReadyAsset(imageToUse);
-        finalImageUrl = result.displayUrl;
-        printReadyUrl = result.printUrl;
-        
-        // Validate that we got permanent URLs, not data URLs
-        if (finalImageUrl.startsWith('data:') || printReadyUrl.startsWith('data:')) {
-            console.error('[handleAddToCart] Upload failed - still have data URLs');
-            toast({
-                title: 'Error',
-                description: 'Failed to upload design. Please try again.',
-                variant: 'destructive'
-            });
-            return;
+        // Check if we already have a print-ready URL (e.g., from Nano Banana API)
+        // If so, use it directly instead of re-uploading the data URL
+        if (printReadyImageUrl && !imageToUse.startsWith('data:')) {
+            console.log('[handleAddToCart] Using existing print-ready URL:', printReadyImageUrl);
+            finalImageUrl = imageToUse;
+            printReadyUrl = printReadyImageUrl;
+        } else if (printReadyImageUrl && imageToUse.startsWith('data:')) {
+            // We have a data URL for display but already have a permanent URL
+            console.log('[handleAddToCart] Data URL detected, using existing permanent URLs');
+            // Don't re-upload the data URL, just use the permanent URLs we already have
+            finalImageUrl = imageToUse; // Keep data URL for display
+            printReadyUrl = printReadyImageUrl; // Use permanent URL for printing
+        } else {
+            // No print-ready URL yet, need to upload
+            console.log('[handleAddToCart] Preparing print-ready asset...');
+            const result = await preparePrintReadyAsset(imageToUse);
+            finalImageUrl = result.displayUrl;
+            printReadyUrl = result.printUrl;
+            
+            // Validate that we got permanent URLs, not data URLs
+            if (finalImageUrl.startsWith('data:') || printReadyUrl.startsWith('data:')) {
+                console.error('[handleAddToCart] Upload failed - still have data URLs');
+                toast({
+                    title: 'Error',
+                    description: 'Failed to upload design. Please try again.',
+                    variant: 'destructive'
+                });
+                return;
+            }
+            
+            setGeneratedImage(finalImageUrl);
+            setPrintReadyImageUrl(printReadyUrl);
         }
-        
-        setGeneratedImage(finalImageUrl);
-        setPrintReadyImageUrl(printReadyUrl);
     }
 
     const itemToAdd = {
@@ -2100,24 +2115,39 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
     // Only attempt upload if it's a generated image (data URL or temp URL)
     // If it's the product cover image, we use it as is (though likely not print ready for custom print)
     if (imageToUse) {
-        console.log('[handleCheckout] Preparing print-ready asset...');
-        const result = await preparePrintReadyAsset(imageToUse);
-        finalImageUrl = result.displayUrl;
-        printReadyUrl = result.printUrl;
-        
-        // Validate that we got permanent URLs, not data URLs
-        if (finalImageUrl.startsWith('data:') || printReadyUrl.startsWith('data:')) {
-            console.error('[handleCheckout] Upload failed - still have data URLs');
-            toast({
-                title: 'Error',
-                description: 'Failed to upload design. Please try again.',
-                variant: 'destructive'
-            });
-            return;
+        // Check if we already have a print-ready URL (e.g., from Nano Banana API)
+        // If so, use it directly instead of re-uploading the data URL
+        if (printReadyImageUrl && !imageToUse.startsWith('data:')) {
+            console.log('[handleCheckout] Using existing print-ready URL:', printReadyImageUrl);
+            finalImageUrl = imageToUse;
+            printReadyUrl = printReadyImageUrl;
+        } else if (printReadyImageUrl && imageToUse.startsWith('data:')) {
+            // We have a data URL for display but already have a permanent URL
+            console.log('[handleCheckout] Data URL detected, using existing permanent URLs');
+            // Don't re-upload the data URL, just use the permanent URLs we already have
+            finalImageUrl = imageToUse; // Keep data URL for display
+            printReadyUrl = printReadyImageUrl; // Use permanent URL for printing
+        } else {
+            // No print-ready URL yet, need to upload
+            console.log('[handleCheckout] Preparing print-ready asset...');
+            const result = await preparePrintReadyAsset(imageToUse);
+            finalImageUrl = result.displayUrl;
+            printReadyUrl = result.printUrl;
+            
+            // Validate that we got permanent URLs, not data URLs
+            if (finalImageUrl.startsWith('data:') || printReadyUrl.startsWith('data:')) {
+                console.error('[handleCheckout] Upload failed - still have data URLs');
+                toast({
+                    title: 'Error',
+                    description: 'Failed to upload design. Please try again.',
+                    variant: 'destructive'
+                });
+                return;
+            }
+            
+            setGeneratedImage(finalImageUrl);
+            setPrintReadyImageUrl(printReadyUrl);
         }
-        
-        setGeneratedImage(finalImageUrl);
-        setPrintReadyImageUrl(printReadyUrl);
     }
 
     console.log('Checkout URLs:', { finalImageUrl, printReadyUrl });

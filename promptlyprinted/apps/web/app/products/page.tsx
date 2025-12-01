@@ -1,7 +1,9 @@
 import { Suspense } from 'react';
 import ProductsPageContent from './ProductsPageContent';
 
-export const revalidate = 600;
+// Best practice: Main listing page with 1-hour cache (more dynamic than individual products)
+export const revalidate = 3600; // 1 hour
+export const dynamic = 'force-static';
 
 export default function ProductsPage() {
   return (

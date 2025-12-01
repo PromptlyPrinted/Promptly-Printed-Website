@@ -3,6 +3,10 @@ import { database } from '@repo/database';
 import { createMetadata } from '@repo/seo/metadata';
 import type { Metadata } from 'next';
 
+// Best practice: Category pages rarely change, cache for 24 hours
+export const revalidate = 86400; // 24 hours
+export const dynamic = 'force-static';
+
 export async function generateMetadata({
   params,
 }: {
@@ -20,15 +24,36 @@ async function getProductsByCategory(categoryName: string) {
   const normalizeString = (str: string) => str.toLowerCase().replace(/[^a-z0-9]/g, '');
   const normalizedCategoryName = normalizeString(categoryName);
 
-  // Fetch all listed and active products from the database
+  // Optimized: Fetch only listed and active products with minimal fields
   const allProducts = await database.product.findMany({
     where: {
       listed: true,
       isActive: true,
       countryCode: 'US',
     },
-    include: {
-      category: true,
+    select: {
+      sku: true,
+      name: true,
+      description: true,
+      price: true,
+      customerPrice: true,
+      shippingCost: true,
+      width: true,
+      height: true,
+      units: true,
+      brand: true,
+      style: true,
+      color: true,
+      size: true,
+      prodigiVariants: true,
+      parentProductId: true,
+      isVariantProduct: true,
+      category: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
     },
     orderBy: {
       name: 'asc',
