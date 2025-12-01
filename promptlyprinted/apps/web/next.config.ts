@@ -70,6 +70,10 @@ nextConfig.images?.remotePatterns?.push(
   {
     protocol: 'https',
     hostname: 'pub-39f280c9d2f446668f96b18e8ef5109d.r2.dev',
+  },
+  {
+    protocol: 'https',
+    hostname: 'images.promptlyprinted.com',
   }
 );
 
