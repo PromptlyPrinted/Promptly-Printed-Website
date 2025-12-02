@@ -30,6 +30,21 @@ export const SignUp = () => {
       if (result.error) {
         setError(result.error.message || 'Sign up failed');
       } else {
+        // Send welcome email and add to newsletter
+        try {
+          await fetch('/api/user/welcome', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email,
+              name,
+            }),
+          });
+        } catch (emailError) {
+          console.error('Failed to send welcome email:', emailError);
+          // Don't block signup if email fails
+        }
+
         // Redirect to web app home after successful sign up
         window.location.href = redirectUrl;
       }
@@ -43,9 +58,10 @@ export const SignUp = () => {
   const handleSocialSignIn = async (provider: 'google' | 'apple' | 'github') => {
     setLoading(true);
     try {
+      // Social sign-in handles welcome email via callback URL handler
       await signIn.social({
         provider,
-        callbackURL: redirectUrl,
+        callbackURL: `${redirectUrl}?newUser=true`,
       });
     } catch (err) {
       setError(`Failed to sign up with ${provider}`);

@@ -6,6 +6,7 @@ import { square } from '@repo/payments';
 import crypto from 'crypto';
 import { prodigiService } from '@/lib/prodigi';
 import { grantTshirtPurchaseBonus } from '@/lib/credits';
+import { sendOrderConfirmation } from '@/lib/email';
 
 // In-memory cache for recent webhook event IDs (prevents duplicates within 1 hour)
 const processedEventIds = new Map<string, Date>();
@@ -333,6 +334,113 @@ export async function POST(req: Request) {
         orderId: updatedOrder.id,
         status: updatedOrder.status,
       });
+
+      // Send order confirmation email
+      if (updatedOrder.recipient?.email) {
+        try {
+          console.log('[Email] Sending order confirmation to:', updatedOrder.recipient.email);
+
+          await sendOrderConfirmation({
+            to: updatedOrder.recipient.email,
+            orderNumber: updatedOrder.id.toString(),
+            items: updatedOrder.orderItems.map((item: any) => {
+              const attrs = item.attributes as any;
+              return {
+                name: attrs?.productName || 'Custom T-Shirt',
+                sku: attrs?.sku || item.merchantReference,
+                size: attrs?.size || 'N/A',
+                color: attrs?.color || 'N/A',
+                copies: item.copies || 1,
+                price: item.price,
+              };
+            }),
+            total: updatedOrder.totalPrice,
+            discountAmount: updatedOrder.discountAmount || 0,
+            shippingAddress: {
+              name: updatedOrder.recipient.name,
+              line1: updatedOrder.recipient.addressLine1,
+              line2: updatedOrder.recipient.addressLine2 || undefined,
+              city: updatedOrder.recipient.city,
+              state: updatedOrder.recipient.state || undefined,
+              postalCode: updatedOrder.recipient.postalCode,
+              country: updatedOrder.recipient.countryCode,
+            },
+          });
+
+          console.log('[Email] Order confirmation sent successfully');
+        } catch (emailError) {
+          console.error('[Email] Failed to send order confirmation:', emailError);
+          // Don't fail the webhook if email fails
+        }
+      } else {
+        console.warn('[Email] No recipient email found, skipping order confirmation');
+      }
+
+      // COMPETITION: Verify purchase and enter competition
+      const orderMetadata = squareOrder.metadata || {};
+      const designId = orderMetadata.designId;
+      const referralCode = orderMetadata.referralCode;
+
+      if (designId && updatedOrder.userId) {
+        try {
+          console.log('[Competition] Verifying purchase for competition entry:', {
+            orderId: updatedOrder.id,
+            designId,
+            userId: updatedOrder.userId,
+          });
+
+          const verifyResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/competition/verify-purchase`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orderId: updatedOrder.id,
+              designId: parseInt(designId),
+              userId: updatedOrder.userId,
+            }),
+          });
+
+          if (verifyResponse.ok) {
+            const verifyData = await verifyResponse.json();
+            console.log('[Competition] Purchase verified and competition entry created:', verifyData);
+          } else {
+            console.error('[Competition] Failed to verify purchase:', await verifyResponse.text());
+          }
+        } catch (competitionError) {
+          console.error('[Competition] Error verifying purchase:', competitionError);
+          // Don't fail the webhook if competition entry fails
+        }
+      }
+
+      // COMPETITION: Complete referral if exists
+      if (referralCode && updatedOrder.userId) {
+        try {
+          console.log('[Competition] Completing referral:', {
+            orderId: updatedOrder.id,
+            userId: updatedOrder.userId,
+            referralCode,
+          });
+
+          const referralResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/competition/complete-referral`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orderId: updatedOrder.id,
+              userId: updatedOrder.userId,
+              referralCode,
+            }),
+          });
+
+          if (referralResponse.ok) {
+            const referralData = await referralResponse.json();
+            console.log('[Competition] Referral completed:', referralData);
+          } else {
+            console.error('[Competition] Failed to complete referral:', await referralResponse.text());
+          }
+        } catch (referralError) {
+          console.error('[Competition] Error completing referral:', referralError);
+          // Don't fail the webhook if referral completion fails
+        }
+      }
 
       // Grant T-shirt purchase bonus credits (10 credits per T-shirt)
       if (updatedOrder.userId && updatedOrder.userId !== 'guest') {

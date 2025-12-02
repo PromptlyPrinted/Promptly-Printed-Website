@@ -56,10 +56,10 @@ export function GenerationCostIndicator({
             <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
             <div>
               <p className="text-sm font-semibold text-red-800">
-                Daily limit reached
+                No credits remaining
               </p>
               <p className="text-xs text-red-600 mt-1">
-                You've used all your free generations today. Sign up to get 50 free credits!
+                You've used all your free credits. Sign up to get 50 credits per month!
               </p>
             </div>
           </div>
@@ -82,12 +82,12 @@ export function GenerationCostIndicator({
               <p className={`text-sm font-semibold ${
                 isLast ? 'text-yellow-800' : 'text-blue-800'
               }`}>
-                Free Generation
+                Free Credit
               </p>
               <p className={`text-xs ${
                 isLast ? 'text-yellow-600' : 'text-blue-600'
               }`}>
-                {remaining} {remaining === 1 ? 'generation' : 'generations'} remaining today
+                {remaining} {remaining === 1 ? 'credit' : 'credits'} remaining
               </p>
             </div>
           </div>

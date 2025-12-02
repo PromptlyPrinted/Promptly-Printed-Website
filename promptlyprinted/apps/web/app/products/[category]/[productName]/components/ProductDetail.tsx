@@ -577,6 +577,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
   
   // Image-to-Image state
   const [referenceImage, setReferenceImage] = useState<string>('');
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [useTshirtDesign, setUseTshirtDesign] = useState(false);
   const [useReferenceImage, setUseReferenceImage] = useState(false);
   const [subjectDescription, setSubjectDescription] = useState('');
@@ -2127,6 +2128,13 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
   // ---- Checkout ----
   const handleCheckout = async () => {
     console.log('[handleCheckout] Clicked');
+
+    // Prevent double-clicking by checking if already processing
+    if (isCheckingOut) {
+      console.log('[handleCheckout] Already processing, ignoring duplicate click');
+      return;
+    }
+
     if (!selectedSize) {
       toast({
         title: 'Error',
@@ -2135,6 +2143,9 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
       });
       return;
     }
+
+    // Set loading state to prevent double-clicks
+    setIsCheckingOut(true);
 
     // Determine which image to use based on user's selection
     let imageToUse: string;
@@ -2153,7 +2164,8 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
     }
 
     if (!imageToUse && !product.imageUrls.cover) {
-       toast({
+      setIsCheckingOut(false);
+      toast({
         title: 'No Design Selected',
         description: 'Please select a design to print on your T-shirt',
         variant: 'destructive',
@@ -2181,6 +2193,7 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
       }
     } catch (error) {
       console.error('[Buy Now] Failed to fetch product ID:', error);
+      setIsCheckingOut(false);
       toast({
         title: 'Error',
         description: 'Failed to load product information. Please try again.',
@@ -2212,6 +2225,7 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
             // Validate that we got permanent URLs, not data URLs
             if (finalImageUrl.startsWith('data:') || printReadyUrl.startsWith('data:')) {
                 console.error('[handleCheckout] Upload failed - still have data URLs');
+                setIsCheckingOut(false);
                 toast({
                     title: 'Error',
                     description: 'Failed to upload design. Please try again.',
@@ -2305,6 +2319,7 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
     });
 
     if (allItemsAsCheckoutItems.length === 0) {
+        setIsCheckingOut(false);
         toast({
             title: 'Error',
             description: 'No valid items to checkout. Please try generating the design again.',
@@ -2312,8 +2327,21 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
         });
         return;
     }
-    
-    initiateCheckout(allItemsAsCheckoutItems);
+
+    try {
+      initiateCheckout(allItemsAsCheckoutItems);
+      // Reset loading state after checkout is initiated
+      // Note: The user will be redirected to Square payment page
+      setIsCheckingOut(false);
+    } catch (error) {
+      console.error('[handleCheckout] Checkout failed:', error);
+      setIsCheckingOut(false);
+      toast({
+        title: 'Error',
+        description: 'Failed to initiate checkout. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleCloseCheckout = () => {
@@ -3856,8 +3884,9 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
               className="w-full bg-teal-600 text-white hover:bg-teal-700 sm:flex-1"
               size="default"
               onClick={handleCheckout}
+              disabled={isCheckingOut || !selectedSize}
             >
-              Buy Now
+              {isCheckingOut ? 'Processing...' : 'Buy Now'}
             </Button>
           </div>
 

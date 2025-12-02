@@ -4,8 +4,8 @@ import { getAuthContext, generateSessionId } from '@/lib/auth-helper';
 import {
   hasEnoughCredits,
   deductCredits,
-  checkGuestLimit,
-  recordGuestGeneration,
+  checkGuestCredits,
+  deductGuestCredit,
   recordImageGeneration,
   MODEL_CREDIT_COSTS,
 } from '@/lib/credits';
@@ -87,21 +87,16 @@ export async function POST(request: Request) {
         );
       }
     } else {
-      // GUEST LIMIT CHECK: Unauthenticated users
-      const guestCheck = await checkGuestLimit(sessionId, authContext.ipAddress || 'unknown');
+      // GUEST CREDIT CHECK: Unauthenticated users
+      const guestCheck = await checkGuestCredits(sessionId, authContext.ipAddress || 'unknown');
 
       if (!guestCheck.allowed) {
-        const hoursUntilReset = Math.ceil(
-          (guestCheck.resetsAt!.getTime() - Date.now()) / (1000 * 60 * 60)
-        );
-
         return NextResponse.json(
           {
-            error: 'Daily limit reached',
-            details: `You've used all 3 free generations today. Sign up to get 50 free credits!`,
+            error: 'No credits remaining',
+            details: `You've used all ${guestCheck.total} free credits. Sign up to get 50 credits per month!`,
             remaining: 0,
-            resetsIn: hoursUntilReset,
-            resetsAt: guestCheck.resetsAt,
+            total: guestCheck.total,
             signupOffer: {
               credits: 50,
               message: 'Create a free account to get 50 credits instantly',
@@ -223,8 +218,8 @@ export async function POST(request: Request) {
           },
         });
       } else {
-        // Record guest generation
-        await recordGuestGeneration(sessionId, authContext.ipAddress || 'unknown');
+        // Deduct guest credit
+        await deductGuestCredit(sessionId, authContext.ipAddress || 'unknown');
 
         // Record in database (no user ID)
         await recordImageGeneration({
@@ -244,8 +239,8 @@ export async function POST(request: Request) {
           },
         });
 
-        // Check remaining generations
-        const updatedLimit = await checkGuestLimit(sessionId, authContext.ipAddress || 'unknown');
+        // Check remaining credits
+        const updatedCredits = await checkGuestCredits(sessionId, authContext.ipAddress || 'unknown');
 
         return NextResponse.json({
           data: [{
@@ -259,11 +254,11 @@ export async function POST(request: Request) {
             model: 'flux-2-pro',
           },
           guestInfo: {
-            remaining: updatedLimit.remaining,
-            resetsAt: updatedLimit.resetsAt,
-            signupOffer: updatedLimit.remaining <= 1 ? {
+            remaining: updatedCredits.remaining,
+            total: updatedCredits.total,
+            signupOffer: updatedCredits.remaining <= 1 ? {
               credits: 50,
-              message: 'Sign up to get 50 free credits!',
+              message: 'Sign up to get 50 credits per month!',
             } : undefined,
           },
         });

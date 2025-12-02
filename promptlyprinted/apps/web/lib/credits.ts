@@ -8,7 +8,7 @@ import { CreditTransactionType, GenerationStatus } from '@repo/database';
 import {
   MODEL_CREDIT_COSTS,
   mapModelNameToEnum,
-  GUEST_DAILY_LIMIT,
+  GUEST_STARTING_CREDITS,
   WELCOME_CREDITS,
   MONTHLY_CREDITS,
   TSHIRT_PURCHASE_BONUS,
@@ -17,7 +17,7 @@ import {
 export {
   MODEL_CREDIT_COSTS,
   mapModelNameToEnum,
-  GUEST_DAILY_LIMIT,
+  GUEST_STARTING_CREDITS,
   WELCOME_CREDITS,
   MONTHLY_CREDITS,
   TSHIRT_PURCHASE_BONUS,
@@ -249,70 +249,48 @@ export async function grantTshirtPurchaseBonus(
 }
 
 /**
- * Check guest generation limit (3 per 24 hours)
+ * Check guest credits (one-time 3 credits, no daily reset)
  */
-export async function checkGuestLimit(sessionId: string, ipAddress?: string): Promise<{
+export async function checkGuestCredits(sessionId: string, ipAddress?: string): Promise<{
   allowed: boolean;
   remaining: number;
-  resetsAt: Date | null;
+  total: number;
 }> {
-  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-
   // Find existing guest record
   const guestRecord = await prisma.guestGeneration.findUnique({
     where: { sessionId },
   });
 
   if (!guestRecord) {
-    // No record, user is allowed
+    // No record, user has all starting credits
     return {
       allowed: true,
-      remaining: GUEST_DAILY_LIMIT - 1, // After this generation
-      resetsAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      remaining: GUEST_STARTING_CREDITS,
+      total: GUEST_STARTING_CREDITS,
     };
   }
 
-  // Check if last generation was within 24 hours
-  if (guestRecord.lastGenAt < twentyFourHoursAgo) {
-    // Reset the counter - it's been 24+ hours
-    return {
-      allowed: true,
-      remaining: GUEST_DAILY_LIMIT - 1,
-      resetsAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-    };
-  }
+  // Check if user has credits remaining
+  const creditsUsed = guestRecord.count;
+  const creditsRemaining = GUEST_STARTING_CREDITS - creditsUsed;
 
-  // Within 24 hours - check count
-  if (guestRecord.count >= GUEST_DAILY_LIMIT) {
-    // Limit exceeded
-    const resetsAt = new Date(guestRecord.lastGenAt.getTime() + 24 * 60 * 60 * 1000);
-    return {
-      allowed: false,
-      remaining: 0,
-      resetsAt,
-    };
-  }
-
-  // Still has generations left
   return {
-    allowed: true,
-    remaining: GUEST_DAILY_LIMIT - guestRecord.count - 1,
-    resetsAt: new Date(guestRecord.lastGenAt.getTime() + 24 * 60 * 60 * 1000),
+    allowed: creditsRemaining > 0,
+    remaining: creditsRemaining,
+    total: GUEST_STARTING_CREDITS,
   };
 }
 
 /**
- * Record a guest generation
+ * Deduct a guest credit (no reset, one-time credits only)
  */
-export async function recordGuestGeneration(sessionId: string, ipAddress?: string): Promise<void> {
-  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-
+export async function deductGuestCredit(sessionId: string, ipAddress?: string): Promise<void> {
   const existing = await prisma.guestGeneration.findUnique({
     where: { sessionId },
   });
 
   if (!existing) {
-    // Create new record
+    // Create new record with first credit used
     await prisma.guestGeneration.create({
       data: {
         sessionId,
@@ -321,18 +299,8 @@ export async function recordGuestGeneration(sessionId: string, ipAddress?: strin
         lastGenAt: new Date(),
       },
     });
-  } else if (existing.lastGenAt < twentyFourHoursAgo) {
-    // Reset counter if 24+ hours have passed
-    await prisma.guestGeneration.update({
-      where: { sessionId },
-      data: {
-        count: 1,
-        lastGenAt: new Date(),
-        ipAddress,
-      },
-    });
   } else {
-    // Increment counter
+    // Increment counter (deduct a credit)
     await prisma.guestGeneration.update({
       where: { sessionId },
       data: {

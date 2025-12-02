@@ -71,6 +71,8 @@ const CheckoutItemSchema = z.object({
 
 const CheckoutRequestSchema = z.object({
   items: z.array(CheckoutItemSchema),
+  referralCode: z.string().optional(),
+  designId: z.string().optional(),
 });
 
 type ValidatedCheckoutItem = z.infer<typeof CheckoutItemSchema>;
@@ -364,6 +366,17 @@ export async function POST(req: NextRequest) {
           itemCount: orderItems.items.length,
           totalPrice: total,
         });
+      }
+
+      // Add competition-related metadata for tracking
+      if (orderItems.referralCode) {
+        squareMetadata.referralCode = orderItems.referralCode;
+      }
+      if (orderItems.designId) {
+        squareMetadata.designId = orderItems.designId;
+      }
+      if (userId) {
+        squareMetadata.userId = userId;
       }
 
       // Prepare line items for Square

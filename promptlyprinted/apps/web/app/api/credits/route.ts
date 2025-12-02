@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAuthContext, generateSessionId } from '@/lib/auth-helper';
-import { getCreditStats, checkGuestLimit } from '@/lib/credits';
+import { getCreditStats, checkGuestCredits } from '@/lib/credits';
 
 /**
  * GET /api/credits
@@ -29,25 +29,19 @@ export async function GET(request: Request) {
         recentTransactions: stats.recentTransactions,
       });
     } else {
-      // Return guest limits
+      // Return guest credits
       const sessionId = authContext.sessionId || generateSessionId(request);
-      const guestCheck = await checkGuestLimit(sessionId, authContext.ipAddress);
-
-      const hoursUntilReset = guestCheck.resetsAt
-        ? Math.ceil((guestCheck.resetsAt.getTime() - Date.now()) / (1000 * 60 * 60))
-        : 24;
+      const guestCheck = await checkGuestCredits(sessionId, authContext.ipAddress || undefined);
 
       return NextResponse.json({
         authenticated: false,
         guest: {
           remaining: guestCheck.remaining,
-          total: 3,
-          resetsIn: hoursUntilReset,
-          resetsAt: guestCheck.resetsAt,
+          total: guestCheck.total,
         },
         signupOffer: {
           credits: 50,
-          message: 'Sign up for a free account to get 50 credits instantly!',
+          message: 'Sign up for a free account to get 50 credits per month!',
         },
       });
     }

@@ -15,8 +15,6 @@ type CreditInfo = {
   guest?: {
     remaining: number;
     total: number;
-    resetsIn: number;
-    resetsAt: string;
   };
   signupOffer?: {
     credits: number;
@@ -171,7 +169,7 @@ export function CreditBalance({ onBuyCredits, showDetails = false, compact = fal
 
   // Guest User View
   if (creditInfo.guest) {
-    const { remaining, total, resetsIn } = creditInfo.guest;
+    const { remaining, total } = creditInfo.guest;
     const isLast = remaining === 1;
     const isExhausted = remaining === 0;
 
@@ -183,7 +181,7 @@ export function CreditBalance({ onBuyCredits, showDetails = false, compact = fal
           'bg-blue-100 text-blue-700'
         }`}>
           <Sparkles className="w-4 h-4" />
-          <span className="text-sm font-semibold">{remaining}/{total} free</span>
+          <span className="text-sm font-semibold">{remaining}/{total} credits</span>
         </div>
       );
     }
@@ -192,7 +190,7 @@ export function CreditBalance({ onBuyCredits, showDetails = false, compact = fal
       <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-4">
         <div className="flex items-start justify-between mb-3">
           <div>
-            <h3 className="font-semibold text-gray-900 mb-1">Free Generations</h3>
+            <h3 className="font-semibold text-gray-900 mb-1">Free Credits</h3>
             <div className="flex items-baseline gap-2">
               <span className={`text-3xl font-bold ${
                 isExhausted ? 'text-red-600' :
@@ -219,17 +217,14 @@ export function CreditBalance({ onBuyCredits, showDetails = false, compact = fal
 
         {isExhausted ? (
           <div className="mb-3 px-3 py-2 bg-red-50 rounded-lg border border-red-200">
-            <p className="text-sm text-red-800 mb-2">
-              You've used all {total} free generations today!
-            </p>
-            <p className="text-xs text-red-600">
-              Resets in {resetsIn} {resetsIn === 1 ? 'hour' : 'hours'}
+            <p className="text-sm text-red-800">
+              You've used all {total} free credits. Sign up to get {creditInfo.signupOffer?.credits || 50} credits per month!
             </p>
           </div>
         ) : isLast ? (
           <div className="mb-3 px-3 py-2 bg-yellow-50 rounded-lg border border-yellow-200">
             <p className="text-sm text-yellow-800">
-              ⚠️ Last free generation! Sign up to get {creditInfo.signupOffer?.credits || 50} credits.
+              ⚠️ Last free credit! Sign up to get {creditInfo.signupOffer?.credits || 50} credits per month.
             </p>
           </div>
         ) : null}
