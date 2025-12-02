@@ -803,7 +803,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
     }
   }, [processedImage, generatedImage, referenceImage]);
 
-  // Helper function to upload image to permanent storage
+// Helper function to upload image to permanent storage
 const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: string; previewUrl: string; printReadyUrl: string }> => {
   try {
     // If it's already a permanent URL, derive the print-ready and preview URLs
@@ -826,7 +826,7 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
     // Get product code for correct dimensions
     const productCode = product.specifications?.style || product.sku || product.id.toString();
 
-    // For data URLs, send as base64 JSON payload
+    // For data URLs, send as raw binary with headers (more reliable than FormData)
     if (imageUrl.startsWith('data:')) {
       console.log('[uploadImageToPermanentStorage] Processing data URL...');
       console.log('[uploadImageToPermanentStorage] Data URL length:', imageUrl.length, 'chars (~', Math.round(imageUrl.length * 0.75 / 1024 / 1024 * 100) / 100, 'MB)');
@@ -856,17 +856,34 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
         console.warn('[uploadImageToPermanentStorage] Very large image detected. Upload may take a while.');
       }
 
-      // Convert base64 to Blob for FormData upload (more reliable than JSON for large files)
+      // Convert base64 to ArrayBuffer for raw binary upload
       const binaryString = atob(base64Data);
       const bytes = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
-      const blob = new Blob([bytes], { type: mimeType });
       
-      console.log('[uploadImageToPermanentStorage] Created blob:', blob.size, 'bytes, type:', blob.type);
+      // Validate the converted data
+      if (bytes.length === 0) {
+        console.error('[uploadImageToPermanentStorage] Created empty byte array from base64');
+        throw new Error('Failed to decode image data - empty result');
+      }
+      
+      // Validate PNG magic bytes if it's supposed to be PNG
+      if (mimeType === 'image/png') {
+        const pngMagic = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+        const isPng = pngMagic.every((byte, i) => bytes[i] === byte);
+        if (!isPng) {
+          console.warn('[uploadImageToPermanentStorage] PNG magic bytes mismatch. First 8 bytes:', 
+            Array.from(bytes.slice(0, 8)).map(b => b.toString(16).padStart(2, '0')).join(' '));
+        }
+      }
+      
+      console.log('[uploadImageToPermanentStorage] Created byte array:', bytes.length, 'bytes, type:', mimeType);
+      console.log('[uploadImageToPermanentStorage] First 8 bytes (hex):', 
+        Array.from(bytes.slice(0, 8)).map(b => b.toString(16).padStart(2, '0')).join(' '));
 
-      // Helper function to attempt upload with retry
+      // Helper function to attempt upload with retry - uses raw binary upload
       const attemptUpload = async (attempt: number): Promise<Response> => {
         console.log(`[uploadImageToPermanentStorage] Upload attempt ${attempt}...`);
         
@@ -875,15 +892,16 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout for large files
           
-          // Use FormData with Blob - more reliable for large files in Safari
-          const formData = new FormData();
-          formData.append('file', blob, 'generated-design.png');
-          formData.append('name', 'Generated Design');
-          formData.append('productCode', productCode);
-          
+          // Use raw binary upload with metadata in headers
+          // This is more reliable than FormData across browsers
           const response = await fetch('/api/upload-image', {
             method: 'POST',
-            body: formData,  // Let browser set Content-Type with boundary
+            headers: {
+              'Content-Type': mimeType,
+              'x-image-name': encodeURIComponent('Generated Design'),
+              'x-product-code': productCode,
+            },
+            body: bytes.buffer,
             signal: controller.signal,
           });
           
@@ -918,8 +936,12 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
         try {
           const errorData = JSON.parse(errorText);
           throw new Error(errorData.error || `Upload failed: ${uploadResponse.statusText}`);
-        } catch {
-          throw new Error(`Upload failed: ${uploadResponse.statusText}`);
+        } catch (parseError) {
+          // If JSON parsing fails, use the raw error text
+          if (parseError instanceof SyntaxError) {
+            throw new Error(`Upload failed: ${uploadResponse.statusText} - ${errorText.substring(0, 100)}`);
+          }
+          throw parseError;
         }
       }
 
@@ -936,43 +958,90 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
         printReadyUrl: result.printReadyUrl || result.url
       };
     } else {
-      // Regular URL - use FormData
-      console.log('[uploadImageToPermanentStorage] Using FormData for URL upload...');
+      // Regular URL - use raw binary upload after fetching the image
+      console.log('[uploadImageToPermanentStorage] Fetching and uploading URL...');
       
-      const formData = new FormData();
-      formData.append('imageUrl', imageUrl);
-      formData.append('name', 'Generated Design');
-      formData.append('productCode', productCode);
+      try {
+        // Fetch the image first
+        const imageResponse = await fetch(imageUrl);
+        if (!imageResponse.ok) {
+          throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
+        }
+        
+        const contentType = imageResponse.headers.get('content-type') || 'image/png';
+        const imageBuffer = await imageResponse.arrayBuffer();
+        
+        console.log('[uploadImageToPermanentStorage] Fetched image:', imageBuffer.byteLength, 'bytes, type:', contentType);
+        
+        // Upload as raw binary
+        const uploadResponse = await fetch('/api/upload-image', {
+          method: 'POST',
+          headers: {
+            'Content-Type': contentType,
+            'x-image-name': encodeURIComponent('Generated Design'),
+            'x-product-code': productCode,
+          },
+          body: imageBuffer,
+        });
 
-      const uploadResponse = await fetch('/api/upload-image', {
-        method: 'POST',
-        body: formData,
-      });
+        if (!uploadResponse.ok) {
+          const errorText = await uploadResponse.text();
+          console.error('[uploadImageToPermanentStorage] Upload failed:', errorText);
+          throw new Error(`Upload failed: ${uploadResponse.statusText}`);
+        }
 
-      if (!uploadResponse.ok) {
-        const errorText = await uploadResponse.text();
-        console.error('[uploadImageToPermanentStorage] Upload failed:', errorText);
-        throw new Error(`Upload failed: ${uploadResponse.statusText}`);
+        const result = await uploadResponse.json();
+        console.log('[uploadImageToPermanentStorage] Upload successful:', result);
+
+        if (!result.url) {
+          throw new Error('No URL returned from upload');
+        }
+
+        return {
+          url: result.url,
+          previewUrl: result.previewUrl || result.url,
+          printReadyUrl: result.printReadyUrl || result.url
+        };
+      } catch (fetchError) {
+        // Fallback: try FormData approach if raw binary fails
+        console.warn('[uploadImageToPermanentStorage] Raw binary upload failed, trying FormData fallback...', fetchError);
+        
+        const formData = new FormData();
+        formData.append('imageUrl', imageUrl);
+        formData.append('name', 'Generated Design');
+        formData.append('productCode', productCode);
+
+        const uploadResponse = await fetch('/api/upload-image', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!uploadResponse.ok) {
+          const errorText = await uploadResponse.text();
+          console.error('[uploadImageToPermanentStorage] FormData fallback failed:', errorText);
+          throw new Error(`Upload failed: ${uploadResponse.statusText}`);
+        }
+
+        const result = await uploadResponse.json();
+        console.log('[uploadImageToPermanentStorage] FormData fallback successful:', result);
+
+        if (!result.url) {
+          throw new Error('No URL returned from upload');
+        }
+
+        return {
+          url: result.url,
+          previewUrl: result.previewUrl || result.url,
+          printReadyUrl: result.printReadyUrl || result.url
+        };
       }
-
-      const result = await uploadResponse.json();
-      console.log('[uploadImageToPermanentStorage] Upload successful:', result);
-
-      if (!result.url) {
-        throw new Error('No URL returned from upload');
-      }
-
-      return {
-        url: result.url,
-        previewUrl: result.previewUrl || result.url,
-        printReadyUrl: result.printReadyUrl || result.url
-      };
     }
   } catch (error) {
     console.error('[uploadImageToPermanentStorage] Error:', error);
     throw error;
   }
 };
+
 
   // ---- Nano Banana Generation ----
   const handleNanoBananaGeneration = async () => {
