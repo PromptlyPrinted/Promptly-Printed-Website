@@ -120,6 +120,7 @@ export const useCartStore = create<CartStore>()(
       // Custom storage that filters out base64 images before saving to localStorage
       storage: {
         getItem: (name) => {
+          if (typeof window === 'undefined') return null;
           try {
             const str = localStorage.getItem(name);
             if (!str) return null;
@@ -134,6 +135,7 @@ export const useCartStore = create<CartStore>()(
           }
         },
         setItem: (name, value) => {
+          if (typeof window === 'undefined') return;
           try {
             // Filter out base64 data from ALL URL fields before saving
             const filteredValue = {
@@ -201,6 +203,7 @@ export const useCartStore = create<CartStore>()(
           }
         },
         removeItem: (name) => {
+          if (typeof window === 'undefined') return;
           try {
             localStorage.removeItem(name);
           } catch (error) {
@@ -236,6 +239,7 @@ export async function getCartItemsWithImages(): Promise<CartItem[]> {
  * Get estimated localStorage usage
  */
 export function getCartStorageSize(): number {
+  if (typeof window === 'undefined') return 0;
   try {
     const str = localStorage.getItem('cart-storage');
     return str ? str.length * 2 : 0; // UTF-16 is 2 bytes per character
@@ -249,6 +253,7 @@ export function getCartStorageSize(): number {
  * Call this if the user is having quota issues
  */
 export function forceCleatCartStorage(): void {
+  if (typeof window === 'undefined') return;
   try {
     localStorage.removeItem('cart-storage');
     localStorage.removeItem('cartItems');
