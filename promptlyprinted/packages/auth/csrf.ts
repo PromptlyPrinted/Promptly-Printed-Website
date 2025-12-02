@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const CSRF_HEADER = 'x-csrf-token';
 const CSRF_COOKIE = 'better-auth.csrf-token';
 
-export function verifyCsrf(request: NextRequest) {
+export function verifyCsrf(request: any) {
   const method = request.method.toUpperCase();
   // Only protect state-changing methods
   if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) return { ok: true } as const;
@@ -14,7 +14,8 @@ export function verifyCsrf(request: NextRequest) {
   if (!headerToken || !cookieToken || headerToken !== cookieToken) {
     return {
       ok: false as const,
-      response: NextResponse.json({ message: 'Invalid CSRF token' }, { status: 403 }),
+      error: 'Invalid CSRF token',
+      status: 403,
     };
   }
 
@@ -33,7 +34,8 @@ export function verifyCsrf(request: NextRequest) {
       if (!allowedHosts.includes(url.host) || !origin.includes(url.host)) {
         return {
           ok: false as const,
-          response: NextResponse.json({ message: 'Origin not allowed' }, { status: 403 }),
+          error: 'Origin not allowed',
+          status: 403,
         };
       }
     } catch {}

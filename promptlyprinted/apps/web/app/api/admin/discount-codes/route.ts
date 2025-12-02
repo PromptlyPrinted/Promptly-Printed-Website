@@ -69,7 +69,9 @@ export async function GET(request: NextRequest) {
 // POST - Create a new discount code
 export async function POST(request: NextRequest) {
   const csrf = verifyCsrf(request);
-  if (!csrf.ok) return csrf.response;
+  if (!csrf.ok) {
+    return NextResponse.json({ message: csrf.error }, { status: csrf.status });
+  }
   const authError = await requireAdmin(request);
   if (authError) return authError;
 
@@ -126,7 +128,9 @@ export async function POST(request: NextRequest) {
 // PATCH - Update a discount code
 export async function PATCH(request: NextRequest) {
   const csrf = verifyCsrf(request);
-  if (!csrf.ok) return csrf.response;
+  if (!csrf.ok) {
+    return NextResponse.json({ message: csrf.error }, { status: csrf.status });
+  }
   const authError = await requireAdmin(request);
   if (authError) return authError;
 
@@ -166,7 +170,9 @@ export async function PATCH(request: NextRequest) {
 // DELETE - Delete a discount code
 export async function DELETE(request: NextRequest) {
   const csrf = verifyCsrf(request);
-  if (!csrf.ok) return csrf.response;
+  if (!csrf.ok) {
+    return NextResponse.json({ message: csrf.error }, { status: csrf.status });
+  }
   const authError = await requireAdmin(request);
   if (authError) return authError;
 

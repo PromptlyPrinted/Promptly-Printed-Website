@@ -10,7 +10,9 @@ export async function POST(
   { params }: { params: Promise<{ entryId: string }> }
 ) {
   const csrf = verifyCsrf(request);
-  if (!csrf.ok) return csrf.response;
+  if (!csrf.ok) {
+    return NextResponse.json({ message: csrf.error }, { status: csrf.status });
+  }
   try {
     const { entryId } = await params;
     const session = await auth.api.getSession({ headers: request.headers });

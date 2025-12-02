@@ -9,9 +9,11 @@ const ValidateDiscountSchema = z.object({
   orderAmount: z.number().positive(),
 });
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   const csrf = verifyCsrf(request);
-  if (!csrf.ok) return csrf.response;
+  if (!csrf.ok) {
+    return NextResponse.json({ message: csrf.error }, { status: csrf.status });
+  }
   
   try {
     const body = await request.json();
@@ -31,8 +33,14 @@ export async function POST(request: NextRequest) {
     const userId = session?.user?.id;
 
     // Find the discount code
-    const discountCode = await prisma.discountCode.findUnique({
-      where: { code: code.toUpperCase() },
+    // Find the discount code (case-insensitive)
+    const discountCode = await prisma.discountCode.findFirst({
+      where: { 
+        code: {
+          equals: code.trim(),
+          mode: 'insensitive'
+        }
+      },
       include: {
         usages: userId ? {
           where: { userId },

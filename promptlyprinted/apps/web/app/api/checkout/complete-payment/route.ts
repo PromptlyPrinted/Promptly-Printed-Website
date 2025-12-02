@@ -42,7 +42,9 @@ const CompletePaymentSchema = z.object({
 
 export async function POST(request: NextRequest) {
   const csrf = verifyCsrf(request);
-  if (!csrf.ok) return csrf.response;
+  if (!csrf.ok) {
+    return NextResponse.json({ message: csrf.error }, { status: csrf.status });
+  }
   try {
     const body = await request.json();
     console.log('[Complete Payment] Starting...', { hasSourceId: !!body.sourceId });

@@ -41,7 +41,9 @@ const ProcessCheckoutSchema = z.object({
 
 export async function POST(request: NextRequest) {
   const csrf = verifyCsrf(request);
-  if (!csrf.ok) return csrf.response;
+  if (!csrf.ok) {
+    return NextResponse.json({ message: csrf.error }, { status: csrf.status });
+  }
   
   try {
     const body = await request.json();
@@ -76,8 +78,13 @@ export async function POST(request: NextRequest) {
     let validatedDiscountCode = null;
 
     if (discountCode) {
-      const discount = await prisma.discountCode.findUnique({
-        where: { code: discountCode.toUpperCase() },
+      const discount = await prisma.discountCode.findFirst({
+        where: { 
+          code: {
+            equals: discountCode.trim(),
+            mode: 'insensitive'
+          }
+        },
         include: {
           usages: dbUser?.id ? {
             where: { userId: dbUser.id },
