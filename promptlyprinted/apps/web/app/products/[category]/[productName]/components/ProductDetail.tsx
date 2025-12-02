@@ -424,82 +424,82 @@ const cropTransparentAreas = async (imageDataUrl: string): Promise<string> => {
 };
 
 // Background removal using @imgly/background-removal
-const removeImageBackground = async (imageUrl: string): Promise<string> => {
-  console.log('removeImageBackground called with URL:', imageUrl);
-  
-  try {
-    // Dynamic import to avoid SSR issues
-    const { removeBackground } = await import('@imgly/background-removal');
-    
-    console.log('Starting background removal with @imgly/background-removal...');
-    
-    // First, convert the image URL to a proper image element or blob
-    let imageInput: string | Blob | HTMLImageElement;
-    
-    if (imageUrl.startsWith('data:')) {
-      // If it's a data URL, use it directly
-      console.log('Using data URL directly');
-      imageInput = imageUrl;
-    } else {
-      // If it's a regular URL, fetch it as a blob first to avoid CORS issues
-      console.log('Fetching image as blob to avoid CORS issues...');
+    const removeImageBackground = async (imageUrl: string): Promise<string> => {
+      console.log('removeImageBackground called with URL:', imageUrl);
+      
       try {
-        const response = await fetch(imageUrl);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+        // Dynamic import to avoid SSR issues
+        const { removeBackground } = await import('@imgly/background-removal');
+        
+        console.log('Starting background removal with @imgly/background-removal...');
+        
+        // First, convert the image URL to a proper image element or blob
+        let imageInput: string | Blob | HTMLImageElement;
+        
+        if (imageUrl.startsWith('data:')) {
+          // If it's a data URL, use it directly
+          console.log('Using data URL directly');
+          imageInput = imageUrl;
+        } else {
+          // If it's a regular URL, fetch it as a blob first to avoid CORS issues
+          console.log('Fetching image as blob to avoid CORS issues...');
+          try {
+            const response = await fetch(imageUrl);
+            if (!response.ok) {
+              throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
+            }
+            
+            const contentType = response.headers.get('content-type');
+            console.log('Image content type:', contentType);
+            
+            if (!contentType || !contentType.startsWith('image/')) {
+              throw new Error(`Invalid content type: ${contentType}. Expected image/*`);
+            }
+            
+            imageInput = await response.blob();
+            console.log('Image fetched as blob successfully');
+          } catch (fetchError) {
+            console.error('Failed to fetch image, trying direct URL:', fetchError);
+            // Fallback to direct URL if fetch fails
+            imageInput = imageUrl;
+          }
         }
         
-        const contentType = response.headers.get('content-type');
-        console.log('Image content type:', contentType);
+        // Remove background using the library
+        console.log('Processing with @imgly/background-removal...');
+        const resultBlob = await removeBackground(imageInput);
         
-        if (!contentType || !contentType.startsWith('image/')) {
-          throw new Error(`Invalid content type: ${contentType}. Expected image/*`);
-        }
+        console.log('Background removal completed, converting to data URL...');
         
-        imageInput = await response.blob();
-        console.log('Image fetched as blob successfully');
-      } catch (fetchError) {
-        console.error('Failed to fetch image, trying direct URL:', fetchError);
-        // Fallback to direct URL if fetch fails
-        imageInput = imageUrl;
+        // Convert blob to data URL and crop transparent areas
+        const reader = new FileReader();
+        return new Promise((resolve, reject) => {
+          reader.onload = async () => {
+            try {
+              const result = reader.result as string;
+              console.log('Background removal completed, now cropping transparent areas...');
+              
+              // Crop the transparent areas to get a tightly fitted image
+              const croppedResult = await cropTransparentAreas(result);
+              console.log('Auto-crop successful');
+              resolve(croppedResult);
+            } catch (cropError) {
+              console.error('Auto-crop failed, using original result:', cropError);
+              resolve(reader.result as string);
+            }
+          };
+          reader.onerror = () => {
+            console.error('Failed to convert blob to data URL');
+            reject(new Error('Failed to convert result'));
+          };
+          reader.readAsDataURL(resultBlob);
+        });
+        
+      } catch (error) {
+        console.error('Background removal failed:', error);
+        throw new Error(`Background removal failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
-    }
-    
-    // Remove background using the library
-    console.log('Processing with @imgly/background-removal...');
-    const resultBlob = await removeBackground(imageInput);
-    
-    console.log('Background removal completed, converting to data URL...');
-    
-    // Convert blob to data URL and crop transparent areas
-    const reader = new FileReader();
-    return new Promise((resolve, reject) => {
-      reader.onload = async () => {
-        try {
-          const result = reader.result as string;
-          console.log('Background removal completed, now cropping transparent areas...');
-          
-          // Crop the transparent areas to get a tightly fitted image
-          const croppedResult = await cropTransparentAreas(result);
-          console.log('Auto-crop successful');
-          resolve(croppedResult);
-        } catch (cropError) {
-          console.error('Auto-crop failed, using original result:', cropError);
-          resolve(reader.result as string);
-        }
-      };
-      reader.onerror = () => {
-        console.error('Failed to convert blob to data URL');
-        reject(new Error('Failed to convert result'));
-      };
-      reader.readAsDataURL(resultBlob);
-    });
-    
-  } catch (error) {
-    console.error('Background removal failed:', error);
-    throw new Error(`Background removal failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
-};
+    };
 
 interface ProductDetailProps {
   product: Product;
@@ -735,48 +735,53 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
 
   // Handle background removal toggle
   const handleBackgroundRemoval = async () => {
-    console.log('handleBackgroundRemoval called:', {
-      generatedImage: !!generatedImage,
-      removeBackground,
-      processedImage: !!processedImage
-    });
+  console.log('[handleBackgroundRemoval] Starting...');
 
-    if (!generatedImage) {
-      console.log('No generated image found');
+  if (!generatedImage) {
+    console.log('[handleBackgroundRemoval] No image to process');
+    toast({
+      title: 'Error',
+      description: 'Please generate a design first',
+      variant: 'destructive',
+    });
+    return;
+  }
+
+  if (removeBackground && !processedImage) {
+    setIsProcessingBackground(true);
+    
+    try {
+      const result = await removeImageBackground(generatedImage);
+      
+      // Validate the result before using it
+      if (!result || !result.startsWith('data:image/')) {
+        throw new Error('Invalid result from background removal');
+      }
+      
+      setProcessedImage(result);
       toast({
-        title: 'Error',
-        description: 'Please generate a design first',
+        title: 'Success',
+        description: 'Background removed successfully!',
+      });
+    } catch (error) {
+      console.error('[handleBackgroundRemoval] Failed:', error);
+      
+      // Reset the checkbox since removal failed
+      setRemoveBackground(false);
+      setProcessedImage('');
+      
+      toast({
+        title: 'Background Removal Failed',
+        description: error instanceof Error 
+          ? error.message 
+          : 'Could not remove background. The original image will be used.',
         variant: 'destructive',
       });
-      return;
+    } finally {
+      setIsProcessingBackground(false);
     }
-
-    if (removeBackground && !processedImage) {
-      console.log('Starting background processing...');
-      setIsProcessingBackground(true);
-      try {
-        console.log('Calling removeImageBackground with:', generatedImage);
-        const processedImageUrl = await removeImageBackground(generatedImage);
-        console.log('Background removal successful, result:', processedImageUrl);
-        setProcessedImage(processedImageUrl);
-        toast({
-          title: 'Success',
-          description: 'Background removed successfully!',
-          variant: 'default',
-        });
-      } catch (error) {
-        console.error('Error removing background:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to remove background. Please try again.',
-          variant: 'destructive',
-        });
-        setRemoveBackground(false);
-      } finally {
-        setIsProcessingBackground(false);
-      }
-    }
-  };
+  }
+};
 
   // Effect to handle background removal when checkbox is toggled
   useEffect(() => {
@@ -803,9 +808,13 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
     }
   }, [processedImage, generatedImage, referenceImage]);
 
-// Helper function to upload image to permanent storage
-const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: string; previewUrl: string; printReadyUrl: string }> => {
+    const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: string; previewUrl: string; printReadyUrl: string }> => {
   try {
+    // Early validation
+    if (!imageUrl) {
+      throw new Error('No image URL provided');
+    }
+
     // If it's already a permanent URL, derive the print-ready and preview URLs
     if (imageUrl.startsWith('/api/images/')) {
       const printReadyUrl = imageUrl.replace(/\.png$/, '-300dpi.png');
@@ -826,222 +835,211 @@ const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: s
     // Get product code for correct dimensions
     const productCode = product.specifications?.style || product.sku || product.id.toString();
 
-    // For data URLs, send as raw binary with headers (more reliable than FormData)
+    // For data URLs, convert to Blob and send as raw binary
     if (imageUrl.startsWith('data:')) {
       console.log('[uploadImageToPermanentStorage] Processing data URL...');
-      console.log('[uploadImageToPermanentStorage] Data URL length:', imageUrl.length, 'chars (~', Math.round(imageUrl.length * 0.75 / 1024 / 1024 * 100) / 100, 'MB)');
 
       // Validate data URL format
-      if (!imageUrl.includes(';base64,')) {
-        console.error('[uploadImageToPermanentStorage] Invalid data URL - missing base64 marker');
-        throw new Error('Invalid image data format');
+      const dataUrlMatch = imageUrl.match(/^data:([^;,]+)(?:;base64)?,(.*)$/);
+      if (!dataUrlMatch) {
+        console.error('[uploadImageToPermanentStorage] Invalid data URL format');
+        console.error('[uploadImageToPermanentStorage] First 100 chars:', imageUrl.substring(0, 100));
+        throw new Error('Invalid data URL format');
       }
 
-      // Parse data URL to validate
-      const matches = imageUrl.match(/^data:([^;]+);base64,(.+)$/);
-      if (!matches) {
-        console.error('[uploadImageToPermanentStorage] Failed to parse data URL');
-        throw new Error('Invalid data URL structure');
-      }
-
-      const mimeType = matches[1];
-      const base64Data = matches[2];
+      const [, mimeType, data] = dataUrlMatch;
+      const isBase64 = imageUrl.includes(';base64,');
       
-      // Estimate size (base64 is ~33% larger than binary)
-      const estimatedSizeMB = (base64Data.length * 0.75) / 1024 / 1024;
-      console.log('[uploadImageToPermanentStorage] Estimated binary size:', estimatedSizeMB.toFixed(2), 'MB');
+      console.log('[uploadImageToPermanentStorage] MIME:', mimeType, 'Base64:', isBase64);
 
-      // For very large images, warn the user
-      if (estimatedSizeMB > 10) {
-        console.warn('[uploadImageToPermanentStorage] Very large image detected. Upload may take a while.');
+      // Convert to ArrayBuffer (not Uint8Array) to avoid TypeScript issues
+      let arrayBuffer: ArrayBuffer;
+      try {
+        if (isBase64) {
+          const binaryString = atob(data);
+          arrayBuffer = new ArrayBuffer(binaryString.length);
+          const view = new Uint8Array(arrayBuffer);
+          for (let i = 0; i < binaryString.length; i++) {
+            view[i] = binaryString.charCodeAt(i);
+          }
+        } else {
+          // URL-encoded data
+          const decoded = decodeURIComponent(data);
+          const encoder = new TextEncoder();
+          const encoded = encoder.encode(decoded);
+          arrayBuffer = encoded.buffer as ArrayBuffer;
+        }
+      } catch (decodeError) {
+        console.error('[uploadImageToPermanentStorage] Decode error:', decodeError);
+        throw new Error('Failed to decode image data');
       }
 
-      // Convert base64 to ArrayBuffer for raw binary upload
-      const binaryString = atob(base64Data);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
+      if (arrayBuffer.byteLength === 0) {
+        throw new Error('Decoded image data is empty');
       }
+
+      // Read magic bytes for debugging (use DataView to avoid type issues)
+      const dataView = new DataView(arrayBuffer);
+      const magicBytes = Array.from({ length: Math.min(8, arrayBuffer.byteLength) }, (_, i) => 
+        dataView.getUint8(i).toString(16).padStart(2, '0')
+      ).join(' ');
       
-      // Validate the converted data
-      if (bytes.length === 0) {
-        console.error('[uploadImageToPermanentStorage] Created empty byte array from base64');
-        throw new Error('Failed to decode image data - empty result');
-      }
+      console.log('[uploadImageToPermanentStorage] Size:', arrayBuffer.byteLength, 'bytes');
+      console.log('[uploadImageToPermanentStorage] Magic bytes:', magicBytes);
+
+      // Detect actual format from magic bytes
+      let detectedType = mimeType;
+      const byte0 = dataView.getUint8(0);
+      const byte1 = dataView.getUint8(1);
+      const byte2 = dataView.getUint8(2);
+      const byte3 = dataView.getUint8(3);
       
-      // Validate PNG magic bytes if it's supposed to be PNG
-      if (mimeType === 'image/png') {
-        const pngMagic = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
-        const isPng = pngMagic.every((byte, i) => bytes[i] === byte);
-        if (!isPng) {
-          console.warn('[uploadImageToPermanentStorage] PNG magic bytes mismatch. First 8 bytes:', 
-            Array.from(bytes.slice(0, 8)).map(b => b.toString(16).padStart(2, '0')).join(' '));
+      if (byte0 === 0x89 && byte1 === 0x50 && byte2 === 0x4E && byte3 === 0x47) {
+        detectedType = 'image/png';
+      } else if (byte0 === 0xFF && byte1 === 0xD8) {
+        detectedType = 'image/jpeg';
+      } else if (byte0 === 0x47 && byte1 === 0x49 && byte2 === 0x46) {
+        detectedType = 'image/gif';
+      } else if (byte0 === 0x52 && byte1 === 0x49 && byte2 === 0x46 && byte3 === 0x46) {
+        // Check for WEBP signature at bytes 8-11
+        if (arrayBuffer.byteLength > 11) {
+          const byte8 = dataView.getUint8(8);
+          const byte9 = dataView.getUint8(9);
+          const byte10 = dataView.getUint8(10);
+          const byte11 = dataView.getUint8(11);
+          if (byte8 === 0x57 && byte9 === 0x45 && byte10 === 0x42 && byte11 === 0x50) {
+            detectedType = 'image/webp';
+          }
         }
       }
-      
-      console.log('[uploadImageToPermanentStorage] Created byte array:', bytes.length, 'bytes, type:', mimeType);
-      console.log('[uploadImageToPermanentStorage] First 8 bytes (hex):', 
-        Array.from(bytes.slice(0, 8)).map(b => b.toString(16).padStart(2, '0')).join(' '));
 
-      // Helper function to attempt upload with retry - uses raw binary upload
+      if (detectedType !== mimeType) {
+        console.log('[uploadImageToPermanentStorage] Corrected MIME type:', mimeType, '->', detectedType);
+      }
+
+      // Validate image has valid magic bytes
+      const isValidImage = 
+        (byte0 === 0x89 && byte1 === 0x50) || // PNG
+        (byte0 === 0xFF && byte1 === 0xD8) || // JPEG
+        (byte0 === 0x47 && byte1 === 0x49) || // GIF
+        (byte0 === 0x52 && byte1 === 0x49);   // RIFF (WebP)
+
+      if (!isValidImage) {
+        console.error('[uploadImageToPermanentStorage] Invalid image magic bytes:', magicBytes);
+        throw new Error('Image data appears to be corrupted or invalid');
+      }
+
+      // Create Blob from ArrayBuffer - this avoids the Uint8Array type issue
+      const blob = new Blob([arrayBuffer], { type: detectedType });
+      console.log('[uploadImageToPermanentStorage] Created blob:', blob.size, 'bytes');
+
+      // Upload with retry
       const attemptUpload = async (attempt: number): Promise<Response> => {
-        console.log(`[uploadImageToPermanentStorage] Upload attempt ${attempt}...`);
+        console.log(`[uploadImageToPermanentStorage] Attempt ${attempt}...`);
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 120000);
         
         try {
-          // Use AbortController for timeout
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout for large files
-          
-          // Use raw binary upload with metadata in headers
-          // This is more reliable than FormData across browsers
           const response = await fetch('/api/upload-image', {
             method: 'POST',
             headers: {
-              'Content-Type': mimeType,
+              'Content-Type': detectedType,
               'x-image-name': encodeURIComponent('Generated Design'),
               'x-product-code': productCode,
             },
-            body: bytes.buffer,
+            body: blob,
             signal: controller.signal,
           });
           
           clearTimeout(timeoutId);
           return response;
-        } catch (fetchError) {
-          // Check if it's a timeout or network error
-          if (fetchError instanceof Error) {
-            if (fetchError.name === 'AbortError') {
-              throw new Error('Upload timed out. Please try again.');
+        } catch (err) {
+          clearTimeout(timeoutId);
+          
+          if (err instanceof Error) {
+            if (err.name === 'AbortError') {
+              throw new Error('Upload timed out');
             }
-            // "Load failed" is a Safari-specific error for network issues
-            if (fetchError.message.includes('Load failed') || fetchError.message.includes('Failed to fetch')) {
+            if (err.message.includes('Load failed') || err.message.includes('Failed to fetch')) {
               if (attempt < 3) {
-                console.warn(`[uploadImageToPermanentStorage] Network error on attempt ${attempt}, retrying in ${attempt}s...`);
-                await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
+                console.warn(`[uploadImageToPermanentStorage] Retry ${attempt}...`);
+                await new Promise(r => setTimeout(r, 1000 * attempt));
                 return attemptUpload(attempt + 1);
               }
-              throw new Error('Network error during upload. Please check your connection and try again.');
             }
           }
-          throw fetchError;
+          throw err;
         }
       };
 
-      const uploadResponse = await attemptUpload(1);
+      const response = await attemptUpload(1);
 
-      if (!uploadResponse.ok) {
-        const errorText = await uploadResponse.text();
-        console.error('[uploadImageToPermanentStorage] Upload failed:', errorText);
-
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[uploadImageToPermanentStorage] Server error:', errorText);
+        
         try {
           const errorData = JSON.parse(errorText);
-          throw new Error(errorData.error || `Upload failed: ${uploadResponse.statusText}`);
-        } catch (parseError) {
-          // If JSON parsing fails, use the raw error text
-          if (parseError instanceof SyntaxError) {
-            throw new Error(`Upload failed: ${uploadResponse.statusText} - ${errorText.substring(0, 100)}`);
+          throw new Error(errorData.error || `Upload failed: ${response.status}`);
+        } catch (e) {
+          if (e instanceof SyntaxError) {
+            throw new Error(`Upload failed (${response.status}): ${errorText.substring(0, 100)}`);
           }
-          throw parseError;
+          throw e;
         }
       }
 
-      const result = await uploadResponse.json();
-      console.log('[uploadImageToPermanentStorage] Upload successful:', result);
-
-      if (!result.url) {
-        throw new Error('No URL returned from upload');
-      }
+      const result = await response.json();
+      console.log('[uploadImageToPermanentStorage] Success:', result.url?.substring(0, 50));
 
       return {
         url: result.url,
         previewUrl: result.previewUrl || result.url,
         printReadyUrl: result.printReadyUrl || result.url
       };
+
     } else {
-      // Regular URL - use raw binary upload after fetching the image
-      console.log('[uploadImageToPermanentStorage] Fetching and uploading URL...');
+      // Regular URL - fetch and upload
+      console.log('[uploadImageToPermanentStorage] Fetching URL...');
       
-      try {
-        // Fetch the image first
-        const imageResponse = await fetch(imageUrl);
-        if (!imageResponse.ok) {
-          throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
-        }
-        
-        const contentType = imageResponse.headers.get('content-type') || 'image/png';
-        const imageBuffer = await imageResponse.arrayBuffer();
-        
-        console.log('[uploadImageToPermanentStorage] Fetched image:', imageBuffer.byteLength, 'bytes, type:', contentType);
-        
-        // Upload as raw binary
-        const uploadResponse = await fetch('/api/upload-image', {
-          method: 'POST',
-          headers: {
-            'Content-Type': contentType,
-            'x-image-name': encodeURIComponent('Generated Design'),
-            'x-product-code': productCode,
-          },
-          body: imageBuffer,
-        });
-
-        if (!uploadResponse.ok) {
-          const errorText = await uploadResponse.text();
-          console.error('[uploadImageToPermanentStorage] Upload failed:', errorText);
-          throw new Error(`Upload failed: ${uploadResponse.statusText}`);
-        }
-
-        const result = await uploadResponse.json();
-        console.log('[uploadImageToPermanentStorage] Upload successful:', result);
-
-        if (!result.url) {
-          throw new Error('No URL returned from upload');
-        }
-
-        return {
-          url: result.url,
-          previewUrl: result.previewUrl || result.url,
-          printReadyUrl: result.printReadyUrl || result.url
-        };
-      } catch (fetchError) {
-        // Fallback: try FormData approach if raw binary fails
-        console.warn('[uploadImageToPermanentStorage] Raw binary upload failed, trying FormData fallback...', fetchError);
-        
-        const formData = new FormData();
-        formData.append('imageUrl', imageUrl);
-        formData.append('name', 'Generated Design');
-        formData.append('productCode', productCode);
-
-        const uploadResponse = await fetch('/api/upload-image', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!uploadResponse.ok) {
-          const errorText = await uploadResponse.text();
-          console.error('[uploadImageToPermanentStorage] FormData fallback failed:', errorText);
-          throw new Error(`Upload failed: ${uploadResponse.statusText}`);
-        }
-
-        const result = await uploadResponse.json();
-        console.log('[uploadImageToPermanentStorage] FormData fallback successful:', result);
-
-        if (!result.url) {
-          throw new Error('No URL returned from upload');
-        }
-
-        return {
-          url: result.url,
-          previewUrl: result.previewUrl || result.url,
-          printReadyUrl: result.printReadyUrl || result.url
-        };
+      const imageResponse = await fetch(imageUrl);
+      if (!imageResponse.ok) {
+        throw new Error(`Failed to fetch image: ${imageResponse.status}`);
       }
+      
+      const blob = await imageResponse.blob();
+      const contentType = blob.type || 'image/png';
+      
+      console.log('[uploadImageToPermanentStorage] Fetched:', blob.size, 'bytes');
+      
+      const response = await fetch('/api/upload-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': contentType,
+          'x-image-name': encodeURIComponent('Generated Design'),
+          'x-product-code': productCode,
+        },
+        body: blob,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      return {
+        url: result.url,
+        previewUrl: result.previewUrl || result.url,
+        printReadyUrl: result.printReadyUrl || result.url
+      };
     }
   } catch (error) {
     console.error('[uploadImageToPermanentStorage] Error:', error);
     throw error;
   }
 };
-
 
   // ---- Nano Banana Generation ----
   const handleNanoBananaGeneration = async () => {
