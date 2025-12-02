@@ -28,13 +28,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const { code, orderAmount } = validation.data;
 
+    console.log('[Validate Discount] Checking code:', code);
+    console.log('[Validate Discount] Trimmed code:', code.trim());
+
     // Get user session if exists
     const session = await getSession(request);
     const userId = session?.user?.id;
 
     // Find the discount code
     // Find the discount code (case-insensitive)
-    const discountCode = await prisma.discountCode.findFirst({
+    let discountCode = await prisma.discountCode.findFirst({
       where: { 
         code: {
           equals: code.trim(),
@@ -48,9 +51,26 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       },
     });
 
+    // Fallback: try exact match with uppercase if insensitive search failed
+    // This handles cases where Prisma's insensitive mode might be behaving unexpectedly
+    if (!discountCode) {
+      discountCode = await prisma.discountCode.findFirst({
+        where: { 
+          code: code.trim().toUpperCase()
+        },
+        include: {
+          usages: userId ? {
+            where: { userId },
+          } : false,
+        },
+      });
+    }
+
+    console.log('[Validate Discount] Found:', discountCode);
+
     if (!discountCode) {
       return NextResponse.json(
-        { valid: false, error: 'Invalid discount code' },
+        { valid: false, error: `Invalid discount code: '${code}' (trimmed: '${code.trim()}')` },
         { status: 200 }
       );
     }

@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     let validatedDiscountCode = null;
 
     if (discountCode) {
-      const discount = await prisma.discountCode.findFirst({
+      let discount = await prisma.discountCode.findFirst({
         where: { 
           code: {
             equals: discountCode.trim(),
@@ -91,6 +91,23 @@ export async function POST(request: NextRequest) {
           } : false,
         },
       });
+
+      // Fallback: try exact match with uppercase if insensitive search failed
+      if (!discount) {
+        discount = await prisma.discountCode.findFirst({
+          where: { 
+            code: discountCode.trim().toUpperCase()
+          },
+          include: {
+            usages: dbUser?.id ? {
+              where: { userId: dbUser.id },
+            } : false,
+          },
+        });
+      }
+
+      console.log('[Checkout Process] Looking for discount:', discountCode);
+      console.log('[Checkout Process] Found:', discount);
 
       if (discount) {
         const now = new Date();
