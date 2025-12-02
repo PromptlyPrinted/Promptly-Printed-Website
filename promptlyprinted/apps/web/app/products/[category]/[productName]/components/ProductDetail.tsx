@@ -577,7 +577,6 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
   
   // Image-to-Image state
   const [referenceImage, setReferenceImage] = useState<string>('');
-  const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [useTshirtDesign, setUseTshirtDesign] = useState(false);
   const [useReferenceImage, setUseReferenceImage] = useState(false);
   const [subjectDescription, setSubjectDescription] = useState('');
