@@ -14,66 +14,66 @@ type ShowcaseDesign = {
 const designs: ShowcaseDesign[] = [
   {
     category: 'Tee',
-    title: 'Neon Alley Cat',
-    description: 'Bold cyberpunk energy with glowing signage and chrome accents.',
+    title: 'Character Figure',
+    description: 'Turn your photo into a collectible character figure with packaging.',
     prompt:
-      "Hyper-detailed cyberpunk alley with a teal cat wearing neon goggles, vaporwave lighting, cinematic depth of field",
+      "Turn this photo into a character figure. Behind it, place a box with the character's image printed on it, and a computer showing the 3D modeling process. In front, add a round plastic base with the character figure standing on it",
     gradient: 'from-[#031A30] via-[#0AA5A6] to-[#F86F2D]',
   },
   {
     category: 'Tee',
-    title: 'Geometric Dawn',
-    description: 'Layered shapes melt into a warm sunrise palette.',
+    title: 'Custom Sticker Art',
+    description: 'Transform any character into playful white outline stickers.',
     prompt:
-      'Abstract geometric landscape with layered polygons, sunrise lighting, soft gradients, printed on a cream tee',
+      'Turn this character into a white outline sticker with web illustration style. Add a playful white outline phrase describing the character, similar to popular sticker designs',
     gradient: 'from-[#0B1F3A] via-[#FE4D80] to-[#FED766]',
   },
   {
     category: 'Tee',
-    title: 'Orbit Explorer',
-    description: 'Retro space mission patch reimagined for modern streetwear.',
+    title: 'Marble Sculpture',
+    description: 'Create an ultra-detailed marble sculpture from any subject.',
     prompt:
-      'Vintage astronaut badge, bold serif typography, deep navy background, metallic ink details, 1970s NASA poster',
+      'A photorealistic image of an ultra-detailed sculpture made of shining marble. Display smooth and reflective marble surface, emphasizing luster and artistic craftsmanship. Elegant design highlighting the beauty and depth of marble with stunning lighting',
     gradient: 'from-[#010C1C] via-[#123B68] to-[#DAA520]',
   },
   {
     category: 'Hoodie',
-    title: 'Aurora Bloom',
-    description: 'Soft gradients spill over oversized florals for cozy vibes.',
+    title: 'Isometric Buildings',
+    description: 'Extract buildings from photos and transform to isometric models.',
     prompt:
-      'Oversized watercolor peonies blending into aurora borealis light, dreamy ink bleed, charcoal hoodie mockup',
+      'Make image daytime and isometric [building only]. Extract the architecture and transform it into a clean isometric 3D model with vibrant colors',
     gradient: 'from-[#1B1F3A] via-[#7F5AF0] to-[#2CB67D]',
   },
   {
     category: 'Hoodie',
-    title: 'Graffiti Pulse',
-    description: 'Sharp street-art strokes with chrome and magenta pops.',
+    title: 'Character Design Sheet',
+    description: 'Generate complete character design with multiple views and expressions.',
     prompt:
-      '3D graffiti lettering spelling Promptly, chrome shine, magenta splatter, motion blur, photographed on black hoodie',
+      'Generate character design: proportion design with different height comparisons, three views (front, side, back), expression sheet with various emotions, pose sheet with common poses, and costume design details',
     gradient: 'from-[#050505] via-[#FF0054] to-[#FFA630]',
   },
   {
     category: 'Print',
-    title: 'Coastal Minimal',
-    description: 'Clean lines and muted tones for modern interiors.',
+    title: 'Era Time Travel',
+    description: 'Transform portraits into different historical eras with authentic styling.',
     prompt:
-      'Minimalist continuous line art of rolling waves, taupe background, terracotta sun, Scandinavian poster aesthetic',
+      "Change the character's style to 1970's classical style. Add long curly hair, vintage mustache, change background to iconic californian summer landscape. Keep the character's face unchanged",
     gradient: 'from-[#0C1B33] via-[#2E5077] to-[#A1A19F]',
   },
   {
     category: 'Print',
-    title: 'Rainforest Haze',
-    description: 'Lush foliage rendered with painterly textures.',
+    title: 'Multi-Character Scene',
+    description: 'Combine multiple reference images into one cohesive scene.',
     prompt:
-      'Dreamy rainforest canopy, volumetric light rays, watercolor textures, parrots in silhouette, fine art print',
+      'A model posing against a colorful backdrop. Combine multiple reference objects: character wearing specific items, accessories as details, pets with matching accessories. Scene against a complementary background',
     gradient: 'from-[#041106] via-[#0F5B30] to-[#56C596]',
   },
   {
     category: 'Kids',
-    title: 'Cosmic Critters',
-    description: 'Playful characters exploring a candy-colored galaxy.',
+    title: 'Hairstyle Grid',
+    description: 'Generate the same person with different hairstyles in a grid.',
     prompt:
-      'Cute astronauts shaped like woodland animals, pastel planets, glitter stars, kawaii style, kids tee print',
+      'Generate avatars of this person with different hairstyles in a 3x3 grid format. Show various styles: long, short, curly, straight, colored, natural',
     gradient: 'from-[#140A44] via-[#7B5CE5] to-[#FFB6C1]',
   },
 ];

@@ -171,6 +171,139 @@ export async function sendDesignSavedEmail({
   }
 }
 
+/**
+ * Send Abandoned Cart Email (First Reminder - 1 hour)
+ */
+export async function sendAbandonedCartEmail({
+  to,
+  firstName,
+  cartItems,
+  cartTotal,
+  checkoutUrl,
+}: {
+  to: string;
+  firstName?: string;
+  cartItems: Array<{ name: string; imageUrl: string; price: number }>;
+  cartTotal: number;
+  checkoutUrl: string;
+}) {
+  if (!resend) {
+    console.warn('Resend not configured, skipping abandoned cart email');
+    return { success: false, error: 'Email service not configured' };
+  }
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: `Promptly Printed <${FROM_EMAIL}>`,
+      to: [to],
+      subject: '⏰ Your Cart is Waiting! Complete Your Order',
+      html: getAbandonedCartHTML(firstName, cartItems, cartTotal, checkoutUrl, 1),
+      text: getAbandonedCartText(firstName, cartItems, cartTotal, checkoutUrl, 1),
+    });
+
+    if (error) {
+      console.error('Failed to send abandoned cart email:', error);
+      return { success: false, error };
+    }
+
+    console.log('Abandoned cart email sent successfully:', data);
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error sending abandoned cart email:', error);
+    return { success: false, error };
+  }
+}
+
+/**
+ * Send Abandoned Cart Follow-up (24 hours with 10% discount)
+ */
+export async function sendAbandonedCartFollowup({
+  to,
+  firstName,
+  cartItems,
+  cartTotal,
+  checkoutUrl,
+  discountCode,
+}: {
+  to: string;
+  firstName?: string;
+  cartItems: Array<{ name: string; imageUrl: string; price: number }>;
+  cartTotal: number;
+  checkoutUrl: string;
+  discountCode: string;
+}) {
+  if (!resend) {
+    console.warn('Resend not configured, skipping abandoned cart followup');
+    return { success: false, error: 'Email service not configured' };
+  }
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: `Promptly Printed <${FROM_EMAIL}>`,
+      to: [to],
+      subject: '🎁 10% OFF Your Order - Your Cart is Still Waiting!',
+      html: getAbandonedCartHTML(firstName, cartItems, cartTotal, checkoutUrl, 2, discountCode),
+      text: getAbandonedCartText(firstName, cartItems, cartTotal, checkoutUrl, 2, discountCode),
+    });
+
+    if (error) {
+      console.error('Failed to send abandoned cart followup:', error);
+      return { success: false, error };
+    }
+
+    console.log('Abandoned cart followup sent successfully:', data);
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error sending abandoned cart followup:', error);
+    return { success: false, error };
+  }
+}
+
+/**
+ * Send Final Abandoned Cart Reminder (72 hours - last chance)
+ */
+export async function sendAbandonedCartFinalReminder({
+  to,
+  firstName,
+  cartItems,
+  cartTotal,
+  checkoutUrl,
+  discountCode,
+}: {
+  to: string;
+  firstName?: string;
+  cartItems: Array<{ name: string; imageUrl: string; price: number }>;
+  cartTotal: number;
+  checkoutUrl: string;
+  discountCode: string;
+}) {
+  if (!resend) {
+    console.warn('Resend not configured, skipping final cart reminder');
+    return { success: false, error: 'Email service not configured' };
+  }
+
+  try {
+    const { data, error} = await resend.emails.send({
+      from: `Promptly Printed <${FROM_EMAIL}>`,
+      to: [to],
+      subject: '⏳ Last Chance! Your 10% Discount Expires Soon',
+      html: getAbandonedCartHTML(firstName, cartItems, cartTotal, checkoutUrl, 3, discountCode),
+      text: getAbandonedCartText(firstName, cartItems, cartTotal, checkoutUrl, 3, discountCode),
+    });
+
+    if (error) {
+      console.error('Failed to send final cart reminder:', error);
+      return { success: false, error };
+    }
+
+    console.log('Final cart reminder sent successfully:', data);
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error sending final cart reminder:', error);
+    return { success: false, error };
+  }
+}
+
 // ============================================================================
 // EMAIL TEMPLATES
 // ============================================================================
@@ -648,6 +781,191 @@ ${SITE_URL}/my-designs?utm_source=email&utm_medium=design_saved&utm_campaign=act
 
 Create Another Design:
 ${SITE_URL}/christmas-2025/quiz?utm_source=email&utm_medium=design_saved&utm_campaign=activation
+
+© ${new Date().getFullYear()} Promptly Printed
+  `;
+}
+
+function getAbandonedCartHTML(
+  firstName: string | undefined,
+  cartItems: Array<{ name: string; imageUrl: string; price: number }>,
+  cartTotal: number,
+  checkoutUrl: string,
+  emailNumber: number,
+  discountCode?: string
+): string {
+  const name = firstName || 'there';
+
+  const titles = {
+    1: 'Your Cart is Waiting!',
+    2: 'Still Thinking? Here\'s 10% OFF!',
+    3: 'Last Chance! Your Discount Expires Soon'
+  };
+
+  const messages = {
+    1: 'You left some amazing designs in your cart. Don\'t let them get away!',
+    2: 'We noticed you didn\'t complete your order. As a special thank you for considering us, here\'s 10% OFF your entire cart!',
+    3: 'This is your final reminder! Your exclusive 10% discount code expires in 24 hours. Complete your order now before it\'s gone.'
+  };
+
+  const itemsHTML = cartItems.map(item => `
+    <tr>
+      <td style="padding: 20px;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td width="100" style="vertical-align: top;">
+              <img src="${item.imageUrl}" alt="${item.name}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;" />
+            </td>
+            <td style="padding-left: 20px; vertical-align: top;">
+              <p style="margin: 0; font-size: 16px; font-weight: bold; color: #333333;">${item.name}</p>
+              <p style="margin: 10px 0 0 0; font-size: 18px; font-weight: bold; color: #16C1A8;">$${item.price.toFixed(2)}</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  `).join('');
+
+  const discountSection = discountCode ? `
+    <div style="background: linear-gradient(135deg, #16C1A8 0%, #0D2C45 100%); border-radius: 12px; padding: 30px; text-align: center; margin: 30px 0;">
+      <p style="margin: 0 0 10px 0; font-size: 16px; color: rgba(255,255,255,0.9);">Your Exclusive Discount Code</p>
+      <p style="margin: 0; font-size: 36px; font-weight: bold; color: #ffffff; font-family: monospace; letter-spacing: 3px;">${discountCode}</p>
+      <p style="margin: 15px 0 0 0; font-size: 14px; color: rgba(255,255,255,0.8);">🎁 Get 10% OFF your entire order!</p>
+    </div>
+  ` : '';
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Abandoned Cart Reminder</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+          <!-- Header -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #0D2C45 0%, #16C1A8 100%); padding: 40px; text-align: center;">
+              <div style="font-size: 48px; margin-bottom: 10px;">🛒</div>
+              <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">${titles[emailNumber as keyof typeof titles]}</h1>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <p style="font-size: 18px; color: #333333; margin: 0 0 10px 0;">Hi ${name}! 👋</p>
+
+              <p style="font-size: 16px; color: #666666; line-height: 1.6; margin: 0 0 30px 0;">
+                ${messages[emailNumber as keyof typeof messages]}
+              </p>
+
+              ${discountSection}
+
+              <h2 style="font-size: 20px; color: #333333; margin: 30px 0 20px 0;">Your Cart Items:</h2>
+
+              <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #eeeeee; border-radius: 8px; overflow: hidden; margin-bottom: 20px;">
+                ${itemsHTML}
+                <tr>
+                  <td style="padding: 20px; background-color: #f9f9f9; text-align: right; border-top: 2px solid #eeeeee;">
+                    <strong style="color: #333333; font-size: 22px;">Total: $${cartTotal.toFixed(2)}</strong>
+                    ${discountCode ? `<br><span style="color: #16C1A8; font-size: 16px;">Save $${(cartTotal * 0.1).toFixed(2)} with code ${discountCode}</span>` : ''}
+                  </td>
+                </tr>
+              </table>
+
+              <!-- CTA Button -->
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="padding: 30px 0 20px 0;">
+                    <a href="${checkoutUrl}?utm_source=email&utm_medium=abandoned_cart&utm_campaign=recovery_${emailNumber}${discountCode ? `&discount=${discountCode}` : ''}"
+                       style="display: inline-block; padding: 18px 48px; background: linear-gradient(135deg, #16C1A8 0%, #0D2C45 100%); color: #ffffff; text-decoration: none; border-radius: 8px; font-size: 18px; font-weight: bold; box-shadow: 0 4px 12px rgba(22,193,168,0.3);">
+                      Complete My Order →
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              ${emailNumber === 3 ? `
+              <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 20px; border-radius: 8px; margin: 30px 0;">
+                <p style="margin: 0; font-size: 14px; color: #92400e; line-height: 1.6;">
+                  ⏰ <strong>Hurry!</strong> This discount code expires in 24 hours. Don't miss out on your 10% savings!
+                </p>
+              </div>
+              ` : ''}
+
+              <p style="font-size: 14px; color: #999999; line-height: 1.6; margin: 30px 0 0 0; border-top: 1px solid #eeeeee; padding-top: 20px; text-align: center;">
+                Need help? Reply to this email or visit our <a href="${SITE_URL}/help" style="color: #16C1A8;">Help Center</a>
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f9f9f9; padding: 30px; text-align: center; border-top: 1px solid #eeeeee;">
+              <p style="font-size: 14px; color: #999999; margin: 0;">
+                © ${new Date().getFullYear()} Promptly Printed. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+}
+
+function getAbandonedCartText(
+  firstName: string | undefined,
+  cartItems: Array<{ name: string; imageUrl: string; price: number }>,
+  cartTotal: number,
+  checkoutUrl: string,
+  emailNumber: number,
+  discountCode?: string
+): string {
+  const name = firstName || 'there';
+
+  const titles = {
+    1: 'Your Cart is Waiting!',
+    2: 'Still Thinking? Here\'s 10% OFF!',
+    3: 'Last Chance! Your Discount Expires Soon'
+  };
+
+  const messages = {
+    1: 'You left some amazing designs in your cart. Don\'t let them get away!',
+    2: 'We noticed you didn\'t complete your order. As a special thank you for considering us, here\'s 10% OFF your entire cart!',
+    3: 'This is your final reminder! Your exclusive 10% discount code expires in 24 hours. Complete your order now before it\'s gone.'
+  };
+
+  const itemsText = cartItems.map(item => `- ${item.name}: $${item.price.toFixed(2)}`).join('\n');
+
+  const discountText = discountCode ? `\n\nYour Exclusive Discount Code: ${discountCode}\n🎁 Get 10% OFF your entire order!\nSavings: $${(cartTotal * 0.1).toFixed(2)}` : '';
+
+  return `
+${titles[emailNumber as keyof typeof titles]}
+
+Hi ${name}!
+
+${messages[emailNumber as keyof typeof messages]}
+${discountText}
+
+YOUR CART ITEMS:
+${itemsText}
+
+Total: $${cartTotal.toFixed(2)}${discountCode ? ` (Save $${(cartTotal * 0.1).toFixed(2)} with ${discountCode})` : ''}
+
+Complete Your Order:
+${checkoutUrl}?utm_source=email&utm_medium=abandoned_cart&utm_campaign=recovery_${emailNumber}${discountCode ? `&discount=${discountCode}` : ''}
+
+${emailNumber === 3 ? '\n⏰ HURRY! This discount code expires in 24 hours.\n' : ''}
+
+Need help? Reply to this email or visit ${SITE_URL}/help
 
 © ${new Date().getFullYear()} Promptly Printed
   `;

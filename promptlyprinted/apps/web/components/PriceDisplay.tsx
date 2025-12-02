@@ -4,27 +4,32 @@ import { useCountry } from '@/components/providers/CountryProvider';
 import { convertPrice, formatPrice } from '@/utils/currency';
 
 interface PriceDisplayProps {
-  amountGBP: number;
+  // IMPORTANT: All prices should be stored in USD in the database
+  // This component converts USD to the user's selected currency
+  amountUSD?: number;
+  amountGBP?: number; // Deprecated - kept for backwards compatibility
   className?: string;
   showSecondary?: boolean;
 }
 
-export function PriceDisplay({ amountGBP, className, showSecondary = true }: PriceDisplayProps) {
+export function PriceDisplay({ amountUSD, amountGBP, className, showSecondary = true }: PriceDisplayProps) {
   const { currency } = useCountry();
 
-  const primary = formatPrice(
-    currency === 'GBP' ? amountGBP : convertPrice(amountGBP, 'GBP', currency),
-    currency
-  );
+  // Use amountUSD if provided, otherwise fall back to amountGBP (legacy support)
+  // If using amountGBP, convert it to USD first
+  const priceInUSD = amountUSD ?? (amountGBP ? convertPrice(amountGBP, 'GBP', 'USD') : 0);
+
+  // Convert from USD to user's currency
+  const priceInUserCurrency = currency === 'USD'
+    ? priceInUSD
+    : convertPrice(priceInUSD, 'USD', currency);
+
+  const primary = formatPrice(priceInUserCurrency, currency);
 
   let secondary: string | null = null;
-  if (showSecondary) {
-    if (currency === 'GBP') {
-      const usd = convertPrice(amountGBP, 'GBP', 'USD');
-      secondary = `≈ ${formatPrice(usd, 'USD')}`;
-    } else {
-      secondary = `≈ ${formatPrice(amountGBP, 'GBP')}`;
-    }
+  if (showSecondary && currency !== 'USD') {
+    // Always show USD as secondary for non-USD users
+    secondary = `≈ ${formatPrice(priceInUSD, 'USD')}`;
   }
 
   return (

@@ -8,6 +8,7 @@ import { useCountry } from '@/components/providers/CountryProvider';
 import { convertPrice, formatPrice as formatCurrency } from '@/utils/currency';
 import { getCsrfToken } from '@repo/auth/client-csrf';
 import { useCartStore } from '@/lib/cart-store';
+import { AddressAutocomplete } from '@/components/AddressAutocomplete';
 
 // Trust badge component for conversion optimization
 const TrustBadges = () => (
@@ -159,21 +160,37 @@ interface Address {
 
 // Country codes for phone number input
 const COUNTRY_CODES = [
-  { code: 'GB', dialCode: '+44', name: 'United Kingdom' },
   { code: 'US', dialCode: '+1', name: 'United States' },
-  { code: 'CA', dialCode: '+1', name: 'Canada' },
+  { code: 'GB', dialCode: '+44', name: 'United Kingdom' },
   { code: 'AU', dialCode: '+61', name: 'Australia' },
-  { code: 'DE', dialCode: '+49', name: 'Germany' },
-  { code: 'FR', dialCode: '+33', name: 'France' },
-  { code: 'ES', dialCode: '+34', name: 'Spain' },
-  { code: 'IT', dialCode: '+39', name: 'Italy' },
-  { code: 'IE', dialCode: '+353', name: 'Ireland' },
-  { code: 'NL', dialCode: '+31', name: 'Netherlands' },
-  { code: 'BE', dialCode: '+32', name: 'Belgium' },
   { code: 'AT', dialCode: '+43', name: 'Austria' },
-  { code: 'SE', dialCode: '+46', name: 'Sweden' },
-  { code: 'NO', dialCode: '+47', name: 'Norway' },
+  { code: 'BE', dialCode: '+32', name: 'Belgium' },
+  { code: 'BG', dialCode: '+359', name: 'Bulgaria' },
+  { code: 'CA', dialCode: '+1', name: 'Canada' },
+  { code: 'HR', dialCode: '+385', name: 'Croatia' },
+  { code: 'CY', dialCode: '+357', name: 'Cyprus' },
+  { code: 'CZ', dialCode: '+420', name: 'Czech Republic' },
   { code: 'DK', dialCode: '+45', name: 'Denmark' },
+  { code: 'EE', dialCode: '+372', name: 'Estonia' },
+  { code: 'FI', dialCode: '+358', name: 'Finland' },
+  { code: 'FR', dialCode: '+33', name: 'France' },
+  { code: 'DE', dialCode: '+49', name: 'Germany' },
+  { code: 'GR', dialCode: '+30', name: 'Greece' },
+  { code: 'IE', dialCode: '+353', name: 'Ireland' },
+  { code: 'IT', dialCode: '+39', name: 'Italy' },
+  { code: 'LV', dialCode: '+371', name: 'Latvia' },
+  { code: 'LT', dialCode: '+370', name: 'Lithuania' },
+  { code: 'LU', dialCode: '+352', name: 'Luxembourg' },
+  { code: 'MT', dialCode: '+356', name: 'Malta' },
+  { code: 'NL', dialCode: '+31', name: 'Netherlands' },
+  { code: 'NO', dialCode: '+47', name: 'Norway' },
+  { code: 'PL', dialCode: '+48', name: 'Poland' },
+  { code: 'PT', dialCode: '+351', name: 'Portugal' },
+  { code: 'RO', dialCode: '+40', name: 'Romania' },
+  { code: 'SK', dialCode: '+421', name: 'Slovakia' },
+  { code: 'SI', dialCode: '+386', name: 'Slovenia' },
+  { code: 'ES', dialCode: '+34', name: 'Spain' },
+  { code: 'SE', dialCode: '+46', name: 'Sweden' },
 ];
 
 // Available sizes for products (this could be fetched from product data)
@@ -1119,11 +1136,11 @@ export default function CheckoutPage() {
                         <select
                           value={billingPhoneCountryCode}
                           onChange={(e) => setBillingPhoneCountryCode(e.target.value)}
-                          className="w-24 px-2 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm"
+                          className="w-32 px-2 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm"
                         >
                           {COUNTRY_CODES.map((country) => (
-                            <option key={country.code} value={country.dialCode}>
-                              {country.dialCode}
+                            <option key={`${country.code}-${country.dialCode}`} value={country.dialCode}>
+                              {country.dialCode} {country.name}
                             </option>
                           ))}
                         </select>
@@ -1173,6 +1190,31 @@ export default function CheckoutPage() {
                         <option value="NO">Norway</option>
                         <option value="DK">Denmark</option>
                       </select>
+                    </div>
+
+                    {/* Address Autocomplete */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Search Address
+                      </label>
+                      <AddressAutocomplete
+                        onAddressSelect={(address) => {
+                          setBillingAddress({
+                            ...billingAddress,
+                            addressLine1: address.addressLine1,
+                            addressLine2: address.addressLine2,
+                            city: address.city,
+                            state: address.state,
+                            postalCode: address.postalCode,
+                            country: address.country,
+                          });
+                        }}
+                        placeholder="Start typing your address..."
+                        className="mb-4"
+                        countryCode={billingAddress.country}
+                        language="en"
+                      />
+                      <p className="text-xs text-gray-500">Or enter manually below</p>
                     </div>
 
                     <div>
@@ -1314,11 +1356,11 @@ export default function CheckoutPage() {
                             <select
                               value={shippingPhoneCountryCode}
                               onChange={(e) => setShippingPhoneCountryCode(e.target.value)}
-                              className="w-24 px-2 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm"
+                              className="w-32 px-2 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all text-sm"
                             >
                               {COUNTRY_CODES.map((country) => (
-                                <option key={country.code} value={country.dialCode}>
-                                  {country.dialCode}
+                                <option key={`shipping-${country.code}-${country.dialCode}`} value={country.dialCode}>
+                                  {country.dialCode} {country.name}
                                 </option>
                               ))}
                             </select>
@@ -1368,6 +1410,31 @@ export default function CheckoutPage() {
                             <option value="NO">Norway</option>
                             <option value="DK">Denmark</option>
                           </select>
+                        </div>
+
+                        {/* Shipping Address Autocomplete */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Search Shipping Address
+                          </label>
+                          <AddressAutocomplete
+                            onAddressSelect={(address) => {
+                              setShippingAddress({
+                                ...shippingAddress,
+                                addressLine1: address.addressLine1,
+                                addressLine2: address.addressLine2,
+                                city: address.city,
+                                state: address.state,
+                                postalCode: address.postalCode,
+                                country: address.country,
+                              });
+                            }}
+                            placeholder="Start typing shipping address..."
+                            className="mb-4"
+                            countryCode={shippingAddress.country}
+                            language="en"
+                          />
+                          <p className="text-xs text-gray-500">Or enter manually below</p>
                         </div>
 
                         <div>

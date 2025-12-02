@@ -321,7 +321,14 @@ export function ProductCard({ product }: ProductCardProps) {
           )}
           
           <div className="flex items-center justify-between mt-3">
-            <p className="text-lg font-bold text-gray-900">{displayPrice}</p>
+            <div>
+              <p className="text-lg font-bold text-gray-900">{displayPrice}</p>
+              {currency !== 'USD' && (
+                <p className="text-xs text-gray-500">
+                  ≈ {formatPrice(product.price || 0, 'USD')}
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Design Now Button */}
