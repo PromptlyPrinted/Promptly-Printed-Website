@@ -808,143 +808,61 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
     }
   }, [processedImage, generatedImage, referenceImage]);
 
-    const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: string; previewUrl: string; printReadyUrl: string }> => {
-  try {
-    // Early validation
-    if (!imageUrl) {
-      throw new Error('No image URL provided');
-    }
-
-    // If it's already a permanent URL, derive the print-ready and preview URLs
-    if (imageUrl.startsWith('/api/images/')) {
-      const printReadyUrl = imageUrl.replace(/\.png$/, '-300dpi.png');
-      const previewUrl = imageUrl.replace(/\.png$/, '-preview.jpg');
-      return { url: imageUrl, previewUrl, printReadyUrl };
-    }
-
-    // If it's a Cloudflare R2 URL, it's already permanent
-    if (imageUrl.includes('.r2.dev') || imageUrl.includes('cloudflare')) {
-      return { url: imageUrl, previewUrl: imageUrl, printReadyUrl: imageUrl };
-    }
-
-    // If it's a legacy upload URL, just return it for all three
-    if (imageUrl.startsWith('/uploads/')) {
-      return { url: imageUrl, previewUrl: imageUrl, printReadyUrl: imageUrl };
-    }
-
-    // Get product code for correct dimensions
-    const productCode = product.specifications?.style || product.sku || product.id.toString();
-
-    // For data URLs, convert to Blob and send as raw binary
-    if (imageUrl.startsWith('data:')) {
-      console.log('[uploadImageToPermanentStorage] Processing data URL...');
-
-      // Validate data URL format
-      const dataUrlMatch = imageUrl.match(/^data:([^;,]+)(?:;base64)?,(.*)$/);
-      if (!dataUrlMatch) {
-        console.error('[uploadImageToPermanentStorage] Invalid data URL format');
-        console.error('[uploadImageToPermanentStorage] First 100 chars:', imageUrl.substring(0, 100));
-        throw new Error('Invalid data URL format');
+  const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: string; previewUrl: string; printReadyUrl: string }> => {
+    try {
+      // Early validation
+      if (!imageUrl) {
+        throw new Error('No image URL provided');
       }
 
-      const [, mimeType, data] = dataUrlMatch;
-      const isBase64 = imageUrl.includes(';base64,');
+      // If it's already a permanent URL, derive the print-ready and preview URLs
+      if (imageUrl.startsWith('/api/images/')) {
+        const printReadyUrl = imageUrl.replace(/\.png$/, '-300dpi.png');
+        const previewUrl = imageUrl.replace(/\.png$/, '-preview.jpg');
+        return { url: imageUrl, previewUrl, printReadyUrl };
+      }
+
+      // If it's a Cloudflare R2 URL, it's already permanent
+      if (imageUrl.includes('.r2.dev') || imageUrl.includes('cloudflare')) {
+        return { url: imageUrl, previewUrl: imageUrl, printReadyUrl: imageUrl };
+      }
+
+      // If it's a legacy upload URL, just return it for all three
+      if (imageUrl.startsWith('/uploads/')) {
+        return { url: imageUrl, previewUrl: imageUrl, printReadyUrl: imageUrl };
+      }
+
+      // Get product code for correct dimensions
+      const productCode = product.specifications?.style || product.sku || product.id.toString();
+
+      // Unified upload path: fetch -> blob -> upload
+      // This handles both Data URLs and regular URLs correctly and robustly
+      console.log('[uploadImageToPermanentStorage] Fetching image data...');
       
-      console.log('[uploadImageToPermanentStorage] MIME:', mimeType, 'Base64:', isBase64);
-
-      // Convert to ArrayBuffer (not Uint8Array) to avoid TypeScript issues
-      let arrayBuffer: ArrayBuffer;
-      try {
-        if (isBase64) {
-          const binaryString = atob(data);
-          arrayBuffer = new ArrayBuffer(binaryString.length);
-          const view = new Uint8Array(arrayBuffer);
-          for (let i = 0; i < binaryString.length; i++) {
-            view[i] = binaryString.charCodeAt(i);
-          }
-        } else {
-          // URL-encoded data
-          const decoded = decodeURIComponent(data);
-          const encoder = new TextEncoder();
-          const encoded = encoder.encode(decoded);
-          arrayBuffer = encoded.buffer as ArrayBuffer;
-        }
-      } catch (decodeError) {
-        console.error('[uploadImageToPermanentStorage] Decode error:', decodeError);
-        throw new Error('Failed to decode image data');
+      const imageResponse = await fetch(imageUrl);
+      if (!imageResponse.ok) {
+        throw new Error(`Failed to fetch image data: ${imageResponse.status}`);
       }
-
-      if (arrayBuffer.byteLength === 0) {
-        throw new Error('Decoded image data is empty');
-      }
-
-      // Read magic bytes for debugging (use DataView to avoid type issues)
-      const dataView = new DataView(arrayBuffer);
-      const magicBytes = Array.from({ length: Math.min(8, arrayBuffer.byteLength) }, (_, i) => 
-        dataView.getUint8(i).toString(16).padStart(2, '0')
-      ).join(' ');
       
-      console.log('[uploadImageToPermanentStorage] Size:', arrayBuffer.byteLength, 'bytes');
-      console.log('[uploadImageToPermanentStorage] Magic bytes:', magicBytes);
-
-      // Detect actual format from magic bytes
-      let detectedType = mimeType;
-      const byte0 = dataView.getUint8(0);
-      const byte1 = dataView.getUint8(1);
-      const byte2 = dataView.getUint8(2);
-      const byte3 = dataView.getUint8(3);
+      const blob = await imageResponse.blob();
+      console.log('[uploadImageToPermanentStorage] Blob created:', blob.size, 'bytes', 'type:', blob.type);
       
-      if (byte0 === 0x89 && byte1 === 0x50 && byte2 === 0x4E && byte3 === 0x47) {
-        detectedType = 'image/png';
-      } else if (byte0 === 0xFF && byte1 === 0xD8) {
-        detectedType = 'image/jpeg';
-      } else if (byte0 === 0x47 && byte1 === 0x49 && byte2 === 0x46) {
-        detectedType = 'image/gif';
-      } else if (byte0 === 0x52 && byte1 === 0x49 && byte2 === 0x46 && byte3 === 0x46) {
-        // Check for WEBP signature at bytes 8-11
-        if (arrayBuffer.byteLength > 11) {
-          const byte8 = dataView.getUint8(8);
-          const byte9 = dataView.getUint8(9);
-          const byte10 = dataView.getUint8(10);
-          const byte11 = dataView.getUint8(11);
-          if (byte8 === 0x57 && byte9 === 0x45 && byte10 === 0x42 && byte11 === 0x50) {
-            detectedType = 'image/webp';
-          }
-        }
+      if (blob.size === 0) {
+        throw new Error('Image data is empty');
       }
-
-      if (detectedType !== mimeType) {
-        console.log('[uploadImageToPermanentStorage] Corrected MIME type:', mimeType, '->', detectedType);
-      }
-
-      // Validate image has valid magic bytes
-      const isValidImage = 
-        (byte0 === 0x89 && byte1 === 0x50) || // PNG
-        (byte0 === 0xFF && byte1 === 0xD8) || // JPEG
-        (byte0 === 0x47 && byte1 === 0x49) || // GIF
-        (byte0 === 0x52 && byte1 === 0x49);   // RIFF (WebP)
-
-      if (!isValidImage) {
-        console.error('[uploadImageToPermanentStorage] Invalid image magic bytes:', magicBytes);
-        throw new Error('Image data appears to be corrupted or invalid');
-      }
-
-      // Create Blob from ArrayBuffer - this avoids the Uint8Array type issue
-      const blob = new Blob([arrayBuffer], { type: detectedType });
-      console.log('[uploadImageToPermanentStorage] Created blob:', blob.size, 'bytes');
 
       // Upload with retry
       const attemptUpload = async (attempt: number): Promise<Response> => {
         console.log(`[uploadImageToPermanentStorage] Attempt ${attempt}...`);
         
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 120000);
+        const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
         
         try {
           const response = await fetch('/api/upload-image', {
             method: 'POST',
             headers: {
-              'Content-Type': detectedType,
+              'Content-Type': blob.type || 'image/png',
               'x-image-name': encodeURIComponent('Generated Design'),
               'x-product-code': productCode,
             },
@@ -961,6 +879,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
             if (err.name === 'AbortError') {
               throw new Error('Upload timed out');
             }
+            // Retry on network errors
             if (err.message.includes('Load failed') || err.message.includes('Failed to fetch')) {
               if (attempt < 3) {
                 console.warn(`[uploadImageToPermanentStorage] Retry ${attempt}...`);
@@ -999,47 +918,11 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
         printReadyUrl: result.printReadyUrl || result.url
       };
 
-    } else {
-      // Regular URL - fetch and upload
-      console.log('[uploadImageToPermanentStorage] Fetching URL...');
-      
-      const imageResponse = await fetch(imageUrl);
-      if (!imageResponse.ok) {
-        throw new Error(`Failed to fetch image: ${imageResponse.status}`);
-      }
-      
-      const blob = await imageResponse.blob();
-      const contentType = blob.type || 'image/png';
-      
-      console.log('[uploadImageToPermanentStorage] Fetched:', blob.size, 'bytes');
-      
-      const response = await fetch('/api/upload-image', {
-        method: 'POST',
-        headers: {
-          'Content-Type': contentType,
-          'x-image-name': encodeURIComponent('Generated Design'),
-          'x-product-code': productCode,
-        },
-        body: blob,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Upload failed: ${response.status}`);
-      }
-
-      const result = await response.json();
-      
-      return {
-        url: result.url,
-        previewUrl: result.previewUrl || result.url,
-        printReadyUrl: result.printReadyUrl || result.url
-      };
+    } catch (error) {
+      console.error('[uploadImageToPermanentStorage] Error:', error);
+      throw error;
     }
-  } catch (error) {
-    console.error('[uploadImageToPermanentStorage] Error:', error);
-    throw error;
-  }
-};
+  };
 
   // ---- Nano Banana Generation ----
   const handleNanoBananaGeneration = async () => {

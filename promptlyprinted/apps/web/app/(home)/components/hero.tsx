@@ -6,13 +6,14 @@ export const Hero = async () => {
   return (
     <div className="relative w-full overflow-hidden bg-gradient-to-br from-[#0D2C45] via-[#0D2C45] to-[#16C1A8]/20">
       {/* Video Background */}
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-0 bg-[#0D2C45]">
         <video
           autoPlay
           loop
-          muted
+          muted={true}
           playsInline
           className="h-full w-full object-cover opacity-40"
+          onError={(e) => console.error('Video load error:', e)}
         >
           <source src="/videos/hero-bg.mp4" type="video/mp4" />
         </video>
