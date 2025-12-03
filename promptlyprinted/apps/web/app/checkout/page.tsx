@@ -503,6 +503,16 @@ export default function CheckoutPage() {
         }),
       });
 
+      if (!response.ok) {
+        // Handle HTTP errors
+        if (response.status === 403) {
+          const errorData = await response.json().catch(() => ({ message: 'CSRF token validation failed' }));
+          throw new Error(errorData.message || 'CSRF token validation failed. Please refresh the page and try again.');
+        }
+        const errorData = await response.json().catch(() => ({ error: 'Validation failed' }));
+        throw new Error(errorData.error || errorData.message || `Validation failed: ${response.status}`);
+      }
+
       const data = await response.json();
 
       if (data.valid && data.discountCode) {
@@ -520,8 +530,14 @@ export default function CheckoutPage() {
       }
     } catch (err) {
       console.error('Discount validation error:', err);
-      setDiscountError('Failed to validate discount code');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to validate discount code';
+      setDiscountError(errorMessage);
       setAppliedDiscount(null);
+      
+      // If CSRF error, suggest refresh
+      if (errorMessage.includes('CSRF')) {
+        setDiscountError('Session expired. Please refresh the page and try again.');
+      }
     } finally {
       setValidatingDiscount(false);
     }

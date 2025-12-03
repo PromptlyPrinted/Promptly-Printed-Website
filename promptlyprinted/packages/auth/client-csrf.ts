@@ -22,10 +22,12 @@ export async function getCsrfToken(): Promise<string> {
       }
       const data = await res.json();
       const token = data.csrfToken as string;
-      if (!token) {
-        throw new Error('CSRF token not found in response');
+      if (!token || token.trim() === '') {
+        console.error('[getCsrfToken] Empty token received from server');
+        throw new Error('CSRF token not found in response. Please refresh the page and try again.');
       }
       cachedToken = token;
+      console.log('[getCsrfToken] Token retrieved successfully, length:', token.length);
       return token;
     } catch (error) {
       // Clear promise on error so we can retry
