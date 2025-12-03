@@ -322,7 +322,7 @@ function toKebabCase(str?: string) {
 // Function to crop transparent areas and return a tightly fitted image
 const cropTransparentAreas = async (imageDataUrl: string): Promise<string> => {
   return new Promise((resolve, reject) => {
-    const img = new (Image as any)();
+    const img = document.createElement('img');
     img.onload = () => {
       try {
         const canvas = document.createElement('canvas');
@@ -873,20 +873,52 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
           let response: Response;
           
           if (imageUrl.startsWith('data:')) {
-            // Send data URL directly as JSON - server handles conversion
-            console.log('[uploadImageToPermanentStorage] Sending data URL as JSON...');
-            response = await fetch('/api/upload-image', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                imageUrl: imageUrl,
-                name: 'Generated Design',
-                productCode: productCode,
-              }),
-              signal: controller.signal,
-            });
+            // For data URLs, use FormData to avoid JSON body size limits
+            // Convert data URL to blob first, then send as FormData
+            console.log('[uploadImageToPermanentStorage] Converting data URL to blob for FormData upload...');
+            
+            try {
+              // Convert data URL to blob
+              const blobResponse = await fetch(imageUrl);
+              if (!blobResponse.ok) {
+                throw new Error('Failed to convert data URL to blob');
+              }
+              const blob = await blobResponse.blob();
+              
+              if (blob.size === 0) {
+                throw new Error('Blob is empty');
+              }
+              
+              console.log('[uploadImageToPermanentStorage] Blob created, size:', blob.size, 'type:', blob.type);
+              
+              // Send as FormData
+              const formData = new FormData();
+              formData.append('file', blob, 'design.png');
+              formData.append('name', 'Generated Design');
+              formData.append('productCode', productCode);
+              
+              response = await fetch('/api/upload-image', {
+                method: 'POST',
+                body: formData,
+                signal: controller.signal,
+              });
+            } catch (blobError) {
+              console.error('[uploadImageToPermanentStorage] Failed to convert data URL to blob:', blobError);
+              // Fallback: try sending as JSON (might fail for very large images)
+              console.log('[uploadImageToPermanentStorage] Falling back to JSON upload...');
+              response = await fetch('/api/upload-image', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  imageUrl: imageUrl,
+                  name: 'Generated Design',
+                  productCode: productCode,
+                }),
+                signal: controller.signal,
+              });
+            }
           } else {
             // For regular URLs, fetch and send as FormData
             console.log('[uploadImageToPermanentStorage] Fetching image from URL...');

@@ -537,6 +537,13 @@ export async function POST(request: Request) {
           // Try to parse as JSON
           data = JSON.parse(bodyText);
           console.log('[Upload Image] JSON parsed successfully, keys:', Object.keys(data));
+          console.log('[Upload Image] Has imageUrl:', !!data.imageUrl);
+          console.log('[Upload Image] Has imageData:', !!data.imageData);
+          if (data.imageUrl) {
+            console.log('[Upload Image] imageUrl type:', typeof data.imageUrl);
+            console.log('[Upload Image] imageUrl length:', data.imageUrl?.length);
+            console.log('[Upload Image] imageUrl starts with:', data.imageUrl?.substring(0, 50));
+          }
         } catch (jsonError) {
           // DEFENSIVE HANDLING: Check if body is raw base64 instead of JSON
           // This can happen when:
@@ -631,16 +638,37 @@ export async function POST(request: Request) {
           }
         } else if (imageUrl) {
           console.log('[Upload Image] Processing imageUrl field');
+          console.log('[Upload Image] imageUrl type:', typeof imageUrl);
+          console.log('[Upload Image] imageUrl length:', imageUrl?.length);
+          console.log('[Upload Image] imageUrl starts with:', imageUrl?.substring(0, 100));
           
           if (typeof imageUrl !== 'string') {
-            throw new Error('imageUrl must be a string');
+            throw new Error(`imageUrl must be a string, got ${typeof imageUrl}`);
+          }
+
+          if (!imageUrl || imageUrl.trim().length === 0) {
+            throw new Error('imageUrl is empty');
           }
 
           if (imageUrl.startsWith('data:')) {
-            imageBuffer = parseDataUrl(imageUrl);
+            console.log('[Upload Image] Parsing data URL...');
+            try {
+              imageBuffer = parseDataUrl(imageUrl);
+              console.log('[Upload Image] Data URL parsed successfully, buffer size:', imageBuffer.length);
+            } catch (parseError) {
+              console.error('[Upload Image] Failed to parse data URL:', parseError);
+              console.error('[Upload Image] Data URL length:', imageUrl.length);
+              console.error('[Upload Image] Data URL first 200 chars:', imageUrl.substring(0, 200));
+              throw new Error(`Failed to parse data URL: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
+            }
           } else {
+            console.log('[Upload Image] Fetching image from URL...');
             imageBuffer = await fetchImageFromUrl(imageUrl);
           }
+        } else {
+          console.error('[Upload Image] No image source found in JSON data');
+          console.error('[Upload Image] Available keys:', Object.keys(data));
+          throw new Error('No image source provided. Please provide either imageUrl or imageData in the request body.');
         }
       } catch (jsonError) {
         console.error('[Upload Image] JSON processing error:', jsonError);
