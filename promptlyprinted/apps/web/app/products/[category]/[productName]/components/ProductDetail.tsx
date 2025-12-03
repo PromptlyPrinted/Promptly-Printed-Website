@@ -835,59 +835,82 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       // Get product code for correct dimensions
       const productCode = product.specifications?.style || product.sku || product.id.toString();
 
-      // Unified upload path: fetch -> blob -> upload
-      // This handles both Data URLs and regular URLs correctly and robustly
-      console.log('[uploadImageToPermanentStorage] Fetching image data...');
+      console.log('[uploadImageToPermanentStorage] Starting upload...');
+      console.log('[uploadImageToPermanentStorage] Image URL type:', imageUrl.startsWith('data:') ? 'data URL' : 'regular URL');
       
-      let blob: Blob;
-
+      // Validate data URL format before sending
       if (imageUrl.startsWith('data:')) {
+        // Validate data URL format
+        const dataUrlMatch = imageUrl.match(/^data:image\/(\w+);base64,(.+)$/);
+        if (!dataUrlMatch) {
+          throw new Error('Invalid data URL format');
+        }
+        
+        const [, format, base64Data] = dataUrlMatch;
+        if (!base64Data || base64Data.length === 0) {
+          throw new Error('Empty base64 data in data URL');
+        }
+        
+        // Validate base64 string is valid
         try {
-          // Manually convert Data URL to Blob
-          const byteString = atob(imageUrl.split(',')[1]);
-          const mimeString = imageUrl.split(',')[0].split(':')[1].split(';')[0];
-          const ab = new ArrayBuffer(byteString.length);
-          const ia = new Uint8Array(ab);
-          for (let i = 0; i < byteString.length; i++) {
-            ia[i] = byteString.charCodeAt(i);
-          }
-          blob = new Blob([ab], { type: mimeString });
-          console.log('[uploadImageToPermanentStorage] Converted Data URL to Blob:', blob.size, 'bytes', 'type:', blob.type);
+          // Try to decode a small portion to validate
+          atob(base64Data.substring(0, Math.min(100, base64Data.length)));
         } catch (e) {
-          console.error('[uploadImageToPermanentStorage] Failed to convert Data URL:', e);
-          throw new Error('Failed to process image data');
+          throw new Error('Invalid base64 encoding in data URL');
         }
-      } else {
-        const imageResponse = await fetch(imageUrl);
-        if (!imageResponse.ok) {
-          throw new Error(`Failed to fetch image data: ${imageResponse.status}`);
-        }
-        blob = await imageResponse.blob();
-        console.log('[uploadImageToPermanentStorage] Fetched Blob from URL:', blob.size, 'bytes', 'type:', blob.type);
-      }
-      
-      if (blob.size === 0) {
-        throw new Error('Image data is empty');
+        
+        console.log('[uploadImageToPermanentStorage] Data URL validated, format:', format, 'size:', base64Data.length);
       }
 
-      // Upload with retry
+      // Upload with retry - send data URL directly as JSON to avoid blob conversion issues
       const attemptUpload = async (attempt: number): Promise<Response> => {
-        console.log(`[uploadImageToPermanentStorage] Attempt ${attempt}...`);
+        console.log(`[uploadImageToPermanentStorage] Upload attempt ${attempt}...`);
         
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
         
         try {
-          const response = await fetch('/api/upload-image', {
-            method: 'POST',
-            headers: {
-              'Content-Type': blob.type || 'image/png',
-              'x-image-name': encodeURIComponent('Generated Design'),
-              'x-product-code': productCode,
-            },
-            body: blob,
-            signal: controller.signal,
-          });
+          let response: Response;
+          
+          if (imageUrl.startsWith('data:')) {
+            // Send data URL directly as JSON - server handles conversion
+            console.log('[uploadImageToPermanentStorage] Sending data URL as JSON...');
+            response = await fetch('/api/upload-image', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                imageUrl: imageUrl,
+                name: 'Generated Design',
+                productCode: productCode,
+              }),
+              signal: controller.signal,
+            });
+          } else {
+            // For regular URLs, fetch and send as FormData
+            console.log('[uploadImageToPermanentStorage] Fetching image from URL...');
+            const imageResponse = await fetch(imageUrl);
+            if (!imageResponse.ok) {
+              throw new Error(`Failed to fetch image: ${imageResponse.status}`);
+            }
+            
+            const blob = await imageResponse.blob();
+            if (blob.size === 0) {
+              throw new Error('Image data is empty');
+            }
+            
+            const formData = new FormData();
+            formData.append('file', blob, 'image.png');
+            formData.append('name', 'Generated Design');
+            formData.append('productCode', productCode);
+            
+            response = await fetch('/api/upload-image', {
+              method: 'POST',
+              body: formData,
+              signal: controller.signal,
+            });
+          }
           
           clearTimeout(timeoutId);
           return response;
@@ -899,7 +922,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
               throw new Error('Upload timed out');
             }
             // Retry on network errors
-            if (err.message.includes('Load failed') || err.message.includes('Failed to fetch')) {
+            if (err.message.includes('Load failed') || err.message.includes('Failed to fetch') || err.message.includes('network')) {
               if (attempt < 3) {
                 console.warn(`[uploadImageToPermanentStorage] Retry ${attempt}...`);
                 await new Promise(r => setTimeout(r, 1000 * attempt));
@@ -930,6 +953,10 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
 
       const result = await response.json();
       console.log('[uploadImageToPermanentStorage] Success:', result.url?.substring(0, 50));
+
+      if (!result.url) {
+        throw new Error('Server did not return image URL');
+      }
 
       return {
         url: result.url,
@@ -1930,7 +1957,29 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
   // ---- Helper: Prepare Print-Ready Asset ----
   const preparePrintReadyAsset = async (imageToUse: string): Promise<{ displayUrl: string, printUrl: string }> => {
     console.log('[preparePrintReadyAsset] Starting for image:', imageToUse ? 'present' : 'missing');
-    if (!imageToUse) return { displayUrl: '', printUrl: '' };
+    if (!imageToUse) {
+      throw new Error('No image provided');
+    }
+
+    // Validate data URL format before attempting upload
+    if (imageToUse.startsWith('data:')) {
+      const dataUrlMatch = imageToUse.match(/^data:image\/(\w+);base64,(.+)$/);
+      if (!dataUrlMatch) {
+        throw new Error('Invalid image data format. Please regenerate the image.');
+      }
+      
+      const [, format, base64Data] = dataUrlMatch;
+      if (!base64Data || base64Data.length < 100) {
+        throw new Error('Image data appears to be corrupted or too small. Please regenerate the image.');
+      }
+      
+      // Try to validate base64 can be decoded
+      try {
+        atob(base64Data.substring(0, Math.min(100, base64Data.length)));
+      } catch (e) {
+        throw new Error('Image data encoding is invalid. Please regenerate the image.');
+      }
+    }
 
     try {
       toast({
@@ -1943,18 +1992,26 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       const uploadResult = await uploadImageToPermanentStorage(imageToUse);
       console.log('[preparePrintReadyAsset] Upload result:', uploadResult);
       
+      // Validate upload succeeded
+      if (!uploadResult.url || !uploadResult.previewUrl || !uploadResult.printReadyUrl) {
+        throw new Error('Server did not return complete image URLs');
+      }
+      
+      // Ensure URLs are not data URLs (should be permanent URLs)
+      if (uploadResult.url.startsWith('data:') || uploadResult.previewUrl.startsWith('data:') || uploadResult.printReadyUrl.startsWith('data:')) {
+        throw new Error('Upload failed - received data URLs instead of permanent URLs');
+      }
+      
       return {
           displayUrl: uploadResult.previewUrl, // Use preview JPEG for cart/checkout display
           printUrl: uploadResult.printReadyUrl  // Use 300 DPI PNG for Prodigi orders
       };
     } catch (error) {
       console.error('[preparePrintReadyAsset] Failed to prepare print-ready asset:', error);
-      toast({
-        title: 'Warning',
-        description: 'Could not upload design. Using temporary version.',
-        variant: 'destructive',
-      });
-      return { displayUrl: imageToUse, printUrl: imageToUse };
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      // Don't return fallback data URLs - throw error instead
+      throw new Error(`Failed to upload design: ${errorMessage}. Please try regenerating the image.`);
     }
   };
 
@@ -2013,40 +2070,39 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
 
     if (imageToUse) {
         // ALWAYS upload to get permanent URLs - never store base64 in cart
-        if (imageToUse.startsWith('data:')) {
-            // Have a data URL that needs uploading
-            console.log('[handleAddToCart] Data URL detected, uploading to storage...');
-            const result = await preparePrintReadyAsset(imageToUse);
-            finalImageUrl = result.displayUrl;
-            printReadyUrl = result.printUrl;
-            
-            // Validate that we got permanent URLs, not data URLs
-            if (finalImageUrl.startsWith('data:') || printReadyUrl.startsWith('data:')) {
-                console.error('[handleAddToCart] Upload failed - still have data URLs');
-                toast({
-                    title: 'Error',
-                    description: 'Failed to upload design. Please try again.',
-                    variant: 'destructive'
-                });
-                return;
+        try {
+            if (imageToUse.startsWith('data:')) {
+                // Have a data URL that needs uploading
+                console.log('[handleAddToCart] Data URL detected, uploading to storage...');
+                const result = await preparePrintReadyAsset(imageToUse);
+                finalImageUrl = result.displayUrl;
+                printReadyUrl = result.printUrl;
+                
+                setGeneratedImage(finalImageUrl);
+                setPrintReadyImageUrl(printReadyUrl);
+            } else if (printReadyImageUrl) {
+                // Already have permanent URLs
+                console.log('[handleAddToCart] Using existing permanent URLs');
+                finalImageUrl = imageToUse;
+                printReadyUrl = printReadyImageUrl;
+            } else {
+                // Have a regular URL but no print-ready version, upload it
+                console.log('[handleAddToCart] Uploading to get print-ready version...');
+                const result = await preparePrintReadyAsset(imageToUse);
+                finalImageUrl = result.displayUrl;
+                printReadyUrl = result.printUrl;
+                
+                setGeneratedImage(finalImageUrl);
+                setPrintReadyImageUrl(printReadyUrl);
             }
-            
-            setGeneratedImage(finalImageUrl);
-            setPrintReadyImageUrl(printReadyUrl);
-        } else if (printReadyImageUrl) {
-            // Already have permanent URLs
-            console.log('[handleAddToCart] Using existing permanent URLs');
-            finalImageUrl = imageToUse;
-            printReadyUrl = printReadyImageUrl;
-        } else {
-            // Have a regular URL but no print-ready version, upload it
-            console.log('[handleAddToCart] Uploading to get print-ready version...');
-            const result = await preparePrintReadyAsset(imageToUse);
-            finalImageUrl = result.displayUrl;
-            printReadyUrl = result.printUrl;
-            
-            setGeneratedImage(finalImageUrl);
-            setPrintReadyImageUrl(printReadyUrl);
+        } catch (uploadError) {
+            console.error('[handleAddToCart] Failed to upload image:', uploadError);
+            toast({
+                title: 'Upload Failed',
+                description: uploadError instanceof Error ? uploadError.message : 'Failed to upload design. Please try regenerating the image.',
+                variant: 'destructive'
+            });
+            return; // Don't add to cart if upload failed
         }
     }
 
@@ -2184,41 +2240,40 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
 
     // ALWAYS upload to get permanent URLs - never store base64 in cart/checkout
     if (imageToUse) {
-        if (imageToUse.startsWith('data:')) {
-            // Have a data URL that needs uploading
-            console.log('[handleCheckout] Data URL detected, uploading to storage...');
-            const result = await preparePrintReadyAsset(imageToUse);
-            finalImageUrl = result.displayUrl;
-            printReadyUrl = result.printUrl;
-            
-            // Validate that we got permanent URLs, not data URLs
-            if (finalImageUrl.startsWith('data:') || printReadyUrl.startsWith('data:')) {
-                console.error('[handleCheckout] Upload failed - still have data URLs');
-                setIsPreparingCheckout(false);
-                toast({
-                    title: 'Error',
-                    description: 'Failed to upload design. Please try again.',
-                    variant: 'destructive'
-                });
-                return;
+        try {
+            if (imageToUse.startsWith('data:')) {
+                // Have a data URL that needs uploading
+                console.log('[handleCheckout] Data URL detected, uploading to storage...');
+                const result = await preparePrintReadyAsset(imageToUse);
+                finalImageUrl = result.displayUrl;
+                printReadyUrl = result.printUrl;
+                
+                setGeneratedImage(finalImageUrl);
+                setPrintReadyImageUrl(printReadyUrl);
+            } else if (printReadyImageUrl) {
+                // Already have permanent URLs
+                console.log('[handleCheckout] Using existing permanent URLs');
+                finalImageUrl = imageToUse;
+                printReadyUrl = printReadyImageUrl;
+            } else {
+                // Have a regular URL but no print-ready version, upload it
+                console.log('[handleCheckout] Uploading to get print-ready version...');
+                const result = await preparePrintReadyAsset(imageToUse);
+                finalImageUrl = result.displayUrl;
+                printReadyUrl = result.printUrl;
+                
+                setGeneratedImage(finalImageUrl);
+                setPrintReadyImageUrl(printReadyUrl);
             }
-            
-            setGeneratedImage(finalImageUrl);
-            setPrintReadyImageUrl(printReadyUrl);
-        } else if (printReadyImageUrl) {
-            // Already have permanent URLs
-            console.log('[handleCheckout] Using existing permanent URLs');
-            finalImageUrl = imageToUse;
-            printReadyUrl = printReadyImageUrl;
-        } else {
-            // Have a regular URL but no print-ready version, upload it
-            console.log('[handleCheckout] Uploading to get print-ready version...');
-            const result = await preparePrintReadyAsset(imageToUse);
-            finalImageUrl = result.displayUrl;
-            printReadyUrl = result.printUrl;
-            
-            setGeneratedImage(finalImageUrl);
-            setPrintReadyImageUrl(printReadyUrl);
+        } catch (uploadError) {
+            console.error('[handleCheckout] Failed to upload image:', uploadError);
+            setIsPreparingCheckout(false);
+            toast({
+                title: 'Upload Failed',
+                description: uploadError instanceof Error ? uploadError.message : 'Failed to upload design. Please try regenerating the image.',
+                variant: 'destructive',
+            });
+            return; // Don't proceed to checkout if upload failed
         }
     }
 
@@ -2305,7 +2360,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
     } catch (error) {
       console.error('[handleCheckout] Checkout failed:', error);
       setIsPreparingCheckout(false);
-      toast({
+       toast({
         title: 'Error',
         description: 'Failed to initiate checkout. Please try again.',
         variant: 'destructive',

@@ -238,50 +238,125 @@ async function fetchImageFromUrl(url: string): Promise<Buffer> {
 }
 
 /**
- * Parse base64 data URL
+ * Parse base64 data URL with robust error handling
  */
 function parseDataUrl(dataUrl: string): Buffer {
   try {
     console.log('[parseDataUrl] Parsing data URL...');
     console.log('[parseDataUrl] Data URL length:', dataUrl.length);
-    console.log('[parseDataUrl] Data URL prefix:', dataUrl.substring(0, 100));
     
-    const matches = dataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
-    if (matches) {
-      const [, format, base64String] = matches;
-      console.log('[parseDataUrl] Matched format:', format);
+    if (!dataUrl || typeof dataUrl !== 'string') {
+      throw new Error('Data URL must be a non-empty string');
+    }
+    
+    if (!dataUrl.startsWith('data:')) {
+      throw new Error('Invalid data URL: must start with "data:"');
+    }
+    
+    // Try standard format first: data:image/format;base64,data
+    const standardMatch = dataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
+    if (standardMatch) {
+      const [, format, base64String] = standardMatch;
+      console.log('[parseDataUrl] Matched standard format:', format);
       console.log('[parseDataUrl] Base64 string length:', base64String.length);
-      console.log('[parseDataUrl] Base64 string prefix:', base64String.substring(0, 50));
       
-      if (!ALLOWED_FORMATS.includes(format.toLowerCase())) {
-        throw new Error(`Unsupported image format in data URL: ${format}`);
+      if (!format || !base64String) {
+        throw new Error('Data URL missing format or data');
       }
       
-      const buffer = Buffer.from(base64String, 'base64');
+      if (!ALLOWED_FORMATS.includes(format.toLowerCase())) {
+        throw new Error(`Unsupported image format in data URL: ${format}. Allowed formats: ${ALLOWED_FORMATS.join(', ')}`);
+      }
+      
+      // Validate base64 string is not empty
+      if (base64String.trim().length === 0) {
+        throw new Error('Base64 data is empty');
+      }
+      
+      // Remove any whitespace from base64 string
+      const cleanBase64 = base64String.replace(/\s/g, '');
+      
+      // Validate base64 encoding by attempting to decode
+      let buffer: Buffer;
+      try {
+        buffer = Buffer.from(cleanBase64, 'base64');
+      } catch (decodeError) {
+        throw new Error(`Invalid base64 encoding: ${decodeError instanceof Error ? decodeError.message : 'Decode failed'}`);
+      }
+      
+      if (!buffer || buffer.length === 0) {
+        throw new Error('Decoded buffer is empty');
+      }
+      
       console.log('[parseDataUrl] Buffer created successfully, size:', buffer.length);
       
-      // Check if buffer is actually valid image data by examining magic bytes
+      // Validate buffer contains valid image data by checking magic bytes
+      if (buffer.length < 8) {
+        throw new Error('Image data too small to be valid');
+      }
+      
       const magicBytes = buffer.toString('hex', 0, Math.min(8, buffer.length));
       console.log('[parseDataUrl] Buffer magic bytes (hex):', magicBytes);
       
-      return buffer;
-    } else {
-      console.warn('[parseDataUrl] Regex match failed, trying fallback parsing...');
-      // Try fallback parsing
-      const parts = dataUrl.split(',');
-      console.log('[parseDataUrl] Split parts count:', parts.length);
-      if (parts.length > 1) {
-        console.log('[parseDataUrl] Using fallback with part[0]:', parts[0]);
-        const buffer = Buffer.from(parts[1], 'base64');
-        console.log('[parseDataUrl] Fallback buffer created, size:', buffer.length);
-        return buffer;
-      } else {
-        throw new Error('Invalid data URL format');
+      // Verify magic bytes match expected format
+      const formatLower = format.toLowerCase();
+      const isValidMagic = 
+        (formatLower === 'jpeg' || formatLower === 'jpg') && magicBytes.startsWith('ffd8ff') ||
+        formatLower === 'png' && magicBytes.startsWith('89504e47') ||
+        formatLower === 'webp' && magicBytes.startsWith('52494646') ||
+        formatLower === 'gif' && magicBytes.startsWith('47494638');
+      
+      if (!isValidMagic) {
+        console.warn('[parseDataUrl] Magic bytes do not match declared format:', {
+          declared: format,
+          magicBytes,
+          expected: formatLower === 'png' ? '89504e47' : formatLower === 'jpeg' || formatLower === 'jpg' ? 'ffd8ff' : 'varies'
+        });
+        // Don't fail here - let sharp validate it
       }
+      
+      return buffer;
     }
+    
+    // Fallback: try to parse without format specification
+    console.warn('[parseDataUrl] Standard format match failed, trying fallback parsing...');
+    const parts = dataUrl.split(',');
+    if (parts.length < 2) {
+      throw new Error('Invalid data URL format: missing comma separator');
+    }
+    
+    const base64String = parts.slice(1).join(','); // Handle commas in base64 data
+    if (!base64String || base64String.trim().length === 0) {
+      throw new Error('Base64 data is empty');
+    }
+    
+    const cleanBase64 = base64String.replace(/\s/g, '');
+    let buffer: Buffer;
+    try {
+      buffer = Buffer.from(cleanBase64, 'base64');
+    } catch (decodeError) {
+      throw new Error(`Invalid base64 encoding in fallback: ${decodeError instanceof Error ? decodeError.message : 'Decode failed'}`);
+    }
+    
+    if (!buffer || buffer.length === 0) {
+      throw new Error('Decoded buffer is empty');
+    }
+    
+    console.log('[parseDataUrl] Fallback buffer created, size:', buffer.length);
+    
+    // Try to detect format from magic bytes
+    const detectedFormat = detectImageFormatFromBase64(cleanBase64.substring(0, 20));
+    if (!detectedFormat) {
+      throw new Error('Could not detect image format from data. Image may be corrupted.');
+    }
+    
+    console.log('[parseDataUrl] Detected format from magic bytes:', detectedFormat);
+    return buffer;
+    
   } catch (error) {
     console.error('[parseDataUrl] Parse error:', error);
-    throw new Error(`Failed to parse data URL: ${error instanceof Error ? error.message : 'Invalid format'}`);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to parse data URL: ${errorMessage}`);
   }
 }
 
