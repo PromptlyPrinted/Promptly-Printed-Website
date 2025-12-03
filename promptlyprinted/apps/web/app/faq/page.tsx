@@ -54,12 +54,17 @@ const faqCategories: FAQCategory[] = [
       {
         question: 'What payment methods do you accept?',
         answer:
-          'We accept all major credit cards (Visa, Mastercard, American Express), PayPal, and Apple Pay for secure and convenient payment processing.',
+          'We accept all major credit cards (Visa, Mastercard, American Express), PayPal, and Apple Pay for secure and convenient payment processing. All prices are displayed in British Pounds (GBP) and include VAT where applicable.',
       },
       {
-        question: 'Can I modify or cancel my order?',
+        question: 'Can I cancel or modify my order?',
         answer:
-          'Orders can be modified or cancelled within 1 hour of placement. Contact our customer support team immediately if you need to make changes to your order.',
+          'Yes, but only within 2 hours of placing your order. After 2 hours, your order enters production and cannot be cancelled or refunded. To cancel within the 2-hour window, contact our customer support team immediately or use the cancellation feature in your order confirmation email. Once production begins, we cannot stop the manufacturing process as custom products are made specifically for you and cannot be resold.',
+      },
+      {
+        question: 'Why can\'t I cancel after 2 hours?',
+        answer:
+          'Custom products require immediate production scheduling to ensure timely delivery. After 2 hours, your order enters our production queue and materials are committed to your specific design. Since these items are personalised and cannot be resold, we cannot offer cancellations or refunds once production has begun. This policy is clearly stated in our Terms of Service and allows us to provide you with high-quality custom products at competitive prices.',
       },
     ],
   },
@@ -87,19 +92,24 @@ const faqCategories: FAQCategory[] = [
     title: 'Returns & Refunds',
     questions: [
       {
-        question: 'What is your return policy?',
+        question: 'What is your return and refund policy?',
         answer:
-          'We accept returns within 30 days of delivery for unused items in original packaging. Custom-designed items can only be returned if defective or damaged during shipping.',
+          'You can cancel your order and receive a full refund within 2 hours of placing it. After 2 hours, your order enters production and cannot be cancelled or refunded. Once you receive your order, custom-designed items can only be returned if they are defective, damaged during shipping, or if we made an error (wrong product, size, or design). Standard return policies do not apply to custom products as they are made specifically for you and cannot be resold.',
       },
       {
-        question: 'How do I initiate a return?',
+        question: 'What happens if my order is defective or incorrect?',
         answer:
-          "Contact our customer support team with your order number to initiate a return. We'll provide a return shipping label and process your refund once we receive the item.",
+          'If you receive a product that is defective, damaged, or not as described, contact us within 14 days of delivery. We will provide a replacement at no cost or a full refund if replacement is not possible. If we made an error (wrong product, size, or design), we will also cover the return shipping costs.',
+      },
+      {
+        question: 'How do I request a refund for a defective item?',
+        answer:
+          "Contact our customer support team at support@promptlyprinted.com with your order number, photos of the defect or error, and a description of the issue. We'll review your request and process a replacement or refund as appropriate. Refunds are processed to your original payment method within 14 business days.",
       },
       {
         question: 'When will I receive my refund?',
         answer:
-          'Refunds are processed within 3-5 business days after we receive your return. The funds may take additional time to appear in your account depending on your payment method.',
+          'Refunds are processed within 14 business days of our approval. The time it takes for the refund to appear in your account depends on your payment provider, but typically takes 3-5 additional business days after processing.',
       },
     ],
   },
