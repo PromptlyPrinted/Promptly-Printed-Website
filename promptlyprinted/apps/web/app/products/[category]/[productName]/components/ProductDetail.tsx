@@ -839,13 +839,32 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       // This handles both Data URLs and regular URLs correctly and robustly
       console.log('[uploadImageToPermanentStorage] Fetching image data...');
       
-      const imageResponse = await fetch(imageUrl);
-      if (!imageResponse.ok) {
-        throw new Error(`Failed to fetch image data: ${imageResponse.status}`);
+      let blob: Blob;
+
+      if (imageUrl.startsWith('data:')) {
+        try {
+          // Manually convert Data URL to Blob
+          const byteString = atob(imageUrl.split(',')[1]);
+          const mimeString = imageUrl.split(',')[0].split(':')[1].split(';')[0];
+          const ab = new ArrayBuffer(byteString.length);
+          const ia = new Uint8Array(ab);
+          for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+          }
+          blob = new Blob([ab], { type: mimeString });
+          console.log('[uploadImageToPermanentStorage] Converted Data URL to Blob:', blob.size, 'bytes', 'type:', blob.type);
+        } catch (e) {
+          console.error('[uploadImageToPermanentStorage] Failed to convert Data URL:', e);
+          throw new Error('Failed to process image data');
+        }
+      } else {
+        const imageResponse = await fetch(imageUrl);
+        if (!imageResponse.ok) {
+          throw new Error(`Failed to fetch image data: ${imageResponse.status}`);
+        }
+        blob = await imageResponse.blob();
+        console.log('[uploadImageToPermanentStorage] Fetched Blob from URL:', blob.size, 'bytes', 'type:', blob.type);
       }
-      
-      const blob = await imageResponse.blob();
-      console.log('[uploadImageToPermanentStorage] Blob created:', blob.size, 'bytes', 'type:', blob.type);
       
       if (blob.size === 0) {
         throw new Error('Image data is empty');

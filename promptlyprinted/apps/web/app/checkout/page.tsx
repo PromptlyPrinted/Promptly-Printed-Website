@@ -258,7 +258,25 @@ export default function CheckoutPage() {
     if (cartItems) {
       try {
         const parsedItems = JSON.parse(cartItems);
-        setItems(parsedItems);
+        // Validate and filter items to ensure they have valid image URLs
+        const validItems = parsedItems.filter((item: CheckoutItem) => {
+          const hasImage = (item.images && item.images.length > 0 && item.images[0]?.url) ||
+                          item.designUrl || 
+                          item.printReadyUrl ||
+                          item.previewUrl;
+          if (!hasImage) {
+            console.warn('[Checkout] Removing item with missing image URLs:', item);
+          }
+          return hasImage;
+        });
+        
+        if (validItems.length === 0) {
+          setError('No valid items in cart. Please add items with images.');
+        } else if (validItems.length < parsedItems.length) {
+          console.warn(`[Checkout] Removed ${parsedItems.length - validItems.length} items with missing images`);
+        }
+        
+        setItems(validItems);
       } catch (e) {
         console.error('Failed to parse cart items:', e);
         setError('Failed to load cart items');
@@ -461,7 +479,8 @@ export default function CheckoutPage() {
   };
 
   const handleApplyDiscount = async () => {
-    if (!discountCode.trim()) {
+    const trimmedCode = discountCode.trim();
+    if (!trimmedCode) {
       setDiscountError('Please enter a discount code');
       return;
     }
@@ -479,7 +498,7 @@ export default function CheckoutPage() {
         },
         credentials: 'include',
         body: JSON.stringify({
-          code: discountCode.trim(),
+          code: trimmedCode, // Already trimmed
           orderAmount: calculateSubtotal(),
         }),
       });
@@ -565,6 +584,25 @@ export default function CheckoutPage() {
         const token = result.token;
 
 
+        // Validate items have required image URLs before sending
+        const validItems = items.filter(item => {
+          const hasImage = (item.images && item.images.length > 0 && item.images[0]?.url) ||
+                          item.designUrl || 
+                          item.printReadyUrl;
+          if (!hasImage) {
+            console.error('[Checkout] Item missing image URLs:', item);
+          }
+          return hasImage;
+        });
+
+        if (validItems.length === 0) {
+          throw new Error('No valid items with images found. Please try adding items to cart again.');
+        }
+
+        if (validItems.length < items.length) {
+          console.warn(`[Checkout] Removed ${items.length - validItems.length} items with missing images`);
+        }
+
         // Send payment to backend
         const csrfToken = await getCsrfToken();
         const response = await fetch('/api/checkout/complete-payment', {
@@ -576,10 +614,10 @@ export default function CheckoutPage() {
           credentials: 'include',
           body: JSON.stringify({
             sourceId: token,
-            items,
+            items: validItems,
             billingAddress,
             shippingAddress: useDifferentShipping ? shippingAddress : undefined,
-            discountCode: appliedDiscount?.code,
+            discountCode: appliedDiscount?.code?.trim(),
           }),
         });
 
@@ -643,10 +681,15 @@ export default function CheckoutPage() {
           credentials: 'include',
           body: JSON.stringify({
             sourceId: tokenResult.token,
-            items,
+            items: items.filter(item => {
+              const hasImage = (item.images && item.images.length > 0 && item.images[0]?.url) ||
+                              item.designUrl || 
+                              item.printReadyUrl;
+              return hasImage;
+            }),
             billingAddress,
             shippingAddress: useDifferentShipping ? shippingAddress : undefined,
-            discountCode: appliedDiscount?.code,
+            discountCode: appliedDiscount?.code?.trim(),
           }),
         });
 
@@ -735,6 +778,25 @@ export default function CheckoutPage() {
     setError(null);
 
     try {
+      // Validate items have required image URLs before sending
+      const validItems = items.filter(item => {
+        const hasImage = (item.images && item.images.length > 0 && item.images[0]?.url) ||
+                        item.designUrl || 
+                        item.printReadyUrl;
+        if (!hasImage) {
+          console.error('[Checkout Process] Item missing image URLs:', item);
+        }
+        return hasImage;
+      });
+
+      if (validItems.length === 0) {
+        throw new Error('No valid items with images found. Please try adding items to cart again.');
+      }
+
+      if (validItems.length < items.length) {
+        console.warn(`[Checkout Process] Removed ${items.length - validItems.length} items with missing images`);
+      }
+
       const csrfToken = await getCsrfToken();
       const response = await fetch('/api/checkout/process', {
         method: 'POST',
@@ -744,10 +806,10 @@ export default function CheckoutPage() {
         },
         credentials: 'include',
         body: JSON.stringify({
-          items,
+          items: validItems,
           billingAddress: billing,
           shippingAddress: shipping,
-          discountCode: appliedDiscount?.code,
+          discountCode: appliedDiscount?.code?.trim(),
         }),
       });
 
