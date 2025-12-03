@@ -1,12 +1,45 @@
 let cachedToken: string | null = null;
+let tokenFetchPromise: Promise<string> | null = null;
 
 export async function getCsrfToken(): Promise<string> {
+  // Return cached token if available
   if (cachedToken) return cachedToken;
-  const res = await fetch('/api/auth/csrf', { credentials: 'include' });
-  if (!res.ok) throw new Error('Failed to fetch CSRF token');
-  const data = await res.json();
-  cachedToken = data.csrfToken as string;
-  return cachedToken || '';
+  
+  // If there's already a fetch in progress, wait for it
+  if (tokenFetchPromise) {
+    return tokenFetchPromise;
+  }
+  
+  // Fetch new token
+  tokenFetchPromise = (async () => {
+    try {
+      const res = await fetch('/api/auth/csrf', { 
+        credentials: 'include',
+        cache: 'no-store' // Always fetch fresh token
+      });
+      if (!res.ok) {
+        throw new Error(`Failed to fetch CSRF token: ${res.status} ${res.statusText}`);
+      }
+      const data = await res.json();
+      const token = data.csrfToken as string;
+      if (!token) {
+        throw new Error('CSRF token not found in response');
+      }
+      cachedToken = token;
+      return token;
+    } catch (error) {
+      // Clear promise on error so we can retry
+      tokenFetchPromise = null;
+      throw error;
+    } finally {
+      // Clear promise after a short delay to allow for retries if needed
+      setTimeout(() => {
+        tokenFetchPromise = null;
+      }, 1000);
+    }
+  })();
+  
+  return tokenFetchPromise;
 }
 
 export async function withCsrf(init?: RequestInit): Promise<RequestInit> {

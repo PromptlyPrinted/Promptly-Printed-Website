@@ -28,21 +28,23 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const { code, orderAmount } = validation.data;
 
+    // Normalize the code: trim and uppercase (codes are stored in uppercase)
+    const normalizedCode = code.trim().toUpperCase();
+    
     console.log('[Validate Discount] Checking code:', code);
-    console.log('[Validate Discount] Trimmed code:', code.trim());
+    console.log('[Validate Discount] Normalized code:', normalizedCode);
 
     // Get user session if exists
     const session = await getSession(request);
     const userId = session?.user?.id;
 
-    // Find the discount code
-    // Find the discount code (case-insensitive)
-    let discountCode = await prisma.discountCode.findFirst({
+    // Find the discount code - try multiple strategies for maximum compatibility
+    let discountCode = null;
+    
+    // Strategy 1: Exact match with normalized (uppercase) code (most reliable)
+    discountCode = await prisma.discountCode.findFirst({
       where: { 
-        code: {
-          equals: code.trim(),
-          mode: 'insensitive'
-        }
+        code: normalizedCode
       },
       include: {
         usages: userId ? {
@@ -51,12 +53,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       },
     });
 
-    // Fallback: try exact match with uppercase if insensitive search failed
-    // This handles cases where Prisma's insensitive mode might be behaving unexpectedly
+    // Strategy 2: Case-insensitive search (if exact match failed)
     if (!discountCode) {
       discountCode = await prisma.discountCode.findFirst({
         where: { 
-          code: code.trim().toUpperCase()
+          code: {
+            equals: normalizedCode,
+            mode: 'insensitive'
+          }
         },
         include: {
           usages: userId ? {
@@ -66,11 +70,49 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       });
     }
 
-    console.log('[Validate Discount] Found:', discountCode);
+    // Strategy 3: Try with original trimmed code (in case it's stored differently)
+    if (!discountCode && code.trim() !== normalizedCode) {
+      discountCode = await prisma.discountCode.findFirst({
+        where: { 
+          code: code.trim()
+        },
+        include: {
+          usages: userId ? {
+            where: { userId },
+          } : false,
+        },
+      });
+    }
+
+    console.log('[Validate Discount] Found:', discountCode ? {
+      id: discountCode.id,
+      code: discountCode.code,
+      isActive: discountCode.isActive,
+      usedCount: discountCode.usedCount,
+      maxUses: discountCode.maxUses,
+    } : 'Not found');
 
     if (!discountCode) {
+      console.error('[Validate Discount] Code not found in database:', {
+        originalCode: code,
+        normalizedCode: normalizedCode,
+        trimmedCode: code.trim(),
+      });
+      
+      // Try to find similar codes for better error message
+      const allCodes = await prisma.discountCode.findMany({
+        where: { isActive: true },
+        select: { code: true },
+        take: 10,
+      });
+      
+      const availableCodes = allCodes.map(c => c.code).join(', ');
+      const errorMessage = availableCodes 
+        ? `Invalid discount code. Available codes: ${availableCodes}`
+        : `Invalid discount code: '${code}'`;
+      
       return NextResponse.json(
-        { valid: false, error: `Invalid discount code: '${code}' (trimmed: '${code.trim()}')` },
+        { valid: false, error: errorMessage },
         { status: 200 }
       );
     }
@@ -147,7 +189,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       valid: true,
       discountCode: {
         id: discountCode.id,
-        code: discountCode.code,
+        code: discountCode.code.toUpperCase(), // Ensure uppercase for consistency
         type: discountCode.type,
         value: discountCode.value,
         discountAmount,

@@ -75,13 +75,19 @@ export async function POST(request: NextRequest) {
     let validatedDiscountCode = null;
 
     if (discountCode) {
-      // Find the discount code (case-insensitive search first, then fallback to uppercase)
-      let discount = await prisma.discountCode.findFirst({
+      // Normalize the code: trim and uppercase (codes are stored in uppercase)
+      const normalizedCode = discountCode.trim().toUpperCase();
+      
+      console.log('[Complete Payment] Looking for discount:', discountCode);
+      console.log('[Complete Payment] Normalized code:', normalizedCode);
+      
+      // Find the discount code - try multiple strategies for maximum compatibility
+      let discount = null;
+      
+      // Strategy 1: Exact match with normalized (uppercase) code (most reliable)
+      discount = await prisma.discountCode.findFirst({
         where: { 
-          code: {
-            equals: discountCode.trim(),
-            mode: 'insensitive'
-          }
+          code: normalizedCode
         },
         include: {
           usages: dbUser?.id ? {
@@ -90,11 +96,28 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Fallback: try exact match with uppercase if insensitive search failed
+      // Strategy 2: Case-insensitive search (if exact match failed)
       if (!discount) {
         discount = await prisma.discountCode.findFirst({
           where: { 
-            code: discountCode.trim().toUpperCase()
+            code: {
+              equals: normalizedCode,
+              mode: 'insensitive'
+            }
+          },
+          include: {
+            usages: dbUser?.id ? {
+              where: { userId: dbUser.id },
+            } : false,
+          },
+        });
+      }
+
+      // Strategy 3: Try with original trimmed code (in case it's stored differently)
+      if (!discount && discountCode.trim() !== normalizedCode) {
+        discount = await prisma.discountCode.findFirst({
+          where: { 
+            code: discountCode.trim()
           },
           include: {
             usages: dbUser?.id ? {

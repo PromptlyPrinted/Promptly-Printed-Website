@@ -506,10 +506,16 @@ export default function CheckoutPage() {
       const data = await response.json();
 
       if (data.valid && data.discountCode) {
-        setAppliedDiscount(data.discountCode);
+        // Ensure we store the actual code from the database (normalized)
+        setAppliedDiscount({
+          ...data.discountCode,
+          code: data.discountCode.code.toUpperCase(), // Normalize to uppercase
+        });
         setDiscountError(null);
       } else {
-        setDiscountError(data.error || 'Invalid discount code');
+        const errorMsg = data.error || 'Invalid discount code';
+        console.error('[Checkout] Discount validation failed:', errorMsg);
+        setDiscountError(errorMsg);
         setAppliedDiscount(null);
       }
     } catch (err) {

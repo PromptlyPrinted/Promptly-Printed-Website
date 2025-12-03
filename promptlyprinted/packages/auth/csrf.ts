@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const CSRF_HEADER = 'x-csrf-token';
-const CSRF_COOKIE = 'better-auth.csrf-token';
+const CSRF_COOKIE = 'better-auth.csrf_token'; // Must match server.ts cookie name (with underscore)
 
 export function verifyCsrf(request: any) {
   const method = request.method.toUpperCase();
@@ -11,10 +11,31 @@ export function verifyCsrf(request: any) {
   const headerToken = request.headers.get(CSRF_HEADER);
   const cookieToken = request.cookies.get(CSRF_COOKIE)?.value;
 
-  if (!headerToken || !cookieToken || headerToken !== cookieToken) {
+  // Debug logging in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[CSRF Verification]', {
+      method,
+      hasHeaderToken: !!headerToken,
+      hasCookieToken: !!cookieToken,
+      headerTokenLength: headerToken?.length || 0,
+      cookieTokenLength: cookieToken?.length || 0,
+      tokensMatch: headerToken === cookieToken,
+      cookieName: CSRF_COOKIE,
+    });
+  }
+
+  if (!headerToken || !cookieToken) {
     return {
       ok: false as const,
-      error: 'Invalid CSRF token',
+      error: `Invalid CSRF token: ${!headerToken ? 'missing header token' : 'missing cookie token'}`,
+      status: 403,
+    };
+  }
+
+  if (headerToken !== cookieToken) {
+    return {
+      ok: false as const,
+      error: 'Invalid CSRF token: tokens do not match',
       status: 403,
     };
   }
