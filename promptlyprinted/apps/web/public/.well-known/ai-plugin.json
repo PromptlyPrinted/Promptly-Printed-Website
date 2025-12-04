@@ -1,0 +1,18 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "Promptly Printed",
+  "name_for_model": "promptly_printed",
+  "description_for_human": "Create custom AI-generated t-shirts, hoodies, and apparel. Type your idea, our AI designs it.",
+  "description_for_model": "Promptly Printed is an AI-powered custom apparel platform. Users can create unique t-shirt and hoodie designs using text-to-image AI generation. The service offers premium fabric (up to 280gsm), global shipping, and no minimum orders. Key features: text-to-image design, image-to-image transformation, multiple AI models, DTG printing, worldwide shipping.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "none",
+    "url": "https://promptlyprinted.com"
+  },
+  "logo_url": "https://promptlyprinted.com/logo.png",
+  "contact_email": "support@promptlyprinted.com",
+  "legal_info_url": "https://promptlyprinted.com/legal/terms"
+}
+

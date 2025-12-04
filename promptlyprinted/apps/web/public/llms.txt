@@ -1,0 +1,45 @@
+# Promptly Printed
+> AI-powered custom apparel design platform
+
+## About
+Promptly Printed is an online service that lets users create custom t-shirts, hoodies, and apparel using AI-generated designs. Users type a text prompt, and the AI generates unique artwork that gets printed on premium clothing.
+
+## Key Features
+- Text-to-Image: Describe your design idea in words
+- Image-to-Image: Transform existing images with AI
+- Premium Quality: 280gsm fabric, DTG printing
+- Global Shipping: Ships to 100+ countries
+- No Minimums: Order just 1 item
+
+## Products
+- Men's T-Shirts
+- Women's T-Shirts
+- Hoodies & Sweatshirts
+- Kids & Baby Apparel
+- Accessories
+
+## How It Works
+1. Choose an apparel item (t-shirt, hoodie, etc.)
+2. Select size, color, and quantity
+3. Choose an AI model for design generation
+4. Enter a text prompt describing your design
+5. AI generates the artwork
+6. Preview on the product
+7. Checkout and receive your custom apparel
+
+## Pricing
+- T-shirts from $25 USD
+- Hoodies from $45 USD
+- Free shipping on orders over $50
+
+## Contact
+- Website: https://promptlyprinted.com
+- Email: support@promptlyprinted.com
+- Social: @promptlyprinted on Twitter, Instagram, TikTok
+
+## API
+No public API currently available.
+
+## Competitors
+Similar services include TeeAI, TeeWiz, and traditional print-on-demand services like Printful and Printify, though Promptly Printed differentiates with AI design generation.
+

@@ -2,6 +2,7 @@ import { tshirtDetails } from '@/data/products';
 import { notFound } from 'next/navigation';
 import { createMetadata } from '@repo/seo/metadata';
 import type { Metadata } from 'next';
+import { JsonLd, type WithContext, type Product as ProductSchema } from '@repo/seo/json-ld';
 import { ProductDetail } from './components/ProductDetail';
 import type { Product } from '@/types/product';
 import { database } from '@repo/database';
@@ -110,11 +111,20 @@ export async function generateMetadata({
     return {};
   }
 
+  // SEO-optimized title and description
+  const usdPrice = product.pricing.find((p) => p.currency === 'USD')?.amount || 25;
+  const seoTitle = `Custom ${product.name} | AI Design Your Own | From $${usdPrice}`;
+  const seoDescription = `Design your own ${product.name} with AI. ${product.shortDescription} Premium ${product.brand?.name || ''} quality. Ships worldwide. No minimum order.`;
+
   return createMetadata({
-    title: `${product.name} | Promptly Printed`,
-    description: product.shortDescription,
+    title: seoTitle,
+    description: seoDescription,
     openGraph: {
       images: [product.imageUrls.cover],
+      type: 'website',
+    },
+    alternates: {
+      canonical: `https://promptlyprinted.com/products/${createSlug(product.category)}/${createSlug(product.name)}`,
     },
   });
 }
@@ -212,13 +222,87 @@ export default async function ProductPage({ params }: ProductPageProps) {
     wishedBy: [],
   };
 
+  // Generate Product JSON-LD Schema for SEO
+  const usdPrice = product.pricing.find((p) => p.currency === 'USD')?.amount || 25;
+  const productUrl = `https://promptlyprinted.com/products/${createSlug(product.category)}/${createSlug(product.name)}`;
+  
+  const productSchema: WithContext<ProductSchema> = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    description: product.shortDescription,
+    image: product.imageUrls.cover,
+    sku: product.sku,
+    brand: {
+      '@type': 'Brand',
+      name: product.brand?.name || 'Promptly Printed',
+    },
+    offers: {
+      '@type': 'Offer',
+      url: productUrl,
+      priceCurrency: 'USD',
+      price: usdPrice,
+      availability: 'https://schema.org/InStock',
+      seller: {
+        '@type': 'Organization',
+        name: 'Promptly Printed',
+      },
+      shippingDetails: {
+        '@type': 'OfferShippingDetails',
+        shippingDestination: {
+          '@type': 'DefinedRegion',
+          addressCountry: 'Worldwide',
+        },
+        deliveryTime: {
+          '@type': 'ShippingDeliveryTime',
+          handlingTime: {
+            '@type': 'QuantitativeValue',
+            minValue: 2,
+            maxValue: 5,
+            unitCode: 'DAY',
+          },
+          transitTime: {
+            '@type': 'QuantitativeValue',
+            minValue: 5,
+            maxValue: 14,
+            unitCode: 'DAY',
+          },
+        },
+      },
+    },
+    category: product.category,
+    material: product.dimensions?.fabric || 'Premium Cotton',
+    color: colorOptions?.map((opt: { name: string }) => opt.name) || [],
+    size: product.size,
+    additionalProperty: [
+      {
+        '@type': 'PropertyValue',
+        name: 'Fabric Weight',
+        value: product.dimensions?.weight || '280gsm',
+      },
+      {
+        '@type': 'PropertyValue',
+        name: 'Print Method',
+        value: 'DTG (Direct to Garment)',
+      },
+      {
+        '@type': 'PropertyValue',
+        name: 'Design Method',
+        value: 'AI-Generated Custom Design',
+      },
+    ],
+  };
+
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">Loading product...</div>
-      </div>
-    }>
-      <ProductDetail product={productWithPrice} />
-    </Suspense>
+    <>
+      <JsonLd code={productSchema} />
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">Loading product...</div>
+        </div>
+      }>
+        <ProductDetail product={productWithPrice} />
+      </Suspense>
+    </>
   );
 }

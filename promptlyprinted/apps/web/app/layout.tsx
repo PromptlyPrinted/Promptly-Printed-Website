@@ -9,6 +9,79 @@ import { Footer } from './components/footer';
 import { Header } from './components/header';
 import { TrackingCapture } from '@/components/tracking/TrackingCapture';
 import { CountryProvider } from '@/components/providers/CountryProvider';
+import type { Metadata, Viewport } from 'next';
+
+// Global metadata for all pages
+export const metadata: Metadata = {
+  metadataBase: new URL('https://promptlyprinted.com'),
+  title: {
+    default: 'Promptly Printed | AI T-Shirt Design Generator',
+    template: '%s | Promptly Printed',
+  },
+  description: 'Design custom AI-generated t-shirts, hoodies & apparel. Type your idea, watch it become wearable art. Premium 280gsm fabric. Global shipping.',
+  keywords: ['AI t-shirt design', 'custom t-shirt', 'AI apparel', 'print on demand', 'custom hoodie', 'personalized clothing'],
+  authors: [{ name: 'Promptly Printed', url: 'https://promptlyprinted.com' }],
+  creator: 'Promptly Printed',
+  publisher: 'Promptly Printed',
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: 'https://promptlyprinted.com',
+    siteName: 'Promptly Printed',
+    title: 'Promptly Printed | AI T-Shirt Design Generator',
+    description: 'Design custom AI-generated t-shirts, hoodies & apparel. Premium quality. Global shipping.',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Promptly Printed - AI T-Shirt Design',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@promptlyprinted',
+    creator: '@promptlyprinted',
+    title: 'Promptly Printed | AI T-Shirt Design',
+    description: 'Design custom AI-generated t-shirts & apparel',
+    images: ['/og-image.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  verification: {
+    // Add your verification codes here
+    // google: 'your-google-verification-code',
+    // yandex: 'your-yandex-verification-code',
+    // yahoo: 'your-yahoo-verification-code',
+  },
+  category: 'ecommerce',
+};
+
+// Viewport configuration
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#000000' },
+  ],
+};
 
 type RootLayoutProperties = {
   readonly children: ReactNode;

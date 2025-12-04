@@ -72,6 +72,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { LORAS, KONTEXT_LORAS, type Lora, type KontextLora } from '../../../../../data/textModel';
 import { jsPDF } from 'jspdf';
+import { uploadImage, isPermanentUrl, isDataUrl } from '@/lib/image-utils';
 
 // Comprehensive color hex mapping for all T-shirt colors found in product data
 const colorHexMap: Record<string, string> = {
@@ -815,184 +816,24 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
   }, [processedImage, generatedImage, referenceImage]);
 
   /**
-   * Convert a data URL to an ArrayBuffer directly (without using fetch)
-   * This is more reliable than fetch(dataUrl) which can fail in some environments
+   * Upload image to permanent storage using centralized utility
+   * Uses @/lib/image-utils for consistent handling across the app
    */
-  const dataUrlToArrayBuffer = (dataUrl: string): { buffer: ArrayBuffer; mimeType: string } => {
-    const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
-    if (!match) {
-      throw new Error('Invalid data URL format');
-    }
-    
-    const mimeType = match[1];
-    const base64 = match[2];
-    
-    // Decode base64 to binary string
-    const binaryString = atob(base64);
-    const len = binaryString.length;
-    const bytes = new Uint8Array(len);
-    
-    for (let i = 0; i < len; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-    
-    return { buffer: bytes.buffer, mimeType };
-  };
-
   const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: string; previewUrl: string; printReadyUrl: string }> => {
-    try {
-      // Early validation
-      if (!imageUrl) {
-        throw new Error('No image URL provided');
-      }
-
-      // If it's already a permanent URL, derive the print-ready and preview URLs
-      if (imageUrl.startsWith('/api/images/')) {
-        const printReadyUrl = imageUrl.replace(/\.png$/, '-300dpi.png');
-        const previewUrl = imageUrl.replace(/\.png$/, '-preview.jpg');
-        return { url: imageUrl, previewUrl, printReadyUrl };
-      }
-
-      // If it's a Cloudflare R2 URL, it's already permanent
-      if (imageUrl.includes('.r2.dev') || imageUrl.includes('cloudflare') || imageUrl.includes('images.promptlyprinted.com')) {
-        return { url: imageUrl, previewUrl: imageUrl, printReadyUrl: imageUrl };
-      }
-
-      // If it's a legacy upload URL, just return it for all three
-      if (imageUrl.startsWith('/uploads/')) {
-        return { url: imageUrl, previewUrl: imageUrl, printReadyUrl: imageUrl };
-      }
-
-      // Get product code for correct dimensions
-      const productCode = product.specifications?.style || product.sku || product.id.toString();
-
-      console.log('[uploadImageToPermanentStorage] Starting upload...');
-      console.log('[uploadImageToPermanentStorage] Image URL type:', imageUrl.startsWith('data:') ? 'data URL' : 'regular URL');
-
-      // Upload with retry
-      const attemptUpload = async (attempt: number): Promise<Response> => {
-        console.log(`[uploadImageToPermanentStorage] Upload attempt ${attempt}...`);
-        
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
-        
-        try {
-          let response: Response;
-          
-          if (imageUrl.startsWith('data:')) {
-            // For data URLs, convert directly to ArrayBuffer (more reliable than fetch)
-            console.log('[uploadImageToPermanentStorage] Converting data URL to binary...');
-            
-            try {
-              const { buffer, mimeType } = dataUrlToArrayBuffer(imageUrl);
-              
-              if (buffer.byteLength === 0) {
-                throw new Error('Image data is empty');
-              }
-              
-              console.log('[uploadImageToPermanentStorage] Binary data ready, size:', buffer.byteLength, 'type:', mimeType);
-              
-              // Send as raw binary with metadata in headers
-              response = await fetch('/api/upload-image', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': mimeType || 'image/png',
-                  'X-Image-Name': encodeURIComponent('Generated Design'),
-                  'X-Product-Code': productCode,
-                },
-                body: buffer,
-                signal: controller.signal,
-              });
-            } catch (conversionError) {
-              console.error('[uploadImageToPermanentStorage] Binary conversion failed:', conversionError);
-              // Fallback: try sending as JSON
-              console.log('[uploadImageToPermanentStorage] Falling back to JSON upload...');
-              response = await fetch('/api/upload-image', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  imageUrl: imageUrl,
-                  name: 'Generated Design',
-                  productCode: productCode,
-                }),
-                signal: controller.signal,
-              });
-            }
-          } else {
-            // For regular URLs, send URL reference for server-side fetch
-            console.log('[uploadImageToPermanentStorage] Sending URL for server-side processing...');
-            response = await fetch('/api/upload-image', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                imageUrl: imageUrl,
-                name: 'Generated Design',
-                productCode: productCode,
-              }),
-              signal: controller.signal,
-            });
-          }
-          
-          clearTimeout(timeoutId);
-          return response;
-        } catch (err) {
-          clearTimeout(timeoutId);
-          
-          if (err instanceof Error) {
-            if (err.name === 'AbortError') {
-              throw new Error('Upload timed out');
-            }
-            // Retry on network errors
-            if (err.message.includes('Load failed') || err.message.includes('Failed to fetch') || err.message.includes('network')) {
-              if (attempt < 3) {
-                console.warn(`[uploadImageToPermanentStorage] Retry ${attempt}...`);
-                await new Promise(r => setTimeout(r, 1000 * attempt));
-                return attemptUpload(attempt + 1);
-              }
-            }
-          }
-          throw err;
-        }
-      };
-
-      const response = await attemptUpload(1);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[uploadImageToPermanentStorage] Server error:', errorText);
-        
-        try {
-          const errorData = JSON.parse(errorText);
-          throw new Error(errorData.error || `Upload failed: ${response.status}`);
-        } catch (e) {
-          if (e instanceof SyntaxError) {
-            throw new Error(`Upload failed (${response.status}): ${errorText.substring(0, 100)}`);
-          }
-          throw e;
-        }
-      }
-
-      const result = await response.json();
-      console.log('[uploadImageToPermanentStorage] Success:', result.url?.substring(0, 50));
-
-      if (!result.url) {
-        throw new Error('Server did not return image URL');
-      }
-
-      return {
-        url: result.url,
-        previewUrl: result.previewUrl || result.url,
-        printReadyUrl: result.printReadyUrl || result.url
-      };
-
-    } catch (error) {
-      console.error('[uploadImageToPermanentStorage] Error:', error);
-      throw error;
-    }
+    const productCode = product.specifications?.style || product.sku || product.id.toString();
+    
+    console.log('[uploadImageToPermanentStorage] Starting upload...');
+    console.log('[uploadImageToPermanentStorage] Image URL type:', isDataUrl(imageUrl) ? 'data URL' : 'regular URL');
+    console.log('[uploadImageToPermanentStorage] Is permanent URL:', isPermanentUrl(imageUrl));
+    
+    // Use centralized upload utility
+    const result = await uploadImage(imageUrl, {
+      productCode,
+      name: 'Generated Design',
+    });
+    
+    console.log('[uploadImageToPermanentStorage] Success:', result.url?.substring(0, 50));
+    return result;
   };
 
   // ---- Nano Banana Generation ----
