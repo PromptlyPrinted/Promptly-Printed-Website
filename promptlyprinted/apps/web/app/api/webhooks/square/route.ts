@@ -161,8 +161,337 @@ export async function POST(req: Request) {
         return NextResponse.json({ received: true });
       }
 
-      // Get order ID from payment metadata or order ID
-      const orderId = payment.order_id;
+      // Get database order ID from payment reference_id (set in complete-payment route)
+      // This is the primary way to identify orders created via direct payment
+      const dbOrderIdFromRef = payment.reference_id;
+      const squareOrderId = payment.order_id;
+
+      console.log('[Webhook] Payment details:', {
+        paymentId: payment.id,
+        status: payment.status,
+        referenceId: dbOrderIdFromRef,
+        orderId: squareOrderId,
+      });
+
+      // If we have a reference_id, this is a direct payment from complete-payment route
+      // We can directly look up the database order
+      if (dbOrderIdFromRef && !squareOrderId) {
+        console.log('[Webhook] Direct payment detected, using reference_id:', dbOrderIdFromRef);
+        
+        const dbOrderId = Number.parseInt(dbOrderIdFromRef);
+        if (isNaN(dbOrderId)) {
+          console.error('[Webhook] Invalid order ID in reference_id:', dbOrderIdFromRef);
+          return NextResponse.json({ error: 'Invalid order reference' }, { status: 400 });
+        }
+
+        // Fetch the existing order from database
+        const existingOrder = await prisma.order.findUnique({
+          where: { id: dbOrderId },
+          include: {
+            recipient: true,
+            discountCode: true,
+            orderItems: true,
+          },
+        });
+
+        if (!existingOrder) {
+          console.error('[Webhook] Order not found in database:', dbOrderId);
+          return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+        }
+
+        console.log('[Webhook] Found existing order:', {
+          orderId: existingOrder.id,
+          status: existingOrder.status,
+          hasProdigiOrderId: !!existingOrder.prodigiOrderId,
+        });
+
+        // Update order status to COMPLETED
+        const updatedOrder = await prisma.order.update({
+          where: { id: dbOrderId },
+          data: {
+            status: OrderStatus.COMPLETED,
+            metadata: {
+              ...(existingOrder.metadata as object || {}),
+              squarePaymentId: payment.id,
+              squarePaymentStatus: payment.status,
+            },
+          },
+          include: {
+            recipient: true,
+            discountCode: true,
+            orderItems: true,
+          },
+        });
+
+        console.log('[Webhook] Order status updated to COMPLETED:', dbOrderId);
+
+        // Send order confirmation email
+        if (updatedOrder.recipient?.email) {
+          try {
+            console.log('[Email] Sending order confirmation to:', updatedOrder.recipient.email);
+            await sendOrderConfirmation({
+              to: updatedOrder.recipient.email,
+              orderNumber: updatedOrder.id.toString(),
+              items: updatedOrder.orderItems.map((item: any) => {
+                const attrs = item.attributes as any;
+                return {
+                  name: attrs?.productName || 'Custom T-Shirt',
+                  sku: attrs?.sku || item.merchantReference,
+                  size: attrs?.size || 'N/A',
+                  color: attrs?.color || 'N/A',
+                  copies: item.copies || 1,
+                  price: item.price,
+                };
+              }),
+              total: updatedOrder.totalPrice,
+              discountAmount: updatedOrder.discountAmount || 0,
+              shippingAddress: {
+                name: updatedOrder.recipient.name,
+                line1: updatedOrder.recipient.addressLine1,
+                line2: updatedOrder.recipient.addressLine2 || undefined,
+                city: updatedOrder.recipient.city,
+                state: updatedOrder.recipient.state || undefined,
+                postalCode: updatedOrder.recipient.postalCode,
+                country: updatedOrder.recipient.countryCode,
+              },
+            });
+            console.log('[Email] Order confirmation sent successfully');
+          } catch (emailError) {
+            console.error('[Email] Failed to send order confirmation:', emailError);
+          }
+        }
+
+        // Grant T-shirt purchase bonus credits
+        if (updatedOrder.userId && updatedOrder.userId !== 'guest') {
+          try {
+            const tshirtCount = updatedOrder.orderItems.length;
+            const creditBonus = await grantTshirtPurchaseBonus(
+              updatedOrder.userId,
+              updatedOrder.id,
+              tshirtCount
+            );
+            console.log('[Credits] T-shirt purchase bonus granted:', {
+              userId: updatedOrder.userId,
+              orderId: updatedOrder.id,
+              creditsGranted: creditBonus.creditsGranted,
+            });
+          } catch (creditError) {
+            console.error('[Credits] Failed to grant T-shirt bonus:', creditError);
+          }
+        }
+
+        // Record discount usage if applicable
+        if (updatedOrder.discountCodeId && updatedOrder.discountAmount && updatedOrder.discountAmount > 0) {
+          try {
+            const existingUsage = await prisma.discountUsage.findFirst({
+              where: {
+                discountCodeId: updatedOrder.discountCodeId,
+                orderId: updatedOrder.id,
+              },
+            });
+
+            if (!existingUsage) {
+              await prisma.$transaction([
+                prisma.discountUsage.create({
+                  data: {
+                    discountCodeId: updatedOrder.discountCodeId,
+                    orderId: updatedOrder.id,
+                    userId: updatedOrder.userId !== 'guest' ? updatedOrder.userId : undefined,
+                    discountAmount: updatedOrder.discountAmount,
+                  },
+                }),
+                prisma.discountCode.update({
+                  where: { id: updatedOrder.discountCodeId },
+                  data: { usedCount: { increment: 1 } },
+                }),
+              ]);
+              console.log('[Discount] Usage recorded via webhook');
+            }
+          } catch (discountError) {
+            console.error('[Discount] Failed to record usage:', discountError);
+          }
+        }
+
+        // Create Prodigi order if not already exists
+        if (!updatedOrder.prodigiOrderId) {
+          const processingKey = `processing-webhook-direct-${payment.id}-${Date.now()}`;
+          
+          try {
+            // Atomic claim check
+            const claimed = await prisma.$transaction(async (tx) => {
+              const order = await tx.order.findUnique({
+                where: { id: updatedOrder.id },
+                select: { prodigiOrderId: true, metadata: true },
+              });
+
+              if (order?.prodigiOrderId) return false;
+
+              const metadata = order?.metadata as any;
+              if (metadata?.prodigiProcessingKey) {
+                const processingStartTime = new Date(metadata.prodigiProcessingStarted || 0);
+                const timeDiff = Date.now() - processingStartTime.getTime();
+                if (timeDiff < 5 * 60 * 1000) {
+                  console.log('[Prodigi Order] Already being processed:', metadata.prodigiProcessingKey);
+                  return false;
+                }
+              }
+
+              await tx.order.update({
+                where: { id: updatedOrder.id },
+                data: {
+                  metadata: {
+                    ...(order?.metadata as object || {}),
+                    prodigiProcessingKey: processingKey,
+                    prodigiProcessingStarted: new Date().toISOString(),
+                    source: 'webhook-direct',
+                  },
+                },
+              });
+              return true;
+            });
+
+            if (!claimed) {
+              console.log('[Prodigi Order] Could not claim order, already processing');
+              return NextResponse.json({ received: true });
+            }
+
+            console.log('[Prodigi Order] Starting creation from webhook (direct payment)...');
+
+            // Prepare Prodigi order items
+            const prodigiItems = updatedOrder.orderItems.map((orderItem: any, index: number) => {
+              const attrs = orderItem.attributes as any;
+              const dbSku = attrs?.sku;
+
+              if (!dbSku) {
+                throw new Error(`Product SKU not found for order item ID: ${orderItem.id}`);
+              }
+
+              const sku = dbSku.replace(/^[A-Z]{2}-/, '');
+              
+              let designUrl: string | undefined;
+              const assets = orderItem.assets;
+
+              if (assets && typeof assets === 'object' && !Array.isArray(assets)) {
+                designUrl = (assets as any).url;
+              } else if (Array.isArray(assets) && assets.length > 0) {
+                designUrl = (assets[0] as any).url;
+              }
+
+              if (!designUrl && orderItem.attributes) {
+                designUrl = attrs.printReadyUrl || attrs.designUrl;
+              }
+
+              if (!designUrl) {
+                throw new Error(`Design URL missing for order item.`);
+              }
+
+              // Ensure absolute URL
+              if (designUrl.startsWith('/')) {
+                const baseUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://promptlyprinted.com';
+                designUrl = `${baseUrl}${designUrl}`;
+              }
+
+              // Use printReadyUrl if available
+              const printReadyUrl = attrs?.printReadyUrl;
+              if (printReadyUrl && printReadyUrl.toLowerCase().endsWith('.png')) {
+                designUrl = printReadyUrl;
+              }
+
+              let color = attrs?.color?.replace(/-/g, ' ').toLowerCase();
+              let size = attrs?.size?.toLowerCase();
+              if (size === 'xxs') size = '2xs';
+              if (size === 'xxxl') size = '3xl';
+
+              return {
+                sku,
+                copies: orderItem.copies,
+                merchantReference: `item_${updatedOrder.id}_${index}`,
+                sizing: 'fillPrintArea' as const,
+                attributes: {
+                  ...(color && { color }),
+                  ...(size && { size }),
+                },
+                assets: [{ printArea: 'front', url: designUrl! }],
+              };
+            });
+
+            if (!updatedOrder.recipient) {
+              throw new Error('No recipient information available');
+            }
+
+            const prodigiOrderRequest = {
+              shippingMethod: 'Standard' as const,
+              recipient: {
+                name: updatedOrder.recipient.name,
+                email: updatedOrder.recipient.email || 'noemail@example.com',
+                phoneNumber: updatedOrder.recipient.phoneNumber || undefined,
+                address: {
+                  line1: updatedOrder.recipient.addressLine1,
+                  line2: updatedOrder.recipient.addressLine2 || undefined,
+                  postalOrZipCode: updatedOrder.recipient.postalCode,
+                  countryCode: updatedOrder.recipient.countryCode,
+                  townOrCity: updatedOrder.recipient.city,
+                  stateOrCounty: updatedOrder.recipient.state || undefined,
+                },
+              },
+              items: prodigiItems,
+              merchantReference: `ORDER-${updatedOrder.id}`,
+              idempotencyKey: `order-${updatedOrder.id}`,
+              metadata: {
+                orderId: updatedOrder.id.toString(),
+                squarePaymentId: payment.id,
+              },
+            };
+
+            console.log('[Prodigi Order] Sending request to Prodigi API...');
+            const prodigiOrder = await prodigiService.createOrder(prodigiOrderRequest);
+
+            console.log('[Prodigi Order] Created successfully:', {
+              orderId: updatedOrder.id,
+              prodigiOrderId: prodigiOrder.order?.id,
+            });
+
+            await prisma.order.update({
+              where: { id: updatedOrder.id },
+              data: {
+                prodigiOrderId: prodigiOrder.order?.id,
+                metadata: {
+                  ...(updatedOrder.metadata as object || {}),
+                  prodigiOrderId: prodigiOrder.order?.id,
+                  prodigiStatus: prodigiOrder.order?.status,
+                },
+              },
+            });
+          } catch (prodigiError: any) {
+            console.error('[Prodigi Order] Failed to create:', prodigiError);
+            
+            await prisma.orderProcessingError.create({
+              data: {
+                orderId: updatedOrder.id,
+                error: prodigiError.message || 'Failed to create Prodigi order',
+                retryCount: 0,
+                lastAttempt: new Date(),
+              },
+            }).catch(() => {});
+
+            await prisma.order.update({
+              where: { id: updatedOrder.id },
+              data: {
+                metadata: {
+                  ...(updatedOrder.metadata as object || {}),
+                  prodigiError: prodigiError.message,
+                  prodigiErrorTime: new Date().toISOString(),
+                },
+              },
+            }).catch(() => {});
+          }
+        }
+
+        return NextResponse.json({ received: true, orderId: updatedOrder.id });
+      }
+
+      // Fallback: Get order ID from Square order metadata (for payment link orders)
+      const orderId = squareOrderId;
 
       if (!orderId) {
         console.error('No order ID found in payment');
