@@ -80,37 +80,66 @@ export function parseDataUrl(dataUrl: string): ParsedDataUrl {
     throw new ImageUtilsError('Invalid data URL: must start with "data:"', 'INVALID_FORMAT');
   }
 
-  // Flexible regex that handles:
-  // - Standard format: data:image/png;base64,DATA
-  // - With parameters: data:image/png;charset=utf-8;base64,DATA
-  // - Special MIME types: data:image/svg+xml;base64,DATA
-  const match = dataUrl.match(/^data:([^;,]+)(?:;[^;,]*)*;base64,(.+)$/);
-  
-  if (!match) {
+  // Log for debugging
+  console.log('[parseDataUrl] Input length:', dataUrl.length);
+  console.log('[parseDataUrl] First 100 chars:', dataUrl.substring(0, 100));
+
+  // Find the base64 marker
+  const base64Index = dataUrl.indexOf(';base64,');
+  if (base64Index === -1) {
     throw new ImageUtilsError(
-      'Invalid data URL format - expected data:mime/type;base64,DATA',
+      'Invalid data URL format - missing ";base64," marker',
       'INVALID_FORMAT'
     );
   }
 
-  const mimeType = match[1];
-  const rawBase64 = match[2];
+  // Extract mime type (between "data:" and first ";" or ",")
+  const headerEnd = dataUrl.indexOf(';');
+  if (headerEnd === -1 || headerEnd > base64Index) {
+    throw new ImageUtilsError(
+      'Invalid data URL format - could not extract MIME type',
+      'INVALID_FORMAT'
+    );
+  }
+  
+  const mimeType = dataUrl.substring(5, headerEnd); // Skip "data:"
+  console.log('[parseDataUrl] Extracted MIME type:', mimeType);
+
+  // Extract base64 data (after ";base64,")
+  const rawBase64 = dataUrl.substring(base64Index + 8); // Skip ";base64,"
+  console.log('[parseDataUrl] Raw base64 length:', rawBase64.length);
+  console.log('[parseDataUrl] Base64 last 20 chars:', rawBase64.substring(rawBase64.length - 20));
   
   // Clean whitespace from base64 string
   const base64 = rawBase64.replace(/[\s\n\r]/g, '');
+  console.log('[parseDataUrl] Cleaned base64 length:', base64.length);
 
-  // Validate base64 characters
-  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(base64)) {
-    throw new ImageUtilsError('Invalid base64 encoding in data URL', 'INVALID_BASE64');
+  // Check if base64 looks truncated (should be divisible by 4 or end with padding)
+  if (base64.length % 4 !== 0 && !base64.endsWith('=') && !base64.endsWith('==')) {
+    console.warn('[parseDataUrl] WARNING: Base64 length not divisible by 4, may be truncated');
+    console.warn('[parseDataUrl] Length:', base64.length, 'Mod 4:', base64.length % 4);
+  }
+
+  // Validate base64 characters (more permissive - just check for obviously invalid chars)
+  const invalidCharMatch = base64.match(/[^A-Za-z0-9+/=]/);
+  if (invalidCharMatch) {
+    console.error('[parseDataUrl] Invalid character found:', invalidCharMatch[0], 'at position around', base64.indexOf(invalidCharMatch[0]));
+    throw new ImageUtilsError(`Invalid base64 encoding - found invalid character: ${invalidCharMatch[0]}`, 'INVALID_BASE64');
   }
 
   if (base64.length === 0) {
     throw new ImageUtilsError('Base64 data is empty', 'EMPTY_DATA');
   }
 
+  // Minimum size check (a valid PNG/JPEG should be at least a few hundred bytes)
+  if (base64.length < 100) {
+    console.warn('[parseDataUrl] WARNING: Base64 data seems very short:', base64.length);
+  }
+
   // Extract format from MIME type
   const formatMatch = mimeType.match(/^image\/([^+;]+)/);
   const format = formatMatch ? normalizeFormat(formatMatch[1]) : 'unknown';
+  console.log('[parseDataUrl] Detected format:', format);
 
   return { mimeType, base64, format };
 }
@@ -185,13 +214,50 @@ export function dataUrlToBlob(dataUrl: string): Blob {
  * @throws Error if conversion fails
  */
 export function dataUrlToBuffer(dataUrl: string): Buffer {
-  const { base64 } = parseDataUrl(dataUrl);
+  const { base64, mimeType } = parseDataUrl(dataUrl);
+  
+  console.log('[dataUrlToBuffer] Converting base64 to buffer...');
+  console.log('[dataUrlToBuffer] Base64 length:', base64.length);
+  console.log('[dataUrlToBuffer] MIME type:', mimeType);
   
   try {
     const buffer = Buffer.from(base64, 'base64');
     
+    console.log('[dataUrlToBuffer] Buffer created, size:', buffer.length);
+    
     if (buffer.length === 0) {
       throw new ImageUtilsError('Decoded buffer is empty', 'EMPTY_DATA');
+    }
+    
+    // Validate the buffer contains image data by checking magic bytes
+    const magicBytes = buffer.toString('hex', 0, Math.min(8, buffer.length));
+    console.log('[dataUrlToBuffer] Magic bytes:', magicBytes);
+    
+    // Check for known image format magic bytes
+    const isPNG = magicBytes.startsWith('89504e47'); // PNG
+    const isJPEG = magicBytes.startsWith('ffd8ff');  // JPEG
+    const isGIF = magicBytes.startsWith('474946');   // GIF
+    const isWebP = magicBytes.startsWith('52494646'); // WebP (RIFF)
+    
+    if (!isPNG && !isJPEG && !isGIF && !isWebP) {
+      console.error('[dataUrlToBuffer] WARNING: Buffer does not start with known image magic bytes');
+      console.error('[dataUrlToBuffer] Expected PNG (89504e47), JPEG (ffd8ff), GIF (474946), or WebP (52494646)');
+      console.error('[dataUrlToBuffer] Got:', magicBytes);
+      
+      // Log more context to help debug
+      console.error('[dataUrlToBuffer] Buffer first 50 bytes as ASCII:', buffer.toString('ascii', 0, Math.min(50, buffer.length)).replace(/[^\x20-\x7E]/g, '.'));
+      
+      // Check if it looks like text/HTML (common error when API returns error page)
+      const firstChars = buffer.toString('utf8', 0, Math.min(100, buffer.length));
+      if (firstChars.includes('<!DOCTYPE') || firstChars.includes('<html') || firstChars.includes('Error')) {
+        throw new ImageUtilsError(
+          'Received HTML/text instead of image data - the image generation API may have returned an error',
+          'INVALID_RESPONSE'
+        );
+      }
+    } else {
+      const detectedFormat = isPNG ? 'PNG' : isJPEG ? 'JPEG' : isGIF ? 'GIF' : 'WebP';
+      console.log('[dataUrlToBuffer] Detected format from magic bytes:', detectedFormat);
     }
     
     return buffer;
@@ -432,6 +498,11 @@ function derivePermanentUrls(imageUrl: string): UploadResult {
 
 /**
  * Execute the actual upload request
+ * 
+ * IMPORTANT: We use JSON with base64 instead of binary Blob because:
+ * 1. Binary Blob uploads are unreliable across browsers
+ * 2. Some proxies/middleware corrupt binary data
+ * 3. JSON is more debuggable and predictable
  */
 async function executeUpload(
   imageUrl: string,
@@ -449,39 +520,39 @@ async function executeUpload(
     : controller.signal;
   
   try {
-    let body: Blob | string;
-    let contentType: string;
-    let headers: Record<string, string>;
-
+    // ALWAYS send as JSON - this is more reliable than binary Blob
+    // The server can handle both data URLs and regular URLs
+    console.log('[image-utils] Sending image as JSON...');
+    console.log('[image-utils] Image URL type:', isDataUrl(imageUrl) ? 'data URL' : 'regular URL');
+    
     if (isDataUrl(imageUrl)) {
-      // Convert data URL to Blob
-      console.log('[image-utils] Converting data URL to Blob...');
-      const blob = dataUrlToBlob(imageUrl);
-      
-      if (blob.size === 0) {
-        throw new ImageUtilsError('Converted blob is empty', 'EMPTY_DATA');
+      // Validate the data URL before sending
+      try {
+        const parsed = parseDataUrl(imageUrl);
+        console.log('[image-utils] Data URL validated:', {
+          mimeType: parsed.mimeType,
+          format: parsed.format,
+          base64Length: parsed.base64.length,
+        });
+      } catch (parseError) {
+        console.error('[image-utils] Data URL validation failed:', parseError);
+        throw parseError;
       }
-      
-      console.log('[image-utils] Blob created:', { size: blob.size, type: blob.type });
-      
-      body = blob;
-      contentType = blob.type || 'image/png';
-      headers = {
-        'Content-Type': contentType,
-        'X-Image-Name': encodeURIComponent(name),
-        'X-Product-Code': productCode,
-      };
-    } else {
-      // For regular URLs, send as JSON for server-side fetch
-      console.log('[image-utils] Sending URL for server-side processing...');
-      body = JSON.stringify({ imageUrl, name, productCode });
-      contentType = 'application/json';
-      headers = { 'Content-Type': contentType };
     }
+    
+    const body = JSON.stringify({ 
+      imageUrl,  // Send the full data URL or regular URL
+      name, 
+      productCode 
+    });
+    
+    console.log('[image-utils] Request body size:', body.length);
 
     const response = await fetch('/api/upload-image', {
       method: 'POST',
-      headers,
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body,
       signal: combinedSignal,
     });
@@ -489,11 +560,21 @@ async function executeUpload(
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
-      throw new ImageUtilsError(
-        errorData.error || `Upload failed: ${response.statusText}`,
-        'SERVER_ERROR'
-      );
+      const errorText = await response.text();
+      console.error('[image-utils] Server error response:', errorText);
+      
+      let errorMessage = `Upload failed: ${response.status}`;
+      try {
+        const errorData = JSON.parse(errorText);
+        errorMessage = errorData.error || errorMessage;
+      } catch {
+        // Use raw text if not JSON
+        if (errorText.length < 200) {
+          errorMessage = errorText;
+        }
+      }
+      
+      throw new ImageUtilsError(errorMessage, 'SERVER_ERROR');
     }
 
     return await response.json();

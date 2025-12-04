@@ -242,11 +242,32 @@ function parseDataUrl(dataUrl: string): Buffer {
   console.log('[parseDataUrl] Parsing data URL...');
   console.log('[parseDataUrl] Data URL length:', dataUrl?.length || 0);
   
+  // Log the start of the data URL for debugging
+  if (dataUrl && dataUrl.length > 0) {
+    console.log('[parseDataUrl] Data URL prefix:', dataUrl.substring(0, Math.min(100, dataUrl.length)));
+    console.log('[parseDataUrl] Data URL contains "base64,":', dataUrl.includes('base64,'));
+  }
+  
   try {
     // Use centralized utility for parsing
     const buffer = dataUrlToBuffer(dataUrl);
     
     console.log('[parseDataUrl] Buffer created successfully, size:', buffer.length);
+    
+    // Log the magic bytes for format verification
+    if (buffer.length >= 8) {
+      const magicHex = buffer.toString('hex', 0, 8);
+      console.log('[parseDataUrl] Buffer magic bytes:', magicHex);
+      
+      // Quick format check
+      if (magicHex.startsWith('89504e47')) {
+        console.log('[parseDataUrl] Detected PNG format');
+      } else if (magicHex.startsWith('ffd8ff')) {
+        console.log('[parseDataUrl] Detected JPEG format');
+      } else {
+        console.log('[parseDataUrl] Unknown format, magic bytes:', magicHex);
+      }
+    }
     
     // Additional validation: check magic bytes
     const detectedFormat = detectImageFormat(buffer);
