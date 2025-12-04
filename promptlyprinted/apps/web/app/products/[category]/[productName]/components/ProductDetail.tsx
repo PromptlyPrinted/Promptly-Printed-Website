@@ -2336,7 +2336,50 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
     setIsDragOver(false);
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  // Helper function to save uploaded/captured images to permanent storage immediately
+  // This prevents data URL issues at checkout time
+  const saveUploadedImageToPermanentStorage = async (dataUrl: string) => {
+    console.log('[saveUploadedImage] Saving uploaded image to permanent storage...');
+    try {
+      const saveRes = await fetch('/api/save-temp-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: dataUrl, isPublic: true }),
+      });
+      
+      if (saveRes.ok) {
+        const saveData = await saveRes.json();
+        const permanentUrl = saveData.url || `/api/save-temp-image?id=${saveData.id}`;
+        console.log('[saveUploadedImage] Saved to:', permanentUrl);
+        setReferenceImage(permanentUrl);
+        setUseReferenceImage(true);
+        setUseTshirtDesign(false);
+        
+        // Also set print-ready URL if available
+        if (saveData.printReadyUrl) {
+          setPrintReadyImageUrl(saveData.printReadyUrl);
+        }
+        
+        toast({
+          title: 'Image Uploaded',
+          description: 'Your image has been uploaded successfully.',
+        });
+        return permanentUrl;
+      } else {
+        throw new Error('Failed to save image to storage');
+      }
+    } catch (error) {
+      console.error('[saveUploadedImage] Failed:', error);
+      toast({
+        title: 'Upload Failed',
+        description: 'Failed to upload image. Please try again.',
+        variant: 'destructive',
+      });
+      return null;
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragOver(false);
     
@@ -2345,11 +2388,10 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
     
     if (imageFile) {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         const result = e.target?.result as string;
-        setReferenceImage(result);
-        setUseReferenceImage(true);
-        setUseTshirtDesign(false);
+        // Save to permanent storage immediately
+        await saveUploadedImageToPermanentStorage(result);
       };
       reader.readAsDataURL(imageFile);
     }
@@ -2359,11 +2401,10 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
     const file = e.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         const result = e.target?.result as string;
-        setReferenceImage(result);
-        setUseReferenceImage(true);
-        setUseTshirtDesign(false);
+        // Save to permanent storage immediately
+        await saveUploadedImageToPermanentStorage(result);
       };
       reader.readAsDataURL(file);
     }
@@ -2382,13 +2423,12 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
         canvas.height = video.videoHeight;
         const ctx = canvas.getContext('2d');
         
-        setTimeout(() => {
+        setTimeout(async () => {
           if (ctx) {
             ctx.drawImage(video, 0, 0);
             const imageData = canvas.toDataURL('image/png');
-            setReferenceImage(imageData);
-            setUseReferenceImage(true);
-            setUseTshirtDesign(false);
+            // Save to permanent storage immediately
+            await saveUploadedImageToPermanentStorage(imageData);
           }
           
           // Stop the camera
@@ -2413,11 +2453,10 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
           if (type.startsWith('image/')) {
             const blob = await clipboardItem.getType(type);
             const reader = new FileReader();
-            reader.onload = (e) => {
+            reader.onload = async (e) => {
               const result = e.target?.result as string;
-              setReferenceImage(result);
-              setUseReferenceImage(true);
-              setUseTshirtDesign(false);
+              // Save to permanent storage immediately
+              await saveUploadedImageToPermanentStorage(result);
             };
             reader.readAsDataURL(blob);
             return;
