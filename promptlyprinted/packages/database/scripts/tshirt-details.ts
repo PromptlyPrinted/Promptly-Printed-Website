@@ -185,7 +185,7 @@ export const tshirtDetails = {
       { name: 'Vintage White', filename: 'vintage-white.png' },
       { name: 'Off White', filename: 'off-white.png' },
       { name: 'Black', filename: 'black.png' },
-      { name: 'Anthracite', filename: 'Anthracite.png' },
+      { name: 'Anthracite', filename: 'anthracite.png' },
       { name: 'Dark Heather Grey', filename: 'dark-heather-grey.png' },
       { name: 'India Ink Grey', filename: 'india-ink-grey.png' },
       { name: 'French Navy', filename: 'french-navy.png' },

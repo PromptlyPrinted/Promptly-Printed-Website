@@ -653,7 +653,13 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
         
         // Try to extract from image if base URL exists
         if (product.prodigiVariants?.imageUrls?.base) {
-          const imgUrl = `${product.prodigiVariants.imageUrls.base}/${colorValue}.png`;
+          // Find the actual filename from colorOptions (preserves case)
+          const colorOption = product.prodigiVariants?.colorOptions?.find(
+            (opt: any) => opt.name.toLowerCase() === color.toLowerCase()
+          );
+          // Use the filename from colorOptions if available, otherwise fallback to kebab-case
+          const filename = colorOption?.filename || `${colorValue}.png`;
+          const imgUrl = `${product.prodigiVariants.imageUrls.base}/${filename}`;
           console.log(`Attempting to extract color from: ${imgUrl}`);
           try {
             const domColor = await getDominantColor(imgUrl);
