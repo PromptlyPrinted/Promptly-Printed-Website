@@ -808,6 +808,31 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
     }
   }, [processedImage, generatedImage, referenceImage]);
 
+  /**
+   * Convert a data URL to an ArrayBuffer directly (without using fetch)
+   * This is more reliable than fetch(dataUrl) which can fail in some environments
+   */
+  const dataUrlToArrayBuffer = (dataUrl: string): { buffer: ArrayBuffer; mimeType: string } => {
+    const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+    if (!match) {
+      throw new Error('Invalid data URL format');
+    }
+    
+    const mimeType = match[1];
+    const base64 = match[2];
+    
+    // Decode base64 to binary string
+    const binaryString = atob(base64);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    
+    return { buffer: bytes.buffer, mimeType };
+  };
+
   const uploadImageToPermanentStorage = async (imageUrl: string): Promise<{ url: string; previewUrl: string; printReadyUrl: string }> => {
     try {
       // Early validation
@@ -823,7 +848,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       }
 
       // If it's a Cloudflare R2 URL, it's already permanent
-      if (imageUrl.includes('.r2.dev') || imageUrl.includes('cloudflare')) {
+      if (imageUrl.includes('.r2.dev') || imageUrl.includes('cloudflare') || imageUrl.includes('images.promptlyprinted.com')) {
         return { url: imageUrl, previewUrl: imageUrl, printReadyUrl: imageUrl };
       }
 
@@ -837,32 +862,8 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
 
       console.log('[uploadImageToPermanentStorage] Starting upload...');
       console.log('[uploadImageToPermanentStorage] Image URL type:', imageUrl.startsWith('data:') ? 'data URL' : 'regular URL');
-      
-      // Validate data URL format before sending
-      if (imageUrl.startsWith('data:')) {
-        // Validate data URL format
-        const dataUrlMatch = imageUrl.match(/^data:image\/(\w+);base64,(.+)$/);
-        if (!dataUrlMatch) {
-          throw new Error('Invalid data URL format');
-        }
-        
-        const [, format, base64Data] = dataUrlMatch;
-        if (!base64Data || base64Data.length === 0) {
-          throw new Error('Empty base64 data in data URL');
-        }
-        
-        // Validate base64 string is valid
-        try {
-          // Try to decode a small portion to validate
-          atob(base64Data.substring(0, Math.min(100, base64Data.length)));
-        } catch (e) {
-          throw new Error('Invalid base64 encoding in data URL');
-        }
-        
-        console.log('[uploadImageToPermanentStorage] Data URL validated, format:', format, 'size:', base64Data.length);
-      }
 
-      // Upload with retry - send data URL directly as JSON to avoid blob conversion issues
+      // Upload with retry
       const attemptUpload = async (attempt: number): Promise<Response> => {
         console.log(`[uploadImageToPermanentStorage] Upload attempt ${attempt}...`);
         
@@ -873,38 +874,32 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
           let response: Response;
           
           if (imageUrl.startsWith('data:')) {
-            // For data URLs, use FormData to avoid JSON body size limits
-            // Convert data URL to blob first, then send as FormData
-            console.log('[uploadImageToPermanentStorage] Converting data URL to blob for FormData upload...');
+            // For data URLs, convert directly to ArrayBuffer (more reliable than fetch)
+            console.log('[uploadImageToPermanentStorage] Converting data URL to binary...');
             
             try {
-              // Convert data URL to blob
-              const blobResponse = await fetch(imageUrl);
-              if (!blobResponse.ok) {
-                throw new Error('Failed to convert data URL to blob');
-              }
-              const blob = await blobResponse.blob();
+              const { buffer, mimeType } = dataUrlToArrayBuffer(imageUrl);
               
-              if (blob.size === 0) {
-                throw new Error('Blob is empty');
+              if (buffer.byteLength === 0) {
+                throw new Error('Image data is empty');
               }
               
-              console.log('[uploadImageToPermanentStorage] Blob created, size:', blob.size, 'type:', blob.type);
+              console.log('[uploadImageToPermanentStorage] Binary data ready, size:', buffer.byteLength, 'type:', mimeType);
               
-              // Send as FormData
-              const formData = new FormData();
-              formData.append('file', blob, 'design.png');
-              formData.append('name', 'Generated Design');
-              formData.append('productCode', productCode);
-              
+              // Send as raw binary with metadata in headers
               response = await fetch('/api/upload-image', {
                 method: 'POST',
-                body: formData,
+                headers: {
+                  'Content-Type': mimeType || 'image/png',
+                  'X-Image-Name': encodeURIComponent('Generated Design'),
+                  'X-Product-Code': productCode,
+                },
+                body: buffer,
                 signal: controller.signal,
               });
-            } catch (blobError) {
-              console.error('[uploadImageToPermanentStorage] Failed to convert data URL to blob:', blobError);
-              // Fallback: try sending as JSON (might fail for very large images)
+            } catch (conversionError) {
+              console.error('[uploadImageToPermanentStorage] Binary conversion failed:', conversionError);
+              // Fallback: try sending as JSON
               console.log('[uploadImageToPermanentStorage] Falling back to JSON upload...');
               response = await fetch('/api/upload-image', {
                 method: 'POST',
@@ -920,26 +915,18 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
               });
             }
           } else {
-            // For regular URLs, fetch and send as FormData
-            console.log('[uploadImageToPermanentStorage] Fetching image from URL...');
-            const imageResponse = await fetch(imageUrl);
-            if (!imageResponse.ok) {
-              throw new Error(`Failed to fetch image: ${imageResponse.status}`);
-            }
-            
-            const blob = await imageResponse.blob();
-            if (blob.size === 0) {
-              throw new Error('Image data is empty');
-            }
-            
-            const formData = new FormData();
-            formData.append('file', blob, 'image.png');
-            formData.append('name', 'Generated Design');
-            formData.append('productCode', productCode);
-            
+            // For regular URLs, send URL reference for server-side fetch
+            console.log('[uploadImageToPermanentStorage] Sending URL for server-side processing...');
             response = await fetch('/api/upload-image', {
               method: 'POST',
-              body: formData,
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                imageUrl: imageUrl,
+                name: 'Generated Design',
+                productCode: productCode,
+              }),
               signal: controller.signal,
             });
           }
