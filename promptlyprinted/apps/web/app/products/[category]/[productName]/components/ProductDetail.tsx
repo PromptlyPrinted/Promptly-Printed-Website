@@ -765,7 +765,33 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
         throw new Error('Invalid result from background removal');
       }
       
-      setProcessedImage(result);
+      // Save processed image to permanent storage immediately
+      // This prevents data URL issues at checkout/save
+      console.log('[handleBackgroundRemoval] Saving processed image to storage...');
+      const saveRes = await fetch('/api/save-temp-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: result, isPublic: true }),
+      });
+      
+      if (saveRes.ok) {
+        const saveData = await saveRes.json();
+        const permanentUrl = saveData.url || `/api/save-temp-image?id=${saveData.id}`;
+        console.log('[handleBackgroundRemoval] Saved to:', permanentUrl);
+        setProcessedImage(permanentUrl);
+        
+        // Also update print-ready URL if available
+        if (saveData.printReadyUrl) {
+          setPrintReadyImageUrl(saveData.printReadyUrl);
+        }
+      } else {
+        // Fallback: try upload via image-utils
+        console.log('[handleBackgroundRemoval] Fallback: uploading via image-utils...');
+        const uploadResult = await uploadImageToPermanentStorage(result);
+        setProcessedImage(uploadResult.url);
+        setPrintReadyImageUrl(uploadResult.printReadyUrl);
+      }
+      
       toast({
         title: 'Success',
         description: 'Background removed successfully!',
@@ -905,17 +931,33 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       }
 
       const generatedUrl = data.data[0].url;
-      const printReadyUrl = data.data[0].printReadyUrl;
+      const apiPrintReadyUrl = data.data[0].printReadyUrl;
 
-      // Nano Banana API already creates and uploads the print-ready version
-      // Use those URLs directly instead of re-uploading (which causes corruption)
-      if (printReadyUrl) {
-        console.log('[Nano Banana] Using print-ready URL from API:', printReadyUrl);
-        setGeneratedImage(generatedUrl); // Display the data URL for preview
-        setPrintReadyImageUrl(printReadyUrl); // Use the permanent URL for printing
+      // Always save to permanent storage to avoid keeping data URLs in state
+      // This prevents issues at checkout when trying to re-upload
+      console.log('[Nano Banana] Saving to permanent storage...');
+      const saveRes = await fetch('/api/save-temp-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: generatedUrl, isPublic: true }),
+      });
+
+      if (saveRes.ok) {
+        const saveData = await saveRes.json();
+        const permanentUrl = saveData.url || `/api/save-temp-image?id=${saveData.id}`;
+        const savedPrintReadyUrl = saveData.printReadyUrl || apiPrintReadyUrl;
+        
+        console.log('[Nano Banana] Saved to permanent storage:', permanentUrl);
+        setGeneratedImage(permanentUrl);
+        setPrintReadyImageUrl(savedPrintReadyUrl || '');
+      } else if (apiPrintReadyUrl && !apiPrintReadyUrl.startsWith('data:')) {
+        // Fallback: API provided permanent URLs
+        console.log('[Nano Banana] Using API print-ready URL:', apiPrintReadyUrl);
+        setGeneratedImage(generatedUrl);
+        setPrintReadyImageUrl(apiPrintReadyUrl);
       } else {
-        // Fallback: Upload to permanent storage if printReadyUrl is not provided
-        console.log('[Nano Banana] No print-ready URL, uploading to permanent storage...');
+        // Last resort: Upload to permanent storage
+        console.log('[Nano Banana] Uploading to permanent storage as fallback...');
         const uploadedResult = await uploadImageToPermanentStorage(generatedUrl);
         setGeneratedImage(uploadedResult.url);
         setPrintReadyImageUrl(uploadedResult.printReadyUrl);
@@ -1090,17 +1132,32 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       }
 
       const generatedUrl = data.data[0].url;
-      const printReadyUrl = data.data[0].printReadyUrl;
+      const apiPrintReadyUrl = data.data[0].printReadyUrl;
 
-      // Flux 2 Pro API already creates and uploads the print-ready version
-      // Use those URLs directly instead of re-uploading
-      if (printReadyUrl) {
-        console.log('[Flux 2 Pro] Using print-ready URL from API:', printReadyUrl);
+      // Always save to permanent storage to avoid keeping data URLs in state
+      console.log('[Flux 2 Pro] Saving to permanent storage...');
+      const saveRes = await fetch('/api/save-temp-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: generatedUrl, isPublic: true }),
+      });
+
+      if (saveRes.ok) {
+        const saveData = await saveRes.json();
+        const permanentUrl = saveData.url || `/api/save-temp-image?id=${saveData.id}`;
+        const savedPrintReadyUrl = saveData.printReadyUrl || apiPrintReadyUrl;
+        
+        console.log('[Flux 2 Pro] Saved to permanent storage:', permanentUrl);
+        setGeneratedImage(permanentUrl);
+        setPrintReadyImageUrl(savedPrintReadyUrl || '');
+      } else if (apiPrintReadyUrl && !apiPrintReadyUrl.startsWith('data:')) {
+        // Fallback: API provided permanent URLs
+        console.log('[Flux 2 Pro] Using API print-ready URL:', apiPrintReadyUrl);
         setGeneratedImage(generatedUrl);
-        setPrintReadyImageUrl(printReadyUrl);
+        setPrintReadyImageUrl(apiPrintReadyUrl);
       } else {
-        // Fallback: Upload to permanent storage if printReadyUrl is not provided
-        console.log('[Flux 2 Pro] No print-ready URL, uploading to permanent storage...');
+        // Last resort: Upload to permanent storage
+        console.log('[Flux 2 Pro] Uploading to permanent storage as fallback...');
         const uploadedResult = await uploadImageToPermanentStorage(generatedUrl);
         setGeneratedImage(uploadedResult.url);
         setPrintReadyImageUrl(uploadedResult.printReadyUrl);
@@ -1348,22 +1405,30 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
           const saveData = await saveRes.json();
           console.log('Image saved successfully:', saveData);
 
-          const permanentUrl = `/api/save-temp-image?id=${saveData.id}`;
+          // Use the permanent URL from the save response
+          // This ensures we never keep data URLs in state
+          const permanentUrl = saveData.url || `/api/save-temp-image?id=${saveData.id}`;
+          const savedPrintReadyUrl = saveData.printReadyUrl;
           console.log('Using permanent URL:', permanentUrl);
+          console.log('Saved print-ready URL:', savedPrintReadyUrl);
 
-          // Generate Image API already creates and uploads the print-ready version
-          // Use those URLs directly instead of re-uploading
-          const printReadyUrl = data.data[0].printReadyUrl;
-          if (printReadyUrl) {
-            console.log('[Generate Image] Using print-ready URL from API:', printReadyUrl);
-            setGeneratedImage(data.data[0].url);
-            setPrintReadyImageUrl(printReadyUrl);
+          // Prefer the saved URLs (which are already permanent)
+          // Only fall back to API response URLs if save didn't provide them
+          if (savedPrintReadyUrl) {
+            console.log('[Generate Image] Using saved print-ready URL:', savedPrintReadyUrl);
+            setGeneratedImage(permanentUrl);
+            setPrintReadyImageUrl(savedPrintReadyUrl);
+          } else if (data.data[0].printReadyUrl && !data.data[0].printReadyUrl.startsWith('data:')) {
+            // API provided a permanent print-ready URL
+            console.log('[Generate Image] Using API print-ready URL:', data.data[0].printReadyUrl);
+            setGeneratedImage(permanentUrl);
+            setPrintReadyImageUrl(data.data[0].printReadyUrl);
           } else {
-            // Fallback: Upload to permanent storage if printReadyUrl is not provided
-            console.log('[Generate Image] No print-ready URL, uploading to permanent storage...');
-            const uploadedResult = await uploadImageToPermanentStorage(data.data[0].url);
-            setGeneratedImage(uploadedResult.url);
-            setPrintReadyImageUrl(uploadedResult.printReadyUrl);
+            // No print-ready URL available - the permanentUrl is the best we have
+            console.log('[Generate Image] No print-ready URL available, using permanent URL');
+            setGeneratedImage(permanentUrl);
+            // Will need to generate print-ready version at checkout
+            setPrintReadyImageUrl('');
           }
           toast({
             title: 'Success',
@@ -1475,20 +1540,38 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
 
         const data = await response.json();
         if (data.data?.[0]?.url) {
-          // Generate Image API already creates and uploads the print-ready version
-          // Use those URLs directly instead of re-uploading
-          const printReadyUrl = data.data[0].printReadyUrl;
-          if (printReadyUrl) {
-            console.log('[Generate Image] Using print-ready URL from API:', printReadyUrl);
-            setGeneratedImage(data.data[0].url);
-            setPrintReadyImageUrl(printReadyUrl);
+          const generatedUrl = data.data[0].url;
+          const apiPrintReadyUrl = data.data[0].printReadyUrl;
+
+          // Always save to permanent storage to avoid keeping data URLs in state
+          console.log('[Generate Image LoRA] Saving to permanent storage...');
+          const saveRes = await fetch('/api/save-temp-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: generatedUrl, isPublic: true }),
+          });
+
+          if (saveRes.ok) {
+            const saveData = await saveRes.json();
+            const permanentUrl = saveData.url || `/api/save-temp-image?id=${saveData.id}`;
+            const savedPrintReadyUrl = saveData.printReadyUrl || apiPrintReadyUrl;
+            
+            console.log('[Generate Image LoRA] Saved to permanent storage:', permanentUrl);
+            setGeneratedImage(permanentUrl);
+            setPrintReadyImageUrl(savedPrintReadyUrl || '');
+          } else if (apiPrintReadyUrl && !apiPrintReadyUrl.startsWith('data:')) {
+            // Fallback: API provided permanent URLs
+            console.log('[Generate Image LoRA] Using API print-ready URL:', apiPrintReadyUrl);
+            setGeneratedImage(generatedUrl);
+            setPrintReadyImageUrl(apiPrintReadyUrl);
           } else {
-            // Fallback: Upload to permanent storage if printReadyUrl is not provided
-            console.log('[Generate Image] No print-ready URL, uploading to permanent storage...');
-            const uploadedResult = await uploadImageToPermanentStorage(data.data[0].url);
+            // Last resort: Upload to permanent storage
+            console.log('[Generate Image LoRA] Uploading to permanent storage as fallback...');
+            const uploadedResult = await uploadImageToPermanentStorage(generatedUrl);
             setGeneratedImage(uploadedResult.url);
             setPrintReadyImageUrl(uploadedResult.printReadyUrl);
           }
+
           toast({
             title: 'Success',
             description: 'Image generated successfully!',
