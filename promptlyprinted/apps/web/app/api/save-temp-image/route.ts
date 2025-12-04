@@ -2,19 +2,42 @@
  * Save Temp Image API Route
  * 
  * Handles saving temporary images to permanent storage.
- * Uses centralized image-utils for consistent data URL handling.
+ * Uses a robust approach to handle data URLs.
  */
 
 import { database } from '@repo/database';
 import { getSession } from '../../../lib/session-utils';
 import { storage } from '@/lib/storage';
 import { generatePrintReadyVersion } from '@/lib/image-processing';
-import {
-  isDataUrl,
-  dataUrlToBuffer,
-  parseDataUrl,
-  ImageUtilsError,
-} from '@/lib/image-utils';
+
+// Simple helper to check if URL is a data URL
+function isDataUrl(url: string): boolean {
+  return typeof url === 'string' && url.startsWith('data:');
+}
+
+// Simple, robust data URL to Buffer converter
+function simpleDataUrlToBuffer(dataUrl: string): Buffer {
+  // Find the base64 marker
+  const base64Marker = ';base64,';
+  const markerIndex = dataUrl.indexOf(base64Marker);
+  
+  if (markerIndex === -1) {
+    throw new Error('Invalid data URL: missing base64 marker');
+  }
+  
+  // Extract base64 data
+  const base64Data = dataUrl.substring(markerIndex + base64Marker.length);
+  
+  if (!base64Data || base64Data.length === 0) {
+    throw new Error('Invalid data URL: empty base64 data');
+  }
+  
+  // Clean whitespace and newlines
+  const cleanBase64 = base64Data.replace(/[\s\n\r]/g, '');
+  
+  // Decode to buffer
+  return Buffer.from(cleanBase64, 'base64');
+}
 
 export async function POST(request: Request) {
   try {
@@ -38,6 +61,8 @@ export async function POST(request: Request) {
       });
     }
 
+    console.log('[Save Temp Image] Processing URL, length:', url?.length, 'isDataUrl:', isDataUrl(url));
+
     // If URL is base64, upload it to storage first and generate 300 DPI version
     let finalUrl = url;
     let printReadyUrl: string | null = null;
@@ -46,11 +71,11 @@ export async function POST(request: Request) {
       console.log('[Save Temp Image] Converting data URL to file storage...');
 
       try {
-        // Use centralized utility to parse and convert
-        const imageBuffer = dataUrlToBuffer(url);
+        // Use simple buffer conversion
+        const imageBuffer = simpleDataUrlToBuffer(url);
         console.log('[Save Temp Image] Buffer created, size:', imageBuffer.length);
 
-        // Upload original
+        // Upload original using storage (which handles its own base64 parsing)
         finalUrl = await storage.uploadFromBase64(url, 'checkout-image');
         console.log('[Save Temp Image] Original uploaded:', finalUrl);
 
@@ -63,12 +88,18 @@ export async function POST(request: Request) {
           console.log('[Save Temp Image] 300 DPI version saved:', printReadyUrl);
         } catch (printError) {
           console.error('[Save Temp Image] Failed to generate 300 DPI version:', printError);
-          // Continue without print-ready version
+          // Continue without print-ready version - it's optional
         }
       } catch (parseError) {
         console.error('[Save Temp Image] Failed to parse data URL:', parseError);
-        // Fallback: try direct upload
-        finalUrl = await storage.uploadFromBase64(url, 'checkout-image');
+        // Last resort fallback: try direct upload which may handle errors better
+        try {
+          finalUrl = await storage.uploadFromBase64(url, 'checkout-image');
+          console.log('[Save Temp Image] Fallback upload succeeded:', finalUrl);
+        } catch (fallbackError) {
+          console.error('[Save Temp Image] Fallback upload also failed:', fallbackError);
+          throw new Error('Failed to process image data');
+        }
       }
     }
 
@@ -116,11 +147,9 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('[Save Temp Image] Error:', error);
     
-    const errorMessage = error instanceof ImageUtilsError
-      ? `${error.message} (${error.code})`
-      : error instanceof Error 
-        ? error.message 
-        : 'Failed to process image';
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : 'Failed to process image';
     
     return new Response(
       JSON.stringify({ error: errorMessage }),
@@ -176,11 +205,15 @@ export async function GET(request: Request) {
         const decodedUrl = decodeURIComponent(rawUrl);
         
         if (isDataUrl(decodedUrl)) {
-          // Use centralized utility to parse data URL
-          const { mimeType } = parseDataUrl(decodedUrl);
-          const buffer = dataUrlToBuffer(decodedUrl);
+          // Extract MIME type from data URL
+          const mimeMatch = decodedUrl.match(/^data:([^;,]+)/);
+          const mimeType = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+          const buffer = simpleDataUrlToBuffer(decodedUrl);
           
-          return new Response(buffer, {
+          // Convert Buffer to Uint8Array for Response compatibility
+          const uint8Array = new Uint8Array(buffer);
+          
+          return new Response(uint8Array, {
             headers: {
               'Content-Type': mimeType,
               'Content-Length': buffer.length.toString(),

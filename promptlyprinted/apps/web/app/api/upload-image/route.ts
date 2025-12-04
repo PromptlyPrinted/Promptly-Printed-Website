@@ -236,66 +236,92 @@ async function fetchImageFromUrl(url: string): Promise<Buffer> {
 
 /**
  * Parse base64 data URL with robust error handling
- * Uses centralized image-utils with additional logging for this route
+ * Simple implementation to avoid complex parsing issues
  */
 function parseDataUrl(dataUrl: string): Buffer {
   console.log('[parseDataUrl] Parsing data URL...');
   console.log('[parseDataUrl] Data URL length:', dataUrl?.length || 0);
   
-  // Log the start of the data URL for debugging
-  if (dataUrl && dataUrl.length > 0) {
-    console.log('[parseDataUrl] Data URL prefix:', dataUrl.substring(0, Math.min(100, dataUrl.length)));
-    console.log('[parseDataUrl] Data URL contains "base64,":', dataUrl.includes('base64,'));
+  if (!dataUrl || typeof dataUrl !== 'string') {
+    throw new Error('Data URL must be a non-empty string');
   }
   
+  if (!dataUrl.startsWith('data:')) {
+    throw new Error('Invalid data URL: must start with "data:"');
+  }
+  
+  // Log the start of the data URL for debugging
+  console.log('[parseDataUrl] Data URL prefix:', dataUrl.substring(0, Math.min(100, dataUrl.length)));
+  
+  // Find the base64 marker - handle various formats
+  const base64Marker = ';base64,';
+  const markerIndex = dataUrl.indexOf(base64Marker);
+  
+  if (markerIndex === -1) {
+    throw new Error('Invalid data URL format - missing ";base64," marker');
+  }
+  
+  // Extract base64 data
+  const base64Data = dataUrl.substring(markerIndex + base64Marker.length);
+  console.log('[parseDataUrl] Base64 data length:', base64Data?.length || 0);
+  
+  if (!base64Data || base64Data.length === 0) {
+    throw new Error('Invalid data URL: empty base64 data');
+  }
+  
+  // Clean whitespace and newlines that might have been introduced
+  const cleanBase64 = base64Data.replace(/[\s\n\r]/g, '');
+  console.log('[parseDataUrl] Cleaned base64 length:', cleanBase64.length);
+  
+  // Convert to buffer
+  let buffer: Buffer;
   try {
-    // Use centralized utility for parsing
-    const buffer = dataUrlToBuffer(dataUrl);
+    buffer = Buffer.from(cleanBase64, 'base64');
+  } catch (decodeError) {
+    console.error('[parseDataUrl] Base64 decode failed:', decodeError);
+    throw new Error('Failed to decode base64 data - data may be corrupted');
+  }
+  
+  console.log('[parseDataUrl] Buffer created, size:', buffer.length);
+  
+  if (buffer.length === 0) {
+    throw new Error('Decoded buffer is empty');
+  }
+  
+  // Log magic bytes for format verification
+  if (buffer.length >= 8) {
+    const magicHex = buffer.toString('hex', 0, 8);
+    console.log('[parseDataUrl] Buffer magic bytes:', magicHex);
     
-    console.log('[parseDataUrl] Buffer created successfully, size:', buffer.length);
-    
-    // Log the magic bytes for format verification
-    if (buffer.length >= 8) {
-      const magicHex = buffer.toString('hex', 0, 8);
-      console.log('[parseDataUrl] Buffer magic bytes:', magicHex);
-      
-      // Quick format check
-      if (magicHex.startsWith('89504e47')) {
-        console.log('[parseDataUrl] Detected PNG format');
-      } else if (magicHex.startsWith('ffd8ff')) {
-        console.log('[parseDataUrl] Detected JPEG format');
-      } else {
-        console.log('[parseDataUrl] Unknown format, magic bytes:', magicHex);
-      }
-    }
-    
-    // Additional validation: check magic bytes
-    const detectedFormat = detectImageFormat(buffer);
-    console.log('[parseDataUrl] Detected format:', detectedFormat);
-    
-    if (detectedFormat === 'unknown') {
-      const magicBytes = buffer.toString('hex', 0, Math.min(8, buffer.length));
-      console.warn('[parseDataUrl] Could not detect format from magic bytes:', magicBytes);
+    // Quick format check
+    if (magicHex.startsWith('89504e47')) {
+      console.log('[parseDataUrl] Detected PNG format');
+    } else if (magicHex.startsWith('ffd8ff')) {
+      console.log('[parseDataUrl] Detected JPEG format');
+    } else if (magicHex.startsWith('47494638')) {
+      console.log('[parseDataUrl] Detected GIF format');
+    } else if (magicHex.startsWith('52494646')) {
+      console.log('[parseDataUrl] Detected RIFF (possibly WebP) format');
+    } else {
+      console.warn('[parseDataUrl] Unknown format, magic bytes:', magicHex);
       // Don't fail here - let sharp validate it
     }
+  }
+  
+  // Use detectImageFormat for validation if available
+  try {
+    const detectedFormat = detectImageFormat(buffer);
+    console.log('[parseDataUrl] Detected format via utility:', detectedFormat);
     
-    // Validate it's an allowed format
     if (detectedFormat !== 'unknown' && !ALLOWED_FORMATS.includes(detectedFormat)) {
       throw new Error(`Unsupported image format: ${detectedFormat}. Allowed: ${ALLOWED_FORMATS.join(', ')}`);
     }
-    
-    return buffer;
-  } catch (error) {
-    console.error('[parseDataUrl] Parse error:', error);
-    
-    // Re-throw with context
-    if (error instanceof ImageUtilsError) {
-      throw new Error(`Failed to parse data URL: ${error.message} (${error.code})`);
-    }
-    
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    throw new Error(`Failed to parse data URL: ${errorMessage}`);
+  } catch (formatError) {
+    // Format detection failed, but we'll let sharp try anyway
+    console.warn('[parseDataUrl] Format detection warning:', formatError);
   }
+  
+  return buffer;
 }
 
 /**
@@ -484,62 +510,45 @@ export async function POST(request: Request) {
           }
         } catch (jsonError) {
           // DEFENSIVE HANDLING: Check if body is raw base64 instead of JSON
-          // This can happen when:
-          // - Middleware or proxies strip the JSON wrapper
-          // - Edge functions modify the request body
-          // - Client code accidentally sends raw data
-          // Instead of failing, we attempt to recover by wrapping the raw data
-          console.warn('[Upload Image] JSON parsing failed, attempting base64 recovery...');
+          console.warn('[Upload Image] JSON parsing failed, attempting recovery...');
           console.log('[Upload Image] Body length:', bodyText.length);
           console.log('[Upload Image] Body starts with:', bodyText.substring(0, 100));
 
-          // Check if this looks like raw base64 data
+          // Check if this looks like raw base64 data or a data URL
           const looksLikeBase64 = /^[A-Za-z0-9+/]/.test(bodyText) && bodyText.length > 100;
-          const looksLikeDataUrl = bodyText.startsWith('data:image/');
+          const looksLikeDataUrl = bodyText.startsWith('data:image/') || bodyText.startsWith('data:application/');
 
-          if (looksLikeBase64 || looksLikeDataUrl) {
-            console.log('[Upload Image] Detected raw base64/data URL, wrapping in JSON structure...');
-
-            // Reconstruct as if it was sent properly
-            let imageDataValue: string;
-            if (looksLikeDataUrl) {
-              // It's already a data URL
-              imageDataValue = bodyText;
-            } else {
-              // It's raw base64, need to add data URL prefix
-              // Detect format from base64 magic bytes instead of assuming PNG
-              let detectedFormat = detectImageFormatFromBase64(bodyText);
-              console.log('[Upload Image] Detected format from base64:', detectedFormat);
-
-              // If format detection failed (empty string), the base64 might be corrupted during transmission
-              // This is a known issue where JSON body gets stripped and base64 gets corrupted
-              // As a fallback, try PNG since Gemini embellishment typically returns PNG
-              if (!detectedFormat) {
-                console.warn('[Upload Image] Could not detect format from magic bytes');
-                console.warn('[Upload Image] Base64 may have been corrupted during transmission');
-                console.warn('[Upload Image] This usually means the data URL was sent incorrectly');
-
-                // Return a clear error instead of trying to guess
-                return new Response(JSON.stringify({
-                  error: 'Corrupted image data received. The image data appears to be invalid or corrupted during transmission. Please regenerate the image.'
-                }), {
-                  status: 400,
-                  headers: { 'Content-Type': 'application/json' },
-                });
-              }
-
-              imageDataValue = `data:image/${detectedFormat};base64,${bodyText}`;
-            }
-
+          if (looksLikeDataUrl) {
+            // It's already a data URL - use it directly
+            console.log('[Upload Image] Detected raw data URL, using directly...');
             data = {
-              imageData: imageDataValue,
+              imageData: bodyText,
               name: 'Generated Image',
               productCode: undefined
             };
+            console.log('[Upload Image] Successfully recovered from raw data URL');
+          } else if (looksLikeBase64) {
+            // It's raw base64, need to add data URL prefix
+            console.log('[Upload Image] Detected raw base64, wrapping...');
+            
+            // Try to detect format from base64 magic bytes
+            let detectedFormat = detectImageFormatFromBase64(bodyText);
+            console.log('[Upload Image] Detected format from base64:', detectedFormat);
 
+            // If format detection failed, default to PNG (most common)
+            if (!detectedFormat) {
+              console.warn('[Upload Image] Could not detect format from magic bytes, defaulting to PNG');
+              detectedFormat = 'png';
+            }
+
+            data = {
+              imageData: `data:image/${detectedFormat};base64,${bodyText}`,
+              name: 'Generated Image',
+              productCode: undefined
+            };
             console.log('[Upload Image] Successfully recovered from raw base64 data');
           } else {
-            // Not base64, this is a genuine error
+            // Not recoverable - this is a genuine JSON error
             console.error('[Upload Image] Body type check:', {
               startsWithCurly: bodyText.startsWith('{'),
               startsWithBase64: looksLikeBase64,
@@ -548,7 +557,15 @@ export async function POST(request: Request) {
               firstCharCode: bodyText.charCodeAt(0)
             });
             console.error('[Upload Image] JSON error:', jsonError);
-            throw new Error(`Invalid JSON body: ${jsonError instanceof Error ? jsonError.message : 'Unknown error'}`);
+            
+            // Return a helpful error message
+            return new Response(JSON.stringify({
+              error: 'Invalid request format. Expected JSON with imageUrl or imageData field.',
+              details: 'The request body could not be parsed as JSON or detected as valid image data.'
+            }), {
+              status: 400,
+              headers: { 'Content-Type': 'application/json' },
+            });
           }
         }
         
@@ -702,7 +719,7 @@ export async function POST(request: Request) {
         // Use preview URL as the public/display URL (smaller, faster loading)
         publicUrl = previewUrl;
         
-        } catch (uploadError) {
+      } catch (uploadError) {
         console.error('[Upload Image] Storage upload failed:', uploadError);
         return new Response(JSON.stringify({ 
             error: `Failed to save image to storage: ${uploadError instanceof Error ? uploadError.message : 'Unknown storage error'}`
@@ -710,7 +727,7 @@ export async function POST(request: Request) {
             status: 500,
             headers: { 'Content-Type': 'application/json' },
         });
-        }
+      }
     }
 
     // 5. Save to database (only if user is logged in)

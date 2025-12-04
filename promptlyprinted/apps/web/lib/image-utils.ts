@@ -44,6 +44,11 @@ const DEFAULT_TIMEOUT = 120000; // 2 minutes
 const DEFAULT_MAX_RETRIES = 3;
 const RETRY_DELAY_BASE = 1000; // 1 second
 
+// Maximum body size for Vercel API routes (with safety margin)
+const MAX_UPLOAD_SIZE = 4 * 1024 * 1024; // 4MB to stay under Vercel's 4.5MB limit
+const COMPRESSION_QUALITY = 0.85; // JPEG quality for compression
+const MAX_DIMENSION = 2048; // Max width/height for compression
+
 // Magic bytes for image format detection
 const MAGIC_BYTES: Record<string, ImageFormat> = {
   '89504e47': 'png',      // PNG
@@ -329,6 +334,125 @@ export function isAllowedFormat(format: ImageFormat): boolean {
 }
 
 // ============================================================================
+// IMAGE COMPRESSION (Client-side)
+// ============================================================================
+
+/**
+ * Compress an image data URL to reduce size for upload
+ * Uses canvas to resize and compress images that exceed the upload limit
+ * 
+ * @param dataUrl - The original data URL
+ * @param maxSize - Maximum size in bytes (default: 4MB for Vercel limit)
+ * @returns Compressed data URL (as JPEG for smaller size)
+ */
+export async function compressImageDataUrl(
+  dataUrl: string,
+  maxSize: number = MAX_UPLOAD_SIZE
+): Promise<string> {
+  // Only process if it's a data URL
+  if (!isDataUrl(dataUrl)) {
+    return dataUrl;
+  }
+
+  // Check if compression is needed
+  const currentSize = dataUrl.length;
+  console.log('[compressImage] Current size:', Math.round(currentSize / 1024), 'KB');
+  
+  if (currentSize <= maxSize) {
+    console.log('[compressImage] No compression needed, under limit');
+    return dataUrl;
+  }
+
+  console.log('[compressImage] Compressing image, over', Math.round(maxSize / 1024), 'KB limit');
+
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    
+    img.onload = () => {
+      try {
+        let { width, height } = img;
+        console.log('[compressImage] Original dimensions:', width, 'x', height);
+        
+        // Calculate scaling factor to stay within max dimensions
+        let scale = 1;
+        if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+          scale = Math.min(MAX_DIMENSION / width, MAX_DIMENSION / height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+          console.log('[compressImage] Scaled dimensions:', width, 'x', height);
+        }
+        
+        // Create canvas and draw image
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          console.error('[compressImage] Failed to get canvas context');
+          resolve(dataUrl); // Return original if canvas fails
+          return;
+        }
+        
+        // Draw with white background (for transparent PNGs)
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Try different quality levels until we're under the limit
+        let quality = COMPRESSION_QUALITY;
+        let compressed = canvas.toDataURL('image/jpeg', quality);
+        
+        // Progressively reduce quality if still too large
+        while (compressed.length > maxSize && quality > 0.3) {
+          quality -= 0.1;
+          compressed = canvas.toDataURL('image/jpeg', quality);
+          console.log('[compressImage] Reduced quality to', quality.toFixed(1), 
+                      'size:', Math.round(compressed.length / 1024), 'KB');
+        }
+        
+        // If still too large, reduce dimensions further
+        if (compressed.length > maxSize) {
+          console.log('[compressImage] Still too large, reducing dimensions...');
+          const newScale = 0.75;
+          canvas.width = Math.round(width * newScale);
+          canvas.height = Math.round(height * newScale);
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          compressed = canvas.toDataURL('image/jpeg', 0.7);
+          console.log('[compressImage] After dimension reduction:', 
+                      Math.round(compressed.length / 1024), 'KB');
+        }
+        
+        console.log('[compressImage] Final size:', Math.round(compressed.length / 1024), 'KB',
+                    '(reduced by', Math.round((1 - compressed.length / currentSize) * 100) + '%)');
+        
+        resolve(compressed);
+      } catch (error) {
+        console.error('[compressImage] Compression error:', error);
+        resolve(dataUrl); // Return original on error
+      }
+    };
+    
+    img.onerror = (error) => {
+      console.error('[compressImage] Failed to load image:', error);
+      resolve(dataUrl); // Return original on error
+    };
+    
+    img.src = dataUrl;
+  });
+}
+
+/**
+ * Check if an image data URL needs compression
+ */
+export function needsCompression(dataUrl: string, maxSize: number = MAX_UPLOAD_SIZE): boolean {
+  return isDataUrl(dataUrl) && dataUrl.length > maxSize;
+}
+
+// ============================================================================
 // URL TYPE CHECKS
 // ============================================================================
 
@@ -503,6 +627,8 @@ function derivePermanentUrls(imageUrl: string): UploadResult {
  * 1. Binary Blob uploads are unreliable across browsers
  * 2. Some proxies/middleware corrupt binary data
  * 3. JSON is more debuggable and predictable
+ * 
+ * Images are automatically compressed if they exceed the upload limit.
  */
 async function executeUpload(
   imageUrl: string,
@@ -520,15 +646,30 @@ async function executeUpload(
     : controller.signal;
   
   try {
-    // ALWAYS send as JSON - this is more reliable than binary Blob
-    // The server can handle both data URLs and regular URLs
-    console.log('[image-utils] Sending image as JSON...');
+    console.log('[image-utils] Preparing image for upload...');
     console.log('[image-utils] Image URL type:', isDataUrl(imageUrl) ? 'data URL' : 'regular URL');
     
+    let urlToUpload = imageUrl;
+    
     if (isDataUrl(imageUrl)) {
+      // Check size and compress if needed
+      const originalSize = imageUrl.length;
+      console.log('[image-utils] Original data URL size:', Math.round(originalSize / 1024), 'KB');
+      
+      if (needsCompression(imageUrl)) {
+        console.log('[image-utils] Image exceeds upload limit, compressing...');
+        try {
+          urlToUpload = await compressImageDataUrl(imageUrl);
+          console.log('[image-utils] Compressed size:', Math.round(urlToUpload.length / 1024), 'KB');
+        } catch (compressError) {
+          console.error('[image-utils] Compression failed, using original:', compressError);
+          // Continue with original if compression fails
+        }
+      }
+      
       // Validate the data URL before sending
       try {
-        const parsed = parseDataUrl(imageUrl);
+        const parsed = parseDataUrl(urlToUpload);
         console.log('[image-utils] Data URL validated:', {
           mimeType: parsed.mimeType,
           format: parsed.format,
@@ -541,12 +682,12 @@ async function executeUpload(
     }
     
     const body = JSON.stringify({ 
-      imageUrl,  // Send the full data URL or regular URL
+      imageUrl: urlToUpload,  // Send the (possibly compressed) data URL or regular URL
       name, 
       productCode 
     });
     
-    console.log('[image-utils] Request body size:', body.length);
+    console.log('[image-utils] Request body size:', Math.round(body.length / 1024), 'KB');
 
     const response = await fetch('/api/upload-image', {
       method: 'POST',
