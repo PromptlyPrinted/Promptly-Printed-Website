@@ -17,6 +17,7 @@ const ShippingAddressSchema = z.object({
   addressLine1: z.string(),
   addressLine2: z.string().optional(),
   city: z.string(),
+  state: z.string().optional(),
   postalCode: z.string(),
   country: z.string(),
 });

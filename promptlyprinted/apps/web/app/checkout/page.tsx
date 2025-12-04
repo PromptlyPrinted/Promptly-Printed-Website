@@ -154,6 +154,7 @@ interface Address {
   addressLine1: string;
   addressLine2?: string;
   city: string;
+  state?: string;
   postalCode: string;
   country: string;
 }
@@ -626,6 +627,18 @@ export default function CheckoutPage() {
         }
 
         // Send payment to backend
+        // Use billingAddress as shippingAddress if same address is used
+        const effectiveShippingAddress = useDifferentShipping ? shippingAddress : billingAddress;
+        
+        console.log('[Checkout] Sending payment with items:', validItems.map(item => ({
+          name: item.name,
+          hasPrintReadyUrl: !!item.printReadyUrl,
+          printReadyUrl: item.printReadyUrl?.substring(0, 50),
+          hasDesignUrl: !!item.designUrl,
+          hasImages: item.images?.length > 0,
+        })));
+        console.log('[Checkout] Shipping address:', effectiveShippingAddress);
+        
         const csrfToken = await getCsrfToken();
         const response = await fetch('/api/checkout/complete-payment', {
           method: 'POST',
@@ -637,8 +650,7 @@ export default function CheckoutPage() {
           body: JSON.stringify({
             sourceId: token,
             items: validItems,
-            billingAddress,
-            shippingAddress: useDifferentShipping ? shippingAddress : undefined,
+            shippingAddress: effectiveShippingAddress,
             discountCode: appliedDiscount?.code?.trim(),
           }),
         });
