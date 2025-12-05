@@ -5,6 +5,7 @@ export interface SavedImage {
   id: string;
   name: string;
   url: string;
+  printReadyUrl?: string | null; // 300 DPI version for printing
   userId: string;
   productId: number | null;
   createdAt: Date;

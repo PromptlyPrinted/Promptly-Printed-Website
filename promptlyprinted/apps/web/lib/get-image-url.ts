@@ -44,8 +44,14 @@ export function getImageUrl(path: string): string {
   // Remove trailing slash from base URL
   baseUrl = baseUrl.replace(/\/$/, '');
 
-  // If it's an API route or upload path, make it publicly accessible
-  if (path.startsWith('/api/') || path.startsWith('/uploads/')) {
+  // If it's an API route or three-folder system path, make it publicly accessible
+  // Three-folder system: /temp, /saved, /orders
+  if (
+    path.startsWith('/api/') ||
+    path.includes('/temp/') ||
+    path.includes('/saved/') ||
+    path.includes('/orders/')
+  ) {
     return `${baseUrl}${path}`;
   }
 

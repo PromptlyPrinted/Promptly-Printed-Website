@@ -7,7 +7,7 @@
  * 
  * Three-Folder System:
  * - /temp/{sessionId}/ - Session drafts, auto-delete 24h
- * - /saved/{userId}/ - User favorites (via separate /save-to-favorites route)
+ * - /saved/{userId}/ - User favorites (via /api/saved-designs POST)
  * - /orders/{orderId}/ - Print files 300 DPI (via checkout after payment)
  */
 

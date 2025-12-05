@@ -563,12 +563,14 @@ export function isPermanentUrl(url: string | undefined | null): boolean {
   if (url.includes('localhost') || url.includes('127.0.0.1')) return false;
   
   // Check for known permanent storage patterns
+  // Three-folder system: /temp (24h), /saved (permanent), /orders (permanent)
   return (
     url.includes('.r2.dev') ||
     url.includes('cloudflare') ||
     url.includes('images.promptlyprinted.com') ||
     url.startsWith('/api/images/') ||
-    url.startsWith('/uploads/') ||
+    url.includes('/saved/') ||
+    url.includes('/orders/') ||
     (url.startsWith('https://') && !url.includes('localhost'))
   );
 }
@@ -702,8 +704,8 @@ function derivePermanentUrls(imageUrl: string): UploadResult {
     return { url: imageUrl, previewUrl, printReadyUrl };
   }
   
-  // If it's a legacy upload URL
-  if (imageUrl.startsWith('/uploads/')) {
+  // If it's a three-folder system URL (/temp, /saved, /orders), return as-is
+  if (imageUrl.includes('/temp/') || imageUrl.includes('/saved/') || imageUrl.includes('/orders/')) {
     return { url: imageUrl, previewUrl: imageUrl, printReadyUrl: imageUrl };
   }
   

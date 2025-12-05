@@ -989,48 +989,25 @@ export async function POST(req: Request) {
             throw new Error(`Design URL missing for order item. Please ensure all products have custom designs uploaded.`);
           }
 
+          // Check if there's a pre-generated 300 DPI print-ready URL in attributes
+          // Upload creates files with -print.png suffix for 300 DPI versions
+          const printReadyUrl = attrs?.printReadyUrl;
+          if (printReadyUrl && printReadyUrl.toLowerCase().endsWith('.png')) {
+            console.log('[Prodigi Order] Using pre-generated print-ready PNG:', printReadyUrl);
+            designUrl = printReadyUrl;
+          } else {
+            console.log('[Prodigi Order] Using designUrl:', designUrl);
+          }
+
           // Ensure design URL is a proper absolute URL
           if (designUrl.startsWith('/')) {
-            // Relative path - prepend domain
             const baseUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://promptlyprinted.com';
             designUrl = `${baseUrl}${designUrl}`;
+            console.log('[Prodigi Order] Converted to absolute URL:', designUrl);
           } else if (designUrl.startsWith('https://https')) {
             // Fix malformed double-https URLs
             designUrl = designUrl.replace(/^https:\/\/https:?\/?\/?/, 'https://promptlyprinted.com/');
-          }
-
-          // Check if there's a pre-generated 300 DPI print-ready URL in attributes
-          const printReadyUrl = attrs?.printReadyUrl;
-          if (printReadyUrl) {
-            // Validate that the URL is a PNG file (not JPEG preview)
-            if (printReadyUrl.toLowerCase().endsWith('.png')) {
-              console.log('[Prodigi Order] Using pre-generated 300 DPI PNG URL:', printReadyUrl);
-              designUrl = printReadyUrl;
-            } else if (printReadyUrl.toLowerCase().endsWith('.jpg') || printReadyUrl.toLowerCase().endsWith('.jpeg')) {
-              console.warn('[Prodigi Order] printReadyUrl is JPEG, not PNG! Attempting to construct PNG URL:', printReadyUrl);
-              // Try to construct the 300 DPI PNG URL from the design URL
-              if (designUrl.endsWith('.png')) {
-                designUrl = designUrl.replace(/\.png$/, '-300dpi.png');
-                console.log('[Prodigi Order] Constructed 300 DPI PNG URL from designUrl:', designUrl);
-              } else {
-                console.error('[Prodigi Order] Cannot construct PNG URL, using JPEG as fallback (may cause print quality issues):', printReadyUrl);
-                designUrl = printReadyUrl;
-              }
-            } else {
-              console.log('[Prodigi Order] printReadyUrl has unknown extension, using as-is:', printReadyUrl);
-              designUrl = printReadyUrl;
-            }
-          } else {
-            console.log('[Prodigi Order] No printReadyUrl found in attributes');
-            // Try to construct 300 DPI PNG URL from the designUrl
-            if (designUrl.endsWith('.png')) {
-              const baseUrl = designUrl.replace(/\.png$/, '');
-              const printReadyCandidate = `${baseUrl}-300dpi.png`;
-              console.log('[Prodigi Order] Attempting to use 300 DPI PNG URL:', printReadyCandidate);
-              designUrl = printReadyCandidate;
-            } else {
-              console.log('[Prodigi Order] Using original design URL (may not be 300 DPI):', designUrl);
-            }
+            console.log('[Prodigi Order] Fixed malformed URL:', designUrl);
           }
 
           // Get color and size from attributes for Prodigi

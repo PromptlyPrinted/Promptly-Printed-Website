@@ -55,6 +55,11 @@ export class S3StorageProvider implements StorageProvider {
 
   /**
    * Build the S3 key path based on folder and options
+   * 
+   * Three-Folder System (no legacy uploads/images):
+   * - /temp/{sessionId}/ - Session drafts, 24h lifecycle
+   * - /saved/{userId}/ - User saved designs, permanent
+   * - /orders/{orderId}/ - Print files 300 DPI, permanent
    */
   private buildKey(filename: string, options?: UploadOptions): string {
     const folder = options?.folder || 'temp';
@@ -77,8 +82,9 @@ export class S3StorageProvider implements StorageProvider {
         return `orders/${orderId}/${uniqueFilename}`;
       
       default:
-        // Fallback to legacy path for backwards compatibility
-        return `uploads/images/${uniqueFilename}`;
+        // Default to temp folder (no more uploads/images legacy path)
+        const defaultSessionId = options?.sessionId || 'anonymous';
+        return `temp/${defaultSessionId}/${uniqueFilename}`;
     }
   }
 

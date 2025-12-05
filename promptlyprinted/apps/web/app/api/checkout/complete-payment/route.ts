@@ -461,21 +461,34 @@ export async function POST(request: NextRequest) {
           if (sourceUrl && needsUpscaling(sourceUrl)) {
             try {
               console.log(`[Lazy Upscaling] Upscaling item ${index} for order ${order.id}`);
+              console.log(`[Lazy Upscaling] Source URL: ${sourceUrl}`);
               const result = await upscaleForPrint(sourceUrl, {
                 orderId: order.id.toString(),
                 itemIndex: index,
                 productCode: productSkuMap.get(item.productId),
               });
               upscaledUrls.set(index, result.printReadyUrl);
-              console.log(`[Lazy Upscaling] Item ${index} upscaled: ${result.fileSizeBytes} bytes`);
+              console.log(`[Lazy Upscaling] Item ${index} upscaled successfully:`);
+              console.log(`[Lazy Upscaling]   - Original: ${sourceUrl}`);
+              console.log(`[Lazy Upscaling]   - New URL: ${result.printReadyUrl}`);
+              console.log(`[Lazy Upscaling]   - Size: ${result.fileSizeBytes} bytes`);
             } catch (upscaleError) {
-              console.error(`[Lazy Upscaling] Failed for item ${index}:`, upscaleError);
-              // Use original URL as fallback
+              console.error(`[Lazy Upscaling] FAILED for item ${index}:`, {
+                error: upscaleError instanceof Error ? upscaleError.message : upscaleError,
+                sourceUrl,
+                orderId: order.id,
+                stack: upscaleError instanceof Error ? upscaleError.stack : undefined,
+              });
+              // Use original URL as fallback - but log that we're doing this
+              console.warn(`[Lazy Upscaling] Using original URL as fallback: ${sourceUrl}`);
               upscaledUrls.set(index, sourceUrl);
             }
           } else if (sourceUrl) {
             // Already high-res, use as-is
+            console.log(`[Lazy Upscaling] Item ${index} already high-res, using as-is: ${sourceUrl}`);
             upscaledUrls.set(index, sourceUrl);
+          } else {
+            console.error(`[Lazy Upscaling] Item ${index} has NO source URL!`);
           }
         }
         

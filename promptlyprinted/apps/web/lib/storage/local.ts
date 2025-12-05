@@ -6,10 +6,10 @@ import type { StorageProvider, StorageFolder, UploadOptions } from './interface'
 /**
  * Local filesystem storage implementation with Three-Folder System
  * 
- * Folder Structure:
+ * Folder Structure (no legacy uploads/images):
  * - uploads/temp/{sessionId}/ - Session drafts
- * - uploads/saved/{userId}/ - User favorites
- * - uploads/orders/{orderId}/ - Print files (300 DPI)
+ * - uploads/saved/{userId}/ - User favorites (permanent)
+ * - uploads/orders/{orderId}/ - Print files 300 DPI (permanent)
  * 
  * Note: Local storage doesn't enforce 24h lifecycle rules.
  * Use S3 with lifecycle policies for production.
@@ -24,6 +24,11 @@ export class LocalStorageProvider implements StorageProvider {
 
   /**
    * Build the file path based on folder and options
+   * 
+   * Three-Folder System (no legacy uploads/images):
+   * - /temp/{sessionId}/ - Session drafts
+   * - /saved/{userId}/ - User saved designs, permanent
+   * - /orders/{orderId}/ - Print files 300 DPI, permanent
    */
   private buildPath(filename: string, options?: UploadOptions): { dir: string; fullPath: string; relativePath: string } {
     const folder = options?.folder || 'temp';
@@ -48,7 +53,9 @@ export class LocalStorageProvider implements StorageProvider {
         break;
       
       default:
-        subDir = 'images';
+        // Default to temp folder (no more uploads/images legacy path)
+        const defaultSessionId = options?.sessionId || 'anonymous';
+        subDir = `temp/${defaultSessionId}`;
     }
     
     const dir = join(this.uploadsDir, subDir);

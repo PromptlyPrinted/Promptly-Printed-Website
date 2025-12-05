@@ -59,9 +59,23 @@ export async function upscaleForPrint(
   console.log(`[Lazy Upscale] Starting upscale for order ${options.orderId}, item ${options.itemIndex}`);
   console.log(`[Lazy Upscale] Source URL: ${imageUrl}`);
 
+  // Ensure we have an absolute URL for server-side fetch
+  let absoluteUrl = imageUrl;
+  if (imageUrl.startsWith('/')) {
+    const baseUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://promptlyprinted.com';
+    absoluteUrl = `${baseUrl}${imageUrl}`;
+    console.log(`[Lazy Upscale] Converted relative URL to absolute: ${absoluteUrl}`);
+  }
+
   // Fetch the source image
-  const sourceBuffer = await fetchImageAsBufferUtil(imageUrl);
-  console.log(`[Lazy Upscale] Source image size: ${sourceBuffer.length} bytes`);
+  let sourceBuffer: Buffer;
+  try {
+    sourceBuffer = await fetchImageAsBufferUtil(absoluteUrl);
+    console.log(`[Lazy Upscale] Source image size: ${sourceBuffer.length} bytes`);
+  } catch (fetchError) {
+    console.error(`[Lazy Upscale] Failed to fetch image from ${absoluteUrl}:`, fetchError);
+    throw new Error(`Failed to fetch source image: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`);
+  }
 
   // Detect format
   const format = detectImageFormat(sourceBuffer);
@@ -170,19 +184,30 @@ export async function upscaleOrderItems(
 /**
  * Check if an image needs upscaling
  * Images in /orders folder are already upscaled
+ * Images with -print.png or -300dpi suffix are already print-ready
  * Images in /temp or /saved need upscaling
  */
 export function needsUpscaling(imageUrl: string): boolean {
   // Already in orders folder = already upscaled
   if (imageUrl.includes('/orders/')) {
+    console.log(`[needsUpscaling] URL is in /orders folder, no upscaling needed: ${imageUrl}`);
     return false;
   }
   
-  // Check if URL indicates print-ready (300dpi)
-  if (imageUrl.includes('-300dpi') || imageUrl.includes('print-ready')) {
+  // Check if URL indicates print-ready (300dpi or -print suffix)
+  // The upload-image route creates files with -print.png suffix for 300 DPI versions
+  if (imageUrl.includes('-300dpi') || imageUrl.includes('print-ready') || imageUrl.includes('-print.png')) {
+    console.log(`[needsUpscaling] URL is already print-ready, no upscaling needed: ${imageUrl}`);
     return false;
   }
   
+  // JPEG preview images always need upscaling to PNG for print
+  if (imageUrl.includes('-preview.jpg') || imageUrl.includes('-preview.jpeg')) {
+    console.log(`[needsUpscaling] URL is a preview JPEG, needs upscaling: ${imageUrl}`);
+    return true;
+  }
+  
+  console.log(`[needsUpscaling] URL needs upscaling: ${imageUrl}`);
   return true;
 }
 

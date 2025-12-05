@@ -3158,6 +3158,14 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                   // Set the selected image as the generated image
                   setGeneratedImage(image.url);
                   setImageUrl(image.url);
+                  // Store the 300 DPI print-ready URL if available
+                  if (image.printReadyUrl) {
+                    setPrintReadyImageUrl(image.printReadyUrl);
+                    console.log('Selected existing image with printReadyUrl:', image.printReadyUrl);
+                  } else {
+                    // No print-ready URL, will be generated at checkout if needed
+                    setPrintReadyImageUrl('');
+                  }
                   // Clear any background removal processing since this is an existing image
                   setRemoveBackground(false);
                   setProcessedImage('');

@@ -32,6 +32,7 @@ export async function GET(request: Request) {
       select: {
         id: true,
         url: true,
+        printReadyUrl: true, // Include 300 DPI URL for printing
         name: true,
         userId: true,
         productId: true,

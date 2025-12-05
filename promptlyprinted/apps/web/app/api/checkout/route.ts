@@ -12,8 +12,8 @@ import { ZodError, z } from 'zod';
 
 
 /**
- * Save base64 image using the storage provider and return a relative URL under /uploads/images.
- * This unifies all image storage under public/uploads/images for best practice.
+ * Save base64 image using the storage provider.
+ * Uses the three-folder system: /temp for drafts, /saved for user saves, /orders for print files.
  */
 async function saveBase64Image(base64Data: string): Promise<string> {
   const { storage } = await import('@/lib/storage');
@@ -28,9 +28,9 @@ async function saveBase64Image(base64Data: string): Promise<string> {
     throw new Error('Invalid base64 image format');
   }
 
-  // Delegate upload to the storage provider (Local -> public/uploads/images)
-  const relativeUrl = await storage.uploadFromBase64(base64Data, filename);
-  return relativeUrl; // e.g. /uploads/images/uuid-checkout-image.png
+  // Upload to /temp folder (will be moved to /orders at payment completion)
+  const relativeUrl = await storage.uploadFromBase64(base64Data, filename, { folder: 'temp' });
+  return relativeUrl;
 }
 
 const ImageSchema = z.object({
