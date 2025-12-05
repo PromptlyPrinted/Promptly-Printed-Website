@@ -298,11 +298,29 @@ class ProdigiService {
       console.error('Prodigi API error:', {
         status: response.status,
         statusText: response.statusText,
-        errorData,
+        errorData: JSON.stringify(errorData, null, 2),
         requestUrl: `${this.baseUrl}/orders`,
         hasApiKey: !!this.apiKey,
         apiKeyLength: this.apiKey?.length,
       });
+      
+      // Log the full request that was sent for debugging
+      console.error('Prodigi API request that failed:', {
+        shippingMethod: request.shippingMethod,
+        merchantReference: request.merchantReference,
+        recipient: request.recipient,
+        itemCount: items.length,
+        items: items.map((item, i) => ({
+          index: i,
+          sku: item.sku,
+          copies: item.copies,
+          sizing: item.sizing,
+          attributes: item.attributes,
+          assetUrl: item.assets?.[0]?.url?.substring(0, 100) + '...',
+          assetPrintArea: item.assets?.[0]?.printArea,
+        })),
+      });
+      
       throw new Error(
         `Failed to create order: ${response.statusText}${
           errorData ? ` - ${JSON.stringify(errorData)}` : ''

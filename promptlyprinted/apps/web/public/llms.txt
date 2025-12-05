@@ -43,3 +43,4 @@ No public API currently available.
 ## Competitors
 Similar services include TeeAI, TeeWiz, and traditional print-on-demand services like Printful and Printify, though Promptly Printed differentiates with AI design generation.
 
+
