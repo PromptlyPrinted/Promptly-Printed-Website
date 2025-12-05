@@ -374,6 +374,7 @@ export async function POST(request: NextRequest) {
               squarePaymentStatus: paymentResponse.payment.status,
               prodigiProcessingKey: processingKey,
               prodigiProcessingStarted: new Date().toISOString(),
+              prodigiProcessingFailed: null, // Clear failed flag on retry
               source: 'complete-payment', // Track source of creation
             },
           },
@@ -616,7 +617,7 @@ export async function POST(request: NextRequest) {
         });
 
         // Log the error but don't fail the payment
-        // The order can be manually sent to Prodigi later
+        // CRITICAL: Clear the processingKey so the webhook can retry!
         try {
           await prisma.orderProcessingError.create({
             data: {
@@ -627,7 +628,8 @@ export async function POST(request: NextRequest) {
             },
           });
 
-          // Update order metadata with error info
+          // Update order metadata with error info AND clear processing key
+          // This allows the webhook to retry Prodigi order creation
           await prisma.order.update({
             where: { id: order.id },
             data: {
@@ -636,11 +638,15 @@ export async function POST(request: NextRequest) {
                 prodigiError: prodigiError.message,
                 prodigiErrorTime: new Date().toISOString(),
                 prodigiErrorDetails: JSON.stringify(prodigiError),
+                // Clear processing key so webhook can retry
+                prodigiProcessingKey: null,
+                prodigiProcessingStarted: null,
+                prodigiProcessingFailed: true,
               },
             },
           });
 
-          console.log('[Prodigi Order] Error logged successfully');
+          console.log('[Prodigi Order] Error logged successfully, cleared processing key for webhook retry');
         } catch (logError) {
           console.error('[Prodigi Order] Failed to log error:', logError);
         }

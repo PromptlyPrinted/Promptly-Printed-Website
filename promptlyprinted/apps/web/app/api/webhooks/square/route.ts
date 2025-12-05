@@ -327,7 +327,15 @@ export async function POST(req: Request) {
               if (order?.prodigiOrderId) return false;
 
               const metadata = order?.metadata as any;
-              if (metadata?.prodigiProcessingKey) {
+              
+              // If previous processing failed, allow retry regardless of timing
+              if (metadata?.prodigiProcessingFailed) {
+                console.log('[Prodigi Order] Previous processing failed, allowing webhook retry', {
+                  previousError: metadata.prodigiError,
+                  failedAt: metadata.prodigiErrorTime,
+                });
+                // Continue to claim the order
+              } else if (metadata?.prodigiProcessingKey) {
                 const processingStartTime = new Date(metadata.prodigiProcessingStarted || 0);
                 const timeDiff = Date.now() - processingStartTime.getTime();
                 if (timeDiff < 5 * 60 * 1000) {
@@ -343,6 +351,7 @@ export async function POST(req: Request) {
                     ...(order?.metadata as object || {}),
                     prodigiProcessingKey: processingKey,
                     prodigiProcessingStarted: new Date().toISOString(),
+                    prodigiProcessingFailed: null, // Clear failed flag on retry
                     source: 'webhook-direct',
                   },
                 },
@@ -474,6 +483,7 @@ export async function POST(req: Request) {
               },
             }).catch(() => {});
 
+            // Clear processing key so other processes can retry
             await prisma.order.update({
               where: { id: updatedOrder.id },
               data: {
@@ -481,6 +491,9 @@ export async function POST(req: Request) {
                   ...(updatedOrder.metadata as object || {}),
                   prodigiError: prodigiError.message,
                   prodigiErrorTime: new Date().toISOString(),
+                  prodigiProcessingKey: null,
+                  prodigiProcessingStarted: null,
+                  prodigiProcessingFailed: true,
                 },
               },
             }).catch(() => {});
@@ -875,7 +888,15 @@ export async function POST(req: Request) {
 
           // Check if already being processed by another webhook
           const metadata = order?.metadata as any;
-          if (metadata?.prodigiProcessingKey && metadata?.prodigiProcessingStarted) {
+          
+          // If previous processing failed, allow retry regardless of timing
+          if (metadata?.prodigiProcessingFailed) {
+            console.log('[Prodigi Order] Previous processing failed, allowing webhook retry', {
+              previousError: metadata.prodigiError,
+              failedAt: metadata.prodigiErrorTime,
+            });
+            // Continue to claim the order
+          } else if (metadata?.prodigiProcessingKey && metadata?.prodigiProcessingStarted) {
             // Check if processing started recently (within last 5 minutes)
             const processingStartTime = new Date(metadata.prodigiProcessingStarted);
             const now = new Date();
@@ -909,6 +930,7 @@ export async function POST(req: Request) {
                 squareOrderId: orderId,
                 prodigiProcessingKey: processingKey,
                 prodigiProcessingStarted: new Date().toISOString(),
+                prodigiProcessingFailed: null, // Clear failed flag on retry
                 source: 'webhook',
               },
             },
@@ -1130,6 +1152,7 @@ export async function POST(req: Request) {
         });
 
         // Log the error but don't fail the webhook
+        // CRITICAL: Clear the processingKey so other processes can retry!
         try {
           await prisma.orderProcessingError.create({
             data: {
@@ -1140,7 +1163,7 @@ export async function POST(req: Request) {
             },
           });
 
-          // Update order metadata with error info
+          // Update order metadata with error info AND clear processing key
           await prisma.order.update({
             where: { id: updatedOrder.id },
             data: {
@@ -1149,11 +1172,15 @@ export async function POST(req: Request) {
                 prodigiError: prodigiError.message,
                 prodigiErrorTime: new Date().toISOString(),
                 prodigiErrorDetails: JSON.stringify(prodigiError),
+                // Clear processing key so other processes can retry
+                prodigiProcessingKey: null,
+                prodigiProcessingStarted: null,
+                prodigiProcessingFailed: true,
               },
             },
           });
 
-          console.log('[Prodigi Order] Error logged successfully');
+          console.log('[Prodigi Order] Error logged successfully, cleared processing key for retry');
         } catch (logError) {
           console.error('[Prodigi Order] Failed to log error:', logError);
         }

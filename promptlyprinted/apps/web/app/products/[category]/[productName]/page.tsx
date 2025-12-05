@@ -190,6 +190,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
   // Map to Product interface
   const productWithPrice: Product = {
     id: product.sku,
+    dbId: dbProduct?.id, // Include numeric database ID
     name: product.name,
     description: product.shortDescription,
     pricing: product.pricing,

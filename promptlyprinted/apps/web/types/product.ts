@@ -1,5 +1,6 @@
 export interface Product {
   id: string;
+  dbId?: number; // Numeric database ID for relations
   name: string;
   description: string;
   pricing: Array<{ amount: number; currency: string }>;

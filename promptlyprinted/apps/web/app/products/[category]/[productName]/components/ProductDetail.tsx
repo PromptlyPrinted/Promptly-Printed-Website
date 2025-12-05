@@ -1780,7 +1780,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                 name: `${product.name} Design`,  // Required field
                 url: displayUrl,                  // Required field (display URL)
                 printReadyUrl: printUrl,          // 300 DPI URL
-                productId: product.id,
+                productId: product.dbId,          // Use numeric database ID
             }),
         });
 
