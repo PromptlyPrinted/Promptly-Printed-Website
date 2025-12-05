@@ -1,56 +1,39 @@
 /**
  * Save Temp Image API Route
  * 
- * Handles saving temporary images to permanent storage.
- * Uses a robust approach to handle data URLs.
+ * LAZY UPSCALING WORKFLOW:
+ * This route ONLY saves images to /temp folder at original resolution.
+ * NO 300 DPI generation happens here - that's deferred until checkout (after payment).
+ * 
+ * Three-Folder System:
+ * - /temp/{sessionId}/ - Session drafts, auto-delete 24h
+ * - /saved/{userId}/ - User favorites (via separate /save-to-favorites route)
+ * - /orders/{orderId}/ - Print files 300 DPI (via checkout after payment)
  */
 
-import { database } from '@repo/database';
-import { getSession } from '../../../lib/session-utils';
+import { cookies } from 'next/headers';
 import { storage } from '@/lib/storage';
-import { generatePrintReadyVersion } from '@/lib/image-processing';
 
 // Simple helper to check if URL is a data URL
 function isDataUrl(url: string): boolean {
   return typeof url === 'string' && url.startsWith('data:');
 }
 
-// Simple, robust data URL to Buffer converter
-function simpleDataUrlToBuffer(dataUrl: string): Buffer {
-  // Find the base64 marker
-  const base64Marker = ';base64,';
-  const markerIndex = dataUrl.indexOf(base64Marker);
+// Get or create session ID for temp folder organization
+async function getSessionId(request: Request): Promise<string> {
+  const cookieStore = await cookies();
+  let sessionId = cookieStore.get('temp-session-id')?.value;
   
-  if (markerIndex === -1) {
-    throw new Error('Invalid data URL: missing base64 marker');
+  if (!sessionId) {
+    // Generate a new session ID
+    sessionId = `session-${Date.now()}-${Math.random().toString(36).substring(7)}`;
   }
   
-  // Extract base64 data
-  const base64Data = dataUrl.substring(markerIndex + base64Marker.length);
-  
-  if (!base64Data || base64Data.length === 0) {
-    throw new Error('Invalid data URL: empty base64 data');
-  }
-  
-  // Clean whitespace and newlines
-  const cleanBase64 = base64Data.replace(/[\s\n\r]/g, '');
-  
-  // Decode to buffer
-  return Buffer.from(cleanBase64, 'base64');
+  return sessionId;
 }
 
 export async function POST(request: Request) {
   try {
-    const session = await getSession(request);
-
-    // Get the database user if session exists
-    let dbUser = null;
-    if (session?.user?.id) {
-      dbUser = await database.user.findUnique({
-        where: { id: session.user.id },
-      });
-    }
-
     const data = await request.json();
     const { url } = data;
 
@@ -61,89 +44,48 @@ export async function POST(request: Request) {
       });
     }
 
-    console.log('[Save Temp Image] Processing URL, length:', url?.length, 'isDataUrl:', isDataUrl(url));
+    const sessionId = await getSessionId(request);
+    
+    console.log('[Save Temp Image] Processing URL to /temp folder');
+    console.log('[Save Temp Image] Session ID:', sessionId);
+    console.log('[Save Temp Image] URL length:', url?.length, 'isDataUrl:', isDataUrl(url));
 
-    // If URL is base64, upload it to storage first and generate 300 DPI version
     let finalUrl = url;
-    let printReadyUrl: string | null = null;
 
+    // If URL is base64, upload it to /temp storage (LOW-RES ONLY, NO UPSCALING)
     if (isDataUrl(url)) {
-      console.log('[Save Temp Image] Converting data URL to file storage...');
+      console.log('[Save Temp Image] Uploading to /temp folder (low-res, no 300 DPI)...');
 
       try {
-        // Use simple buffer conversion
-        const imageBuffer = simpleDataUrlToBuffer(url);
-        console.log('[Save Temp Image] Buffer created, size:', imageBuffer.length);
-
-        // Upload original using storage (which handles its own base64 parsing)
-        finalUrl = await storage.uploadFromBase64(url, 'checkout-image');
-        console.log('[Save Temp Image] Original uploaded:', finalUrl);
-
-        // Generate and upload 300 DPI print-ready version
-        try {
-          console.log('[Save Temp Image] Generating 300 DPI print-ready version...');
-          const printReadyBuffer = await generatePrintReadyVersion(imageBuffer);
-          const printReadyFilename = `checkout-image-${Date.now()}-300dpi.png`;
-          printReadyUrl = await storage.uploadFromBuffer(printReadyBuffer, printReadyFilename, 'image/png');
-          console.log('[Save Temp Image] 300 DPI version saved:', printReadyUrl);
-        } catch (printError) {
-          console.error('[Save Temp Image] Failed to generate 300 DPI version:', printError);
-          // Continue without print-ready version - it's optional
-        }
-      } catch (parseError) {
-        console.error('[Save Temp Image] Failed to parse data URL:', parseError);
-        // Last resort fallback: try direct upload which may handle errors better
-        try {
-          finalUrl = await storage.uploadFromBase64(url, 'checkout-image');
-          console.log('[Save Temp Image] Fallback upload succeeded:', finalUrl);
-        } catch (fallbackError) {
-          console.error('[Save Temp Image] Fallback upload also failed:', fallbackError);
-          throw new Error('Failed to process image data');
-        }
+        // Upload to /temp folder with session ID for organization
+        finalUrl = await storage.uploadFromBase64(url, 'draft-image', {
+          folder: 'temp',
+          sessionId,
+        });
+        console.log('[Save Temp Image] Uploaded to temp:', finalUrl);
+      } catch (uploadError) {
+        console.error('[Save Temp Image] Upload failed:', uploadError);
+        throw new Error('Failed to save image to temp storage');
       }
     }
 
-    // Check if the image is already saved (only if we have a DB user)
-    if (dbUser) {
-      const existingImage = await database.savedImage.findFirst({
-        where: { url: finalUrl },
-      });
-
-      if (existingImage) {
-        return new Response(
-          JSON.stringify({ 
-            id: existingImage.id, 
-            url: existingImage.url,
-            printReadyUrl: existingImage.printReadyUrl 
-          }), 
-          {
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
-      }
-    }
-
-    // Save the image to the database with both URLs (only if user is logged in)
-    let savedImageId: string | undefined;
-    
-    if (dbUser) {
-      const savedImage = await database.savedImage.create({
-        data: {
-          name: 'Checkout Image',
-          url: finalUrl,
-          printReadyUrl: printReadyUrl,
-          userId: dbUser.id,
-        },
-      });
-      savedImageId = savedImage.id;
-    }
-
-    return new Response(
-      JSON.stringify({ id: savedImageId, url: finalUrl, printReadyUrl }), 
+    // Set session cookie for subsequent requests
+    const response = new Response(
+      JSON.stringify({ 
+        url: finalUrl,
+        folder: 'temp',
+        sessionId,
+        // NOTE: printReadyUrl is NOT generated here anymore
+        // It will be generated at checkout after payment via lazy upscaling
+        printReadyUrl: null,
+        _info: 'Print-ready 300 DPI version will be generated at checkout after payment'
+      }), 
       {
         headers: { 'Content-Type': 'application/json' },
       }
     );
+
+    return response;
   } catch (error) {
     console.error('[Save Temp Image] Error:', error);
     
@@ -162,43 +104,10 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
+  // Keep the existing GET handler for proxying images
   try {
     const url = new URL(request.url);
-    const id = url.searchParams.get('id');
     const rawUrl = url.searchParams.get('url');
-
-    if (id) {
-      // Get the image from the database
-      const savedImage = await database.savedImage.findUnique({
-        where: { id },
-      });
-
-      if (!savedImage) {
-        return new Response(JSON.stringify({ error: 'Image not found' }), {
-          status: 404,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-
-      // Proxy the image
-      try {
-        const fetched = await fetch(savedImage.url);
-        const contentType =
-          fetched.headers.get('content-type') || 'application/octet-stream';
-        return new Response(fetched.body, {
-          headers: { 'Content-Type': contentType },
-        });
-      } catch (error) {
-        console.error('[Save Temp Image] Error proxying image:', error);
-        return new Response(
-          JSON.stringify({ error: 'Failed to proxy image' }),
-          {
-            status: 500,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
-      }
-    }
 
     if (rawUrl) {
       try {
@@ -208,9 +117,17 @@ export async function GET(request: Request) {
           // Extract MIME type from data URL
           const mimeMatch = decodedUrl.match(/^data:([^;,]+)/);
           const mimeType = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
-          const buffer = simpleDataUrlToBuffer(decodedUrl);
           
-          // Convert Buffer to Uint8Array for Response compatibility
+          // Find the base64 marker
+          const base64Marker = ';base64,';
+          const markerIndex = decodedUrl.indexOf(base64Marker);
+          if (markerIndex === -1) {
+            throw new Error('Invalid data URL');
+          }
+          
+          const base64Data = decodedUrl.substring(markerIndex + base64Marker.length);
+          const cleanBase64 = base64Data.replace(/[\s\n\r]/g, '');
+          const buffer = Buffer.from(cleanBase64, 'base64');
           const uint8Array = new Uint8Array(buffer);
           
           return new Response(uint8Array, {
@@ -245,7 +162,7 @@ export async function GET(request: Request) {
     }
 
     return new Response(
-      JSON.stringify({ error: 'Missing id or url parameter' }),
+      JSON.stringify({ error: 'Missing url parameter' }),
       {
         status: 400,
         headers: { 'Content-Type': 'application/json' },

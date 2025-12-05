@@ -8,6 +8,7 @@ import { square } from '@repo/payments';
 import { Currency } from 'square';
 import { z } from 'zod';
 import { prodigiService } from '@/lib/prodigi';
+import { upscaleForPrint, needsUpscaling } from '@/lib/lazy-upscaling';
 
 const ShippingAddressSchema = z.object({
   firstName: z.string(),
@@ -429,7 +430,58 @@ export async function POST(request: NextRequest) {
           skuMap: Array.from(productSkuMap.entries()),
         });
 
-        // Prepare Prodigi order items
+        // LAZY UPSCALING: Generate 300 DPI print-ready versions ONLY after payment
+        // This is where the magic happens - we deferred upscaling until now to save costs
+        console.log('[Lazy Upscaling] Starting post-payment upscale for order', order.id);
+        
+        const upscaledUrls: Map<number, string> = new Map();
+        
+        for (let index = 0; index < items.length; index++) {
+          const item = items[index];
+          // Get the source URL - prefer existing printReadyUrl if already high-res
+          let sourceUrl = item.printReadyUrl || item.designUrl;
+          
+          // Check order item attributes/assets as fallback
+          if (!sourceUrl) {
+            const orderItemAssets = updatedOrder.orderItems[index]?.assets;
+            if (orderItemAssets && typeof orderItemAssets === 'object' && !Array.isArray(orderItemAssets)) {
+              sourceUrl = (orderItemAssets as any).url;
+            } else if (Array.isArray(orderItemAssets) && orderItemAssets.length > 0) {
+              sourceUrl = (orderItemAssets[0] as any).url;
+            }
+          }
+          if (!sourceUrl) {
+            const orderItemAttributes = updatedOrder.orderItems[index]?.attributes;
+            if (orderItemAttributes && typeof orderItemAttributes === 'object') {
+              const attrs = orderItemAttributes as any;
+              sourceUrl = attrs.printReadyUrl || attrs.designUrl;
+            }
+          }
+          
+          if (sourceUrl && needsUpscaling(sourceUrl)) {
+            try {
+              console.log(`[Lazy Upscaling] Upscaling item ${index} for order ${order.id}`);
+              const result = await upscaleForPrint(sourceUrl, {
+                orderId: order.id.toString(),
+                itemIndex: index,
+                productCode: productSkuMap.get(item.productId),
+              });
+              upscaledUrls.set(index, result.printReadyUrl);
+              console.log(`[Lazy Upscaling] Item ${index} upscaled: ${result.fileSizeBytes} bytes`);
+            } catch (upscaleError) {
+              console.error(`[Lazy Upscaling] Failed for item ${index}:`, upscaleError);
+              // Use original URL as fallback
+              upscaledUrls.set(index, sourceUrl);
+            }
+          } else if (sourceUrl) {
+            // Already high-res, use as-is
+            upscaledUrls.set(index, sourceUrl);
+          }
+        }
+        
+        console.log('[Lazy Upscaling] Completed for order', order.id);
+
+        // Prepare Prodigi order items with upscaled URLs
         const prodigiItems = items.map((item, index) => {
           const dbSku = productSkuMap.get(item.productId);
           if (!dbSku) {
@@ -441,36 +493,15 @@ export async function POST(request: NextRequest) {
           const sku = dbSku.replace(/^[A-Z]{2}-/, '');
           console.log('[Prodigi Order] SKU conversion:', { dbSku, prodigiSku: sku });
 
-          // Get design URL from item or order item assets/attributes
-          // Prefer printReadyUrl (300 DPI) if available
-          let designUrl = item.printReadyUrl || item.designUrl;
-
-          // If no design URL in item, try to get from order item assets
-          if (!designUrl) {
-            const orderItemAssets = updatedOrder.orderItems[index]?.assets;
-            if (orderItemAssets && typeof orderItemAssets === 'object' && !Array.isArray(orderItemAssets)) {
-              designUrl = (orderItemAssets as any).url;
-            } else if (Array.isArray(orderItemAssets) && orderItemAssets.length > 0) {
-              designUrl = (orderItemAssets[0] as any).url;
-            }
-          }
-
-          // If still no design URL, check attributes as fallback
-          if (!designUrl) {
-            const orderItemAttributes = updatedOrder.orderItems[index]?.attributes;
-            if (orderItemAttributes && typeof orderItemAttributes === 'object') {
-              const attrs = orderItemAttributes as any;
-              designUrl = attrs.printReadyUrl || attrs.designUrl;
-            }
-          }
+          // Use the lazily upscaled 300 DPI URL from our upscaling step
+          const designUrl = upscaledUrls.get(index);
 
           if (!designUrl) {
-            console.error('[Prodigi Order] Missing design URL:', {
+            console.error('[Prodigi Order] Missing design URL after upscaling:', {
               itemName: item.name,
               itemIndex: index,
               hasDesignUrlInItem: !!item.designUrl,
-              orderItemAssets: updatedOrder.orderItems[index]?.assets,
-              orderItemAttributes: updatedOrder.orderItems[index]?.attributes,
+              hasUpscaledUrl: upscaledUrls.has(index),
             });
             throw new Error(`Design URL missing for item: ${item.name}. Please ensure all products have custom designs uploaded.`);
           }
@@ -486,6 +517,7 @@ export async function POST(request: NextRequest) {
             color,
             size,
             hasDesignUrl: !!designUrl,
+            isUpscaled: needsUpscaling(item.designUrl || '') && upscaledUrls.has(index),
           });
 
           return {

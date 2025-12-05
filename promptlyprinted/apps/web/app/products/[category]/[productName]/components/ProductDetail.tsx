@@ -931,36 +931,31 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       }
 
       const generatedUrl = data.data[0].url;
-      const apiPrintReadyUrl = data.data[0].printReadyUrl;
 
-      // Always save to permanent storage to avoid keeping data URLs in state
-      // This prevents issues at checkout when trying to re-upload
-      console.log('[Nano Banana] Saving to permanent storage...');
+      // LAZY UPSCALING: Save to /temp folder (low-res only)
+      // 300 DPI version will be generated at checkout after payment
+      console.log('[Nano Banana] Saving to /temp storage (lazy upscaling - no 300 DPI yet)...');
       const saveRes = await fetch('/api/save-temp-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: generatedUrl, isPublic: true }),
+        body: JSON.stringify({ url: generatedUrl }),
       });
 
       if (saveRes.ok) {
         const saveData = await saveRes.json();
-        const permanentUrl = saveData.url || `/api/save-temp-image?id=${saveData.id}`;
-        const savedPrintReadyUrl = saveData.printReadyUrl || apiPrintReadyUrl;
+        const tempUrl = saveData.url;
         
-        console.log('[Nano Banana] Saved to permanent storage:', permanentUrl);
-        setGeneratedImage(permanentUrl);
-        setPrintReadyImageUrl(savedPrintReadyUrl || '');
-      } else if (apiPrintReadyUrl && !apiPrintReadyUrl.startsWith('data:')) {
-        // Fallback: API provided permanent URLs
-        console.log('[Nano Banana] Using API print-ready URL:', apiPrintReadyUrl);
-        setGeneratedImage(generatedUrl);
-        setPrintReadyImageUrl(apiPrintReadyUrl);
+        console.log('[Nano Banana] Saved to /temp:', tempUrl);
+        setGeneratedImage(tempUrl);
+        // NOTE: printReadyUrl is intentionally empty - lazy upscaling at checkout
+        setPrintReadyImageUrl('');
       } else {
-        // Last resort: Upload to permanent storage
-        console.log('[Nano Banana] Uploading to permanent storage as fallback...');
+        // Fallback: If temp storage fails, try the uploadImageToPermanentStorage utility
+        console.log('[Nano Banana] Temp storage failed, using fallback upload...');
         const uploadedResult = await uploadImageToPermanentStorage(generatedUrl);
         setGeneratedImage(uploadedResult.url);
-        setPrintReadyImageUrl(uploadedResult.printReadyUrl);
+        // Still no 300 DPI - that's handled at checkout
+        setPrintReadyImageUrl('');
       }
 
       // Update edit history
@@ -1132,35 +1127,30 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       }
 
       const generatedUrl = data.data[0].url;
-      const apiPrintReadyUrl = data.data[0].printReadyUrl;
 
-      // Always save to permanent storage to avoid keeping data URLs in state
-      console.log('[Flux 2 Pro] Saving to permanent storage...');
+      // LAZY UPSCALING: Save to /temp folder (low-res only)
+      // 300 DPI version will be generated at checkout after payment
+      console.log('[Flux 2 Pro] Saving to /temp storage (lazy upscaling - no 300 DPI yet)...');
       const saveRes = await fetch('/api/save-temp-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: generatedUrl, isPublic: true }),
+        body: JSON.stringify({ url: generatedUrl }),
       });
 
       if (saveRes.ok) {
         const saveData = await saveRes.json();
-        const permanentUrl = saveData.url || `/api/save-temp-image?id=${saveData.id}`;
-        const savedPrintReadyUrl = saveData.printReadyUrl || apiPrintReadyUrl;
+        const tempUrl = saveData.url;
         
-        console.log('[Flux 2 Pro] Saved to permanent storage:', permanentUrl);
-        setGeneratedImage(permanentUrl);
-        setPrintReadyImageUrl(savedPrintReadyUrl || '');
-      } else if (apiPrintReadyUrl && !apiPrintReadyUrl.startsWith('data:')) {
-        // Fallback: API provided permanent URLs
-        console.log('[Flux 2 Pro] Using API print-ready URL:', apiPrintReadyUrl);
-        setGeneratedImage(generatedUrl);
-        setPrintReadyImageUrl(apiPrintReadyUrl);
+        console.log('[Flux 2 Pro] Saved to /temp:', tempUrl);
+        setGeneratedImage(tempUrl);
+        // NOTE: printReadyUrl is intentionally empty - lazy upscaling at checkout
+        setPrintReadyImageUrl('');
       } else {
-        // Last resort: Upload to permanent storage
-        console.log('[Flux 2 Pro] Uploading to permanent storage as fallback...');
+        // Fallback: If temp storage fails, use the upload utility
+        console.log('[Flux 2 Pro] Temp storage failed, using fallback upload...');
         const uploadedResult = await uploadImageToPermanentStorage(generatedUrl);
         setGeneratedImage(uploadedResult.url);
-        setPrintReadyImageUrl(uploadedResult.printReadyUrl);
+        setPrintReadyImageUrl('');
       }
 
       toast({
@@ -1387,14 +1377,13 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
           console.log('Found image URL in response:', data.data[0].url);
 
           // Save the image immediately after generation
-          console.log('Saving generated image to database...');
+          // LAZY UPSCALING: Save to /temp folder (low-res only)
+          // 300 DPI version will be generated at checkout after payment
+          console.log('[Generate Image] Saving to /temp storage (lazy upscaling)...');
           const saveRes = await fetch('/api/save-temp-image', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              url: data.data[0].url,
-              isPublic: true,
-            }),
+            body: JSON.stringify({ url: data.data[0].url }),
           });
 
           if (!saveRes.ok) {
@@ -1403,33 +1392,16 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
           }
 
           const saveData = await saveRes.json();
-          console.log('Image saved successfully:', saveData);
+          console.log('[Generate Image] Saved to /temp:', saveData);
 
-          // Use the permanent URL from the save response
-          // This ensures we never keep data URLs in state
-          const permanentUrl = saveData.url || `/api/save-temp-image?id=${saveData.id}`;
-          const savedPrintReadyUrl = saveData.printReadyUrl;
-          console.log('Using permanent URL:', permanentUrl);
-          console.log('Saved print-ready URL:', savedPrintReadyUrl);
+          // Use the temp URL from the save response
+          const tempUrl = saveData.url;
+          console.log('[Generate Image] Using temp URL:', tempUrl);
 
-          // Prefer the saved URLs (which are already permanent)
-          // Only fall back to API response URLs if save didn't provide them
-          if (savedPrintReadyUrl) {
-            console.log('[Generate Image] Using saved print-ready URL:', savedPrintReadyUrl);
-            setGeneratedImage(permanentUrl);
-            setPrintReadyImageUrl(savedPrintReadyUrl);
-          } else if (data.data[0].printReadyUrl && !data.data[0].printReadyUrl.startsWith('data:')) {
-            // API provided a permanent print-ready URL
-            console.log('[Generate Image] Using API print-ready URL:', data.data[0].printReadyUrl);
-            setGeneratedImage(permanentUrl);
-            setPrintReadyImageUrl(data.data[0].printReadyUrl);
-          } else {
-            // No print-ready URL available - the permanentUrl is the best we have
-            console.log('[Generate Image] No print-ready URL available, using permanent URL');
-            setGeneratedImage(permanentUrl);
-            // Will need to generate print-ready version at checkout
-            setPrintReadyImageUrl('');
-          }
+          setGeneratedImage(tempUrl);
+          // NOTE: printReadyUrl is intentionally empty - lazy upscaling at checkout
+          setPrintReadyImageUrl('');
+          
           toast({
             title: 'Success',
             description: 'Image generated and saved successfully!',
@@ -1541,35 +1513,30 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
         const data = await response.json();
         if (data.data?.[0]?.url) {
           const generatedUrl = data.data[0].url;
-          const apiPrintReadyUrl = data.data[0].printReadyUrl;
 
-          // Always save to permanent storage to avoid keeping data URLs in state
-          console.log('[Generate Image LoRA] Saving to permanent storage...');
+          // LAZY UPSCALING: Save to /temp folder (low-res only)
+          // 300 DPI version will be generated at checkout after payment
+          console.log('[Generate Image LoRA] Saving to /temp storage (lazy upscaling)...');
           const saveRes = await fetch('/api/save-temp-image', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: generatedUrl, isPublic: true }),
+            body: JSON.stringify({ url: generatedUrl }),
           });
 
           if (saveRes.ok) {
             const saveData = await saveRes.json();
-            const permanentUrl = saveData.url || `/api/save-temp-image?id=${saveData.id}`;
-            const savedPrintReadyUrl = saveData.printReadyUrl || apiPrintReadyUrl;
+            const tempUrl = saveData.url;
             
-            console.log('[Generate Image LoRA] Saved to permanent storage:', permanentUrl);
-            setGeneratedImage(permanentUrl);
-            setPrintReadyImageUrl(savedPrintReadyUrl || '');
-          } else if (apiPrintReadyUrl && !apiPrintReadyUrl.startsWith('data:')) {
-            // Fallback: API provided permanent URLs
-            console.log('[Generate Image LoRA] Using API print-ready URL:', apiPrintReadyUrl);
-            setGeneratedImage(generatedUrl);
-            setPrintReadyImageUrl(apiPrintReadyUrl);
+            console.log('[Generate Image LoRA] Saved to /temp:', tempUrl);
+            setGeneratedImage(tempUrl);
+            // NOTE: printReadyUrl is intentionally empty - lazy upscaling at checkout
+            setPrintReadyImageUrl('');
           } else {
-            // Last resort: Upload to permanent storage
-            console.log('[Generate Image LoRA] Uploading to permanent storage as fallback...');
+            // Fallback: If temp storage fails, use the upload utility
+            console.log('[Generate Image LoRA] Temp storage failed, using fallback...');
             const uploadedResult = await uploadImageToPermanentStorage(generatedUrl);
             setGeneratedImage(uploadedResult.url);
-            setPrintReadyImageUrl(uploadedResult.printReadyUrl);
+            setPrintReadyImageUrl('');
           }
 
           toast({
@@ -1906,26 +1873,70 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
   // ---- Helper: Prepare Print-Ready Asset ----
   const preparePrintReadyAsset = async (imageToUse: string): Promise<{ displayUrl: string, printUrl: string }> => {
     console.log('[preparePrintReadyAsset] Starting for image:', imageToUse ? 'present' : 'missing');
+    console.log('[preparePrintReadyAsset] Image type:', imageToUse?.startsWith('data:') ? 'data URL' : 'regular URL');
+    console.log('[preparePrintReadyAsset] Image length:', imageToUse?.length || 0);
+    
     if (!imageToUse) {
       throw new Error('No image provided');
     }
 
     // Validate data URL format before attempting upload
     if (imageToUse.startsWith('data:')) {
-      const dataUrlMatch = imageToUse.match(/^data:image\/(\w+);base64,(.+)$/);
-      if (!dataUrlMatch) {
-        throw new Error('Invalid image data format. Please regenerate the image.');
+      console.log('[preparePrintReadyAsset] Validating data URL...');
+      
+      // Find the base64 marker
+      const base64Marker = ';base64,';
+      const markerIndex = imageToUse.indexOf(base64Marker);
+      
+      if (markerIndex === -1) {
+        console.error('[preparePrintReadyAsset] No base64 marker found');
+        throw new Error('Invalid image data format - missing base64 marker. Please regenerate the image.');
       }
       
-      const [, format, base64Data] = dataUrlMatch;
-      if (!base64Data || base64Data.length < 100) {
+      // Extract mime type and base64 data
+      const mimeType = imageToUse.substring(5, markerIndex); // Skip "data:"
+      const base64Data = imageToUse.substring(markerIndex + base64Marker.length);
+      
+      console.log('[preparePrintReadyAsset] MIME type:', mimeType);
+      console.log('[preparePrintReadyAsset] Base64 length:', base64Data.length);
+      
+      if (!base64Data || base64Data.length < 1000) {
+        console.error('[preparePrintReadyAsset] Base64 data too short:', base64Data.length);
         throw new Error('Image data appears to be corrupted or too small. Please regenerate the image.');
       }
       
-      // Try to validate base64 can be decoded
+      // Validate base64 doesn't contain invalid characters
+      const invalidChars = base64Data.match(/[^A-Za-z0-9+/=\s]/);
+      if (invalidChars) {
+        console.error('[preparePrintReadyAsset] Invalid base64 character found:', invalidChars[0]);
+        throw new Error('Image data contains invalid characters. Please regenerate the image.');
+      }
+      
+      // Try to decode and validate magic bytes
       try {
-        atob(base64Data.substring(0, Math.min(100, base64Data.length)));
+        const cleanBase64 = base64Data.replace(/[\s\n\r]/g, '').substring(0, 20);
+        const decoded = atob(cleanBase64);
+        const magicBytes = Array.from(decoded).slice(0, 8).map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
+        console.log('[preparePrintReadyAsset] Magic bytes:', magicBytes);
+        
+        // Check for valid image magic bytes
+        const isPng = magicBytes.startsWith('89504e47');
+        const isJpeg = magicBytes.startsWith('ffd8ff');
+        const isGif = magicBytes.startsWith('47494638');
+        const isWebp = magicBytes.startsWith('52494646');
+        
+        if (!isPng && !isJpeg && !isGif && !isWebp) {
+          console.error('[preparePrintReadyAsset] Invalid magic bytes - not a recognized image format');
+          console.error('[preparePrintReadyAsset] First 50 chars of base64:', base64Data.substring(0, 50));
+          throw new Error('Image data is not a valid image format. Please regenerate the image.');
+        }
+        
+        console.log('[preparePrintReadyAsset] Detected format:', isPng ? 'PNG' : isJpeg ? 'JPEG' : isGif ? 'GIF' : 'WebP');
       } catch (e) {
+        if (e instanceof Error && e.message.includes('regenerate')) {
+          throw e; // Re-throw our own errors
+        }
+        console.error('[preparePrintReadyAsset] Base64 decode failed:', e);
         throw new Error('Image data encoding is invalid. Please regenerate the image.');
       }
     }

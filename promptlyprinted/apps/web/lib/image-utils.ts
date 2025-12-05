@@ -338,12 +338,67 @@ export function isAllowedFormat(format: ImageFormat): boolean {
 // ============================================================================
 
 /**
+ * Validate that a compressed data URL contains valid image data
+ * by checking for proper structure and minimum content
+ */
+function validateCompressedDataUrl(dataUrl: string): boolean {
+  if (!dataUrl || !dataUrl.startsWith('data:image/')) {
+    return false;
+  }
+  
+  const base64Marker = ';base64,';
+  const markerIndex = dataUrl.indexOf(base64Marker);
+  if (markerIndex === -1) {
+    return false;
+  }
+  
+  const base64Data = dataUrl.substring(markerIndex + base64Marker.length);
+  
+  // Check minimum size (a valid JPEG/PNG should be at least a few hundred bytes)
+  if (base64Data.length < 200) {
+    console.warn('[validateCompressedDataUrl] Data URL too short:', base64Data.length);
+    return false;
+  }
+  
+  // Validate base64 characters
+  const invalidChars = base64Data.match(/[^A-Za-z0-9+/=]/);
+  if (invalidChars) {
+    console.warn('[validateCompressedDataUrl] Invalid base64 characters found');
+    return false;
+  }
+  
+  // Try to decode a sample to verify it's valid base64
+  try {
+    const sample = base64Data.substring(0, Math.min(100, base64Data.length));
+    atob(sample);
+    
+    // Check for JPEG magic bytes in decoded data
+    const fullDecoded = atob(base64Data.substring(0, 20));
+    const firstBytes = Array.from(fullDecoded).map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
+    
+    // Valid JPEG starts with ffd8ff, valid PNG starts with 89504e47
+    const isValidJpeg = firstBytes.startsWith('ffd8ff');
+    const isValidPng = firstBytes.startsWith('89504e47');
+    
+    if (!isValidJpeg && !isValidPng) {
+      console.warn('[validateCompressedDataUrl] Invalid magic bytes:', firstBytes);
+      return false;
+    }
+    
+    return true;
+  } catch (e) {
+    console.warn('[validateCompressedDataUrl] Base64 decode failed:', e);
+    return false;
+  }
+}
+
+/**
  * Compress an image data URL to reduce size for upload
  * Uses canvas to resize and compress images that exceed the upload limit
  * 
  * @param dataUrl - The original data URL
  * @param maxSize - Maximum size in bytes (default: 4MB for Vercel limit)
- * @returns Compressed data URL (as JPEG for smaller size)
+ * @returns Compressed data URL (as PNG to preserve quality, or JPEG as fallback)
  */
 export async function compressImageDataUrl(
   dataUrl: string,
@@ -365,14 +420,29 @@ export async function compressImageDataUrl(
 
   console.log('[compressImage] Compressing image, over', Math.round(maxSize / 1024), 'KB limit');
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     
+    // Set a timeout for image loading
+    const loadTimeout = setTimeout(() => {
+      console.error('[compressImage] Image load timeout');
+      resolve(dataUrl); // Return original on timeout
+    }, 30000); // 30 second timeout
+    
     img.onload = () => {
+      clearTimeout(loadTimeout);
+      
       try {
         let { width, height } = img;
         console.log('[compressImage] Original dimensions:', width, 'x', height);
+        
+        // Validate image dimensions are valid
+        if (width === 0 || height === 0) {
+          console.error('[compressImage] Invalid image dimensions: 0x0');
+          resolve(dataUrl);
+          return;
+        }
         
         // Calculate scaling factor to stay within max dimensions
         let scale = 1;
@@ -395,35 +465,55 @@ export async function compressImageDataUrl(
           return;
         }
         
-        // Draw with white background (for transparent PNGs)
+        // Draw with white background (for transparent PNGs converting to JPEG)
         ctx.fillStyle = '#FFFFFF';
         ctx.fillRect(0, 0, width, height);
         ctx.drawImage(img, 0, 0, width, height);
         
-        // Try different quality levels until we're under the limit
-        let quality = COMPRESSION_QUALITY;
-        let compressed = canvas.toDataURL('image/jpeg', quality);
+        // First try PNG with reduced dimensions (preserves quality better)
+        let compressed = canvas.toDataURL('image/png');
+        console.log('[compressImage] PNG size:', Math.round(compressed.length / 1024), 'KB');
         
-        // Progressively reduce quality if still too large
-        while (compressed.length > maxSize && quality > 0.3) {
-          quality -= 0.1;
+        // If PNG is still too large, switch to JPEG
+        if (compressed.length > maxSize) {
+          console.log('[compressImage] PNG too large, switching to JPEG...');
+          
+          // Try different quality levels until we're under the limit
+          let quality = COMPRESSION_QUALITY;
           compressed = canvas.toDataURL('image/jpeg', quality);
-          console.log('[compressImage] Reduced quality to', quality.toFixed(1), 
-                      'size:', Math.round(compressed.length / 1024), 'KB');
+          
+          // Progressively reduce quality if still too large
+          while (compressed.length > maxSize && quality > 0.5) {
+            quality -= 0.1;
+            compressed = canvas.toDataURL('image/jpeg', quality);
+            console.log('[compressImage] Reduced quality to', quality.toFixed(1), 
+                        'size:', Math.round(compressed.length / 1024), 'KB');
+          }
+          
+          // If still too large, reduce dimensions further
+          if (compressed.length > maxSize && quality <= 0.5) {
+            console.log('[compressImage] Still too large, reducing dimensions...');
+            const newScale = 0.7;
+            const newWidth = Math.round(width * newScale);
+            const newHeight = Math.round(height * newScale);
+            canvas.width = newWidth;
+            canvas.height = newHeight;
+            
+            // Redraw at new size
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, newWidth, newHeight);
+            ctx.drawImage(img, 0, 0, newWidth, newHeight);
+            compressed = canvas.toDataURL('image/jpeg', 0.75);
+            console.log('[compressImage] After dimension reduction:', 
+                        Math.round(compressed.length / 1024), 'KB');
+          }
         }
         
-        // If still too large, reduce dimensions further
-        if (compressed.length > maxSize) {
-          console.log('[compressImage] Still too large, reducing dimensions...');
-          const newScale = 0.75;
-          canvas.width = Math.round(width * newScale);
-          canvas.height = Math.round(height * newScale);
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          compressed = canvas.toDataURL('image/jpeg', 0.7);
-          console.log('[compressImage] After dimension reduction:', 
-                      Math.round(compressed.length / 1024), 'KB');
+        // CRITICAL: Validate the compressed output
+        if (!validateCompressedDataUrl(compressed)) {
+          console.error('[compressImage] Compressed output validation failed, returning original');
+          resolve(dataUrl);
+          return;
         }
         
         console.log('[compressImage] Final size:', Math.round(compressed.length / 1024), 'KB',
@@ -437,6 +527,7 @@ export async function compressImageDataUrl(
     };
     
     img.onerror = (error) => {
+      clearTimeout(loadTimeout);
       console.error('[compressImage] Failed to load image:', error);
       resolve(dataUrl); // Return original on error
     };
@@ -621,6 +712,57 @@ function derivePermanentUrls(imageUrl: string): UploadResult {
 }
 
 /**
+ * Thoroughly validate a data URL before upload
+ * Returns true if valid, false otherwise
+ */
+function preflightValidateDataUrl(dataUrl: string): { valid: boolean; error?: string } {
+  if (!dataUrl || !isDataUrl(dataUrl)) {
+    return { valid: false, error: 'Not a valid data URL' };
+  }
+  
+  try {
+    // Parse the data URL
+    const parsed = parseDataUrl(dataUrl);
+    
+    // Check format is supported
+    if (parsed.format === 'unknown') {
+      return { valid: false, error: 'Unknown image format' };
+    }
+    
+    // Decode and check magic bytes
+    const decodedSample = atob(parsed.base64.substring(0, 20));
+    const magicBytes = Array.from(decodedSample)
+      .slice(0, 8)
+      .map(c => c.charCodeAt(0).toString(16).padStart(2, '0'))
+      .join('');
+    
+    const isPng = magicBytes.startsWith('89504e47');
+    const isJpeg = magicBytes.startsWith('ffd8ff');
+    const isGif = magicBytes.startsWith('47494638');
+    const isWebp = magicBytes.startsWith('52494646'); // RIFF header
+    
+    if (!isPng && !isJpeg && !isGif && !isWebp) {
+      return { 
+        valid: false, 
+        error: `Invalid image magic bytes: ${magicBytes}. Expected PNG, JPEG, GIF, or WebP.` 
+      };
+    }
+    
+    // Check base64 length is reasonable (at least 1KB of image data)
+    if (parsed.base64.length < 1000) {
+      return { valid: false, error: 'Image data too small to be valid' };
+    }
+    
+    return { valid: true };
+  } catch (error) {
+    return { 
+      valid: false, 
+      error: `Validation failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
+    };
+  }
+}
+
+/**
  * Execute the actual upload request
  * 
  * IMPORTANT: We use JSON with base64 instead of binary Blob because:
@@ -652,6 +794,16 @@ async function executeUpload(
     let urlToUpload = imageUrl;
     
     if (isDataUrl(imageUrl)) {
+      // First, validate the original image
+      const originalValidation = preflightValidateDataUrl(imageUrl);
+      if (!originalValidation.valid) {
+        console.error('[image-utils] Original image validation failed:', originalValidation.error);
+        throw new ImageUtilsError(
+          `Image data is invalid: ${originalValidation.error}`,
+          'INVALID_INPUT'
+        );
+      }
+      
       // Check size and compress if needed
       const originalSize = imageUrl.length;
       console.log('[image-utils] Original data URL size:', Math.round(originalSize / 1024), 'KB');
@@ -659,15 +811,36 @@ async function executeUpload(
       if (needsCompression(imageUrl)) {
         console.log('[image-utils] Image exceeds upload limit, compressing...');
         try {
-          urlToUpload = await compressImageDataUrl(imageUrl);
-          console.log('[image-utils] Compressed size:', Math.round(urlToUpload.length / 1024), 'KB');
+          const compressed = await compressImageDataUrl(imageUrl);
+          console.log('[image-utils] Compressed size:', Math.round(compressed.length / 1024), 'KB');
+          
+          // Validate the compressed result
+          const compressedValidation = preflightValidateDataUrl(compressed);
+          if (compressedValidation.valid) {
+            urlToUpload = compressed;
+            console.log('[image-utils] Compressed image validated successfully');
+          } else {
+            console.warn('[image-utils] Compressed image validation failed:', compressedValidation.error);
+            console.warn('[image-utils] Using original image instead');
+            // Keep urlToUpload as original imageUrl
+          }
         } catch (compressError) {
           console.error('[image-utils] Compression failed, using original:', compressError);
           // Continue with original if compression fails
         }
       }
       
-      // Validate the data URL before sending
+      // Final validation before sending
+      const finalValidation = preflightValidateDataUrl(urlToUpload);
+      if (!finalValidation.valid) {
+        console.error('[image-utils] Final validation failed:', finalValidation.error);
+        throw new ImageUtilsError(
+          `Cannot upload image: ${finalValidation.error}`,
+          'INVALID_INPUT'
+        );
+      }
+      
+      // Log parsed info
       try {
         const parsed = parseDataUrl(urlToUpload);
         console.log('[image-utils] Data URL validated:', {

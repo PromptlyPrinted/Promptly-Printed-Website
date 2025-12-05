@@ -60,6 +60,60 @@ function detectImageFormatFromBase64(base64String: string): string {
 }
 
 /**
+ * Check if buffer looks like valid image data by examining magic bytes
+ */
+function isLikelyImageBuffer(buffer: Buffer): { isValid: boolean; format: string; error?: string } {
+  if (!buffer || buffer.length < 8) {
+    return { isValid: false, format: 'unknown', error: 'Buffer too short' };
+  }
+  
+  const hex = buffer.toString('hex', 0, 12);
+  
+  // Check for PNG magic bytes: 89 50 4E 47 0D 0A 1A 0A
+  if (hex.startsWith('89504e470d0a1a0a')) {
+    return { isValid: true, format: 'png' };
+  }
+  
+  // Check for JPEG magic bytes: FF D8 FF
+  if (hex.startsWith('ffd8ff')) {
+    return { isValid: true, format: 'jpeg' };
+  }
+  
+  // Check for GIF magic bytes: 47 49 46 38
+  if (hex.startsWith('47494638')) {
+    return { isValid: true, format: 'gif' };
+  }
+  
+  // Check for WebP (RIFF container): 52 49 46 46
+  if (hex.startsWith('52494646')) {
+    // WebP should have WEBP at offset 8
+    if (buffer.length >= 12) {
+      const webpCheck = buffer.toString('ascii', 8, 12);
+      if (webpCheck === 'WEBP') {
+        return { isValid: true, format: 'webp' };
+      }
+    }
+    return { isValid: false, format: 'unknown', error: 'RIFF container but not WebP' };
+  }
+  
+  // Check if it looks like text/HTML (common error)
+  const ascii = buffer.toString('ascii', 0, Math.min(100, buffer.length));
+  if (ascii.includes('<!DOCTYPE') || ascii.includes('<html') || ascii.includes('Error') || ascii.includes('{')) {
+    return { 
+      isValid: false, 
+      format: 'unknown', 
+      error: `Received text/HTML instead of image data: ${ascii.substring(0, 50)}...` 
+    };
+  }
+  
+  return { 
+    isValid: false, 
+    format: 'unknown', 
+    error: `Unknown format, magic bytes: ${hex}` 
+  };
+}
+
+/**
  * Validate image buffer and metadata
  */
 async function validateImage(imageBuffer: Buffer): Promise<void> {
@@ -73,6 +127,14 @@ async function validateImage(imageBuffer: Buffer): Promise<void> {
 
   if (imageBuffer.length > MAX_FILE_SIZE) {
     throw new Error(`File size exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit`);
+  }
+
+  // Pre-check magic bytes before attempting sharp processing
+  const bufferCheck = isLikelyImageBuffer(imageBuffer);
+  console.log('[validateImage] Magic bytes check:', bufferCheck);
+  
+  if (!bufferCheck.isValid) {
+    throw new Error(`Invalid image data: ${bufferCheck.error || 'Unknown format'}`);
   }
 
   try {
@@ -99,15 +161,21 @@ async function validateImage(imageBuffer: Buffer): Promise<void> {
       errorMessage: error instanceof Error ? error.message : String(error),
       errorStack: error instanceof Error ? error.stack : undefined,
       bufferLength: imageBuffer.length,
-      bufferStart: imageBuffer.toString('hex', 0, Math.min(20, imageBuffer.length))
+      bufferStart: imageBuffer.toString('hex', 0, Math.min(20, imageBuffer.length)),
+      magicBytesCheck: bufferCheck
     });
     
-    if (error instanceof Error && error.message.includes('Input file contains unsupported image format')) {
-      throw new Error('Invalid or corrupted image file');
-    }
-    // Check for common error patterns
-    if (error instanceof Error && error.message.includes('Input buffer contains unsupported image format')) {
-      throw new Error(`Input buffer contains unsupported image format - Buffer appears to be invalid or corrupted`);
+    // Provide more specific error messages
+    if (error instanceof Error) {
+      if (error.message.includes('Input file contains unsupported image format') ||
+          error.message.includes('Input buffer contains unsupported image format')) {
+        // Include the detected format info in the error
+        throw new Error(
+          `Unable to process image: The file appears to be ${bufferCheck.format} format ` +
+          `but the data may be corrupted or truncated. ` +
+          `Buffer size: ${imageBuffer.length} bytes, Magic bytes: ${imageBuffer.toString('hex', 0, 8)}`
+        );
+      }
     }
     throw error;
   }
@@ -273,19 +341,39 @@ function parseDataUrl(dataUrl: string): Buffer {
   const cleanBase64 = base64Data.replace(/[\s\n\r]/g, '');
   console.log('[parseDataUrl] Cleaned base64 length:', cleanBase64.length);
   
+  // Validate base64 string doesn't contain invalid characters
+  const invalidCharMatch = cleanBase64.match(/[^A-Za-z0-9+/=]/);
+  if (invalidCharMatch) {
+    console.error('[parseDataUrl] Found invalid base64 character:', invalidCharMatch[0], 
+                  'at position around', cleanBase64.indexOf(invalidCharMatch[0]));
+    throw new Error(`Invalid base64 encoding: found invalid character "${invalidCharMatch[0]}"`);
+  }
+  
+  // Check for truncation - base64 should be divisible by 4
+  if (cleanBase64.length % 4 !== 0) {
+    console.warn('[parseDataUrl] WARNING: Base64 length not divisible by 4, may be truncated');
+    console.warn('[parseDataUrl] Length:', cleanBase64.length, 'Mod 4:', cleanBase64.length % 4);
+    // Don't fail, but log - padding might fix it
+  }
+  
   // Convert to buffer
   let buffer: Buffer;
   try {
     buffer = Buffer.from(cleanBase64, 'base64');
   } catch (decodeError) {
     console.error('[parseDataUrl] Base64 decode failed:', decodeError);
-    throw new Error('Failed to decode base64 data - data may be corrupted');
+    throw new Error('Failed to decode base64 data - data may be corrupted or truncated');
   }
   
   console.log('[parseDataUrl] Buffer created, size:', buffer.length);
   
   if (buffer.length === 0) {
-    throw new Error('Decoded buffer is empty');
+    throw new Error('Decoded buffer is empty - the base64 data did not contain valid image data');
+  }
+  
+  // Check for minimum reasonable image size (100 bytes is too small for any valid image)
+  if (buffer.length < 100) {
+    throw new Error(`Decoded buffer too small (${buffer.length} bytes) - image data appears corrupted or truncated`);
   }
   
   // Log magic bytes for format verification
@@ -293,19 +381,21 @@ function parseDataUrl(dataUrl: string): Buffer {
     const magicHex = buffer.toString('hex', 0, 8);
     console.log('[parseDataUrl] Buffer magic bytes:', magicHex);
     
-    // Quick format check
-    if (magicHex.startsWith('89504e47')) {
-      console.log('[parseDataUrl] Detected PNG format');
-    } else if (magicHex.startsWith('ffd8ff')) {
-      console.log('[parseDataUrl] Detected JPEG format');
-    } else if (magicHex.startsWith('47494638')) {
-      console.log('[parseDataUrl] Detected GIF format');
-    } else if (magicHex.startsWith('52494646')) {
-      console.log('[parseDataUrl] Detected RIFF (possibly WebP) format');
-    } else {
-      console.warn('[parseDataUrl] Unknown format, magic bytes:', magicHex);
-      // Don't fail here - let sharp validate it
+    // Use isLikelyImageBuffer for comprehensive validation
+    const bufferCheck = isLikelyImageBuffer(buffer);
+    console.log('[parseDataUrl] Buffer validation result:', bufferCheck);
+    
+    if (!bufferCheck.isValid) {
+      // Log more context for debugging
+      console.error('[parseDataUrl] Buffer validation failed:');
+      console.error('[parseDataUrl] - Error:', bufferCheck.error);
+      console.error('[parseDataUrl] - First 50 bytes hex:', buffer.toString('hex', 0, Math.min(50, buffer.length)));
+      console.error('[parseDataUrl] - First 50 bytes ascii:', buffer.toString('ascii', 0, Math.min(50, buffer.length)).replace(/[^\x20-\x7E]/g, '.'));
+      
+      throw new Error(`Invalid image data: ${bufferCheck.error}. The image may be corrupted or in an unsupported format.`);
     }
+    
+    console.log('[parseDataUrl] Detected format:', bufferCheck.format);
   }
   
   // Use detectImageFormat for validation if available
