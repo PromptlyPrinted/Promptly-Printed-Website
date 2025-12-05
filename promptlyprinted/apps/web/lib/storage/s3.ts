@@ -134,11 +134,16 @@ export class S3StorageProvider implements StorageProvider {
     console.log(`[S3] Uploading to ${options?.folder || 'temp'} folder: ${key}`);
 
     // Build command - R2 doesn't support ACLs (uses bucket-level public access)
+    // Note: CORS must be configured in R2 bucket settings, not per-object
     const command: any = {
       Bucket: this.bucket,
       Key: key,
       Body: buffer,
       ContentType: mimeType,
+      // Cache settings - longer cache for saved/orders, shorter for temp
+      CacheControl: options?.folder === 'temp' 
+        ? 'public, max-age=86400' // 24 hours for temp
+        : 'public, max-age=31536000, immutable', // 1 year for permanent
       // Add metadata for lifecycle management
       Metadata: {
         'x-folder': options?.folder || 'temp',

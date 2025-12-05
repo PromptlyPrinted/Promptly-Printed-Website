@@ -161,6 +161,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Parse productId safely - handle both string and number inputs
+    let parsedProductId: number | null = null;
+    if (productId !== undefined && productId !== null) {
+      const numValue = typeof productId === 'string' ? parseInt(productId, 10) : productId;
+      if (!isNaN(numValue)) {
+        parsedProductId = numValue;
+      }
+    }
+
     // Create the saved design with permanent URLs
     const savedDesign = await database.savedImage.create({
       data: {
@@ -168,13 +177,7 @@ export async function POST(request: NextRequest) {
         url: savedUrl,
         printReadyUrl: savedPrintReadyUrl,
         userId: session.user.id,
-        productId: productId ? parseInt(productId, 10) : null,
-        metadata: {
-          originalUrl: url,
-          originalPrintReadyUrl: printReadyUrl,
-          savedAt: new Date().toISOString(),
-          folder: 'saved',
-        },
+        productId: parsedProductId,
       },
       include: {
         product: {
