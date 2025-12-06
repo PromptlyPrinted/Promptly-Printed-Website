@@ -534,132 +534,49 @@ export async function POST(req: Request) {
       }
 
       const isGuestCheckout = squareOrder.metadata.isGuestCheckout === 'true';
+      const dbOrderId = squareOrder.metadata.orderId;
 
-      // Handle guest checkout - create user and order
-      if (isGuestCheckout) {
-        console.log('Processing guest checkout order');
-
-        // Parse order data from metadata
-        const orderData = JSON.parse(squareOrder.metadata.orderData || '{}');
-
-        // Get customer email from payment (Square doesn't always include customer info in webhook)
-        // You may need to retrieve this from the payment customer_id
-        let customerEmail = payment.buyer_email_address;
-
-        if (!customerEmail) {
-          console.error('No email found for guest checkout');
-          return NextResponse.json(
-            { error: 'No email found' },
-            { status: 400 }
-          );
-        }
-
-        // Find or create guest user
-        let user = await prisma.user.findUnique({
-          where: { email: customerEmail },
-        });
-
-        if (!user) {
-          // Create new guest user
-          user = await prisma.user.create({
-            data: {
-              email: customerEmail,
-              name: 'Guest User',
-              emailVerified: false,
-              role: 'CUSTOMER',
-            },
-          });
-          console.log('Created new guest user:', user.id);
-        } else {
-          console.log('Found existing user:', user.id);
-        }
-
-        // Create order for guest user
-        const order = await prisma.order.create({
-          data: {
-            userId: user.id,
-            totalPrice: orderData.totalPrice,
-            status: OrderStatus.COMPLETED,
-            stripeSessionId: orderId, // Using same field for now
-            merchantReference: `ORDER-${Date.now()}`,
-            shippingMethod: 'STANDARD',
-            recipient: {
-              create: {
-                name: 'Pending', // Will be updated when shipping address is available
-                email: customerEmail,
-                phoneNumber: null,
-                addressLine1: 'Pending',
-                addressLine2: null,
-                city: 'Pending',
-                state: null,
-                postalCode: '00000',
-                countryCode: 'US',
-              },
-            },
-            orderItems: {
-              create: orderData.items.map((item: any) => ({
-                productId: item.productId,
-                copies: item.copies || 1,
-                price: item.price,
-                merchantReference: item.merchantReference || `item #${item.productId}`,
-                recipientCostAmount: item.recipientCostAmount || item.price,
-                recipientCostCurrency: item.currency || 'USD',
-                attributes: {
-                  sku: item.sku,
-                  color: item.color,
-                  size: item.size,
-                  designUrl: item.designUrl,
-                },
-                assets: item.images || [],
-              })),
-            },
-          },
-        });
-
-        console.log('Created guest order:', order.id);
-
-        // Grant T-shirt purchase bonus credits for guest order
-        if (user && user.id !== 'guest') {
-          try {
-            const tshirtCount = orderData.items.length;
-            const creditBonus = await grantTshirtPurchaseBonus(
-              user.id,
-              order.id,
-              tshirtCount
-            );
-
-            console.log('[Credits] Guest T-shirt purchase bonus granted:', {
-              userId: user.id,
-              orderId: order.id,
-              tshirtCount,
-              creditsGranted: creditBonus.creditsGranted,
-              newBalance: creditBonus.newBalance,
-            });
-          } catch (creditError) {
-            console.error('[Credits] Failed to grant guest T-shirt bonus:', creditError);
-          }
-        }
-
-        return NextResponse.json({ received: true, orderId: order.id });
+      // NEW FLOW: Order is ALWAYS created before payment (both authenticated and guest users)
+      // We just need to look up the existing order and update it
+      if (!dbOrderId) {
+        console.error('[Webhook] No orderId found in Square order metadata - order should have been created before payment');
+        return NextResponse.json({ error: 'No order ID in metadata' }, { status: 400 });
       }
 
-      // Handle authenticated user checkout
-      if (!squareOrder.metadata.orderId) {
-        console.error('No orderId found in order metadata');
-        return NextResponse.json(
-          { error: 'No orderId found' },
-          { status: 400 }
-        );
+      const orderIdNum = Number.parseInt(dbOrderId);
+      if (isNaN(orderIdNum)) {
+        console.error('[Webhook] Invalid order ID in metadata:', dbOrderId);
+        return NextResponse.json({ error: 'Invalid order ID' }, { status: 400 });
       }
 
-      const dbOrderId = Number.parseInt(squareOrder.metadata.orderId);
+      // Fetch the existing order (created before payment)
+      const order = await prisma.order.findUnique({
+        where: { id: orderIdNum },
+        include: {
+          recipient: true,
+          orderItems: true,
+          discountCode: true,
+        },
+      });
 
-      // Update the order status
+      if (!order) {
+        console.error('[Webhook] Order not found in database:', orderIdNum);
+        return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+      }
+
+      console.log('[Webhook] Found existing order from payment link:', {
+        orderId: order.id,
+        isGuest: isGuestCheckout,
+        currentStatus: order.status,
+      });
+
+      // Update the order status to COMPLETED
       const updatedOrder = await prisma.order.update({
-        where: { id: dbOrderId },
+        where: { id: orderIdNum },
         data: {
           status: OrderStatus.COMPLETED,
           metadata: {
+            ...(order.metadata as object || {}),
             squarePaymentId: payment.id,
             squarePaymentStatus: payment.status,
             squareOrderId: orderId,
