@@ -3,22 +3,93 @@
 import { Button } from '@repo/design-system/components/ui/button';
 import { Sparkles, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { useState, useEffect, useRef } from 'react';
 
-export const Hero = async () => {
+export const Hero = () => {
+  const [videoLoaded, setVideoLoaded] = useState(false);
+  const [videoError, setVideoError] = useState(false);
+  const [shouldLoadVideo, setShouldLoadVideo] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Use Intersection Observer to only load video when hero is in view
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !shouldLoadVideo) {
+            setShouldLoadVideo(true);
+          }
+        });
+      },
+      { rootMargin: '100px' } // Start loading slightly before in view
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [shouldLoadVideo]);
+
+  useEffect(() => {
+    if (!shouldLoadVideo) return;
+
+    // Try to load and play video
+    const video = videoRef.current;
+    if (video) {
+      video.load();
+
+      // Attempt to play after a short delay to ensure readiness
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((error) => {
+          console.warn('Video autoplay prevented:', error);
+          // Autoplay was prevented, but that's okay - video will still load
+        });
+      }
+    }
+  }, [shouldLoadVideo]);
+
   return (
-    <div className="relative w-full overflow-hidden bg-gradient-to-br from-[#0D2C45] via-[#0D2C45] to-[#16C1A8]/20">
-      {/* Video Background */}
+    <div ref={containerRef} className="relative w-full overflow-hidden bg-gradient-to-br from-[#0D2C45] via-[#0D2C45] to-[#16C1A8]/20">
+      {/* Video Background with Fallback */}
       <div className="absolute inset-0 z-0 bg-[#0D2C45]">
-        <video
-          autoPlay
-          loop
-          muted={true}
-          playsInline
-          className="h-full w-full object-cover opacity-40"
-          onError={(e) => console.error('Video load error:', e)}
-        >
-          <source src="/videos/hero-bg.mp4" type="video/mp4" />
-        </video>
+        {!videoError && shouldLoadVideo && (
+          <video
+            ref={videoRef}
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="metadata"
+            className={`h-full w-full object-cover transition-opacity duration-700 ${
+              videoLoaded ? 'opacity-40' : 'opacity-0'
+            }`}
+            onLoadedData={() => {
+              console.log('Video loaded successfully');
+              setVideoLoaded(true);
+            }}
+            onError={(e) => {
+              console.error('Video load error:', e);
+              setVideoError(true);
+            }}
+            onCanPlay={() => {
+              console.log('Video can play');
+              setVideoLoaded(true);
+            }}
+          >
+            <source src="/videos/hero-bg.mp4" type="video/mp4" />
+          </video>
+        )}
+
+        {/* Fallback animated gradient background if video fails or hasn't loaded */}
+        {(!videoLoaded || videoError) && (
+          <div className="absolute inset-0 bg-gradient-to-br from-[#0D2C45] via-[#16C1A8]/10 to-[#0D2C45] animate-gradient-slow" />
+        )}
+
         {/* Dark overlay for better text readability */}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#0D2C45]/50 to-[#0D2C45]" />
       </div>

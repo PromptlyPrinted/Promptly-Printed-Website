@@ -34,21 +34,64 @@ export default async function CheckoutSuccessPage({
 }) {
   const params = await searchParams;
   const checkoutId = params.checkout_id;
-  
+
   // orderId = our database order ID (number)
   // order_id = Square order ID (string starting with letters)
-  const dbOrderId = params.orderId;
+  const dbOrderIdParam = params.orderId;
   const squareOrderId = params.order_id;
 
-  if (!checkoutId && !squareOrderId && !dbOrderId) {
+  if (!checkoutId && !squareOrderId && !dbOrderIdParam) {
     redirect('/');
   }
 
   let squareOrder: any = null;
   let paymentStatus = 'unknown';
+  let dbOrder: any = null;
 
-  // Get Square order details using Square order ID
-  if (squareOrderId) {
+  // If we have a database order ID from the redirect URL, fetch the order
+  if (dbOrderIdParam) {
+    try {
+      const orderIdNum = Number.parseInt(dbOrderIdParam);
+      if (!isNaN(orderIdNum)) {
+        dbOrder = await prisma.order.findUnique({
+          where: { id: orderIdNum },
+          include: {
+            recipient: true,
+            orderItems: true,
+          },
+        });
+
+        if (dbOrder) {
+          console.log('[Success Page] Order found:', {
+            orderId: dbOrder.id,
+            status: dbOrder.status,
+            hasSquareOrderId: !!dbOrder.metadata?.squareOrderId,
+          });
+
+          // Try to get Square order ID from metadata
+          const metadata = dbOrder.metadata as any;
+          if (metadata?.squareOrderId && !squareOrderId) {
+            // Use the Square order ID from metadata if not provided in URL
+            const squareOrderIdFromMetadata = metadata.squareOrderId;
+            try {
+              const orderResponse = await square.orders.get({ orderId: squareOrderIdFromMetadata });
+              squareOrder = orderResponse.order;
+              if (squareOrder?.tenders && squareOrder.tenders.length > 0) {
+                paymentStatus = squareOrder.tenders[0].cardDetails ? 'paid' : 'pending';
+              }
+            } catch (error) {
+              console.error('Error retrieving Square order from metadata:', error);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching database order:', error);
+    }
+  }
+
+  // Get Square order details using Square order ID if provided in URL
+  if (squareOrderId && !squareOrder) {
     try {
       const orderResponse = await square.orders.get({ orderId: squareOrderId });
       squareOrder = orderResponse.order;
@@ -58,14 +101,17 @@ export default async function CheckoutSuccessPage({
       }
     } catch (error) {
       console.error('Error retrieving Square order:', error);
-      redirect('/');
+      // Don't redirect here, we might have the database order
     }
   }
 
-  // Update order status if payment was successful
-  if (paymentStatus === 'paid' && squareOrder?.metadata?.orderId) {
+  // Update order recipient with shipping address if payment was successful
+  // Use dbOrder if we have it, otherwise get from Square metadata
+  const orderToUpdate = dbOrder || (squareOrder?.metadata?.orderId ? Number.parseInt(squareOrder.metadata.orderId) : null);
+
+  if (paymentStatus === 'paid' && orderToUpdate) {
     try {
-      const dbOrderId = Number.parseInt(squareOrder.metadata.orderId);
+      const dbOrderId = typeof orderToUpdate === 'number' ? orderToUpdate : orderToUpdate.id;
 
       // First, check if a payment with this Square order ID already exists
       const existingPayment = await prisma.payment.findUnique({
@@ -178,12 +224,18 @@ export default async function CheckoutSuccessPage({
             Your order has been successfully placed. We'll send you an email
             with your order details.
           </p>
-          {paymentStatus === 'paid' && squareOrder?.metadata?.orderId && (
-            <p className="mt-4 text-yellow-600">
-              Your payment was successful, but there was an issue processing
-              your order. Our team has been notified and will handle this for
-              you.
-            </p>
+          {dbOrder && (
+            <div className="mt-6 rounded-lg bg-gray-50 p-4 text-left">
+              <p className="font-medium text-sm">Order #{dbOrder.id}</p>
+              <p className="mt-1 text-muted-foreground text-sm">
+                Status: {dbOrder.status === 'COMPLETED' ? 'Processing' : 'Pending Payment'}
+              </p>
+              {dbOrder.recipient?.email && dbOrder.recipient.email !== 'pending@checkout.com' && (
+                <p className="mt-1 text-muted-foreground text-sm">
+                  Confirmation sent to: {dbOrder.recipient.email}
+                </p>
+              )}
+            </div>
           )}
         </div>
 

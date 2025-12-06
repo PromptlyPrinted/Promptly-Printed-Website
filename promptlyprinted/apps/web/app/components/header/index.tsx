@@ -777,12 +777,12 @@ export const Header = () => {
             )}
 
           </div>
-          <nav className="mt-6 px-4">
+          <nav className="mt-6 px-4 pb-6">
             <div className="mb-4 px-2">
               <CreditBalance />
             </div>
             <CountrySelector mobile />
-            <ul className="space-y-4">
+            <ul className="space-y-2">
               {navigationItems.map((item) => {
                 if (item.isButton) {
                   return (
@@ -823,7 +823,7 @@ export const Header = () => {
                     </li>
                   );
                 }
-                if (item.subItems) {
+                if (item.subItems || item.name === 'Resources') {
                   return (
                     <li key={item.name}>
                       <button
@@ -860,6 +860,52 @@ export const Header = () => {
                   </li>
                 );
               })}
+
+              {/* Additional mobile-only links */}
+              {isSignedIn && (
+                <>
+                  <li className="border-t border-gray-200 pt-4 mt-4">
+                    <Link
+                      href="/orders"
+                      className="block rounded-md px-3 py-2 font-medium text-base text-gray-700 hover:bg-gray-100"
+                      onClick={toggleMobileMenu}
+                    >
+                      My Orders
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/account"
+                      className="block rounded-md px-3 py-2 font-medium text-base text-gray-700 hover:bg-gray-100"
+                      onClick={toggleMobileMenu}
+                    >
+                      Account Settings
+                    </Link>
+                  </li>
+                  <li>
+                    <button
+                      onClick={() => {
+                        handleSignOut();
+                        toggleMobileMenu();
+                      }}
+                      className="block w-full text-left rounded-md px-3 py-2 font-medium text-base text-gray-700 hover:bg-gray-100"
+                    >
+                      Sign Out
+                    </button>
+                  </li>
+                </>
+              )}
+              {!isSignedIn && (
+                <li className="border-t border-gray-200 pt-4 mt-4">
+                  <Link
+                    href="/sign-in"
+                    className="block rounded-md px-3 py-2 font-medium text-base text-gray-700 hover:bg-gray-100"
+                    onClick={toggleMobileMenu}
+                  >
+                    Sign In
+                  </Link>
+                </li>
+              )}
             </ul>
           </nav>
         </div>

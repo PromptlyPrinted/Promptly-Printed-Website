@@ -436,7 +436,8 @@ export async function POST(req: NextRequest) {
             metadata: squareMetadata,
           },
           checkoutOptions: {
-            redirectUrl: `${process.env.NEXT_PUBLIC_WEB_URL}/checkout/success`,
+            // Include order ID in redirect URL so success page can find the order
+            redirectUrl: `${process.env.NEXT_PUBLIC_WEB_URL}/checkout/success?orderId=${order.id}`,
             askForShippingAddress: true,
             enableCoupon: false, // Disable Square's coupon field - we handle discounts on our checkout page
             acceptedPaymentMethods: {

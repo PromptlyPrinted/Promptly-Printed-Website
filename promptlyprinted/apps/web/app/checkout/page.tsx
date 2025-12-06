@@ -915,17 +915,17 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-8">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-4 sm:py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Urgency Banner */}
           <UrgencyBanner itemCount={items.length} />
-          
-          <div className="text-center mb-8">
+
+          <div className="text-center mb-6 sm:mb-8">
             <div className="flex items-center justify-center gap-2 mb-2">
-              <Lock className="w-5 h-5 text-green-600" />
-              <h1 className="text-3xl font-bold text-gray-900">Secure Checkout</h1>
+              <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Secure Checkout</h1>
             </div>
-            <p className="text-gray-600 mt-2">
+            <p className="text-sm sm:text-base text-gray-600 mt-2">
               {paymentStep === 'shipping' ? 'Billing & Shipping Information' : 'Payment Details'}
             </p>
             
@@ -935,34 +935,34 @@ export default function CheckoutPage() {
             </div>
 
             {/* Progress indicator - improved with labels */}
-            <div className="flex justify-center items-center mt-6 gap-2">
+            <div className="flex justify-center items-center mt-4 sm:mt-6 gap-2">
               <div className="flex flex-col items-center">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all ${
-                  paymentStep === 'shipping' ? 'bg-blue-600 text-white ring-4 ring-blue-100' : 'bg-green-600 text-white'
+                <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-semibold text-sm sm:text-base transition-all ${
+                  paymentStep === 'shipping' ? 'bg-blue-600 text-white ring-2 sm:ring-4 ring-blue-100' : 'bg-green-600 text-white'
                 }`}>
-                  {paymentStep === 'payment' ? <CheckCircle2 className="w-5 h-5" /> : '1'}
+                  {paymentStep === 'payment' ? <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" /> : '1'}
                 </div>
-                <span className="text-xs mt-1 font-medium text-gray-600">Details</span>
+                <span className="text-[10px] sm:text-xs mt-1 font-medium text-gray-600">Details</span>
               </div>
-              <div className={`w-20 h-1 rounded ${paymentStep === 'payment' ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+              <div className={`w-16 sm:w-20 h-1 rounded ${paymentStep === 'payment' ? 'bg-green-500' : 'bg-gray-300'}`}></div>
               <div className="flex flex-col items-center">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-all ${
-                  paymentStep === 'payment' ? 'bg-blue-600 text-white ring-4 ring-blue-100' : 'bg-gray-300 text-gray-600'
+                <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-semibold text-sm sm:text-base transition-all ${
+                  paymentStep === 'payment' ? 'bg-blue-600 text-white ring-2 sm:ring-4 ring-blue-100' : 'bg-gray-300 text-gray-600'
                 }`}>
                   2
                 </div>
-                <span className="text-xs mt-1 font-medium text-gray-600">Payment</span>
+                <span className="text-[10px] sm:text-xs mt-1 font-medium text-gray-600">Payment</span>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
             {/* Order Summary */}
-            <div className="bg-white rounded-lg shadow-lg p-6 lg:order-2 h-fit sticky top-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Order Summary</h2>
+            <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:order-2 h-fit lg:sticky lg:top-8">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Order Summary</h2>
               <PaymentNotice />
 
-              <div className="space-y-4 mb-6">
+              <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
                 {items.map((item, index) => {
                   // Get the best available image URL for display
                   // Priority: previewUrl > images[0].url > designUrl > printReadyUrl
@@ -973,95 +973,106 @@ export default function CheckoutPage() {
                     || null;
                   
                   return (
-                  <div key={index} className="flex gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group">
-                    {displayImageUrl ? (
-                      <div className="relative w-24 h-24 flex-shrink-0 bg-white rounded-lg overflow-hidden border border-gray-200">
-                        <Image
-                          src={displayImageUrl}
-                          alt={item.name}
-                          fill
-                          className="object-contain"
-                          onError={(e) => {
-                            // Hide the image container if image fails to load
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                          }}
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-24 h-24 flex-shrink-0 bg-gray-200 rounded-lg flex items-center justify-center border border-gray-200">
-                        <span className="text-gray-400 text-xs text-center">No image</span>
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0 space-y-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <h3 className="font-semibold text-gray-900">{item.name}</h3>
-                        <button
-                          onClick={() => handleRemoveItem(index)}
-                          className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors"
-                          title="Remove item"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <p className="text-sm text-gray-600">Color: {item.color}</p>
-                      
-                      {/* Size Selector */}
-                      <div className="flex items-center gap-2">
-                        <label className="text-sm text-gray-600">Size:</label>
-                        <select
-                          value={item.size}
-                          onChange={(e) => handleUpdateItemSize(index, e.target.value)}
-                          className="text-sm border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                        >
-                          {AVAILABLE_SIZES.map((size) => (
-                            <option key={size} value={size}>
-                              {size}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      
-                      {/* Quantity Controls */}
-                      <div className="flex items-center gap-2">
-                        <label className="text-sm text-gray-600">Quantity:</label>
-                        <div className="flex items-center gap-1 border border-gray-300 rounded">
-                          <button
-                            onClick={() => handleUpdateItemQuantity(index, item.copies - 1)}
-                            disabled={item.copies <= 1}
-                            className="p-1 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            title="Decrease quantity"
-                          >
-                            <Minus className="w-4 h-4" />
-                          </button>
-                          <input
-                            type="number"
-                            min="1"
-                            value={item.copies}
-                            onChange={(e) => handleUpdateItemQuantity(index, parseInt(e.target.value) || 1)}
-                            className="w-12 text-center text-sm border-x border-gray-300 py-1 focus:outline-none"
+                  <div key={index} className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group">
+                    {/* Mobile: Stack vertically, Desktop: Horizontal layout */}
+                    <div className="flex gap-3 sm:gap-4">
+                      {displayImageUrl ? (
+                        <div className="relative w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 bg-white rounded-lg overflow-hidden border border-gray-200">
+                          <Image
+                            src={displayImageUrl}
+                            alt={item.name}
+                            fill
+                            className="object-contain"
+                            onError={(e) => {
+                              // Hide the image container if image fails to load
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                            }}
                           />
+                        </div>
+                      ) : (
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 bg-gray-200 rounded-lg flex items-center justify-center border border-gray-200">
+                          <span className="text-gray-400 text-xs text-center">No image</span>
+                        </div>
+                      )}
+
+                      <div className="flex-1 min-w-0 space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{item.name}</h3>
+                            <p className="text-xs sm:text-sm text-gray-600 mt-1">Color: {item.color}</p>
+                          </div>
                           <button
-                            onClick={() => handleUpdateItemQuantity(index, item.copies + 1)}
-                            className="p-1 hover:bg-gray-200 transition-colors"
-                            title="Increase quantity"
+                            onClick={() => handleRemoveItem(index)}
+                            className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 transition-colors flex-shrink-0"
+                            title="Remove item"
                           >
-                            <Plus className="w-4 h-4" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
+
+                        {/* Mobile: Stack controls, Desktop: Inline */}
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                          {/* Size Selector */}
+                          <div className="flex items-center gap-2">
+                            <label className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">Size:</label>
+                            <select
+                              value={item.size}
+                              onChange={(e) => handleUpdateItemSize(index, e.target.value)}
+                              className="text-xs sm:text-sm border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                            >
+                              {AVAILABLE_SIZES.map((size) => (
+                                <option key={size} value={size}>
+                                  {size}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {/* Quantity Controls */}
+                          <div className="flex items-center gap-2">
+                            <label className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">Qty:</label>
+                            <div className="flex items-center gap-1 border border-gray-300 rounded">
+                              <button
+                                onClick={() => handleUpdateItemQuantity(index, item.copies - 1)}
+                                disabled={item.copies <= 1}
+                                className="p-1 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                title="Decrease quantity"
+                              >
+                                <Minus className="w-3 h-3 sm:w-4 sm:h-4" />
+                              </button>
+                              <input
+                                type="number"
+                                min="1"
+                                value={item.copies}
+                                onChange={(e) => handleUpdateItemQuantity(index, parseInt(e.target.value) || 1)}
+                                className="w-10 sm:w-12 text-center text-xs sm:text-sm border-x border-gray-300 py-1 focus:outline-none"
+                              />
+                              <button
+                                onClick={() => handleUpdateItemQuantity(index, item.copies + 1)}
+                                className="p-1 hover:bg-gray-200 transition-colors"
+                                title="Increase quantity"
+                              >
+                                <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1">
+                          {item.designUrl && (
+                            <p className="text-xs sm:text-sm text-blue-600">Custom Design</p>
+                          )}
+                          <div className="text-right ml-auto">
+                            <p className="font-semibold text-gray-900 text-sm sm:text-base">
+                              {formatPrice(item.price * item.copies)}
+                            </p>
+                            <p className="text-xs sm:text-sm text-gray-600">
+                              {formatPrice(item.price)} each
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                      
-                      {item.designUrl && (
-                        <p className="text-sm text-blue-600">Custom Design</p>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-gray-900">
-                        {formatPrice(item.price * item.copies)}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        {formatPrice(item.price)} each
-                      </p>
                     </div>
                   </div>
                   );
@@ -1158,7 +1169,7 @@ export default function CheckoutPage() {
             </div>
 
             {/* Forms */}
-            <div className="bg-white rounded-lg shadow-lg p-6 lg:order-1">
+            <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:order-1">
               {error && (
                 <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
                   {error}
@@ -1167,7 +1178,7 @@ export default function CheckoutPage() {
 
               {paymentStep === 'shipping' ? (
                 <>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-6">Billing Information</h2>
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Billing Information</h2>
                   <p className="text-sm text-gray-600 mb-6">This address will be used for payment verification.</p>
                   <form onSubmit={handleShippingSubmit} className="space-y-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
