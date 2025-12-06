@@ -247,7 +247,7 @@ export async function POST(req: NextRequest) {
         }
 
       } else {
-        // Guest checkout
+        // Guest checkout - NO order created yet, webhook will handle it
         isGuestCheckout = true;
 
       }
@@ -257,109 +257,71 @@ export async function POST(req: NextRequest) {
         0
       );
 
+      console.log('[Checkout] Processing checkout', {
+        isGuest: isGuestCheckout,
+        itemCount: orderItems.items.length,
+        total,
+      });
 
-      // Build the order creation data - used for both authenticated and guest users
-      const orderData = {
-        userId: dbUser?.id || 'guest',
-        totalPrice: total,
-        status: OrderStatus.PENDING,
-        merchantReference: `ORDER-${Date.now()}`,
-        shippingMethod: ShippingMethod.STANDARD,
-        callbackUrl: `${process.env.NEXT_PUBLIC_WEB_URL}/api/webhooks/prodigi`,
-        idempotencyKey: randomUUID(),
-        metadata: {
-          sourceId: Date.now(),
-          isGuestCheckout: isGuestCheckout,
-        },
-        recipient: {
-          create: {
-            name: 'Pending',
-            email: dbUser?.email || 'pending@checkout.com',
-            phoneNumber: null,
-            addressLine1: 'Pending',
-            addressLine2: '',
-            postalCode: '00000',
-            countryCode: 'US',
-            city: 'Pending',
-            state: null,
-          },
-        },
-        orderItems: {
-          create: await Promise.all(
-            orderItems.items.map(async (item) => {
-              // Convert each image object into something we can store in `assets` (JSON),
-              // since there's no separate `images` relation in OrderItem.
-              const resolvedAssets = await Promise.all(
-                item.images.map(async (img) => {
-                  let finalUrl: string;
+      // Save images and prepare order data
+      const processedItems = await Promise.all(
+        orderItems.items.map(async (item) => {
+          // Process images
+          const resolvedAssets = await Promise.all(
+            item.images.map(async (img) => {
+              let finalUrl: string;
 
-                  // If it's a base64 image, save it as a file first
-                  if (img.url.startsWith('data:image')) {
-
-                    finalUrl = await saveBase64Image(img.url);
-                  } else {
-                    // For non-base64 images, resolve the URL
-                    const actualUrl = await getImageUrl(img.url);
-                    if (!actualUrl) {
-                      console.warn(
-                        `Could not resolve or invalid image URL: ${img.url} for product ${item.productId}`
-                      );
-                      return null;
-                    }
-                    finalUrl = actualUrl.startsWith('/api/save-temp-image')
-                      ? actualUrl
-                      : `/api/save-temp-image?url=${encodeURIComponent(actualUrl)}`;
-                  }
-
-                  // Only store URL - don't store dpi, width, height to keep database size small
-                  return {
-                    url: finalUrl,
-                    printArea: item.customization?.printArea || 'front',
-                  };
-                })
-              ).then((assets) => assets.filter(Boolean));
+              // If it's a base64 image, save it as a file first
+              if (img.url.startsWith('data:image')) {
+                finalUrl = await saveBase64Image(img.url);
+              } else {
+                // For non-base64 images, resolve the URL
+                const actualUrl = await getImageUrl(img.url);
+                if (!actualUrl) {
+                  console.warn(
+                    `Could not resolve or invalid image URL: ${img.url} for product ${item.productId}`
+                  );
+                  return null;
+                }
+                finalUrl = actualUrl.startsWith('/api/save-temp-image')
+                  ? actualUrl
+                  : `/api/save-temp-image?url=${encodeURIComponent(actualUrl)}`;
+              }
 
               return {
-                productId: item.productId,
-                copies: item.copies,
-                price: item.price,
-                assets: resolvedAssets,
-                merchantReference:
-                  item.merchantReference || `item #${item.productId}`,
-                recipientCostAmount: item.recipientCostAmount ?? item.price,
-                recipientCostCurrency: item.currency || 'USD',
-                sizing: item.customization?.sizing,
-                attributes: {
-                  sku: item.sku,
-                  designUrl: item.designUrl,
-                  printArea: item.customization?.printArea,
-                  position: item.customization?.position,
-                  color: item.color,
-                  size: item.size,
-                },
+                url: finalUrl,
+                printArea: item.customization?.printArea || 'front',
               };
             })
-          ),
-        },
-      };
+          ).then((assets) => assets.filter(Boolean));
 
-      // Create order in database FIRST (for both authenticated and guest users)
-      // This ensures we have an order ID before payment is attempted
-      const order = await prisma.order.create({
-        data: orderData,
-      });
-
-      console.log('[Checkout] Order created before payment', {
-        orderId: order.id,
-        isGuest: isGuestCheckout,
-        userId: dbUser?.id || 'guest',
-      });
+          return {
+            productId: item.productId,
+            sku: item.sku,
+            copies: item.copies,
+            price: item.price,
+            size: item.size,
+            color: item.color,
+            designUrl: item.designUrl,
+            printArea: item.customization?.printArea,
+            assets: resolvedAssets,
+            merchantReference: item.merchantReference || `item #${item.productId}`,
+          };
+        })
+      );
 
       // Prepare Square order metadata
-      // Now we ALWAYS have an order ID (created for both authenticated and guest users)
+      // Store order data in metadata (webhook will create DB order after payment)
       const squareMetadata: Record<string, string> = {
         isGuestCheckout: isGuestCheckout.toString(),
-        orderId: order.id.toString(),
+        email: dbUser?.email || '',
+        // Store order data for webhook - NOTE: Square has 500 char limit per field
+        // So we need to be mindful of metadata size
+        orderData: JSON.stringify({
+          itemCount: orderItems.items.length,
+          totalPrice: total,
+          items: processedItems,
+        }),
       };
 
       // Add competition-related metadata for tracking
@@ -436,8 +398,8 @@ export async function POST(req: NextRequest) {
             metadata: squareMetadata,
           },
           checkoutOptions: {
-            // Include order ID in redirect URL so success page can find the order
-            redirectUrl: `${process.env.NEXT_PUBLIC_WEB_URL}/checkout/success?orderId=${order.id}`,
+            // Redirect to success page - webhook will create the order
+            redirectUrl: `${process.env.NEXT_PUBLIC_WEB_URL}/checkout/success`,
             askForShippingAddress: true,
             enableCoupon: false, // Disable Square's coupon field - we handle discounts on our checkout page
             acceptedPaymentMethods: {
@@ -471,17 +433,10 @@ export async function POST(req: NextRequest) {
       const paymentLinkUrl = paymentLinkResponse.paymentLink.url;
       const paymentLinkId = paymentLinkResponse.paymentLink.id!;
 
-      // Update order with Square payment link ID and Square order ID
-      await prisma.order.update({
-        where: { id: order.id },
-        data: {
-          stripeSessionId: paymentLinkId, // Using same field for now, will rename in schema update
-          metadata: {
-            ...(order.metadata as object || {}),
-            squareOrderId: squareOrderId,
-            squarePaymentLinkId: paymentLinkId,
-          },
-        },
+      console.log('[Checkout] Payment link created', {
+        paymentLinkId,
+        squareOrderId,
+        isGuest: isGuestCheckout,
       });
 
       // Clean up temporary images
