@@ -352,7 +352,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Create Prodigi order if payment is completed
+    console.log('[Complete Payment] ==> PRODIGI SECTION START <==', {
+      orderId: order.id,
+      paymentStatus: paymentResponse.payment.status,
+      willAttemptProdigi: paymentResponse.payment.status === 'COMPLETED',
+      hasProdigiApiKey: !!process.env.PRODIGI_API_KEY,
+      prodigiApiKeyLength: process.env.PRODIGI_API_KEY?.length || 0,
+    });
+    
     if (paymentResponse.payment.status === 'COMPLETED') {
+      console.log('[Prodigi Order] Payment is COMPLETED, proceeding with Prodigi order creation');
       // Try to claim this order for Prodigi processing by setting a processing flag
       // This prevents race conditions with the webhook
       const processingKey = `processing-payment-${Date.now()}-${Math.random().toString(36).substring(7)}`;
@@ -672,6 +681,11 @@ export async function POST(request: NextRequest) {
         paymentStatus: paymentResponse.payment.status,
       });
     }
+
+    console.log('[Complete Payment] ==> PRODIGI SECTION END <==', {
+      orderId: order.id,
+      prodigiSectionReached: true,
+    });
 
     return NextResponse.json({
       success: true,
