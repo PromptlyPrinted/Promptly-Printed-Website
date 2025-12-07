@@ -535,110 +535,88 @@ export async function POST(req: Request) {
 
       const isGuestCheckout = squareOrder.metadata.isGuestCheckout === 'true';
       const email = squareOrder.metadata.email || payment.buyer_email_address;
-      const orderDataStr = squareOrder.metadata.orderData;
+      
+      // Get the database order ID from Square metadata
+      // This was set by /api/checkout/process when the order was created
+      const dbOrderIdStr = squareOrder.metadata.orderId;
 
-      if (!orderDataStr) {
-        console.error('[Webhook] No orderData found in Square metadata');
-        return NextResponse.json({ error: 'Missing order data' }, { status: 400 });
+      if (!dbOrderIdStr) {
+        console.error('[Webhook] No orderId found in Square metadata');
+        console.error('[Webhook] Available metadata keys:', Object.keys(squareOrder.metadata));
+        return NextResponse.json({ error: 'Missing order ID in metadata' }, { status: 400 });
       }
 
-      const orderData = JSON.parse(orderDataStr);
+      const dbOrderId = Number.parseInt(dbOrderIdStr);
+      
+      if (isNaN(dbOrderId)) {
+        console.error('[Webhook] Invalid orderId in metadata:', dbOrderIdStr);
+        return NextResponse.json({ error: 'Invalid order ID' }, { status: 400 });
+      }
 
-      console.log('[Webhook] Processing payment link order', {
-        isGuest: isGuestCheckout,
-        email,
-        itemCount: orderData.itemCount,
-        totalPrice: orderData.totalPrice,
+      console.log('[Webhook] Looking up existing order:', dbOrderId);
+
+      // Fetch the existing order from database (created by /api/checkout/process)
+      const existingOrder = await prisma.order.findUnique({
+        where: { id: dbOrderId },
+        include: {
+          recipient: true,
+          orderItems: true,
+          discountCode: true,
+        },
       });
 
-      // Find or create user
-      let user = null;
-      if (email) {
-        user = await prisma.user.findUnique({
-          where: { email },
-        });
-
-        if (!user && isGuestCheckout) {
-          user = await prisma.user.create({
-            data: {
-              email,
-              name: payment.billing_details?.name || 'Guest User',
-              emailVerified: false,
-              role: 'CUSTOMER',
-            },
-          });
-          console.log('[Webhook] Created guest user:', user.id);
-        }
+      if (!existingOrder) {
+        console.error('[Webhook] Order not found in database:', dbOrderId);
+        return NextResponse.json({ error: 'Order not found' }, { status: 404 });
       }
 
-      // Get shipping address from Square order
+      console.log('[Webhook] Found existing order:', {
+        orderId: existingOrder.id,
+        status: existingOrder.status,
+        itemCount: existingOrder.orderItems.length,
+        hasProdigiOrderId: !!existingOrder.prodigiOrderId,
+      });
+
+      // Get shipping address from Square order to update recipient if needed
       const fulfillment = squareOrder.fulfillments?.[0];
       const shipmentDetails = fulfillment?.shipmentDetails;
       const recipient = shipmentDetails?.recipient;
 
-      // Create order in database NOW (after payment confirmed)
-      const order = await prisma.order.create({
+      // Update order with payment info and recipient details from Square
+      const updatedOrder = await prisma.order.update({
+        where: { id: existingOrder.id },
         data: {
-          userId: user?.id || 'guest',
-          totalPrice: orderData.totalPrice,
           status: OrderStatus.PENDING, // Will be updated to COMPLETED after Prodigi order created
           stripeSessionId: orderId, // Store Square order ID
-          merchantReference: `ORDER-${Date.now()}`,
-          shippingMethod: 'STANDARD',
           metadata: {
+            ...(existingOrder.metadata as any || {}),
             squarePaymentId: payment.id,
             squarePaymentStatus: payment.status,
             squareOrderId: orderId,
             isGuestCheckout,
           },
-          recipient: {
-            create: {
-              name: recipient?.displayName || payment.billing_details?.name || 'Pending',
-              email: email || 'pending@example.com',
-              phoneNumber: recipient?.phoneNumber || payment.billing_details?.phone || null,
-              addressLine1: recipient?.address?.addressLine1 || 'Pending',
-              addressLine2: recipient?.address?.addressLine2 || null,
-              city: recipient?.address?.locality || 'Pending',
-              state: recipient?.address?.administrativeDistrictLevel1 || null,
-              postalCode: recipient?.address?.postalCode || '00000',
-              countryCode: recipient?.address?.country || 'US',
+          recipient: recipient ? {
+            update: {
+              name: recipient.displayName || existingOrder.recipient?.name || 'Customer',
+              email: email || existingOrder.recipient?.email || 'pending@example.com',
+              phoneNumber: recipient.phoneNumber || existingOrder.recipient?.phoneNumber,
+              addressLine1: recipient.address?.addressLine1 || existingOrder.recipient?.addressLine1 || 'Pending',
+              addressLine2: recipient.address?.addressLine2 || existingOrder.recipient?.addressLine2,
+              city: recipient.address?.locality || existingOrder.recipient?.city || 'Pending',
+              state: recipient.address?.administrativeDistrictLevel1 || existingOrder.recipient?.state,
+              postalCode: recipient.address?.postalCode || existingOrder.recipient?.postalCode || '00000',
+              countryCode: recipient.address?.country || existingOrder.recipient?.countryCode || 'GB',
             },
-          },
-          orderItems: {
-            create: orderData.items.map((item: any) => ({
-              productId: item.productId,
-              copies: item.copies || 1,
-              price: item.price,
-              merchantReference: item.merchantReference,
-              recipientCostAmount: item.price,
-              recipientCostCurrency: 'GBP',
-              attributes: {
-                sku: item.sku,
-                color: item.color,
-                size: item.size,
-                designUrl: item.designUrl,
-                printArea: item.printArea,
-              },
-              assets: item.assets || [], // Images from checkout
-            })),
-          },
+          } : undefined,
         },
         include: {
           recipient: true,
           orderItems: true,
+          discountCode: true,
         },
       });
 
-      console.log('[Webhook] Order created after payment:', {
-        orderId: order.id,
-        userId: user?.id || 'guest',
-        itemCount: order.orderItems.length,
-      });
-
-      // Use the created order (don't update yet - Prodigi creation will update to COMPLETED)
-      const updatedOrder = order;
-
-      console.log('Updated order:', {
+      console.log('[Webhook] Order updated with payment details:', {
         orderId: updatedOrder.id,
         status: updatedOrder.status,
       });

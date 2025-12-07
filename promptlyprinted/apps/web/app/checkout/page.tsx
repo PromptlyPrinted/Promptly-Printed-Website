@@ -600,8 +600,27 @@ export default function CheckoutPage() {
     setError(null);
 
     try {
-      // Tokenize the card details
-      const result = await cardRef.current.tokenize();
+      // Build verification details for SCA/3DS compliance
+      const verificationDetails = {
+        amount: calculateTotal().toFixed(2),
+        billingContact: {
+          givenName: billingAddress.firstName,
+          familyName: billingAddress.lastName,
+          email: billingAddress.email,
+          phone: billingAddress.phone,
+          addressLines: [billingAddress.addressLine1, billingAddress.addressLine2].filter(Boolean),
+          city: billingAddress.city,
+          postalCode: billingAddress.postalCode,
+          countryCode: billingAddress.country,
+        },
+        currencyCode: 'GBP',
+        intent: 'CHARGE',
+        customerInitiated: true,
+        sellerKeyedIn: false,
+      };
+
+      // Tokenize the card details with verification
+      const result = await cardRef.current.tokenize(verificationDetails);
 
       if (result.status === 'OK') {
         const token = result.token;
@@ -698,8 +717,27 @@ export default function CheckoutPage() {
     setError(null);
 
     try {
-      // Tokenize per Square documentation
-      const tokenResult = await paymentRef.current.tokenize();
+      // Build verification details for SCA/3DS compliance
+      const verificationDetails = {
+        amount: calculateTotal().toFixed(2),
+        billingContact: {
+          givenName: billingAddress.firstName,
+          familyName: billingAddress.lastName,
+          email: billingAddress.email,
+          phone: billingAddress.phone,
+          addressLines: [billingAddress.addressLine1, billingAddress.addressLine2].filter(Boolean),
+          city: billingAddress.city,
+          postalCode: billingAddress.postalCode,
+          countryCode: billingAddress.country,
+        },
+        currencyCode: 'GBP',
+        intent: 'CHARGE',
+        customerInitiated: true,
+        sellerKeyedIn: false,
+      };
+
+      // Tokenize per Square documentation with verification
+      const tokenResult = await paymentRef.current.tokenize(verificationDetails);
 
       if (tokenResult.status === 'OK') {
 
