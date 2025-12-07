@@ -2083,7 +2083,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       assets: [
         {
           url: printReadyUrl || finalImageUrl, // Use print-ready URL in assets for Prodigi
-          printArea: 'default'
+          printArea: 'front'
         }
       ],
     };
@@ -2259,7 +2259,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       assets: [
         {
           url: printReadyUrl || finalImageUrl, // Use print-ready URL in assets for Prodigi
-          printArea: 'default'
+          printArea: 'front'
         }
       ],
     };

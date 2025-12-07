@@ -171,7 +171,7 @@ export const tshirtDetails = {
     ],
     pdfUrl:
       'https://www.prodigi.com/download/product-range/Prodigi%20Stanley%20Stella%20Creator%202.0%20STTU755.pdf',
-    size: ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', '5XL'],
+    size: ['2xs', 'xs', 's', 'm', 'l', 'xl', '2xl', '3xl', '4xl', '5xl'],
     productType: 'T_SHIRT',
     category: "Men's T-shirts",
     imageUrls: {
@@ -249,7 +249,7 @@ export const tshirtDetails = {
     careInstructions: ['Machine wash cold', 'Do not bleach', 'Tumble dry low'],
     pdfUrl:
       'https://www.prodigi.com/download/product-range/Prodigi%20Triblend%20T-Shirt%20BC-3413.pdf',
-    size: ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'],
+    size: ['s', 'm', 'l', 'xl', '2xl'],
     productType: 'T_SHIRT',
     category: "Men's T-shirts",
     imageUrls: {
@@ -262,11 +262,11 @@ export const tshirtDetails = {
     },
     colorOptions: [
       {
-        name: 'Military Green Triblend',
+        name: 'military green',
         filename: 'military-green-triblend.png',
       },
       {
-        name: 'Vintage Royal Triblend',
+        name: 'vintage royal',
         filename: 'vintage-royal-triblend.png',
       },
     ],
@@ -297,8 +297,8 @@ export const tshirtDetails = {
     },
   },
 
-  'TT-GIL-64200': {
-    sku: 'TT-GIL-64200',
+  'GLOBAL-TT-GIL-64200': {
+    sku: 'GLOBAL-TT-GIL-64200',
     name: "Men's Tank Top",
     shortDescription: 'Classic tank top for casual comfort',
     features: [
@@ -318,7 +318,7 @@ export const tshirtDetails = {
     ],
     pdfUrl:
       'https://www.prodigi.com/download/product-range/Prodigi%20Gildan%2064200.pdf',
-    size: ['S', 'M', 'L', 'XL', '2XL'],
+    size: ['s', 'm', 'l', 'xl', '2xl'],
     productType: 'TANK_TOP',
     category: "Men's T-shirts",
     imageUrls: {
@@ -383,7 +383,7 @@ export const tshirtDetails = {
     ],
     pdfUrl:
       'https://www.prodigi.com/download/product-range/Prodigi%20Gildan%2064V00.pdf',
-    size: ['S', 'M', 'L', 'XL', '2XL'],
+    size: ['s', 'm', 'l', 'xl', '2xl', '3xl'],
     productType: 'T_SHIRT',
     category: "Men's T-shirts",
     imageUrls: {
@@ -432,8 +432,8 @@ export const tshirtDetails = {
       maxQuantityPerOrder: 10,
     },
   },
-  'A-ML-GD2400': {
-    sku: 'A-ML-GD2400',
+  'GLOBAL-LS-TEE-GIL-2400': {
+    sku: 'GLOBAL-LS-TEE-GIL-2400',
     name: "Men's Long Sleeve T-Shirt",
     shortDescription: 'Classic long sleeve t-shirt for year-round wear',
     features: [
@@ -453,7 +453,7 @@ export const tshirtDetails = {
     ],
     pdfUrl:
       'https://www.prodigi.com/download/product-range/Prodigi%20Gildan%202400.pdf',
-    size: ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', '5XL'],
+    size: ['s', 'm', 'l', 'xl', '2xl'],
     productType: 'LONG_SLEEVE_T_SHIRT',
     category: "Men's T-shirts",
     imageUrls: {
@@ -500,8 +500,8 @@ export const tshirtDetails = {
   },
 
   // Women's T-shirts
-  'A-WT-GD64000L': {
-    sku: 'A-WT-GD64000L',
+  'GLOBAL-TEE-GIL-64000': {
+    sku: 'GLOBAL-TEE-GIL-64000',
     name: "Women's Classic T-Shirt",
     shortDescription:
       "Ultra-soft 100% cotton women's t-shirt with flattering semi-fitted silhouette. Perfect blend of comfort and style for everyday wear. Available in multiple fashion-forward colors.",
@@ -522,7 +522,7 @@ export const tshirtDetails = {
     careInstructions: ['Machine wash cold', 'Do not bleach', 'Tumble dry low'],
     pdfUrl:
       'https://www.prodigi.com/download/product-range/Prodigi%20Women%27s%20Classic%20Soft%20Cotton%20T-Shirt%20GD64000L.pdf',
-    size: ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'],
+    size: ['xs', 's', 'm', 'l', 'xl', '2xl', '3xl', '4xl', '5xl'],
     productType: 'T_SHIRT',
     category: "Women's T-shirts",
     imageUrls: {
@@ -594,7 +594,7 @@ export const tshirtDetails = {
     ],
     pdfUrl:
       'https://www.prodigi.com/download/product-range/Prodigi%20Bella+Canvas%206035.pdf',
-    size: ['S', 'M', 'L', 'XL', '2XL'],
+    size: ['s', 'm', 'l', 'xl', '2xl'],
     productType: 'T_SHIRT',
     category: "Women's T-shirts",
     imageUrls: {
@@ -606,13 +606,13 @@ export const tshirtDetails = {
         '/assets/images/Apparel/Womens/T-Shirts/GLOBAL-TEE-BC-6035/Blanks/size-chart.png',
     },
     colorOptions: [
-      { name: 'Athletic Heather', filename: 'athletic-heather.png' },
-      { name: 'Navy', filename: 'navy.png' },
-      { name: 'White', filename: 'white.png' },
-      { name: 'Black', filename: 'black.png' },
-      { name: 'Red', filename: 'red.png' },
-      { name: 'Dark Grey', filename: 'dark-grey.png' },
-      { name: 'True Royal', filename: 'true-royal.png' },
+      { name: 'athletic grey heather', filename: 'athletic-heather.png' },
+      { name: 'navy blue', filename: 'navy.png' },
+      { name: 'white', filename: 'white.png' },
+      { name: 'black', filename: 'black.png' },
+      { name: 'red', filename: 'red.png' },
+      { name: 'dark grey', filename: 'dark-grey.png' },
+      { name: 'royal blue', filename: 'true-royal.png' },
     ],
     brand: {
       name: 'Bella+Canvas',
@@ -641,8 +641,8 @@ export const tshirtDetails = {
     },
   },
   // Babies
-  'A-BB-LA4411': {
-    sku: 'A-BB-LA4411',
+  'GLOBAL-BB-RS-4411': {
+    sku: 'GLOBAL-BB-RS-4411',
     name: "Baby's Bodysuit",
     shortDescription:
       'Premium infant bodysuit with lap shoulders and snap closure',
@@ -673,7 +673,7 @@ export const tshirtDetails = {
     ],
     pdfUrl:
       'https://www.prodigi.com/download/product-range/Prodigi%20LAT%20Apparel%204411.pdf',
-    size: ['Newborn', '6M', '12M', '18M'],
+    size: ['newborn', '6-12 months', '12-18 months', '18-24 months'],
     productType: 'BABY_BODYSUIT',
     category: 'Baby Clothing',
     imageUrls: {
@@ -749,7 +749,7 @@ export const tshirtDetails = {
     ],
     pdfUrl:
       'https://www.prodigi.com/download/product-range/Prodigi%20LAT%20Apparel%203322.pdf',
-    size: ['3-6M (UK/EU only)', '6-12M', '12-18M', '12-18M', '18-24M'],
+    size: ['newborn', '6-12 months', '12-18 months', '18-24 months'],
     productType: 'BABY_T_SHIRT',
     category: 'Baby Clothing',
     imageUrls: {
@@ -798,8 +798,8 @@ export const tshirtDetails = {
     },
   },
   // Kids
-  'A-KT-GD64000B': {
-    sku: 'A-KT-GD64000B',
+  'GLOBAL-TEE-GIL-64000B': {
+    sku: 'GLOBAL-TEE-GIL-64000B',
     name: "Kids' T-Shirt",
     shortDescription: 'Classic youth t-shirt with durable construction',
     features: [
@@ -829,7 +829,7 @@ export const tshirtDetails = {
     ],
     pdfUrl:
       'https://www.prodigi.com/download/product-range/Prodigi%20Gildan%2064000B.pdf',
-    size: ['3-4Y', '5-6Y', '7-8Y', '9-11Y', '12-13Y'],
+    size: ['3-4 years', '5-6 years', '7-8 years', '9-11 years', '12-13 years'],
     productType: 'KIDS_T_SHIRT',
     category: "Kids' T-shirts",
     imageUrls: {
@@ -910,7 +910,7 @@ export const tshirtDetails = {
     ],
     pdfUrl:
       'https://www.prodigi.com/download/product-range/Prodigi%20AWDis%20JH030J.pdf',
-    size: ['3-4Y', '5-6Y', '7-8Y', '9-11Y', '12-13Y'],
+    size: ['3-4 years', '5-6 years', '7-8 years', '9-11 years', '12-13 years'],
     productType: 'KIDS_SWEATSHIRT',
     category: "Kids' Sweatshirts",
     imageUrls: {
@@ -923,7 +923,7 @@ export const tshirtDetails = {
     },
     colorOptions: [
       { name: 'Arctic White', filename: 'arctic-white.png' },
-      { name: 'Jet Black', filename: 'jet-black.png' },
+      { name: 'black', filename: 'jet-black.png' },
       { name: 'Royal Blue', filename: 'royal-blue.png' },
       { name: 'Bottle Green', filename: 'bottle-green.png' },
       { name: 'Kelly Green', filename: 'kelly-green.png' },
@@ -961,8 +961,8 @@ export const tshirtDetails = {
     },
   },
   // Men's Hoodies
-  'A-MH-JH001': {
-    sku: 'A-MH-JH001',
+  'GLOBAL-HOOD-AWD-JH001': {
+    sku: 'GLOBAL-HOOD-AWD-JH001',
     name: "Men's Premium Organic Cotton Hoodie",
     shortDescription:
       'Premium pullover hoodie made from sustainable organic cotton. Comfortable, warm, and eco-friendly with modern fit and quality construction.',
@@ -992,7 +992,7 @@ export const tshirtDetails = {
     ],
     pdfUrl:
       'https://www.prodigi.com/download/product-range/Prodigi%20Stanley%20Stella%20Cruiser%20STSU812.pdf',
-    size: ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL'],
+    size: ['xs', 's', 'm', 'l', 'xl', '2xl', '3xl', '4xl'],
     productType: 'HOODIE',
     category: "Men's Hoodies",
     imageUrls: {
@@ -1045,8 +1045,8 @@ export const tshirtDetails = {
     },
   },
   // Women's Hoodies
-  'A-WH-JH001F': {
-    sku: 'A-WH-JH001F',
+  'HOOD-AWD-JH001F': {
+    sku: 'HOOD-AWD-JH001F',
     name: "Women's Premium Organic Cotton Hoodie",
     shortDescription:
       "Premium women's pullover hoodie with feminine fit. Made from sustainable organic cotton for comfort and style.",
@@ -1076,7 +1076,7 @@ export const tshirtDetails = {
     ],
     pdfUrl:
       'https://www.prodigi.com/download/product-range/Prodigi%20Stanley%20Stella%20Stella%20Cruiser%20STSW148.pdf',
-    size: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
+    size: ['xs', 's', 'm', 'l', 'xl', '2xl'],
     productType: 'HOODIE',
     category: "Women's Hoodies",
     imageUrls: {
@@ -1172,7 +1172,7 @@ export const tshirtDetails = {
     ],
     pdfUrl:
       'https://www.prodigi.com/download/product-range/Prodigi%20AWDis%20JH001J.pdf',
-    size: ['3-4Y', '5-6Y', '7-8Y', '9-11Y', '12-13Y'],
+    size: ['3-4 years', '5-6 years', '7-8 years', '9-11 years', '12-13 years'],
     productType: 'KIDS_HOODIE',
     category: 'Kids Hoodies',
     imageUrls: {
@@ -1188,7 +1188,7 @@ export const tshirtDetails = {
       { name: 'Charcoal', filename: 'charcoal.png' },
       { name: 'Fire Red', filename: 'fire-red.png' },
       { name: 'Heather Grey', filename: 'heather-grey.png' },
-      { name: 'Jet Black', filename: 'jet-black.png' },
+      { name: 'black', filename: 'jet-black.png' },
       { name: 'New French Navy', filename: 'new-french-navy.png' },
       { name: 'Oxford Navy', filename: 'oxford-navy.png' },
       { name: 'Royal Blue', filename: 'royal-blue.png' },
