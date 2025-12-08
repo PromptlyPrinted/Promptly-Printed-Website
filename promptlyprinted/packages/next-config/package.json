@@ -9,7 +9,7 @@
   "devDependencies": {
     "@repo/env": "workspace:*",
     "@repo/typescript-config": "workspace:*",
-    "next": "16.0.3"
+    "next": "16.0.7"
   },
   "dependencies": {
     "@logtail/next": "^0.1.7",

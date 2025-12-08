@@ -1,6 +1,7 @@
 import { prisma } from '@repo/database';
 import { OrderStatus } from '@repo/database';
 import { NextResponse } from 'next/server';
+import { sendOrderShippedEmail } from '@/lib/email';
 
 /**
  * Prodigi Webhook Handler
@@ -286,6 +287,34 @@ export async function POST(req: Request) {
             shipmentId: shipment.id,
           });
         }
+      }
+
+      // Send shipping notification email to customer
+      const recipientEmail = order.recipient?.email;
+      if (recipientEmail && orderData.shipments.length > 0) {
+        const firstShipment = orderData.shipments[0];
+        const items = order.orderItems.map((item: { attributes: unknown; copies: number }) => {
+          const attrs = item.attributes as Record<string, unknown>;
+          return {
+            name: (attrs?.productName as string) || 'Product',
+            copies: item.copies,
+          };
+        });
+
+        await sendOrderShippedEmail({
+          to: recipientEmail,
+          orderNumber: order.id.toString(),
+          trackingNumber: firstShipment.tracking?.number,
+          trackingUrl: firstShipment.tracking?.url,
+          carrier: `${firstShipment.carrier?.name || 'Carrier'} ${firstShipment.carrier?.service || ''}`.trim(),
+          items,
+          orderLookupUrl: `${process.env.NEXT_PUBLIC_WEB_URL}/orders/${order.id}`,
+        }).catch((err: Error) => {
+          // Don't fail the webhook if email fails
+          console.error('[Prodigi Webhook] Failed to send shipping email:', err);
+        });
+
+        console.log('[Prodigi Webhook] Shipping email sent to:', recipientEmail);
       }
     }
 

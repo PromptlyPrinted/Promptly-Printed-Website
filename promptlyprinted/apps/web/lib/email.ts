@@ -480,7 +480,21 @@ function getOrderConfirmationHTML(
                   </td>
                 </tr>
               </table>
-              ` : ''}
+              ` : `
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="padding: 30px 0 20px 0;">
+                    <a href="${SITE_URL}/orders/lookup"
+                       style="display: inline-block; padding: 16px 40px; background-color: #3b82f6; color: #ffffff; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: bold;">
+                      Track Your Order →
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <p style="text-align: center; font-size: 13px; color: #666666; margin: 0 0 20px 0;">
+                Use your email address and order number <strong>#${orderNumber}</strong> to check your order status
+              </p>
+              `}
 
               <p style="font-size: 14px; color: #999999; line-height: 1.6; margin: 30px 0 0 0; border-top: 1px solid #eeeeee; padding-top: 20px;">
                 Questions about your order? Reply to this email or contact our support team.
@@ -526,7 +540,8 @@ ${itemsText}
 
 Total: £${total.toFixed(2)}
 
-${trackingUrl ? `Track Your Order: ${trackingUrl}` : 'Tracking information will be sent soon.'}
+${trackingUrl ? `Track Your Order: ${trackingUrl}` : `Track Your Order: ${SITE_URL}/orders/lookup
+Use your email address and order number #${orderNumber} to check your order status.`}
 
 Questions about your order? Reply to this email.
 
@@ -966,6 +981,518 @@ ${checkoutUrl}?utm_source=email&utm_medium=abandoned_cart&utm_campaign=recovery_
 ${emailNumber === 3 ? '\n⏰ HURRY! This discount code expires in 24 hours.\n' : ''}
 
 Need help? Reply to this email or visit ${SITE_URL}/help
+
+© ${new Date().getFullYear()} Promptly Printed
+  `;
+}
+
+// ============================================================================
+// ORDER LIFECYCLE EMAILS
+// ============================================================================
+
+/**
+ * Send Order Cancelled Email with refund details
+ */
+export async function sendOrderCancelledEmail({
+  to,
+  orderNumber,
+  refundAmount,
+  items,
+  orderLookupUrl,
+}: {
+  to: string;
+  orderNumber: string;
+  refundAmount: number;
+  items: Array<{ name: string; price: number; copies: number }>;
+  orderLookupUrl?: string;
+}) {
+  if (!resend) {
+    console.warn('Resend not configured, skipping order cancelled email');
+    return { success: false, error: 'Email service not configured' };
+  }
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: `Promptly Printed Orders <${FROM_EMAIL}>`,
+      to: [to],
+      subject: `Order #${orderNumber} Cancelled - Refund Initiated`,
+      html: getOrderCancelledHTML(orderNumber, refundAmount, items, orderLookupUrl),
+      text: getOrderCancelledText(orderNumber, refundAmount, items, orderLookupUrl),
+    });
+
+    if (error) {
+      console.error('Failed to send order cancelled email:', error);
+      return { success: false, error };
+    }
+
+    console.log('Order cancelled email sent successfully:', data);
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error sending order cancelled email:', error);
+    return { success: false, error };
+  }
+}
+
+/**
+ * Send Order Shipped Email with tracking details
+ */
+export async function sendOrderShippedEmail({
+  to,
+  orderNumber,
+  trackingNumber,
+  trackingUrl,
+  carrier,
+  estimatedDelivery,
+  items,
+  orderLookupUrl,
+}: {
+  to: string;
+  orderNumber: string;
+  trackingNumber?: string;
+  trackingUrl?: string;
+  carrier?: string;
+  estimatedDelivery?: string;
+  items: Array<{ name: string; copies: number }>;
+  orderLookupUrl?: string;
+}) {
+  if (!resend) {
+    console.warn('Resend not configured, skipping order shipped email');
+    return { success: false, error: 'Email service not configured' };
+  }
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: `Promptly Printed Orders <${FROM_EMAIL}>`,
+      to: [to],
+      subject: `Your Order #${orderNumber} Has Shipped! 📦`,
+      html: getOrderShippedHTML(orderNumber, trackingNumber, trackingUrl, carrier, estimatedDelivery, items, orderLookupUrl),
+      text: getOrderShippedText(orderNumber, trackingNumber, trackingUrl, carrier, estimatedDelivery, items, orderLookupUrl),
+    });
+
+    if (error) {
+      console.error('Failed to send order shipped email:', error);
+      return { success: false, error };
+    }
+
+    console.log('Order shipped email sent successfully:', data);
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error sending order shipped email:', error);
+    return { success: false, error };
+  }
+}
+
+/**
+ * Send Refund Completed Email
+ */
+export async function sendRefundCompletedEmail({
+  to,
+  orderNumber,
+  refundAmount,
+  refundId,
+}: {
+  to: string;
+  orderNumber: string;
+  refundAmount: number;
+  refundId: string;
+}) {
+  if (!resend) {
+    console.warn('Resend not configured, skipping refund completed email');
+    return { success: false, error: 'Email service not configured' };
+  }
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: `Promptly Printed Orders <${FROM_EMAIL}>`,
+      to: [to],
+      subject: `Refund Completed - Order #${orderNumber}`,
+      html: getRefundCompletedHTML(orderNumber, refundAmount, refundId),
+      text: getRefundCompletedText(orderNumber, refundAmount, refundId),
+    });
+
+    if (error) {
+      console.error('Failed to send refund completed email:', error);
+      return { success: false, error };
+    }
+
+    console.log('Refund completed email sent successfully:', data);
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error sending refund completed email:', error);
+    return { success: false, error };
+  }
+}
+
+// ============================================================================
+// ORDER LIFECYCLE EMAIL TEMPLATES
+// ============================================================================
+
+function getOrderCancelledHTML(
+  orderNumber: string,
+  refundAmount: number,
+  items: Array<{ name: string; price: number; copies: number }>,
+  orderLookupUrl?: string
+): string {
+  const itemsHTML = items.map(item => `
+    <tr>
+      <td style="padding: 12px; border-bottom: 1px solid #eeeeee;">
+        <span style="color: #333333;">${item.name}</span>
+        <span style="color: #666666; font-size: 14px;"> × ${item.copies}</span>
+      </td>
+      <td style="padding: 12px; border-bottom: 1px solid #eeeeee; text-align: right;">
+        <span style="color: #333333;">£${(item.price * item.copies).toFixed(2)}</span>
+      </td>
+    </tr>
+  `).join('');
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Cancelled</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+          <!-- Header -->
+          <tr>
+            <td style="background-color: #ef4444; padding: 40px; text-align: center;">
+              <div style="font-size: 48px; margin-bottom: 10px;">❌</div>
+              <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">Order Cancelled</h1>
+              <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 16px;">Order #${orderNumber}</p>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <p style="font-size: 16px; color: #666666; line-height: 1.6; margin: 0 0 30px 0;">
+                Your order has been successfully cancelled. A refund has been initiated and will be processed within 5-10 business days.
+              </p>
+
+              <!-- Refund Details -->
+              <div style="background-color: #f0fdf4; border: 1px solid #22c55e; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
+                <h3 style="margin: 0 0 15px 0; color: #166534; font-size: 18px;">💰 Refund Details</h3>
+                <dl style="margin: 0;">
+                  <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <dt style="color: #666666;">Refund Amount:</dt>
+                    <dd style="margin: 0; font-weight: bold; color: #166534; font-size: 20px;">£${refundAmount.toFixed(2)}</dd>
+                  </div>
+                  <div style="display: flex; justify-content: space-between;">
+                    <dt style="color: #666666;">Processing Time:</dt>
+                    <dd style="margin: 0; color: #333333;">5-10 business days</dd>
+                  </div>
+                </dl>
+              </div>
+
+              <h2 style="font-size: 18px; color: #333333; margin: 0 0 15px 0;">Cancelled Items</h2>
+              <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #eeeeee; border-radius: 8px; overflow: hidden;">
+                ${itemsHTML}
+              </table>
+
+              ${orderLookupUrl ? `
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="padding: 30px 0 10px 0;">
+                    <a href="${orderLookupUrl}"
+                       style="display: inline-block; padding: 14px 32px; background-color: #6b7280; color: #ffffff; text-decoration: none; border-radius: 8px; font-size: 14px;">
+                      View Order Details
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              ` : ''}
+
+              <p style="font-size: 14px; color: #999999; line-height: 1.6; margin: 30px 0 0 0; border-top: 1px solid #eeeeee; padding-top: 20px;">
+                Questions about your refund? Reply to this email or contact our support team.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f9f9f9; padding: 30px; text-align: center; border-top: 1px solid #eeeeee;">
+              <p style="font-size: 14px; color: #999999; margin: 0;">
+                © ${new Date().getFullYear()} Promptly Printed. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+}
+
+function getOrderCancelledText(
+  orderNumber: string,
+  refundAmount: number,
+  items: Array<{ name: string; price: number; copies: number }>,
+  orderLookupUrl?: string
+): string {
+  const itemsText = items.map(item =>
+    `${item.name} (x${item.copies}) - £${(item.price * item.copies).toFixed(2)}`
+  ).join('\n');
+
+  return `
+Order Cancelled ❌
+Order #${orderNumber}
+
+Your order has been successfully cancelled. A refund has been initiated and will be processed within 5-10 business days.
+
+REFUND DETAILS:
+Refund Amount: £${refundAmount.toFixed(2)}
+Processing Time: 5-10 business days
+
+CANCELLED ITEMS:
+${itemsText}
+
+${orderLookupUrl ? `View Order Details: ${orderLookupUrl}` : ''}
+
+Questions about your refund? Reply to this email.
+
+© ${new Date().getFullYear()} Promptly Printed
+  `;
+}
+
+function getOrderShippedHTML(
+  orderNumber: string,
+  trackingNumber?: string,
+  trackingUrl?: string,
+  carrier?: string,
+  estimatedDelivery?: string,
+  items?: Array<{ name: string; copies: number }>,
+  orderLookupUrl?: string
+): string {
+  const itemsHTML = items?.map(item => `
+    <li style="padding: 8px 0; border-bottom: 1px solid #eeeeee; color: #333333;">
+      ${item.name} <span style="color: #666666;">× ${item.copies}</span>
+    </li>
+  `).join('') || '';
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Shipped</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+          <!-- Header -->
+          <tr>
+            <td style="background-color: #3b82f6; padding: 40px; text-align: center;">
+              <div style="font-size: 48px; margin-bottom: 10px;">📦</div>
+              <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">Your Order Has Shipped!</h1>
+              <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 16px;">Order #${orderNumber}</p>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <p style="font-size: 16px; color: #666666; line-height: 1.6; margin: 0 0 30px 0;">
+                Great news! Your custom apparel is on its way. Here are your tracking details:
+              </p>
+
+              <!-- Tracking Details -->
+              <div style="background-color: #eff6ff; border: 1px solid #3b82f6; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
+                <h3 style="margin: 0 0 15px 0; color: #1e40af; font-size: 18px;">🚚 Shipping Details</h3>
+                <dl style="margin: 0;">
+                  ${carrier ? `
+                  <div style="margin-bottom: 10px;">
+                    <dt style="color: #666666; font-size: 14px;">Carrier</dt>
+                    <dd style="margin: 4px 0 0 0; font-weight: bold; color: #333333;">${carrier}</dd>
+                  </div>
+                  ` : ''}
+                  ${trackingNumber ? `
+                  <div style="margin-bottom: 10px;">
+                    <dt style="color: #666666; font-size: 14px;">Tracking Number</dt>
+                    <dd style="margin: 4px 0 0 0; font-family: monospace; font-size: 16px; color: #1e40af;">${trackingNumber}</dd>
+                  </div>
+                  ` : ''}
+                  ${estimatedDelivery ? `
+                  <div>
+                    <dt style="color: #666666; font-size: 14px;">Estimated Delivery</dt>
+                    <dd style="margin: 4px 0 0 0; font-weight: bold; color: #333333;">${estimatedDelivery}</dd>
+                  </div>
+                  ` : ''}
+                </dl>
+              </div>
+
+              ${trackingUrl ? `
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="padding: 0 0 30px 0;">
+                    <a href="${trackingUrl}"
+                       style="display: inline-block; padding: 16px 40px; background-color: #3b82f6; color: #ffffff; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: bold;">
+                      Track Your Package →
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              ` : ''}
+
+              ${items && items.length > 0 ? `
+              <h2 style="font-size: 18px; color: #333333; margin: 0 0 15px 0;">Items in this Shipment</h2>
+              <ul style="list-style: none; padding: 0; margin: 0; border: 1px solid #eeeeee; border-radius: 8px; overflow: hidden;">
+                ${itemsHTML}
+              </ul>
+              ` : ''}
+
+              <p style="font-size: 14px; color: #999999; line-height: 1.6; margin: 30px 0 0 0; border-top: 1px solid #eeeeee; padding-top: 20px;">
+                Questions about your shipment? Reply to this email or contact our support team.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f9f9f9; padding: 30px; text-align: center; border-top: 1px solid #eeeeee;">
+              <p style="font-size: 14px; color: #999999; margin: 0;">
+                © ${new Date().getFullYear()} Promptly Printed. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+}
+
+function getOrderShippedText(
+  orderNumber: string,
+  trackingNumber?: string,
+  trackingUrl?: string,
+  carrier?: string,
+  estimatedDelivery?: string,
+  items?: Array<{ name: string; copies: number }>,
+  orderLookupUrl?: string
+): string {
+  const itemsText = items?.map(item => `- ${item.name} × ${item.copies}`).join('\n') || '';
+
+  return `
+Your Order Has Shipped! 📦
+Order #${orderNumber}
+
+Great news! Your custom apparel is on its way.
+
+SHIPPING DETAILS:
+${carrier ? `Carrier: ${carrier}` : ''}
+${trackingNumber ? `Tracking Number: ${trackingNumber}` : ''}
+${estimatedDelivery ? `Estimated Delivery: ${estimatedDelivery}` : ''}
+
+${trackingUrl ? `Track Your Package: ${trackingUrl}` : ''}
+
+${items && items.length > 0 ? `ITEMS IN THIS SHIPMENT:\n${itemsText}` : ''}
+
+Questions about your shipment? Reply to this email.
+
+© ${new Date().getFullYear()} Promptly Printed
+  `;
+}
+
+function getRefundCompletedHTML(
+  orderNumber: string,
+  refundAmount: number,
+  refundId: string
+): string {
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Refund Completed</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 40px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+          <!-- Header -->
+          <tr>
+            <td style="background-color: #22c55e; padding: 40px; text-align: center;">
+              <div style="font-size: 48px; margin-bottom: 10px;">✅</div>
+              <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">Refund Complete!</h1>
+              <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 16px;">Order #${orderNumber}</p>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px;">
+              <p style="font-size: 16px; color: #666666; line-height: 1.6; margin: 0 0 30px 0;">
+                Good news! Your refund has been processed and the funds have been returned to your original payment method.
+              </p>
+
+              <!-- Refund Details -->
+              <div style="background-color: #f0fdf4; border: 1px solid #22c55e; border-radius: 8px; padding: 30px; text-align: center; margin-bottom: 30px;">
+                <p style="margin: 0 0 10px 0; color: #666666; font-size: 14px;">Refund Amount</p>
+                <p style="margin: 0 0 20px 0; font-size: 36px; font-weight: bold; color: #166534;">£${refundAmount.toFixed(2)}</p>
+                <p style="margin: 0; color: #666666; font-size: 12px;">Reference: ${refundId}</p>
+              </div>
+
+              <div style="background-color: #fefce8; border: 1px solid #eab308; border-radius: 8px; padding: 15px; margin-bottom: 30px;">
+                <p style="margin: 0; color: #854d0e; font-size: 14px; line-height: 1.5;">
+                  💡 <strong>Note:</strong> Depending on your bank, it may take 1-3 additional business days for the refund to appear in your account.
+                </p>
+              </div>
+
+              <p style="font-size: 14px; color: #999999; line-height: 1.6; margin: 0; border-top: 1px solid #eeeeee; padding-top: 20px;">
+                Questions? Reply to this email or contact our support team.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f9f9f9; padding: 30px; text-align: center; border-top: 1px solid #eeeeee;">
+              <p style="font-size: 14px; color: #999999; margin: 0;">
+                © ${new Date().getFullYear()} Promptly Printed. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+}
+
+function getRefundCompletedText(
+  orderNumber: string,
+  refundAmount: number,
+  refundId: string
+): string {
+  return `
+Refund Complete! ✅
+Order #${orderNumber}
+
+Good news! Your refund has been processed and the funds have been returned to your original payment method.
+
+REFUND DETAILS:
+Amount: £${refundAmount.toFixed(2)}
+Reference: ${refundId}
+
+Note: Depending on your bank, it may take 1-3 additional business days for the refund to appear in your account.
+
+Questions? Reply to this email.
 
 © ${new Date().getFullYear()} Promptly Printed
   `;

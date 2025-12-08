@@ -600,6 +600,9 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
 
   // Design selection state - determines which image will be used for checkout
   const [selectedDesignSource, setSelectedDesignSource] = useState<'generated' | 'uploaded' | 'processed'>('generated');
+  
+  // Competition entry opt-in (default true for campaigns)
+  const [submitToCompetition, setSubmitToCompetition] = useState(!!campaignFromUrl);
 
   // Refs
   const tshirtImageRef = useRef<HTMLImageElement>(null);
@@ -3897,6 +3900,29 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
                 <span>All designs will be printed at <strong>300 DPI</strong> for premium quality</span>
+              </div>
+            </div>
+          )}
+
+          {/* Competition Entry Opt-in */}
+          {(generatedImage || referenceImage) && (
+            <div className="mt-4 rounded-lg bg-gradient-to-r from-orange-50 to-yellow-50 border border-orange-200 p-4">
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  id="submit-to-competition"
+                  checked={submitToCompetition}
+                  onCheckedChange={(checked) => setSubmitToCompetition(checked as boolean)}
+                  className="mt-1"
+                />
+                <div className="flex-1">
+                  <Label htmlFor="submit-to-competition" className="text-sm font-medium text-orange-800 cursor-pointer flex items-center gap-2">
+                    <span>🏆</span>
+                    Enter my design in the Christmas Competition
+                  </Label>
+                  <p className="text-xs text-orange-600 mt-1">
+                    Submit your design to win cash prizes! Your design will be visible in our public showcase.
+                  </p>
+                </div>
               </div>
             </div>
           )}

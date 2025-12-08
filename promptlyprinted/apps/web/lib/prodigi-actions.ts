@@ -3,6 +3,7 @@ import { prodigiService } from './prodigi';
 import { prisma } from '@repo/database';
 import { OrderStatus } from '@repo/database';
 import { processFullRefund, processPartialRefund } from './square-refunds';
+import { sendOrderCancelledEmail } from './email';
 
 export interface ProdigiActionAvailability {
   cancel?: {
@@ -95,11 +96,12 @@ export async function cancelOrderWithRefund(orderId: number): Promise<{
   console.log('[Prodigi Actions] Cancelling order with refund:', orderId);
 
   try {
-    // Get order details
+    // Get order details including items for email
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
         recipient: true,
+        orderItems: true,
       },
     });
 
@@ -174,6 +176,30 @@ export async function cancelOrderWithRefund(orderId: number): Promise<{
       orderId,
       refundId: refund.refundId,
     });
+
+    // Send cancellation email to customer
+    const recipientEmail = order.recipient?.email;
+    if (recipientEmail) {
+      const items = order.orderItems.map((item: { attributes: unknown; price: number; copies: number }) => {
+        const attrs = item.attributes as any;
+        return {
+          name: attrs?.productName || 'Product',
+          price: item.price,
+          copies: item.copies,
+        };
+      });
+
+      await sendOrderCancelledEmail({
+        to: recipientEmail,
+        orderNumber: order.id.toString(),
+        refundAmount: order.totalPrice,
+        items,
+        orderLookupUrl: `${process.env.NEXT_PUBLIC_WEB_URL}/orders/${order.id}`,
+      }).catch((err) => {
+        // Don't fail the cancellation if email fails
+        console.error('[Prodigi Actions] Failed to send cancellation email:', err);
+      });
+    }
 
     return {
       success: true,

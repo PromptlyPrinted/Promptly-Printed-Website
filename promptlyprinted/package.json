@@ -39,7 +39,7 @@
   "dependencies": {
     "@tanstack/react-table": "^8.21.3",
     "@types/node": "^22.19.0",
-    "better-auth": "^1.4.3",
+    "better-auth": "^1.4.5",
     "chalk": "^5.6.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -48,6 +48,7 @@
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^3.8.4",
     "lucide-react": "^0.468.0",
+    "next": "16.0.7",
     "pdf-lib": "^1.17.1",
     "pdf.js-extract": "^0.2.1",
     "posthog-js": "^1.290.0",
@@ -94,7 +95,8 @@
       "import-in-the-middle": "1.15.0",
       "glob@<10.5.0": ">=10.5.0",
       "js-yaml@>=4.0.0 <4.1.1": ">=4.1.1",
-      "js-yaml@<3.14.2": ">=3.14.2"
+      "js-yaml@<3.14.2": ">=3.14.2",
+      "mdast-util-to-hast@>=13.0.0 <13.2.1": ">=13.2.1"
     }
   }
 }
