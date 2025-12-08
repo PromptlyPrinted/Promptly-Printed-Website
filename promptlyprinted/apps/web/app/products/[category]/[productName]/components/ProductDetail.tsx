@@ -3180,7 +3180,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
         </div>
 
         {/* RIGHT PANEL: Product Info, AI Settings, Checkout */}
-        <div className="product-config-sidebar space-y-4 lg:sticky lg:top-4">
+        <div className="product-config-sidebar space-y-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:pr-2 scrollbar-thin scrollbar-thumb-teal-200 scrollbar-track-transparent">
           {/* Product Info */}
           <div className="space-y-1">
             <h1 className="font-bold text-2xl text-teal-900 tracking-tight">

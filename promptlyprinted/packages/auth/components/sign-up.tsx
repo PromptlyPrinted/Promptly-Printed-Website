@@ -236,7 +236,8 @@ export const SignUp = () => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-2 px-4 rounded-md shadow-sm text-sm font-medium bg-gradient-to-r from-[#16C1A8] to-[#0D2C45] text-white hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#16C1A8] disabled:opacity-50"
+          className="w-full py-2 px-4 rounded-md shadow-sm text-sm font-medium hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#16C1A8] disabled:opacity-50"
+          style={{ background: 'linear-gradient(to right, #16C1A8, #0D2C45)', color: '#FFFFFF' }}
         >
           {loading ? 'Creating account...' : 'Sign Up'}
         </button>
