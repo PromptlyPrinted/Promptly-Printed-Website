@@ -200,7 +200,7 @@ export default async function ShowcasePage({ searchParams }: PageProps) {
               className="bg-[#16C1A8] text-white hover:bg-[#16C1A8]/90"
               asChild
             >
-              <Link href={`/designs?funnel=${competition.funnelTag}`}>
+              <Link href={`/design/mens-classic-t-shirt?campaign=${competition.funnelTag}`}>
                 Submit Your Design
               </Link>
             </Button>

@@ -56,13 +56,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const productRoutes = Object.values(tshirtDetails).map((product) => {
     const categorySlug = createSlug(product.category);
     const productSlug = createSlug(product.name);
+    // Ensure image URLs are absolute (prepend baseUrl if relative)
+    const coverUrl = product.imageUrls?.cover;
+    const absoluteImageUrl = coverUrl 
+      ? (coverUrl.startsWith('http') ? coverUrl : `${baseUrl}${coverUrl}`)
+      : undefined;
     return {
       url: `${baseUrl}/products/${categorySlug}/${productSlug}`,
       lastModified: now,
       changeFrequency: 'weekly' as const,
       priority: 0.75,
-      // Images help with Google Image search
-      images: product.imageUrls?.cover ? [product.imageUrls.cover] : undefined,
+      // Images help with Google Image search - must be absolute URLs
+      images: absoluteImageUrl ? [absoluteImageUrl] : undefined,
     };
   });
 
@@ -70,13 +75,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let blogRoutes: MetadataRoute.Sitemap = [];
   try {
     const posts = await blog.getPosts();
-    blogRoutes = posts.map((post) => ({
-      url: `${baseUrl}/blog/${post._slug}`,
-      lastModified: post.date ? new Date(post.date) : now,
-      changeFrequency: 'monthly' as const,
-      priority: 0.7,
-      images: post.image?.url ? [post.image.url] : undefined,
-    }));
+    blogRoutes = posts.map((post) => {
+      const imageUrl = post.image?.url;
+      const absoluteImageUrl = imageUrl
+        ? (imageUrl.startsWith('http') ? imageUrl : `${baseUrl}${imageUrl}`)
+        : undefined;
+      return {
+        url: `${baseUrl}/blog/${post._slug}`,
+        lastModified: post.date ? new Date(post.date) : now,
+        changeFrequency: 'monthly' as const,
+        priority: 0.7,
+        images: absoluteImageUrl ? [absoluteImageUrl] : undefined,
+      };
+    });
   } catch (error) {
     console.error('Failed to fetch blog posts for sitemap:', error);
   }

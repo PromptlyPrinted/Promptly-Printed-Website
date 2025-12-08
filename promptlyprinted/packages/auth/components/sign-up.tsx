@@ -9,6 +9,8 @@ export const SignUp = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [subscribeNewsletter, setSubscribeNewsletter] = useState(true); // Default checked
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -17,6 +19,13 @@ export const SignUp = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate terms agreement
+    if (!agreedToTerms) {
+      setError('You must agree to the Terms & Conditions to continue');
+      return;
+    }
+    
     setLoading(true);
     setError('');
 
@@ -38,6 +47,7 @@ export const SignUp = () => {
             body: JSON.stringify({
               email,
               name,
+              subscribeNewsletter, // Pass newsletter preference
             }),
           });
         } catch (emailError) {
@@ -180,6 +190,43 @@ export const SignUp = () => {
             required
             className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-[#16C1A8] focus:border-[#16C1A8]"
           />
+        </div>
+
+        {/* Terms & Conditions and Newsletter Checkboxes */}
+        <div className="space-y-3">
+          {/* Terms & Conditions - Required */}
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={agreedToTerms}
+              onChange={(e) => setAgreedToTerms(e.target.checked)}
+              className="mt-1 h-4 w-4 text-[#16C1A8] border-gray-300 rounded focus:ring-[#16C1A8]"
+            />
+            <span className="text-sm text-gray-600">
+              I agree to the{' '}
+              <Link href="/legal" className="text-[#16C1A8] hover:underline" target="_blank">
+                Terms & Conditions
+              </Link>
+              {' '}and{' '}
+              <Link href="/legal" className="text-[#16C1A8] hover:underline" target="_blank">
+                Privacy Policy
+              </Link>
+              <span className="text-red-500">*</span>
+            </span>
+          </label>
+
+          {/* Newsletter - Optional, default checked */}
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={subscribeNewsletter}
+              onChange={(e) => setSubscribeNewsletter(e.target.checked)}
+              className="mt-1 h-4 w-4 text-[#16C1A8] border-gray-300 rounded focus:ring-[#16C1A8]"
+            />
+            <span className="text-sm text-gray-600">
+              Send me exclusive offers, design tips & product updates
+            </span>
+          </label>
         </div>
 
         {error && (

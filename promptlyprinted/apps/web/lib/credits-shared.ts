@@ -32,7 +32,7 @@ export function mapModelNameToEnum(modelName: string): AIModelType {
 }
 
 // Configuration
-export const GUEST_STARTING_CREDITS = 3; // One-time credits for guest users (no daily reset)
+export const GUEST_STARTING_CREDITS = 0; // Disabled - users must sign up to generate
 export const WELCOME_CREDITS = 50; // Credits given when user creates account
 export const MONTHLY_CREDITS = 50; // Credits allocated at the start of each month
 export const TSHIRT_PURCHASE_BONUS = 10; // Bonus credits for each T-shirt purchase

@@ -373,7 +373,7 @@ export const WhyDifferent = () => {
               className="gap-2 bg-[#16C1A8] hover:bg-[#16C1A8]/90 text-white text-lg px-8 py-6 h-auto shadow-lg shadow-[#16C1A8]/25"
               asChild
             >
-              <Link href={`/designs?funnel=${currentCompetition.funnelTag}`}>
+              <Link href={`/design/mens-classic-t-shirt?campaign=${currentCompetition.funnelTag}`}>
                 Submit Your Design <ArrowRight className="h-5 w-5" />
               </Link>
             </Button>
