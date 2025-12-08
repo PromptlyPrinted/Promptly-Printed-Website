@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { signUp, signIn } from '../client';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 export const SignUp = () => {
@@ -15,7 +15,9 @@ export const SignUp = () => {
   const [error, setError] = useState('');
 
   const router = useRouter();
-  const redirectUrl = process.env.NEXT_PUBLIC_WEB_URL || process.env.NEXT_PUBLIC_APP_URL || '/';
+  const searchParams = useSearchParams();
+  const defaultRedirect = process.env.NEXT_PUBLIC_WEB_URL || process.env.NEXT_PUBLIC_APP_URL || '/';
+  const redirectUrl = searchParams.get('redirect') || defaultRedirect;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

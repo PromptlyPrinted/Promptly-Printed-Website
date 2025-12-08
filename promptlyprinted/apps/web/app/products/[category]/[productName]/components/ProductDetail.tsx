@@ -73,6 +73,7 @@ import { useSearchParams } from 'next/navigation';
 import { LORAS, KONTEXT_LORAS, type Lora, type KontextLora } from '../../../../../data/textModel';
 import { jsPDF } from 'jspdf';
 import { uploadImage, isPermanentUrl, isDataUrl } from '@/lib/image-utils';
+import { SignUpPrompt } from '@/components/SignUpPrompt';
 
 // Comprehensive color hex mapping for all T-shirt colors found in product data
 const colorHexMap: Record<string, string> = {
@@ -604,6 +605,10 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
   // Competition entry opt-in (default true for campaigns)
   const [submitToCompetition, setSubmitToCompetition] = useState(!!campaignFromUrl);
 
+  // Sign-up prompt modal state
+  const [showSignUpPrompt, setShowSignUpPrompt] = useState(false);
+  const { data: session } = useSession();
+
   // Refs
   const tshirtImageRef = useRef<HTMLImageElement>(null);
   const designImageRef = useRef<HTMLImageElement>(null);
@@ -867,6 +872,9 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
 
   // ---- Nano Banana Generation ----
   const handleNanoBananaGeneration = async () => {
+    // Note: Auth check removed - guests get 1 free generation
+    // The API will return 429 error when credits are exhausted, which triggers sign-up modal
+
     const currentPrompt = nanoBananaPrompt || promptText;
 
     if (!currentPrompt.trim()) {
@@ -917,6 +925,14 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
       });
 
       if (!response.ok) {
+        // Check if this is a "no credits" error (429) - show sign-up modal
+        if (response.status === 429) {
+          console.log('[Nano Banana] No credits remaining, showing sign-up prompt');
+          setShowSignUpPrompt(true);
+          setIsGenerating(false);
+          return;
+        }
+        
         let errorMessage = 'Failed to generate/edit image with Nano Banana';
         try {
           const errorData = await response.json();
@@ -1228,6 +1244,9 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
 
   // ---- Generate Image ----
   const handleImageGeneration = async () => {
+    // Note: Auth check removed - guests get 1 free generation
+    // The API will return 429 error when credits are exhausted, which triggers sign-up modal
+
     // Validation for Text-to-Image mode
     if (generationMode === 'text' && !promptText.trim()) {
       toast({
@@ -1362,6 +1381,15 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
         });
 
         if (!response.ok) {
+          // Check if this is a "no credits" error (429) - show sign-up modal
+          if (response.status === 429) {
+            const errorData = await response.json();
+            console.log('[Generate Image] No credits remaining, showing sign-up prompt');
+            setShowSignUpPrompt(true);
+            setIsGenerating(false);
+            return;
+          }
+          
           let errorMessage = 'Failed to generate image';
           try {
             const errorData = await response.json();
@@ -1502,6 +1530,14 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
         });
 
         if (!response.ok) {
+          // Check if this is a "no credits" error (429) - show sign-up modal
+          if (response.status === 429) {
+            console.log('[Generate Image LoRA] No credits remaining, showing sign-up prompt');
+            setShowSignUpPrompt(true);
+            setIsGenerating(false);
+            return;
+          }
+          
           let errorMessage = 'Failed to generate image';
           try {
             const errorData = await response.json();
@@ -2498,6 +2534,13 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
 
   return (
     <div className={`product-detail-background ${isDesignMode ? '' : 'min-h-screen'}`}>
+      {/* Sign-up prompt modal */}
+      <SignUpPrompt
+        isOpen={showSignUpPrompt}
+        onClose={() => setShowSignUpPrompt(false)}
+        prompt={promptText}
+        productUrl={typeof window !== 'undefined' ? window.location.href : undefined}
+      />
       <div className={`mx-auto product-detail-container ${isDesignMode ? 'max-w-7xl px-4 sm:px-6 lg:px-8 py-6' : 'max-w-[1440px] px-3 py-8 lg:px-6 lg:py-12'}`}>
         <div className="grid grid-cols-1 gap-x-6 gap-y-6 lg:grid-cols-2">
         {/* LEFT PANEL: T-shirt Preview + AI Prompt */}
