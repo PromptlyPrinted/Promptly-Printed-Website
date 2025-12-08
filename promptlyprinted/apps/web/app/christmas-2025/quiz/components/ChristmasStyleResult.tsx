@@ -87,6 +87,7 @@ export const ChristmasStyleResult = ({ answers }: StyleResultProps) => {
       theme: answers.theme || 'christmas',
       aiModel: answers.aiModel || 'flux-dev',
       clothingType: answers.styleType || 'tee',
+      giveawayTier: 'christmasQuiz', // Use Christmas quiz tier (35% off + free keyring)
     });
 
     // Preserve UTM parameters through the flow
@@ -128,6 +129,14 @@ export const ChristmasStyleResult = ({ answers }: StyleResultProps) => {
           <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
             {styleProfile.description}
           </p>
+
+          {/* Discount Badge */}
+          <div className="mt-6 inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-full border border-green-500/40">
+            <span className="text-2xl">🎁</span>
+            <span className="text-lg font-bold text-green-600">
+              Unlock Up to 50% Off Your Order!
+            </span>
+          </div>
         </div>
 
         <div className="flex justify-center mb-12">

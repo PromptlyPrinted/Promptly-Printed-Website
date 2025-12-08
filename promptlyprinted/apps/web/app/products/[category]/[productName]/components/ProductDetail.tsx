@@ -3151,7 +3151,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
           <div className="space-y-3">
             <h2 className="font-semibold text-base">Customize Your Design</h2>
             <div className="flex gap-3">
-              <Button onClick={handleUploadClick} size="sm">Upload Image</Button>
+              {/* <Button onClick={handleUploadClick} size="sm">Upload Image</Button> */}
               <DesignPicker
                 productId={Number(product.id)}
                 onDesignSelect={(image) => {
@@ -3191,10 +3191,10 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                   {/* Discounted Price Display */}
                   <div className="flex items-center gap-3">
                     <div className="text-3xl text-green-600 font-bold">
-                      <PriceDisplay amountGBP={getConvertedPrice((product.pricing?.[0]?.amount || product.price || 0) * (1 - discountPercent))} />
+                      <PriceDisplay amountUSD={(product.pricing?.[0]?.amount || product.price || 0) * (1 - discountPercent)} />
                     </div>
                     <div className="text-lg text-gray-400 line-through font-semibold">
-                      <PriceDisplay amountGBP={getConvertedPrice(product.pricing?.[0]?.amount || product.price || 0)} />
+                      <PriceDisplay amountUSD={product.pricing?.[0]?.amount || product.price || 0} />
                     </div>
                   </div>
                   {/* Discount Badge */}
@@ -3211,7 +3211,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                   {/* Regular Price Display */}
                   <div className="flex items-baseline space-x-2">
                     <div className="text-2xl text-teal-800 font-bold">
-                      <PriceDisplay amountGBP={getConvertedPrice(product.pricing?.[0]?.amount || product.price || 0)} />
+                      <PriceDisplay amountUSD={product.pricing?.[0]?.amount || product.price || 0} />
                     </div>
                     {/* Secondary reference handled by PriceDisplay */}
                   </div>
@@ -3712,7 +3712,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
 
             {generatedImage && (
               <div className="space-y-3">
-                <Button
+                {/* <Button
                   className="w-full bg-teal-600 text-white hover:bg-teal-700"
                   variant="outline"
                   onClick={handleDownloadImage}
@@ -3722,7 +3722,7 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
                   {isDownloading
                     ? 'Downloading...'
                     : 'Download as PNG (300 DPI)'}
-                </Button>
+                </Button> */}
 
                 <Button
                   className="w-full border-teal-600 text-teal-600 hover:bg-teal-50"

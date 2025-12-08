@@ -479,6 +479,13 @@ export default function CheckoutPage() {
     return subtotal - discount;
   };
 
+  /**
+   * Apply a discount code to the order.
+   * 
+   * IMPORTANT: Only ONE discount can be applied at a time.
+   * Applying a new discount code will REPLACE any existing discount 
+   * (including URL-based discounts from quiz/offer flows).
+   */
   const handleApplyDiscount = async () => {
     const trimmedCode = discountCode.trim();
     if (!trimmedCode) {
@@ -1337,7 +1344,7 @@ export default function CheckoutPage() {
                       </select>
                     </div>
 
-                    {/* Address Autocomplete */}
+                    {/* Address Autocomplete - DISABLED: Requires Geoapify API key
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Search Address
@@ -1361,6 +1368,7 @@ export default function CheckoutPage() {
                       />
                       <p className="text-xs text-gray-500">Or enter manually below</p>
                     </div>
+                    */}
 
                     <div>
                       <label htmlFor="addressLine1" className="block text-sm font-medium text-gray-700 mb-2">
@@ -1557,7 +1565,7 @@ export default function CheckoutPage() {
                           </select>
                         </div>
 
-                        {/* Shipping Address Autocomplete */}
+                        {/* Shipping Address Autocomplete - DISABLED: Requires Geoapify API key
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
                             Search Shipping Address
@@ -1581,6 +1589,7 @@ export default function CheckoutPage() {
                           />
                           <p className="text-xs text-gray-500">Or enter manually below</p>
                         </div>
+                        */}
 
                         <div>
                           <label htmlFor="shipping-addressLine1" className="block text-sm font-medium text-gray-700 mb-2">

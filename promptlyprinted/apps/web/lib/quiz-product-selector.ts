@@ -109,32 +109,98 @@ const THEME_MODIFIERS: Record<string, string> = {
 
 /**
  * Giveaway products based on purchase tier
+ * 
+ * IMPORTANT: Only ONE discount can be applied per order.
+ * - URL-based discounts (from quiz/offer flow) use the giveawayTier parameter
+ * - Manual discount codes entered at checkout will REPLACE any URL-based discount
+ * - The checkout page enforces this via the single `appliedDiscount` state
+ * 
+ * Products referenced:
+ * - GLOBAL-STI-3X4-G: Sticker sheet (~$3-5 cost)
+ * - GLOBAL-POST-MOH-6X4: Postcard (~$2-3 cost)
+ * - GLOBAL-TATT-S: Temporary Tattoo (~$2 cost)
+ * - PLA-KEYRING: Custom Keyring (~$5-8 cost)
+ * - H-COAST-2PK: Coaster set (~$6-10 cost)
  */
 export const GIVEAWAY_ITEMS = {
+  // ===== STANDARD TIERS (evergreen) =====
   standard: {
     products: ['GLOBAL-STI-3X4-G'], // Free sticker sheet
-    discount: 0.3, // 30% off
-    name: 'Quiz Completion Reward',
+    discount: 0.15, // 15% off - baseline for organic visitors
+    name: 'Welcome Discount',
+    description: 'Thanks for visiting! Enjoy 15% off your first design.',
+    badgeColor: 'bg-blue-500',
   },
   emailCapture: {
     products: ['GLOBAL-STI-3X4-G', 'GLOBAL-POST-MOH-6X4'], // Sticker + Postcard
-    discount: 0.35, // 35% off
-    name: 'Email Capture Bonus',
+    discount: 0.25, // 25% off for email subscribers
+    name: 'Subscriber Special',
+    description: 'Exclusive subscriber discount + bonus gifts!',
+    badgeColor: 'bg-purple-500',
   },
   firstPurchase: {
     products: ['GLOBAL-STI-3X4-G', 'GLOBAL-TATT-S'], // Sticker + Temporary Tattoo
-    discount: 0.4, // 40% off
-    name: 'First Purchase Special',
+    discount: 0.30, // 30% off for first-time buyers
+    name: 'First Timer Deal',
+    description: 'Your first order deserves something special!',
+    badgeColor: 'bg-green-500',
   },
+  
+  // ===== CAMPAIGN TIERS (seasonal/promotional) =====
   campaign: {
     products: ['GLOBAL-STI-3X4-G', 'PLA-KEYRING'], // Sticker + Keyring
     discount: 0.35, // 35% off (campaign-specific)
     name: 'Campaign Exclusive',
+    description: 'Limited-time campaign offer with free keyring!',
+    badgeColor: 'bg-orange-500',
   },
+  
+  // ===== CHRISTMAS 2025 TIERS =====
+  christmasQuiz: {
+    products: ['GLOBAL-STI-3X4-G', 'PLA-KEYRING'], // Sticker + Custom Keyring
+    discount: 0.35, // 35% off for quiz completers
+    name: 'Christmas Quiz Reward',
+    description: "You've unlocked 35% OFF + a FREE custom keyring with your design!",
+    badgeColor: 'bg-red-500',
+    isChristmas: true,
+  },
+  christmasPremium: {
+    products: ['GLOBAL-STI-3X4-G', 'PLA-KEYRING', 'H-COAST-2PK'], // Sticker + Keyring + Coasters
+    discount: 0.40, // 40% off for premium Christmas offer
+    name: 'Christmas VIP Offer',
+    description: '40% OFF + FREE keyring & coaster set! Our best Christmas deal.',
+    badgeColor: 'bg-gradient-to-r from-red-500 to-green-500',
+    isChristmas: true,
+  },
+  christmasBogo: {
+    products: ['GLOBAL-STI-3X4-G'], // Free sticker (the BOGO is the main offer)
+    discount: 0.50, // Effectively 50% off (BOGO = 2 for price of 1)
+    name: '🎄 Buy One, Get One FREE',
+    description: 'Buy any T-shirt, get a second T-shirt absolutely FREE! Limited time only.',
+    badgeColor: 'bg-gradient-to-r from-green-600 to-red-600',
+    isChristmas: true,
+    isBogo: true, // Flag to handle BOGO logic at checkout
+    bogoRules: {
+      qualifyingProducts: ['T_SHIRT', 'LONG_SLEEVE_T_SHIRT'], // Product types that qualify
+      freeProductSku: null, // null = same product, or specify SKU for specific free item
+      maxFreeItems: 1, // Max free items per order
+    },
+  },
+  
+  // ===== BUNDLE TIERS =====
   bundle: {
     products: ['PLA-KEYRING', 'H-COAST-2PK'], // Keyring + Coaster set per item
-    discount: 0.45, // 45% off when buying 2+
+    discount: 0.40, // 40% off when buying 2+
     name: 'Bundle Deal',
+    description: 'Buy 2+ items and save 40% + get bonus gifts!',
+    badgeColor: 'bg-indigo-500',
+  },
+  familyBundle: {
+    products: ['GLOBAL-STI-3X4-G', 'PLA-KEYRING', 'H-COAST-2PK', 'GLOBAL-TATT-S'],
+    discount: 0.45, // 45% off for family bundles (3+ items)
+    name: 'Family Bundle Special',
+    description: '45% OFF when you buy for the whole family! Plus 4 FREE gifts.',
+    badgeColor: 'bg-pink-500',
   },
 };
 
@@ -225,11 +291,28 @@ export function determineGiveawayTier(context: {
   hasEmailCaptured?: boolean;
   isCampaign?: boolean;
   itemCount?: number;
+  campaign?: string; // e.g., 'christmas-2025', 'halloween-2025'
+  offerType?: 'standard' | 'premium' | 'bogo'; // For Christmas, allow tier selection
 }): keyof typeof GIVEAWAY_ITEMS {
+  // Christmas 2025 campaign logic
+  if (context.campaign === 'christmas-2025' || context.isCampaign) {
+    // Check for BOGO offer
+    if (context.offerType === 'bogo') return 'christmasBogo';
+    // Check for premium Christmas offer
+    if (context.offerType === 'premium') return 'christmasPremium';
+    // Default Christmas quiz offer
+    if (context.campaign === 'christmas-2025') return 'christmasQuiz';
+  }
+  
+  // Bundle logic (3+ items = family bundle, 2+ = standard bundle)
+  if (context.itemCount && context.itemCount >= 3) return 'familyBundle';
   if (context.itemCount && context.itemCount >= 2) return 'bundle';
+  
+  // Standard progression
   if (context.isFirstPurchase) return 'firstPurchase';
   if (context.isCampaign) return 'campaign';
   if (context.hasEmailCaptured) return 'emailCapture';
+  
   return 'standard';
 }
 

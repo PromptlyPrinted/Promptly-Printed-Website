@@ -1534,12 +1534,12 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
               <div className="flex items-center gap-2">
                 <span className="text-xl font-bold" style={{ color: colors.accent }}>
                   {typeof displayPrice === 'number' ? (
-                    <PriceDisplay amountGBP={displayPrice} />
+                    <PriceDisplay amountUSD={displayPrice} />
                   ) : '—'}
                 </span>
                 {product.originalPrice && (
                   <span className="text-sm line-through" style={{ color: colors.gray400 }}>
-                    <PriceDisplay amountGBP={product.originalPrice} />
+                    <PriceDisplay amountUSD={product.originalPrice} />
                   </span>
                 )}
               </div>

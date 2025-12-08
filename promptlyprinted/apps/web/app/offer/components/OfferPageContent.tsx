@@ -195,14 +195,33 @@ export function OfferPageContent() {
 
             {/* Giveaway Banner */}
             {giveawayInfo && (
-              <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-2xl p-6 mb-6 shadow-lg">
+              <div className={`${(giveawayInfo as any).badgeColor || 'bg-gradient-to-r from-orange-500 to-red-500'} text-white rounded-2xl p-6 mb-6 shadow-lg`}>
                 <div className="flex items-start gap-4">
-                  <Trophy className="w-8 h-8 flex-shrink-0 mt-1" />
+                  {(giveawayInfo as any).isChristmas ? (
+                    <span className="text-4xl flex-shrink-0">🎄</span>
+                  ) : (
+                    <Trophy className="w-8 h-8 flex-shrink-0 mt-1" />
+                  )}
                   <div>
-                    <h3 className="text-2xl font-bold mb-2">🎉 {giveawayInfo.name}!</h3>
+                    <h3 className="text-2xl font-bold mb-2">
+                      {(giveawayInfo as any).isBogo ? '🎁 ' : '🎉 '}{giveawayInfo.name}!
+                    </h3>
                     <p className="text-white/90 mb-3">
-                      You've unlocked <strong>{Math.round(discount * 100)}% OFF</strong> + FREE bonus items!
+                      {(giveawayInfo as any).description || `You've unlocked ${Math.round(discount * 100)}% OFF + FREE bonus items!`}
                     </p>
+                    
+                    {/* BOGO Special Messaging */}
+                    {(giveawayInfo as any).isBogo && (
+                      <div className="bg-white/20 rounded-lg p-3 mb-3">
+                        <p className="font-semibold">How BOGO works:</p>
+                        <p className="text-sm text-white/90">
+                          ✓ Add any T-shirt to your cart<br/>
+                          ✓ Your second T-shirt is automatically FREE<br/>
+                          ✓ Same design or create a new one!
+                        </p>
+                      </div>
+                    )}
+                    
                     <div className="text-sm text-white/80">
                       ✓ Plus free giveaway items with your order
                     </div>

@@ -165,7 +165,7 @@ export function DesignProductNavigation({ currentProductSku, onProductChange }: 
 
                                   const isActive = sku === currentProductSku ||
                                     (currentProduct && createSlug(product.name) === createSlug(currentProduct.name));
-                                  const price = product.pricing.find(p => p.currency === 'GBP')?.amount || product.pricing[0].amount;
+                                  const price = product.pricing.find(p => p.currency === 'USD')?.amount || product.pricing[0].amount;
                                   const productSlug = createSlug(product.name);
 
                                   return (
@@ -188,7 +188,7 @@ export function DesignProductNavigation({ currentProductSku, onProductChange }: 
                                           {product.name}
                                         </p>
                                         <p className="text-xs text-gray-500 mt-0.5">
-                                          £{price}
+                                          ${price}
                                         </p>
                                       </div>
                                       {isActive && (

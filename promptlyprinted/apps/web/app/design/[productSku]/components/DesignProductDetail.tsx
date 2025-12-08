@@ -36,7 +36,7 @@ export function DesignProductDetail({ product }: DesignProductDetailProps) {
   };
 
   // Calculate display price with discount
-  const basePrice = currentProduct.pricing.find(p => p.currency === 'GBP')?.amount || currentProduct.pricing[0].amount;
+  const basePrice = currentProduct.pricing.find(p => p.currency === 'USD')?.amount || currentProduct.pricing[0].amount;
   const displayPrice = discountPercent > 0 ? basePrice * (1 - discountPercent) : basePrice;
 
   return (
@@ -64,10 +64,10 @@ export function DesignProductDetail({ product }: DesignProductDetailProps) {
                 <>
                   <span className="text-sm text-gray-500">Sale Price</span>
                   <span className={cn("text-xl font-bold text-green-600")}>
-                    £{displayPrice.toFixed(2)}
+                    ${displayPrice.toFixed(2)}
                   </span>
                   <span className="text-sm text-gray-400 line-through">
-                    £{basePrice.toFixed(2)}
+                    ${basePrice.toFixed(2)}
                   </span>
                   <span className="text-xs bg-red-500 text-white px-2 py-1 rounded-full font-semibold">
                     -{Math.round(discountPercent * 100)}%
@@ -77,7 +77,7 @@ export function DesignProductDetail({ product }: DesignProductDetailProps) {
                 <>
                   <span className="text-sm text-gray-500">Starting from</span>
                   <span className={cn("text-lg font-semibold", `text-${theme.textPrimary}`)}>
-                    £{displayPrice.toFixed(2)}
+                    ${displayPrice.toFixed(2)}
                   </span>
                 </>
               )}

@@ -58,13 +58,13 @@ export const ChristmasFunnelExperience = () => {
           <div className="max-w-2xl mx-auto">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-900/40 border border-red-500/30 text-red-200 text-sm mb-4">
               <Sparkles className="w-4 h-4 text-red-300" />
-              Step 2 · Discover Your Perfect Style & Win $500
+              Step 2 · Get Up to 50% Off + Win $500
             </div>
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
               Take the Christmas Style Quiz
             </h2>
             <p className="text-gray-300 mb-6">
-              Answer a few quick questions to get personalized apparel recommendations and enter our competition to win $500 USD cash!
+              Answer a few quick questions to unlock <strong className="text-green-400">up to 50% off</strong> your order, plus get personalized apparel recommendations and enter our competition to win $500 USD cash!
             </p>
             <p className="text-red-400 text-sm mb-8">
               *Competition entry requires purchase. Earn points through likes, wearing photos, and social follows. Competition ends December 31st.

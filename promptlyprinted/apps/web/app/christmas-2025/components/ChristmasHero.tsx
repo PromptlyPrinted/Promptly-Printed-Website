@@ -68,7 +68,7 @@ export const ChristmasHero = ({ onLeadCaptured, status, defaultEmail }: Christma
       <div className="container mx-auto px-6 text-center relative z-10">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/15 mb-6 text-sm text-red-200">
           <Gift className="w-4 h-4" />
-          Christmas Special - Win $500 USD Cash Prize
+          🎁 Up to 50% Off + Win $500 USD Cash Prize
         </div>
 
         <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight mb-6">
