@@ -26,33 +26,65 @@ type StyleResultProps = {
 };
 
 const STYLE_PROFILES = {
+  // Christmas-themed vibes (new)
+  'cozy-traditional': {
+    name: 'Cozy Traditionalist',
+    description: 'You embrace the warmth of classic Christmas – fireplaces, hot cocoa, and timeless holiday memories. Your style radiates comfort and nostalgia.',
+    tribe: 'Cozy Crew',
+    tribeCount: 4127,
+  },
+  'festive-fun': {
+    name: 'Festive Fun Lover',
+    description: 'You bring the party! Playful, cheerful, and full of holiday spirit – your designs spread joy and laughter everywhere.',
+    tribe: 'Fun Seekers',
+    tribeCount: 3891,
+  },
+  'winter-wonderland': {
+    name: 'Winter Wonderland Dreamer',
+    description: 'Magical snowy landscapes call to you. You see the enchantment in every snowflake and frost-kissed window.',
+    tribe: 'Snow Squad',
+    tribeCount: 2856,
+  },
+  'modern-minimal': {
+    name: 'Modern Minimalist',
+    description: 'You appreciate the beauty of simplicity. Sleek, contemporary Christmas style with understated elegance.',
+    tribe: 'Minimal Mavericks',
+    tribeCount: 2347,
+  },
+  'retro-vintage': {
+    name: 'Retro Vintage Enthusiast',
+    description: 'You love the nostalgia of Christmases past. Classic 1950s vibes, vintage ornaments, and timeless holiday charm.',
+    tribe: 'Vintage Vibers',
+    tribeCount: 1923,
+  },
+  // Legacy vibes (kept for backwards compatibility)
   minimalist: {
     name: 'Minimal Visionary',
-    description: 'You lean toward clean, confident looks that blend simplicity with sophistication. Less is always more in your festive world.',
+    description: 'You lean toward clean, confident looks that blend simplicity with sophistication.',
     tribe: 'Minimalist Tribe',
     tribeCount: 2347,
   },
   streetwear: {
     name: 'Streetwear Icon',
-    description: 'Bold, urban, and unapologetically expressive. You make festive statements with every piece you wear.',
+    description: 'Bold, urban, and unapologetically expressive. You make statements with every piece.',
     tribe: 'Streetwear Squad',
     tribeCount: 3891,
   },
   graphic: {
     name: 'Graphic Storyteller',
-    description: 'Your Christmas style speaks volumes. You love designs that catch the eye and spread holiday joy.',
+    description: 'Your style speaks volumes. You love designs that catch the eye and spread joy.',
     tribe: 'Graphic Collective',
     tribeCount: 1923,
   },
   surreal: {
     name: 'Surreal Dreamer',
-    description: 'You see holiday fashion as art. Dreamlike, magical designs are your Christmas signature.',
+    description: 'You see fashion as art. Dreamlike, magical designs are your signature.',
     tribe: 'Surreal Society',
     tribeCount: 1456,
   },
   futuristic: {
     name: 'Future Forward',
-    description: 'Tech-inspired and ahead of the curve. You embrace the cutting edge of festive fashion innovation.',
+    description: 'Tech-inspired and ahead of the curve. You embrace cutting edge fashion innovation.',
     tribe: 'Futurist Collective',
     tribeCount: 2108,
   },

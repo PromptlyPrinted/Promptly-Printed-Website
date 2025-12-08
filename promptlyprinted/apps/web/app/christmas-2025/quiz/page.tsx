@@ -18,6 +18,7 @@ export type StyleQuizAnswers = {
     | 'bodysuit'
     | 'baseball-tee';
   theme?: 'christmas' | 'everyday' | 'winter' | 'festive' | 'custom';
+  generationMode?: 'text-only' | 'image-input'; // NEW: How user wants to generate
   aiModel?: 'flux-dev' | 'lora-normal' | 'lora-context' | 'nano-banana' | 'nano-banana-pro';
   colorPreference?: string;
   vibe?: string;
@@ -34,7 +35,7 @@ export type StyleQuizAnswers = {
   utm_term?: string;
 };
 
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 9; // Added generation mode step
 
 function ChristmasQuizContent() {
   const router = useRouter();
@@ -320,84 +321,128 @@ function ChristmasQuizContent() {
           />
         )}
 
-        {/* Step 4: AI Model Selection */}
+        {/* Step 4: Generation Mode - Text-only or Image input */}
         {currentStep === 4 && (
           <QuizStep
-            question="Choose your AI model"
-            subtitle="Each model has unique strengths"
+            question="How do you want to create?"
+            subtitle="Choose your design method"
             options={[
               {
-                id: 'flux-dev',
-                label: 'Flux Dev',
-                description: 'Balanced, versatile, high quality',
-                icon: '⚡',
+                id: 'text-only',
+                label: 'Text to Design',
+                description: 'Describe your design in words – AI creates it from scratch',
+                icon: '✍️',
               },
               {
-                id: 'lora-normal',
-                label: 'LORA Normal',
-                description: 'Artistic detail, vibrant colors',
-                icon: '🎨',
-              },
-              {
-                id: 'lora-context',
-                label: 'LORA Context',
-                description: 'Smart themes, storytelling',
-                icon: '📖',
-              },
-              {
-                id: 'nano-banana',
-                label: 'Nano Banana',
-                description: 'Fast, clean, minimalist',
-                icon: '🍌',
-              },
-              {
-                id: 'seedance',
-                label: 'SeeDance',
-                description: 'Dynamic, energetic visuals',
-                icon: '💃',
+                id: 'image-input',
+                label: 'Image to Design',
+                description: 'Upload a photo or image – AI transforms it into a design',
+                icon: '📷',
               },
             ]}
+            selectedValue={answers.generationMode}
+            onSelect={(value) => updateAnswer('generationMode', value as any)}
+            onContinue={goToNextStep}
+          />
+        )}
+
+        {/* Step 5: AI Model Selection - Contextual based on generation mode */}
+        {currentStep === 5 && (
+          <QuizStep
+            question="Choose your AI model"
+            subtitle={answers.generationMode === 'image-input' 
+              ? '🖼️ Image-to-Image: Transform or edit existing photos' 
+              : '✨ Text-to-Image: Creative generation from descriptions'}
+            options={
+              answers.generationMode === 'image-input'
+                ? [
+                    {
+                      id: 'lora-context',
+                      label: 'Promptly Kontext LORAs ⭐',
+                      description: 'Best quality transformations with consistent style across images',
+                      icon: '🎨',
+                    },
+                    {
+                      id: 'flux-dev',
+                      label: 'Flux 2 Pro (1 credit)',
+                      description: 'Multi-reference editing, photorealism, cinematic outputs',
+                      icon: '⚡',
+                    },
+                    {
+                      id: 'nano-banana',
+                      label: 'Nano Banana (0.5 credits)',
+                      description: 'Quick reference-based edits, fast previews',
+                      icon: '🍌',
+                    },
+                    {
+                      id: 'nano-banana-pro',
+                      label: 'Nano Banana Pro (2 credits)',
+                      description: 'Robust multi-image composites, high detail & realism',
+                      icon: '🍌✨',
+                    },
+                  ]
+                : [
+                    {
+                      id: 'lora-normal',
+                      label: 'Promptly LORAs (Fine-tuned) ⭐',
+                      description: 'Best for apparel designs, consistent style, fashion-focused',
+                      icon: '🎨',
+                    },
+                    {
+                      id: 'nano-banana',
+                      label: 'Nano Banana (0.5 credits)',
+                      description: 'Fast, budget-friendly, clean mockups',
+                      icon: '🍌',
+                    },
+                    {
+                      id: 'nano-banana-pro',
+                      label: 'Nano Banana Pro (2 credits)',
+                      description: 'Premium quality, complex scenes, text overlays',
+                      icon: '🍌✨',
+                    },
+                  ]
+            }
             selectedValue={answers.aiModel}
             onSelect={(value) => updateAnswer('aiModel', value as any)}
             onContinue={goToNextStep}
           />
         )}
 
-        {/* Step 5: Original Vibe Question */}
-        {currentStep === 5 && (
+        {/* Step 6: Christmas Style Vibe */}
+        {currentStep === 6 && (
           <QuizStep
-            question="What's your vibe?"
-            subtitle="Choose the style that resonates with you"
+            question="What's your Christmas vibe?"
+            subtitle="Choose the festive style that resonates with you"
             options={[
               {
-                id: 'minimalist',
-                label: 'Minimalist',
-                description: 'Clean lines, simple elegance',
-                icon: '⚪',
+                id: 'cozy-traditional',
+                label: 'Cozy Traditional',
+                description: 'Classic holiday warmth, fireplace vibes',
+                icon: '🏠',
               },
               {
-                id: 'streetwear',
-                label: 'Streetwear',
-                description: 'Urban, bold, statement-making',
-                icon: '🔥',
+                id: 'festive-fun',
+                label: 'Festive Fun',
+                description: 'Playful, cheerful holiday spirit',
+                icon: '🎅',
               },
               {
-                id: 'graphic',
-                label: 'Graphic',
-                description: 'Eye-catching designs, expressive',
-                icon: '🎨',
+                id: 'winter-wonderland',
+                label: 'Winter Wonderland',
+                description: 'Magical snowy landscapes',
+                icon: '❄️',
               },
               {
-                id: 'surreal',
-                label: 'Surreal',
-                description: 'Dreamy, artistic, unique',
-                icon: '🌙',
+                id: 'modern-minimal',
+                label: 'Modern Minimal',
+                description: 'Sleek, contemporary holiday style',
+                icon: '✨',
               },
               {
-                id: 'futuristic',
-                label: 'Futuristic',
-                description: 'Tech-inspired, modern edge',
-                icon: '🚀',
+                id: 'retro-vintage',
+                label: 'Retro Vintage',
+                description: 'Nostalgic, classic Christmas feel',
+                icon: '📻',
               },
             ]}
             selectedValue={answers.vibe}
@@ -406,8 +451,8 @@ function ChristmasQuizContent() {
           />
         )}
 
-        {/* Step 6: Color Palette */}
-        {currentStep === 6 && (
+        {/* Step 7: Color Palette */}
+        {currentStep === 7 && (
           <QuizStep
             question="Preferred color palette?"
             subtitle="Select colors that match your style"
@@ -449,8 +494,8 @@ function ChristmasQuizContent() {
           />
         )}
 
-        {/* Step 7: Wear Location */}
-        {currentStep === 7 && (
+        {/* Step 8: Wear Location */}
+        {currentStep === 8 && (
           <QuizStep
             question="Where do you wear your style most?"
             options={[
@@ -491,41 +536,41 @@ function ChristmasQuizContent() {
           />
         )}
 
-        {/* Step 8: Design Personality */}
-        {currentStep === 8 && (
+        {/* Step 9: Christmas Design Personality */}
+        {currentStep === 9 && (
           <QuizStep
-            question="Design personality?"
-            subtitle="Choose your preferred design style"
+            question="What Christmas design style?"
+            subtitle="Choose your preferred festive design look"
             options={[
               {
-                id: 'simple-logo',
-                label: 'Simple Logo',
-                description: 'Clean branding aesthetic',
-                icon: '✨',
+                id: 'cute-characters',
+                label: 'Cute Characters',
+                description: 'Santa, reindeer, snowmen, elves',
+                icon: '🎅',
               },
               {
-                id: 'illustration',
-                label: 'Illustration',
-                description: 'Artistic hand-drawn style',
-                icon: '🖌️',
+                id: 'festive-typography',
+                label: 'Festive Typography',
+                description: 'Holiday quotes & lettering',
+                icon: '✍️',
               },
               {
-                id: 'abstract-art',
-                label: 'Abstract Art',
-                description: 'Creative, unique patterns',
-                icon: '🎨',
+                id: 'christmas-scene',
+                label: 'Christmas Scene',
+                description: 'Snow scenes, trees, landscapes',
+                icon: '🎄',
               },
               {
-                id: 'text-heavy',
-                label: 'Text-Heavy',
-                description: 'Typography-focused',
-                icon: '📝',
+                id: 'ugly-sweater',
+                label: 'Ugly Sweater Style',
+                description: 'Fun, tacky holiday patterns',
+                icon: '🧶',
               },
               {
-                id: 'character',
-                label: 'Character',
-                description: 'Mascots, personas',
-                icon: '👾',
+                id: 'elegant-ornaments',
+                label: 'Elegant Ornaments',
+                description: 'Sophisticated holiday décor',
+                icon: '🔔',
               },
             ]}
             selectedValue={answers.designPersonality}

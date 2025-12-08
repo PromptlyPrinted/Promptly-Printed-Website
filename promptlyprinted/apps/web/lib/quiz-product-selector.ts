@@ -234,19 +234,33 @@ export function selectProductFromQuiz(answers: QuizAnswers): string | null {
  */
 export function generateAIPrompt(answers: QuizAnswers): string {
   const vibeMap: Record<string, string> = {
+    // Original vibes (kept for backwards compatibility)
     minimalist: 'minimal geometric design with clean lines and negative space',
     streetwear: 'bold urban streetwear graphic with graffiti-inspired elements',
     graphic: 'eye-catching graphic illustration with detailed artwork',
     surreal: 'dreamlike surreal artwork with abstract flowing elements',
     futuristic: 'futuristic tech-inspired design with cyberpunk aesthetics',
+    // NEW: Christmas-themed vibes
+    'cozy-traditional': 'warm cozy Christmas design with classic holiday elements like fireplaces, stockings, and warm lighting',
+    'festive-fun': 'playful cheerful Christmas design with Santa, elves, and joyful holiday spirit',
+    'winter-wonderland': 'magical snowy winter scene with snowflakes, pine trees, and sparkling frost',
+    'modern-minimal': 'sleek contemporary Christmas design with clean lines and subtle holiday touches',
+    'retro-vintage': 'nostalgic vintage Christmas design with classic 1950s retro holiday aesthetic',
   };
 
   const designPersonalityMap: Record<string, string> = {
+    // Original personalities (kept for backwards compatibility)
     'simple-logo': 'as a clean minimalist logo',
     illustration: 'as a detailed hand-drawn illustration',
     'abstract-art': 'as abstract artistic patterns',
     'text-heavy': 'with bold typography and text elements',
     character: 'featuring a unique character design',
+    // NEW: Christmas-themed personalities
+    'cute-characters': 'featuring adorable Christmas characters like Santa Claus, reindeer, snowmen, and elves',
+    'festive-typography': 'with beautiful hand-lettered Christmas quotes and holiday greetings',
+    'christmas-scene': 'depicting a magical Christmas scene with snow, decorated trees, and cozy winter landscapes',
+    'ugly-sweater': 'in classic ugly Christmas sweater style with tacky fun patterns and holiday motifs',
+    'elegant-ornaments': 'featuring sophisticated Christmas ornaments, bells, and elegant holiday décor',
   };
 
   const vibe = answers.vibe ? vibeMap[answers.vibe] : 'creative design';

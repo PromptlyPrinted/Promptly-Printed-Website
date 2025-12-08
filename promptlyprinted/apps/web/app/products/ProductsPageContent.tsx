@@ -1907,11 +1907,13 @@ function ProductCard({ product, viewMode, colors }: ProductCardProps) {
         <div className="flex items-center justify-between mt-3">
           <div className="flex items-center gap-2">
             <span className="font-bold text-lg" style={{ color: colors.accent }}>
-              ${displayPrice?.toFixed(2) || '0.00'}
+              {typeof displayPrice === 'number' ? (
+                <PriceDisplay amountUSD={displayPrice} />
+              ) : '—'}
             </span>
             {product.originalPrice && (
               <span className="text-sm line-through" style={{ color: colors.gray400 }}>
-                ${product.originalPrice.toFixed(2)}
+                <PriceDisplay amountUSD={product.originalPrice} />
               </span>
             )}
           </div>
