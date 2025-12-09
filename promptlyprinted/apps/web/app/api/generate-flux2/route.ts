@@ -10,6 +10,7 @@ import {
   MODEL_CREDIT_COSTS,
 } from '@/lib/credits';
 import { processAIGeneratedImage } from '@/lib/image-processing';
+import { storage } from '@/lib/storage';
 
 if (!process.env.TOGETHER_API_KEY) {
   console.warn('TOGETHER_API_KEY is not set - Flux 2 Pro features will not work');
@@ -150,10 +151,38 @@ export async function POST(request: Request) {
         throw new Error('No image data returned from Flux 2 Pro API');
       }
 
-      const generatedImageUrl = response.data[0].url;
+      const togetherImageUrl = response.data[0].url;
       const generationTimeMs = Date.now() - startTime;
 
-      console.log('Flux 2 Pro generation successful, URL:', generatedImageUrl);
+      if (!togetherImageUrl) {
+        throw new Error('No image URL returned from Flux 2 Pro API');
+      }
+
+      console.log('Flux 2 Pro generation successful, original URL:', togetherImageUrl);
+
+      // RE-HOST TO R2: Fetch Together AI image and upload to our storage
+      // This prevents CORS issues since Together AI URLs have restrictive policies
+      let generatedImageUrl: string = togetherImageUrl;
+      try {
+        console.log('[Flux 2 Pro] Re-hosting Together AI image to R2...');
+        const imageResponse = await fetch(togetherImageUrl);
+        if (!imageResponse.ok) {
+          throw new Error(`Failed to fetch: ${imageResponse.status}`);
+        }
+        const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+        const contentType = imageResponse.headers.get('content-type') || 'image/png';
+        const extension = contentType.includes('jpeg') || contentType.includes('jpg') ? 'jpg' : 'png';
+        const filename = `flux2-generated-${Date.now()}.${extension}`;
+        
+        generatedImageUrl = await storage.uploadFromBuffer(imageBuffer, filename, contentType, {
+          folder: 'temp',
+          sessionId: sessionId || undefined,
+        });
+        console.log('[Flux 2 Pro] Re-hosted to R2:', generatedImageUrl);
+      } catch (reHostError) {
+        console.error('[Flux 2 Pro] Failed to re-host to R2, using original URL:', reHostError);
+        // Fall back to original URL (may have CORS issues, but at least image is generated)
+      }
 
       // Generate print-ready version for T-shirt printing
       let printReadyUrl: string | undefined;

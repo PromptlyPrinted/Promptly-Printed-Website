@@ -10,6 +10,7 @@ import {
   MODEL_CREDIT_COSTS,
 } from '@/lib/credits';
 import { processAIGeneratedImage } from '@/lib/image-processing';
+import { storage } from '@/lib/storage';
 
 if (!process.env.TOGETHER_API_KEY) {
   throw new Error('TOGETHER_API_KEY is not set');
@@ -62,7 +63,7 @@ export async function POST(request: Request) {
       }
     } else {
       // GUEST CREDIT CHECK: Unauthenticated users
-      const guestCheck = await checkGuestCredits(sessionId, authContext.ipAddress);
+      const guestCheck = await checkGuestCredits(sessionId, authContext.ipAddress ?? undefined);
 
       if (!guestCheck.allowed) {
         return NextResponse.json(
@@ -173,7 +174,35 @@ export async function POST(request: Request) {
       }
 
       const generationTimeMs = Date.now() - startTime;
-      const imageUrl = response.data[0]?.url || response.data[0]?.b64_json;
+      const togetherImageUrl = response.data[0]?.url || response.data[0]?.b64_json;
+      
+      if (!togetherImageUrl) {
+        throw new Error('No image URL returned from Together AI');
+      }
+
+      // RE-HOST TO R2: Fetch Together AI image and upload to our storage
+      // This prevents CORS issues since Together AI URLs have restrictive policies
+      let imageUrl: string = togetherImageUrl;
+      try {
+        console.log('[Generate Image] Re-hosting Together AI image to R2...');
+        const imageResponse = await fetch(togetherImageUrl);
+        if (!imageResponse.ok) {
+          throw new Error(`Failed to fetch: ${imageResponse.status}`);
+        }
+        const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+        const contentType = imageResponse.headers.get('content-type') || 'image/png';
+        const extension = contentType.includes('jpeg') || contentType.includes('jpg') ? 'jpg' : 'png';
+        const filename = `generated-${Date.now()}.${extension}`;
+        
+        imageUrl = await storage.uploadFromBuffer(imageBuffer, filename, contentType, {
+          folder: 'temp',
+          sessionId: sessionId || undefined,
+        });
+        console.log('[Generate Image] Re-hosted to R2:', imageUrl);
+      } catch (reHostError) {
+        console.error('[Generate Image] Failed to re-host to R2, using original URL:', reHostError);
+        // Fall back to original URL (may have CORS issues, but at least image is generated)
+      }
 
       // Generate print-ready version for T-shirt printing
       let printReadyUrl: string | undefined;
@@ -222,10 +251,10 @@ export async function POST(request: Request) {
         });
 
         return NextResponse.json({
-          data: response.data.map((item: any) => ({
-            ...item,
+          data: [{
+            url: imageUrl,  // R2-hosted URL (not Together AI URL)
             printReadyUrl,
-          })),
+          }],
           credits: {
             used: deduction.deducted,
             remaining: deduction.newBalance,
@@ -233,7 +262,7 @@ export async function POST(request: Request) {
         });
       } else {
         // Deduct guest credit
-        await deductGuestCredit(sessionId, authContext.ipAddress);
+        await deductGuestCredit(sessionId, authContext.ipAddress ?? undefined);
 
         // Record in database (no user ID)
         await recordImageGeneration({
@@ -253,13 +282,13 @@ export async function POST(request: Request) {
         });
 
         // Check remaining credits
-        const updatedCredits = await checkGuestCredits(sessionId, authContext.ipAddress);
+        const updatedCredits = await checkGuestCredits(sessionId, authContext.ipAddress ?? undefined);
 
         return NextResponse.json({
-          data: response.data.map((item: any) => ({
-            ...item,
+          data: [{
+            url: imageUrl,  // R2-hosted URL (not Together AI URL)
             printReadyUrl,
-          })),
+          }],
           guestInfo: {
             remaining: updatedCredits.remaining,
             total: updatedCredits.total,
