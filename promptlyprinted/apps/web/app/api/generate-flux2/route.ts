@@ -120,25 +120,28 @@ export async function POST(request: Request) {
       const together = new Together({ apiKey: TOGETHER_API_KEY });
 
       // Build the request parameters
-      // For Flux 2 Pro, image_url can be a single URL or an array for multi-reference
-      let imageUrlParam: string | string[];
-
+      // FLUX.2-pro uses 'reference_images' array for image-to-image (not 'image_url')
+      // According to Together AI docs: https://docs.together.ai/docs/quickstart-flux-2
+      const allReferenceImages: string[] = [];
+      
+      // Add main image first
+      if (imageUrl) {
+        allReferenceImages.push(imageUrl);
+      }
+      
+      // Add additional reference images
       if (referenceImages.length > 0) {
-        // Multi-reference mode: combine main image + reference images
-        console.log(`Using ${referenceImages.length + 1} total images (1 main + ${referenceImages.length} references)`);
-        imageUrlParam = [imageUrl, ...referenceImages];
-      } else {
-        // Single image mode
-        imageUrlParam = imageUrl;
+        allReferenceImages.push(...referenceImages);
+        console.log(`Using ${allReferenceImages.length} total reference images`);
       }
 
       const requestParams: any = {
         model: 'black-forest-labs/FLUX.2-pro',
         width,
         height,
-        steps,
         prompt,
-        image_url: imageUrlParam,
+        // FLUX.2-pro uses reference_images array, not image_url
+        reference_images: allReferenceImages,
       };
 
       const response = await together.images.create(requestParams);

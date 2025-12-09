@@ -27,7 +27,7 @@ export async function POST(request: Request) {
   const startTime = Date.now();
 
   try {
-    const { prompt, models, loraScale, width, height, dpi, aiModel = 'flux-dev' } =
+    const { prompt, models, loraScale, width, height, dpi, aiModel = 'flux-dev', image_url } =
       await request.json();
 
     if (!prompt || !models || !models.length) {
@@ -138,15 +138,33 @@ export async function POST(request: Request) {
 
       console.log('Using dimensions:', { targetWidth, targetHeight });
 
-      const response = await together.images.create({
+      // Check if this is a Kontext model (image-to-image)
+      const isKontextModel = baseModel.model.includes('Kontext');
+      
+      // Build request parameters
+      const requestParams: any = {
         model: baseModel.model,
         prompt: prompt,
         n: 1,
-        steps: 4,
+        steps: isKontextModel ? 24 : 4, // Kontext models need more steps
         width: targetWidth,
         height: targetHeight,
-        image_loras: imageLoras,
-      });
+      };
+      
+      // Add image_loras only if there are LoRAs (not applicable for Kontext models)
+      if (imageLoras.length > 0 && !isKontextModel) {
+        requestParams.image_loras = imageLoras;
+      }
+      
+      // Add image_url for Kontext image-to-image models
+      if (image_url && isKontextModel) {
+        requestParams.image_url = image_url;
+        console.log('Using image-to-image mode with Kontext model');
+      } else if (isKontextModel && !image_url) {
+        throw new Error('Kontext models require an image_url for image-to-image transformation');
+      }
+
+      const response = await together.images.create(requestParams);
 
       console.log('Together AI response:', response);
 

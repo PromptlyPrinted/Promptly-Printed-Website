@@ -52,9 +52,9 @@ export async function POST(request: Request) {
 
     let finalUrl = url;
 
-    // If URL is base64, upload it to /temp storage (LOW-RES ONLY, NO UPSCALING)
+    // Handle base64 data URLs
     if (isDataUrl(url)) {
-      console.log('[Save Temp Image] Uploading to /temp folder (low-res, no 300 DPI)...');
+      console.log('[Save Temp Image] Uploading base64 data URL to /temp folder...');
 
       try {
         // Upload to /temp folder with session ID for organization
@@ -66,6 +66,48 @@ export async function POST(request: Request) {
       } catch (uploadError) {
         console.error('[Save Temp Image] Upload failed:', uploadError);
         throw new Error('Failed to save image to temp storage');
+      }
+    } 
+    // Handle HTTP URLs (e.g., Together AI URLs) - fetch and re-host to R2
+    else if (url.startsWith('http://') || url.startsWith('https://')) {
+      console.log('[Save Temp Image] Fetching remote URL and re-hosting to R2...');
+      console.log('[Save Temp Image] Source URL:', url.substring(0, 100) + '...');
+
+      try {
+        // Fetch the image from the remote URL (server-side, bypasses CORS)
+        const imageResponse = await fetch(url);
+        
+        if (!imageResponse.ok) {
+          throw new Error(`Failed to fetch image: ${imageResponse.status} ${imageResponse.statusText}`);
+        }
+
+        // Get the image as a buffer
+        const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+        const contentType = imageResponse.headers.get('content-type') || 'image/png';
+        
+        // Determine file extension from content type
+        const extensionMap: Record<string, string> = {
+          'image/png': 'png',
+          'image/jpeg': 'jpg',
+          'image/jpg': 'jpg',
+          'image/webp': 'webp',
+          'image/gif': 'gif',
+        };
+        const extension = extensionMap[contentType] || 'png';
+        const filename = `draft-image-${Date.now()}.${extension}`;
+
+        console.log('[Save Temp Image] Fetched image, size:', imageBuffer.length, 'bytes, type:', contentType);
+
+        // Upload to R2 storage
+        finalUrl = await storage.uploadFromBuffer(imageBuffer, filename, contentType, {
+          folder: 'temp',
+          sessionId,
+        });
+        
+        console.log('[Save Temp Image] Re-hosted to R2:', finalUrl);
+      } catch (fetchError) {
+        console.error('[Save Temp Image] Failed to fetch/re-host remote URL:', fetchError);
+        throw new Error(`Failed to re-host image: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`);
       }
     }
 
