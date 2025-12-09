@@ -872,8 +872,11 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
 
   // ---- Nano Banana Generation ----
   const handleNanoBananaGeneration = async () => {
-    // Note: Auth check removed - guests get 1 free generation
-    // The API will return 429 error when credits are exhausted, which triggers sign-up modal
+    // Auth check - show sign-up prompt if not authenticated
+    if (!session?.user) {
+      setShowSignUpPrompt(true);
+      return;
+    }
 
     const currentPrompt = nanoBananaPrompt || promptText;
 
@@ -1244,8 +1247,11 @@ export function ProductDetail({ product, isDesignMode = false }: ProductDetailPr
 
   // ---- Generate Image ----
   const handleImageGeneration = async () => {
-    // Note: Auth check removed - guests get 1 free generation
-    // The API will return 429 error when credits are exhausted, which triggers sign-up modal
+    // Auth check - show sign-up prompt if not authenticated
+    if (!session?.user) {
+      setShowSignUpPrompt(true);
+      return;
+    }
 
     // Validation for Text-to-Image mode
     if (generationMode === 'text' && !promptText.trim()) {

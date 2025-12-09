@@ -1,10 +1,11 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from '@repo/auth/client';
 import { Button } from '@repo/design-system/components/ui/button';
 import { StyleQuizAnswers } from '../page';
-import { Sparkles, TrendingUp, Users, Gift } from 'lucide-react';
+import { Sparkles, TrendingUp, Users, Gift, Zap, Heart, ShoppingBag, LogIn } from 'lucide-react';
 import {
   selectProductFromQuiz,
   generateAIPrompt,
@@ -13,6 +14,14 @@ import {
   GIVEAWAY_ITEMS,
   AI_MODEL_INFO,
 } from '@/lib/quiz-product-selector';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@repo/design-system/components/ui/dialog';
+import Link from 'next/link';
 
 type StyleResultProps = {
   answers: StyleQuizAnswers;
@@ -55,6 +64,8 @@ const STYLE_PROFILES = {
 
 export const StyleResult = ({ answers }: StyleResultProps) => {
   const router = useRouter();
+  const { data: session, isPending } = useSession();
+  const [showAuthGate, setShowAuthGate] = useState(false);
 
   // Generate personalized AI prompt using new logic
   const stylePrompt = useMemo(() => generateAIPrompt(answers), [answers]);
@@ -86,8 +97,8 @@ export const StyleResult = ({ answers }: StyleResultProps) => {
     ? AI_MODEL_INFO[answers.aiModel]
     : null;
 
-  // Handle CTA - go to offer page
-  const handleGenerateDesign = () => {
+  // Build the offer URL with all quiz params
+  const buildOfferUrl = () => {
     const params = new URLSearchParams({
       prompt: stylePrompt,
       style: answers.vibe || '',
@@ -112,8 +123,37 @@ export const StyleResult = ({ answers }: StyleResultProps) => {
     if ((answers as any).utm_content) params.set('utm_content', (answers as any).utm_content);
     if ((answers as any).utm_term) params.set('utm_term', (answers as any).utm_term);
 
-    // Go to offer page first (Step 4 in your flow)
-    router.push(`/offer?${params.toString()}`);
+    return `/offer?${params.toString()}`;
+  };
+
+  // Handle CTA - check auth first, then go to offer page
+  const handleGenerateDesign = () => {
+    // If not authenticated, show auth gate
+    if (!session?.user) {
+      setShowAuthGate(true);
+      return;
+    }
+
+    // User is authenticated - proceed to offer page
+    router.push(buildOfferUrl());
+  };
+
+  // Get sign-up URL with redirect back to offer
+  const getSignUpUrl = () => {
+    const offerUrl = buildOfferUrl();
+    // Construct full URL for redirect
+    const fullOfferUrl = typeof window !== 'undefined' 
+      ? `${window.location.origin}${offerUrl}`
+      : offerUrl;
+    return `/sign-up?redirect=${encodeURIComponent(fullOfferUrl)}`;
+  };
+
+  const getSignInUrl = () => {
+    const offerUrl = buildOfferUrl();
+    const fullOfferUrl = typeof window !== 'undefined' 
+      ? `${window.location.origin}${offerUrl}`
+      : offerUrl;
+    return `/sign-in?redirect=${encodeURIComponent(fullOfferUrl)}`;
   };
 
   const handleChangeStyle = () => {
@@ -122,6 +162,85 @@ export const StyleResult = ({ answers }: StyleResultProps) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
+      {/* Auth Gate Modal */}
+      <Dialog open={showAuthGate} onOpenChange={setShowAuthGate}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Sparkles className="w-6 h-6 text-[#16C1A8]" />
+              Unlock Your Personalized Design
+            </DialogTitle>
+            <DialogDescription className="text-base">
+              Create a free account to claim your exclusive offer and start generating AI designs
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Benefits */}
+            <div className="space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-[#16C1A8]/10 flex items-center justify-center flex-shrink-0">
+                  <Gift className="w-4 h-4 text-[#16C1A8]" />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900">{Math.round(giveawayInfo.discount * 100)}% Off First Order</p>
+                  <p className="text-sm text-gray-500">Your exclusive quiz discount is waiting</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-[#16C1A8]/10 flex items-center justify-center flex-shrink-0">
+                  <Zap className="w-4 h-4 text-[#16C1A8]" />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900">50 Free Credits</p>
+                  <p className="text-sm text-gray-500">Generate unlimited AI designs</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-[#16C1A8]/10 flex items-center justify-center flex-shrink-0">
+                  <Heart className="w-4 h-4 text-[#16C1A8]" />
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-900">Save Your Creations</p>
+                  <p className="text-sm text-gray-500">Build your personal design library</p>
+                </div>
+              </div>
+            </div>
+
+            {/* CTA Buttons */}
+            <div className="space-y-3 pt-2">
+              <Button
+                asChild
+                className="w-full text-white"
+                style={{ background: 'linear-gradient(to right, #16C1A8, #0D2C45)' }}
+              >
+                <Link href={getSignUpUrl()}>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Sign Up Free — Claim My Offer
+                </Link>
+              </Button>
+
+              <div className="text-center">
+                <p className="text-sm text-gray-500">
+                  Already have an account?{' '}
+                  <Link href={getSignInUrl()} className="font-medium text-[#16C1A8] hover:underline">
+                    Sign in
+                  </Link>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-center pt-2 border-t">
+            <p className="text-xs text-gray-400">
+              No credit card required • Takes 30 seconds
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Header */}
       <header className="border-b border-gray-200 bg-white">
         <div className="container mx-auto px-6 py-4">
