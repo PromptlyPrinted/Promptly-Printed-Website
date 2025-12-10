@@ -159,7 +159,37 @@ export async function POST(request: Request) {
       
       // Add image_url for Kontext image-to-image models
       if (image_url && isKontextModel) {
-        requestParams.image_url = image_url;
+        // Together AI requires publicly accessible URLs, not data URLs or blob URLs
+        // If the image_url is a data URL, upload it to R2 first
+        let publicImageUrl = image_url;
+        
+        if (image_url.startsWith('data:')) {
+          console.log('[Generate Image] Re-hosting data URL to R2 for Together AI...');
+          try {
+            // Extract base64 data and MIME type
+            const matches = image_url.match(/^data:([^;]+);base64,(.+)$/);
+            if (matches) {
+              const mimeType = matches[1];
+              const base64Data = matches[2];
+              const buffer = Buffer.from(base64Data, 'base64');
+              const extension = mimeType.includes('png') ? 'png' : 'jpg';
+              const filename = `input-${Date.now()}.${extension}`;
+              
+              publicImageUrl = await storage.uploadFromBuffer(buffer, filename, mimeType, {
+                folder: 'temp',
+                sessionId: sessionId || undefined,
+              });
+              console.log('[Generate Image] Re-hosted input image to:', publicImageUrl);
+            }
+          } catch (uploadError) {
+            console.error('[Generate Image] Failed to re-host input image:', uploadError);
+            throw new Error('Failed to process reference image for Together AI');
+          }
+        } else if (image_url.startsWith('blob:')) {
+          throw new Error('Blob URLs are not supported. Please upload the image first.');
+        }
+        
+        requestParams.image_url = publicImageUrl;
         console.log('Using image-to-image mode with Kontext model');
       } else if (isKontextModel && !image_url) {
         throw new Error('Kontext models require an image_url for image-to-image transformation');

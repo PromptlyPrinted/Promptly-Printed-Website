@@ -9,6 +9,7 @@ import {
   MODEL_CREDIT_COSTS,
 } from '@/lib/credits';
 import { processAIGeneratedImage } from '@/lib/image-processing';
+import sharp from 'sharp';
 
 if (!process.env.GOOGLE_GEMINI_API_KEY) {
   console.warn('GOOGLE_GEMINI_API_KEY is not set - Nano Banana features will not work');
@@ -23,17 +24,35 @@ interface EditHistoryItem {
   timestamp: number;
 }
 
+// MIME types supported by Gemini API
+const GEMINI_SUPPORTED_MIME_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+
 /**
  * Helper function to fetch and convert image to base64
+ * Converts unsupported formats (like AVIF) to PNG for Gemini compatibility
  */
 async function fetchImageAsBase64(imageUrl: string): Promise<{ data: string; mimeType: string }> {
   // Check if it's already a base64 data URL
   if (imageUrl.startsWith('data:image/')) {
     const matches = imageUrl.match(/^data:([^;]+);base64,(.+)$/);
     if (matches) {
+      const mimeType = matches[1];
+      const data = matches[2];
+      
+      // If MIME type is not supported by Gemini, convert to PNG
+      if (!GEMINI_SUPPORTED_MIME_TYPES.includes(mimeType)) {
+        console.log(`[fetchImageAsBase64] Converting unsupported ${mimeType} to PNG...`);
+        const buffer = Buffer.from(data, 'base64');
+        const pngBuffer = await sharp(buffer).png().toBuffer();
+        return {
+          data: pngBuffer.toString('base64'),
+          mimeType: 'image/png',
+        };
+      }
+      
       return {
-        data: matches[2],
-        mimeType: matches[1],
+        data: data,
+        mimeType: mimeType,
       };
     }
   }
@@ -45,8 +64,18 @@ async function fetchImageAsBase64(imageUrl: string): Promise<{ data: string; mim
   }
 
   const imageBuffer = await imageResponse.arrayBuffer();
-  const base64Image = Buffer.from(imageBuffer).toString('base64');
-  const mimeType = imageResponse.headers.get('content-type') || 'image/png';
+  let mimeType = imageResponse.headers.get('content-type') || 'image/png';
+  let base64Image: string;
+
+  // If MIME type is not supported by Gemini (e.g., AVIF), convert to PNG
+  if (!GEMINI_SUPPORTED_MIME_TYPES.includes(mimeType)) {
+    console.log(`[fetchImageAsBase64] Converting unsupported ${mimeType} to PNG...`);
+    const pngBuffer = await sharp(Buffer.from(imageBuffer)).png().toBuffer();
+    base64Image = pngBuffer.toString('base64');
+    mimeType = 'image/png';
+  } else {
+    base64Image = Buffer.from(imageBuffer).toString('base64');
+  }
 
   return {
     data: base64Image,

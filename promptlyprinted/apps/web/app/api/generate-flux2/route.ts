@@ -120,19 +120,49 @@ export async function POST(request: Request) {
     try {
       const together = new Together({ apiKey: TOGETHER_API_KEY });
 
+      // Helper function to re-host data URLs to R2
+      async function ensurePublicUrl(url: string, index: number): Promise<string> {
+        if (url.startsWith('data:')) {
+          console.log(`[Flux 2 Pro] Re-hosting data URL ${index} to R2...`);
+          const matches = url.match(/^data:([^;]+);base64,(.+)$/);
+          if (matches) {
+            const mimeType = matches[1];
+            const base64Data = matches[2];
+            const buffer = Buffer.from(base64Data, 'base64');
+            const extension = mimeType.includes('png') ? 'png' : 'jpg';
+            const filename = `flux2-input-${Date.now()}-${index}.${extension}`;
+            
+            const publicUrl = await storage.uploadFromBuffer(buffer, filename, mimeType, {
+              folder: 'temp',
+              sessionId: sessionId || undefined,
+            });
+            console.log(`[Flux 2 Pro] Re-hosted to:`, publicUrl);
+            return publicUrl;
+          }
+        }
+        if (url.startsWith('blob:')) {
+          throw new Error('Blob URLs are not supported. Please upload the image first.');
+        }
+        return url;
+      }
+
       // Build the request parameters
       // FLUX.2-pro uses 'reference_images' array for image-to-image (not 'image_url')
       // According to Together AI docs: https://docs.together.ai/docs/quickstart-flux-2
       const allReferenceImages: string[] = [];
       
-      // Add main image first
+      // Add main image first (re-host if needed)
       if (imageUrl) {
-        allReferenceImages.push(imageUrl);
+        const publicMainUrl = await ensurePublicUrl(imageUrl, 0);
+        allReferenceImages.push(publicMainUrl);
       }
       
-      // Add additional reference images
+      // Add additional reference images (re-host if needed)
       if (referenceImages.length > 0) {
-        allReferenceImages.push(...referenceImages);
+        for (let i = 0; i < referenceImages.length; i++) {
+          const publicRefUrl = await ensurePublicUrl(referenceImages[i], i + 1);
+          allReferenceImages.push(publicRefUrl);
+        }
         console.log(`Using ${allReferenceImages.length} total reference images`);
       }
 
