@@ -1,0 +1,38 @@
+# Docker Compose for ChatGPT App
+# Use this for standalone deployment or integrate into your main docker-compose.yaml
+
+version: '3.8'
+
+services:
+  chatgpt-app:
+    build:
+      context: ../..  # Build from monorepo root
+      dockerfile: packages/chatgpt-app/Dockerfile
+    container_name: promptlyprinted-chatgpt-app
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    environment:
+      - NODE_ENV=production
+      - PORT=3100
+      - PROMPTLY_PRINTED_URL=https://promptlyprinted.com
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3100/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - promptlyprinted-network
+    labels:
+      # Coolify/Traefik labels for automatic HTTPS
+      - "traefik.enable=true"
+      - "traefik.http.routers.chatgpt-app.rule=Host(`chatgpt-app.promptlyprinted.com`)"
+      - "traefik.http.routers.chatgpt-app.entrypoints=websecure"
+      - "traefik.http.routers.chatgpt-app.tls=true"
+      - "traefik.http.routers.chatgpt-app.tls.certresolver=letsencrypt"
+      - "traefik.http.services.chatgpt-app.loadbalancer.server.port=3100"
+
+networks:
+  promptlyprinted-network:
+    external: true
