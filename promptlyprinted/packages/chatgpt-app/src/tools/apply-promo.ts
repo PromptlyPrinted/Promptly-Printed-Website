@@ -121,7 +121,7 @@ export async function handleApplyPromo(
       });
 
       if (response.ok) {
-        const apiPromo = await response.json();
+        const apiPromo = await response.json() as PromoCodeResult;
         if (apiPromo.valid) {
           return {
             content: [{ 

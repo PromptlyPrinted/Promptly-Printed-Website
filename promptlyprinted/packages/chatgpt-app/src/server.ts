@@ -1,112 +1,158 @@
 /**
  * PromptlyPrinted ChatGPT App - MCP Server
  * 
- * This server implements the Model Context Protocol (MCP) to expose
- * PromptlyPrinted's apparel design capabilities to ChatGPT.
+ * This is a simplified Express server that handles MCP-style tool calls.
+ * Note: The actual MCP SDK integration requires specific setup with ChatGPT Apps.
  */
 
-import express from 'express';
+import express, { Request, Response, Application } from 'express';
 import cors from 'cors';
-import { McpServer, ResourceTemplate, ToolDefinition } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
-import { z } from 'zod';
 
-// Import tools
-import { generateDesignTool, handleGenerateDesign } from './tools/generate-design.js';
-import { listProductsTool, handleListProducts } from './tools/list-products.js';
-import { configureApparelTool, handleConfigureApparel } from './tools/configure-apparel.js';
-import { applyPromoTool, handleApplyPromo } from './tools/apply-promo.js';
-import { checkoutTool, handleCheckout } from './tools/checkout.js';
+// Import tool handlers
+import { handleGenerateDesign, generateDesignInputSchema, GenerateDesignInput } from './tools/generate-design.js';
+import { handleListProducts, listProductsInputSchema, ListProductsInput } from './tools/list-products.js';
+import { handleConfigureApparel, configureApparelInputSchema, ConfigureApparelInput } from './tools/configure-apparel.js';
+import { handleApplyPromo, applyPromoInputSchema, ApplyPromoInput } from './tools/apply-promo.js';
+import { handleCheckout, checkoutInputSchema, CheckoutInput } from './tools/checkout.js';
 
 const PORT = process.env.PORT || 3100;
 const PROMPTLY_PRINTED_URL = process.env.PROMPTLY_PRINTED_URL || 'https://promptlyprinted.com';
 
 // Create Express app
-const app = express();
+const app: Application = express();
 app.use(cors());
 app.use(express.json());
 
-// Create MCP server
-const server = new McpServer({
-  name: 'promptlyprinted',
-  version: '1.0.0',
-});
+// Tool definitions for MCP
+const TOOLS = {
+  generate_design: {
+    name: 'generate_design',
+    description: 'Generate an AI-powered apparel design or apply a user\'s existing image to products.',
+    inputSchema: generateDesignInputSchema,
+    handler: handleGenerateDesign,
+  },
+  list_products: {
+    name: 'list_products',
+    description: 'List available apparel products from PromptlyPrinted.',
+    inputSchema: listProductsInputSchema,
+    handler: handleListProducts,
+  },
+  configure_apparel: {
+    name: 'configure_apparel',
+    description: 'Configure a product with a design, color, and size.',
+    inputSchema: configureApparelInputSchema,
+    handler: handleConfigureApparel,
+  },
+  apply_promo_code: {
+    name: 'apply_promo_code',
+    description: 'Validate and apply a promotional discount code.',
+    inputSchema: applyPromoInputSchema,
+    handler: handleApplyPromo,
+  },
+  checkout: {
+    name: 'checkout',
+    description: 'Generate checkout link for the configured product.',
+    inputSchema: checkoutInputSchema,
+    handler: handleCheckout,
+  },
+};
 
-// Register component template for the UI widget
-server.resource(
-  'component-template',
-  new ResourceTemplate('component://widget', {
-    list: async () => [{
-      uri: 'component://widget',
-      name: 'PromptlyPrinted Design Widget',
-      mimeType: 'text/html+skybridge',
-    }],
-    complete: {},
-    read: async () => ({
-      contents: [{
-        uri: 'component://widget',
-        mimeType: 'text/html+skybridge',
-        text: getWidgetTemplate(),
-      }],
-    }),
-  })
-);
-
-// Register tools
-server.tool(
-  generateDesignTool.name,
-  generateDesignTool.description,
-  generateDesignTool.inputSchema,
-  handleGenerateDesign
-);
-
-server.tool(
-  listProductsTool.name,
-  listProductsTool.description,
-  listProductsTool.inputSchema,
-  handleListProducts
-);
-
-server.tool(
-  configureApparelTool.name,
-  configureApparelTool.description,
-  configureApparelTool.inputSchema,
-  handleConfigureApparel
-);
-
-server.tool(
-  applyPromoTool.name,
-  applyPromoTool.description,
-  applyPromoTool.inputSchema,
-  handleApplyPromo
-);
-
-server.tool(
-  checkoutTool.name,
-  checkoutTool.description,
-  checkoutTool.inputSchema,
-  handleCheckout
-);
-
-// MCP endpoint
-app.all('/mcp', async (req, res) => {
-  const transport = new SSEServerTransport('/mcp', res);
-  await server.connect(transport);
-  
-  // Handle the request body for non-SSE requests
-  if (req.method === 'POST' && req.body) {
-    await transport.handleMessage(req.body);
+// MCP endpoint - handles tool calls
+app.post('/mcp', async (req: Request, res: Response) => {
+  try {
+    const { method, params } = req.body;
+    
+    if (method === 'tools/list') {
+      // Return list of available tools
+      const tools = Object.values(TOOLS).map(t => ({
+        name: t.name,
+        description: t.description,
+        inputSchema: {
+          type: 'object',
+          properties: t.inputSchema,
+        },
+      }));
+      res.json({ tools });
+      return;
+    }
+    
+    if (method === 'tools/call') {
+      const { name, arguments: args } = params;
+      const tool = TOOLS[name as keyof typeof TOOLS];
+      
+      if (!tool) {
+        res.status(400).json({ error: `Unknown tool: ${name}` });
+        return;
+      }
+      
+      // Call the handler based on tool name
+      let result;
+      switch (name) {
+        case 'generate_design':
+          result = await handleGenerateDesign(args as GenerateDesignInput);
+          break;
+        case 'list_products':
+          result = await handleListProducts(args as ListProductsInput);
+          break;
+        case 'configure_apparel':
+          result = await handleConfigureApparel(args as ConfigureApparelInput);
+          break;
+        case 'apply_promo_code':
+          result = await handleApplyPromo(args as ApplyPromoInput);
+          break;
+        case 'checkout':
+          result = await handleCheckout(args as CheckoutInput);
+          break;
+        default:
+          res.status(400).json({ error: `Unknown tool: ${name}` });
+          return;
+      }
+      
+      res.json(result);
+      return;
+    }
+    
+    // Return server info for other methods
+    res.json({
+      name: 'promptlyprinted',
+      version: '1.0.0',
+      tools: Object.keys(TOOLS),
+    });
+    
+  } catch (error) {
+    console.error('MCP error:', error);
+    res.status(500).json({ 
+      error: error instanceof Error ? error.message : 'Internal server error' 
+    });
   }
 });
 
+// SSE endpoint for real-time updates (optional)
+app.get('/mcp', (req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  
+  res.write(`data: ${JSON.stringify({ type: 'connected', server: 'promptlyprinted' })}\n\n`);
+  
+  // Keep connection alive
+  const keepAlive = setInterval(() => {
+    res.write(': keepalive\n\n');
+  }, 30000);
+  
+  req.on('close', () => {
+    clearInterval(keepAlive);
+  });
+});
+
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok', service: 'promptlyprinted-chatgpt-app' });
 });
 
-// Widget template
-function getWidgetTemplate(): string {
-  return `
+// Widget template endpoint
+app.get('/widget', (_req: Request, res: Response) => {
+  res.send(`
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -120,8 +166,8 @@ function getWidgetTemplate(): string {
   <div id="root"></div>
 </body>
 </html>
-  `.trim();
-}
+  `.trim());
+});
 
 // Start server
 app.listen(PORT, () => {
@@ -130,4 +176,4 @@ app.listen(PORT, () => {
   console.log(`🏥 Health check: http://localhost:${PORT}/health`);
 });
 
-export { server, app };
+export { app };
