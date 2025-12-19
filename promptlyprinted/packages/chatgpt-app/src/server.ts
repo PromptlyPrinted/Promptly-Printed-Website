@@ -169,6 +169,15 @@ app.get('/widget', (_req: Request, res: Response) => {
   `.trim());
 });
 
+// OAuth discovery endpoint for ChatGPT Connectors
+app.get('/.well-known/oauth-protected-resource', (_req: Request, res: Response) => {
+  res.json({
+    authorization_servers: [
+      `${PROMPTLY_PRINTED_URL}/api/auth`
+    ]
+  });
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 PromptlyPrinted ChatGPT App MCP Server running on port ${PORT}`);
