@@ -1,13 +1,17 @@
-# Docker Compose for ChatGPT App
-# For Coolify: Use the root-level docker-compose.chatgpt.yaml instead
-# This file is for local development
+# ChatGPT App - Docker Compose for Coolify
+# Place this at repository ROOT or point Coolify to packages/chatgpt-app/docker-compose.yaml
+# 
+# Coolify Setup:
+# 1. Add Resource → Docker Compose
+# 2. Base Directory: /packages/chatgpt-app
+# 3. Docker Compose File: docker-compose.yaml
 
 version: '3.8'
 
 services:
   chatgpt-app:
     build:
-      context: .
+      context: ./packages/chatgpt-app
       dockerfile: Dockerfile
     container_name: promptlyprinted-chatgpt-app
     restart: unless-stopped
@@ -23,17 +27,10 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
-    networks:
-      - promptlyprinted-network
     labels:
-      # Coolify/Traefik labels for automatic HTTPS
       - "traefik.enable=true"
       - "traefik.http.routers.chatgpt-app.rule=Host(`chatgpt-app.promptlyprinted.com`)"
       - "traefik.http.routers.chatgpt-app.entrypoints=websecure"
       - "traefik.http.routers.chatgpt-app.tls=true"
       - "traefik.http.routers.chatgpt-app.tls.certresolver=letsencrypt"
       - "traefik.http.services.chatgpt-app.loadbalancer.server.port=3100"
-
-networks:
-  promptlyprinted-network:
-    external: true
