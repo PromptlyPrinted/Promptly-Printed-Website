@@ -52,19 +52,20 @@ export interface ListProductsResult {
 
 // Popular products to show (curated for ChatGPT experience)
 // Limited to T-shirts and Hoodies per business requirements
+// Prices sourced from apps/web/data/products.ts
 const POPULAR_PRODUCTS: ProductInfo[] = [
   {
     sku: 'TEE-SS-STTU755',
     name: "Men's Classic T-Shirt",
     category: 't-shirts',
-    price: { amount: 29.99, currency: 'USD' },
+    price: { amount: 72, currency: 'USD' },
     colors: [
       { name: 'White', hex: '#FFFFFF' },
       { name: 'Black', hex: '#000000' },
-      { name: 'Navy', hex: '#1B1B3A' },
-      { name: 'Heather Grey', hex: '#9E9E9E' },
+      { name: 'French Navy', hex: '#1B1B3A' },
+      { name: 'Dark Heather Grey', hex: '#9E9E9E' },
     ],
-    sizes: ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'],
+    sizes: ['2XS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL'],
     imageUrl: 'https://promptlyprinted.com/assets/images/Apparel/Mens/T-Shirts/TEE-SS-STTU755/Blanks/png/white.png',
     description: 'Premium 100% organic cotton unisex t-shirt with modern fit',
   },
@@ -72,20 +73,20 @@ const POPULAR_PRODUCTS: ProductInfo[] = [
     sku: 'GLOBAL-TEE-BC-3413',
     name: "Triblend T-Shirt",
     category: 't-shirts',
-    price: { amount: 32.99, currency: 'USD' },
+    price: { amount: 70, currency: 'USD' },
     colors: [
       { name: 'Military Green', hex: '#4B5320' },
       { name: 'Vintage Royal', hex: '#4169E1' },
     ],
-    sizes: ['XS', 'S', 'M', 'L', 'XL', '2XL'],
+    sizes: ['S', 'M', 'L', 'XL', '2XL'],
     imageUrl: 'https://promptlyprinted.com/assets/images/Apparel/Mens/T-Shirts/GLOBAL-TEE-BC-3413/Blanks/png/military-green-triblend.png',
     description: 'Ultra-soft triblend for premium comfort',
   },
   {
-    sku: 'GLOBAL-HO-JH030J',
+    sku: 'SWEAT-AWD-JH030B',
     name: "Classic Hoodie",
     category: 'hoodies',
-    price: { amount: 49.99, currency: 'USD' },
+    price: { amount: 68, currency: 'USD' },
     colors: [
       { name: 'Black', hex: '#000000' },
       { name: 'Heather Grey', hex: '#9E9E9E' },
