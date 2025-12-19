@@ -220,6 +220,84 @@ app.get('/widget', (_req: Request, res: Response) => {
   `.trim());
 });
 
+// --- OAuth & DCR Implementation ---
+
+// OpenID Configuration Discovery (Required by ChatGPT Connectors)
+app.get('/.well-known/openid-configuration', (_req: Request, res: Response) => {
+  res.json({
+    issuer: `${PROMPTLY_PRINTED_URL}/api/auth`,
+    authorization_endpoint: `${PROMPTLY_PRINTED_URL}/api/auth/authorize`,
+    token_endpoint: `${PROMPTLY_PRINTED_URL}/api/auth/token`,
+    registration_endpoint: `${PROMPTLY_PRINTED_URL}/api/auth/register`,
+    jwks_uri: `${PROMPTLY_PRINTED_URL}/api/auth/jwks`,
+    response_types_supported: ["code"],
+    subject_types_supported: ["public"],
+    id_token_signing_alg_values_supported: ["RS256"],
+    scopes_supported: ["openid", "profile", "email"],
+    token_endpoint_auth_methods_supported: ["client_secret_post", "client_secret_basic"],
+    claims_supported: ["sub", "email", "name"]
+  });
+});
+
+// OAuth Protected Resource Metadata
+app.get('/.well-known/oauth-protected-resource', (_req: Request, res: Response) => {
+  res.json({
+    resource: `${PROMPTLY_PRINTED_URL}/mcp`,
+    authorization_servers: [
+      `${PROMPTLY_PRINTED_URL}/api/auth`
+    ]
+  });
+});
+
+// Dynamic Client Registration (RFC 7591)
+app.post('/api/auth/register', (req: Request, res: Response) => {
+  console.log('Dynamic Client Registration request:', req.body);
+  
+  // Minimal implementation: Return a stable client ID/secret for ChatGPT
+  res.status(201).json({
+    client_id: "chatgpt-connector-id",
+    client_secret: "chatgpt-connector-secret",
+    client_id_issued_at: Math.floor(Date.now() / 1000),
+    client_name: req.body.client_name || "ChatGPT Connector",
+    redirect_uris: req.body.redirect_uris,
+    grant_types: ["authorization_code"],
+    response_types: ["code"],
+    token_endpoint_auth_method: "client_secret_post"
+  });
+});
+
+// Mock Authorize Endpoint (for "None" or simple bypass)
+app.get('/api/auth/authorize', (req: Request, res: Response) => {
+  const { redirect_uri, state } = req.query;
+  console.log('Authorize request:', { redirect_uri, state });
+  
+  if (redirect_uri) {
+    const callbackUrl = new URL(redirect_uri as string);
+    callbackUrl.searchParams.set('code', 'mock-auth-code');
+    callbackUrl.searchParams.set('state', state as string);
+    res.redirect(callbackUrl.toString());
+  } else {
+    res.status(400).send('Missing redirect_uri');
+  }
+});
+
+// Mock Token Endpoint
+app.post('/api/auth/token', (req: Request, res: Response) => {
+  console.log('Token request:', req.body);
+  
+  res.json({
+    access_token: "mock-access-token",
+    token_type: "Bearer",
+    expires_in: 3600,
+    scope: "openid profile email"
+  });
+});
+
+// Mock JWKS (Required by some OIDC clients)
+app.get('/api/auth/jwks', (_req: Request, res: Response) => {
+  res.json({ keys: [] });
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 PromptlyPrinted ChatGPT App MCP Server running on port ${PORT}`);
