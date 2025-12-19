@@ -34,11 +34,25 @@ export default function NewsletterSection() {
 
     setIsLoading(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    setIsSubmitted(true);
-    setIsLoading(false);
+    try {
+      const response = await fetch('/api/newsletter/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, campaignId: 'blog' }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        console.error('Newsletter subscription failed:', data.error);
+      }
+      
+      setIsSubmitted(true);
+    } catch (error) {
+      console.error('Newsletter subscription error:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

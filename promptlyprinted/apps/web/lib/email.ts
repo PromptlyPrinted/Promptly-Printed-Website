@@ -55,12 +55,24 @@ export async function sendOrderConfirmation({
   items,
   total,
   trackingUrl,
+  discountAmount,
+  shippingAddress,
 }: {
   to: string;
   orderNumber: string;
   items: Array<{ name: string; price: number; copies: number }>;
   total: number;
   trackingUrl?: string | null;
+  discountAmount?: number;
+  shippingAddress?: {
+    name: string;
+    line1: string;
+    line2?: string;
+    city: string;
+    state?: string;
+    postalCode: string;
+    country: string;
+  };
 }) {
   if (!resend) {
     console.warn('Resend not configured, skipping order confirmation');
@@ -72,8 +84,8 @@ export async function sendOrderConfirmation({
       from: `Promptly Printed Orders <${FROM_EMAIL}>`,
       to: [to],
       subject: `Order Confirmation #${orderNumber} - Promptly Printed`,
-      html: getOrderConfirmationHTML(orderNumber, items, total, trackingUrl),
-      text: getOrderConfirmationText(orderNumber, items, total, trackingUrl),
+      html: getOrderConfirmationHTML(orderNumber, items, total, trackingUrl, discountAmount, shippingAddress),
+      text: getOrderConfirmationText(orderNumber, items, total, trackingUrl, discountAmount, shippingAddress),
     });
 
     if (error) {
@@ -415,7 +427,17 @@ function getOrderConfirmationHTML(
   orderNumber: string,
   items: Array<{ name: string; price: number; copies: number }>,
   total: number,
-  trackingUrl?: string | null
+  trackingUrl?: string | null,
+  discountAmount?: number,
+  shippingAddress?: {
+    name: string;
+    line1: string;
+    line2?: string;
+    city: string;
+    state?: string;
+    postalCode: string;
+    country: string;
+  }
 ): string {
   const itemsHTML = items.map(item => `
     <tr>
@@ -428,6 +450,31 @@ function getOrderConfirmationHTML(
       </td>
     </tr>
   `).join('');
+
+  const discountHTML = discountAmount && discountAmount > 0 ? `
+    <tr>
+      <td style="padding: 15px; border-bottom: 1px solid #eeeeee;">
+        <span style="color: #10b981; font-size: 16px;">🎉 Discount Applied</span>
+      </td>
+      <td style="padding: 15px; border-bottom: 1px solid #eeeeee; text-align: right;">
+        <span style="color: #10b981; font-size: 16px;">-£${discountAmount.toFixed(2)}</span>
+      </td>
+    </tr>
+  ` : '';
+
+  const shippingAddressHTML = shippingAddress ? `
+    <h2 style="font-size: 20px; color: #333333; margin: 30px 0 15px 0;">📦 Shipping To</h2>
+    <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+      <p style="margin: 0; color: #333333; font-size: 16px; line-height: 1.6;">
+        <strong>${shippingAddress.name}</strong><br>
+        ${shippingAddress.line1}<br>
+        ${shippingAddress.line2 ? `${shippingAddress.line2}<br>` : ''}
+        ${shippingAddress.city}${shippingAddress.state ? `, ${shippingAddress.state}` : ''}<br>
+        ${shippingAddress.postalCode}<br>
+        ${shippingAddress.country}
+      </p>
+    </div>
+  ` : '';
 
   return `
 <!DOCTYPE html>
@@ -462,12 +509,15 @@ function getOrderConfirmationHTML(
 
               <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #eeeeee; border-radius: 8px; overflow: hidden;">
                 ${itemsHTML}
+                ${discountHTML}
                 <tr>
                   <td style="padding: 20px; background-color: #f9f9f9; text-align: right;" colspan="2">
                     <strong style="color: #333333; font-size: 20px;">Total: £${total.toFixed(2)}</strong>
                   </td>
                 </tr>
               </table>
+
+              ${shippingAddressHTML}
 
               ${trackingUrl ? `
               <table width="100%" cellpadding="0" cellspacing="0">
@@ -523,11 +573,34 @@ function getOrderConfirmationText(
   orderNumber: string,
   items: Array<{ name: string; price: number; copies: number }>,
   total: number,
-  trackingUrl?: string | null
+  trackingUrl?: string | null,
+  discountAmount?: number,
+  shippingAddress?: {
+    name: string;
+    line1: string;
+    line2?: string;
+    city: string;
+    state?: string;
+    postalCode: string;
+    country: string;
+  }
 ): string {
   const itemsText = items.map(item =>
     `${item.name} (x${item.copies}) - £${(item.price * item.copies).toFixed(2)}`
   ).join('\n');
+
+  const discountText = discountAmount && discountAmount > 0 
+    ? `\nDiscount Applied: -£${discountAmount.toFixed(2)}` 
+    : '';
+
+  const shippingText = shippingAddress ? `
+
+SHIPPING TO:
+${shippingAddress.name}
+${shippingAddress.line1}
+${shippingAddress.line2 ? `${shippingAddress.line2}\n` : ''}${shippingAddress.city}${shippingAddress.state ? `, ${shippingAddress.state}` : ''}
+${shippingAddress.postalCode}
+${shippingAddress.country}` : '';
 
   return `
 Order Confirmed! ✅
@@ -537,8 +610,10 @@ Thank you for your order! We're preparing your custom apparel and will send you 
 
 ORDER SUMMARY:
 ${itemsText}
+${discountText}
 
 Total: £${total.toFixed(2)}
+${shippingText}
 
 ${trackingUrl ? `Track Your Order: ${trackingUrl}` : `Track Your Order: ${SITE_URL}/orders/lookup
 Use your email address and order number #${orderNumber} to check your order status.`}
