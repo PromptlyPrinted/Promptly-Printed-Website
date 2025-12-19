@@ -220,31 +220,6 @@ app.get('/widget', (_req: Request, res: Response) => {
   `.trim());
 });
 
-// OpenID Configuration Discovery (Required by ChatGPT Connectors)
-app.get('/.well-known/openid-configuration', (_req: Request, res: Response) => {
-  res.json({
-    issuer: `${PROMPTLY_PRINTED_URL}/api/auth`,
-    authorization_endpoint: `${PROMPTLY_PRINTED_URL}/api/auth/authorize`,
-    token_endpoint: `${PROMPTLY_PRINTED_URL}/api/auth/token`,
-    jwks_uri: `${PROMPTLY_PRINTED_URL}/api/auth/jwks`,
-    response_types_supported: ["code"],
-    subject_types_supported: ["public"],
-    id_token_signing_alg_values_supported: ["RS256"],
-    scopes_supported: ["openid", "profile", "email"],
-    token_endpoint_auth_methods_supported: ["client_secret_post", "client_secret_basic"],
-    claims_supported: ["sub", "email", "name"]
-  });
-});
-
-// OAuth discovery endpoint for ChatGPT Connectors
-app.get('/.well-known/oauth-protected-resource', (_req: Request, res: Response) => {
-  res.json({
-    authorization_servers: [
-      `${PROMPTLY_PRINTED_URL}/api/auth`
-    ]
-  });
-});
-
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 PromptlyPrinted ChatGPT App MCP Server running on port ${PORT}`);
