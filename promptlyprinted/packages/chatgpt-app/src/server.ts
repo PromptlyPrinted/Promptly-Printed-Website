@@ -57,10 +57,36 @@ const TOOLS = {
   },
 };
 
-// MCP endpoint - handles tool calls
+// MCP endpoint - handles tool calls (JSON-RPC 2.0 compliant)
 app.post('/mcp', async (req: Request, res: Response) => {
   try {
-    const { method, params } = req.body;
+    const { jsonrpc, id, method, params } = req.body;
+    
+    // Check for JSON-RPC 2.0
+    if (jsonrpc !== '2.0') {
+      // Keep it somewhat flexible for now but log it
+      console.warn('Received non-JSON-RPC 2.0 request');
+    }
+
+    if (method === 'initialize') {
+      res.json({
+        jsonrpc: '2.0',
+        id,
+        result: {
+          protocolVersion: '2024-11-05',
+          capabilities: {
+            tools: {},
+            prompts: {},
+            resources: {},
+          },
+          serverInfo: {
+            name: 'promptlyprinted-mcp',
+            version: '1.0.0',
+          },
+        }
+      });
+      return;
+    }
     
     if (method === 'tools/list') {
       // Return list of available tools
@@ -72,7 +98,11 @@ app.post('/mcp', async (req: Request, res: Response) => {
           properties: t.inputSchema,
         },
       }));
-      res.json({ tools });
+      res.json({ 
+        jsonrpc: '2.0',
+        id,
+        result: { tools } 
+      });
       return;
     }
     
@@ -81,11 +111,15 @@ app.post('/mcp', async (req: Request, res: Response) => {
       const tool = TOOLS[name as keyof typeof TOOLS];
       
       if (!tool) {
-        res.status(400).json({ error: `Unknown tool: ${name}` });
+        res.status(400).json({ 
+          jsonrpc: '2.0',
+          id,
+          error: { code: -32601, message: `Unknown tool: ${name}` } 
+        });
         return;
       }
       
-      // Call the handler based on tool name
+      // Call the handler
       let result;
       switch (name) {
         case 'generate_design':
@@ -104,38 +138,55 @@ app.post('/mcp', async (req: Request, res: Response) => {
           result = await handleCheckout(args as CheckoutInput);
           break;
         default:
-          res.status(400).json({ error: `Unknown tool: ${name}` });
+          res.status(400).json({ 
+            jsonrpc: '2.0',
+            id,
+            error: { code: -32601, message: `Unknown tool: ${name}` } 
+          });
           return;
       }
       
-      res.json(result);
+      res.json({
+        jsonrpc: '2.0',
+        id,
+        result
+      });
       return;
     }
-    
-    // Return server info for other methods
+
+    // Default response for other methods
     res.json({
-      name: 'promptlyprinted',
-      version: '1.0.0',
-      tools: Object.keys(TOOLS),
+      jsonrpc: '2.0',
+      id,
+      result: {
+        name: 'promptlyprinted',
+        version: '1.0.0',
+        tools: Object.keys(TOOLS),
+      }
     });
     
   } catch (error) {
     console.error('MCP error:', error);
     res.status(500).json({ 
-      error: error instanceof Error ? error.message : 'Internal server error' 
+      jsonrpc: '2.0',
+      id: req.body.id,
+      error: { 
+        code: -32603, 
+        message: error instanceof Error ? error.message : 'Internal server error' 
+      }
     });
   }
 });
 
-// SSE endpoint for real-time updates (optional)
+// SSE endpoint for real-time updates
 app.get('/mcp', (req: Request, res: Response) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
   
+  // Send initial connection event in JSON-RPC format or simple data
   res.write(`data: ${JSON.stringify({ type: 'connected', server: 'promptlyprinted' })}\n\n`);
   
-  // Keep connection alive
   const keepAlive = setInterval(() => {
     res.write(': keepalive\n\n');
   }, 30000);
@@ -167,6 +218,22 @@ app.get('/widget', (_req: Request, res: Response) => {
 </body>
 </html>
   `.trim());
+});
+
+// OpenID Configuration Discovery (Required by ChatGPT Connectors)
+app.get('/.well-known/openid-configuration', (_req: Request, res: Response) => {
+  res.json({
+    issuer: `${PROMPTLY_PRINTED_URL}/api/auth`,
+    authorization_endpoint: `${PROMPTLY_PRINTED_URL}/api/auth/authorize`,
+    token_endpoint: `${PROMPTLY_PRINTED_URL}/api/auth/token`,
+    jwks_uri: `${PROMPTLY_PRINTED_URL}/api/auth/jwks`,
+    response_types_supported: ["code"],
+    subject_types_supported: ["public"],
+    id_token_signing_alg_values_supported: ["RS256"],
+    scopes_supported: ["openid", "profile", "email"],
+    token_endpoint_auth_methods_supported: ["client_secret_post", "client_secret_basic"],
+    claims_supported: ["sub", "email", "name"]
+  });
 });
 
 // OAuth discovery endpoint for ChatGPT Connectors
